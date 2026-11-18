@@ -52,6 +52,16 @@ describe("momentsForEntry (RULES.md 64)", () => {
     ]);
   });
 
+  it("Nova Seed: wymieniony kafel jedzie z momentem bohatera (stary kafel do wybuchu)", () => {
+    const e = entry([
+      fact({ type: "tile_replaced", value: "305", detail: "26>81" }),
+      fact({ type: "leader", player_id: "p1", value: "muaathero", detail: "purged" }),
+    ]);
+    expect(momentsForEntry(e, isHero)).toEqual([
+      { kind: "hero", seq: 7, player: "p1", leaderId: "muaathero", replaced: [{ position: "305", from: "26" }] },
+    ]);
+  });
+
   it("odblokowanie bohatera nie jest użyciem", () => {
     const e = entry([fact({ type: "leader", player_id: "p1", value: "solhero", detail: "unlocked" })]);
     expect(momentsForEntry(e, isHero)).toEqual([]);

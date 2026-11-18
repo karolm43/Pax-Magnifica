@@ -143,3 +143,20 @@ def test_stellar_genesis_z_edytora(registry: StaticDataRegistry) -> None:
     state = flow.state()
     assert "avernus" in state["systems"][position]["added_planets"]
     assert "avernus" in state["players"][flow.me]["controlled_planets"]
+    # Żeton planety widać na mapie (przestrzeń systemu, jak Mirage).
+    data: Json = flow.client.get("/api/public/game/g/web-data").json()
+    tokens = data["tileUnitData"][position]["space"].get("neutral", [])
+    assert {"entityId": "avernus", "entityType": "token", "count": 1} in tokens
+
+
+@covers("breakthroughs:muaatbt")
+def test_stellar_genesis_jedna_opcja_tez_decyzja(registry: StaticDataRegistry) -> None:
+    """Jeden legalny system: gracz i tak klika go na mapie (nic nie dzieje się po cichu)."""
+    flow = Flow(registry, "muaat")
+    flow.post(f"/player/{flow.me}/edit", {"breakthrough_unlocked": True})
+    offer = flow.offer("Stellar Genesis")
+    options = offer["inputs"][0]["options"]
+    assert len(options) == 1
+    assert not any("avernus" in s["added_planets"] for s in flow.state()["systems"].values())
+    flow.accept("Stellar Genesis", {"position": options[0]["value"]})
+    assert "avernus" in flow.state()["systems"][options[0]["value"]]["added_planets"]

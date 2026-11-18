@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Tile } from "@/entities/game/types";
-import { HERO_BOARD_FX, fxTargets } from "./heroBoardFx";
+import { HERO_BOARD_FX, coversForQueue, fxTargets, useHeroFx } from "./heroBoardFx";
 
 function tile(position: string, systemId: string, space: Record<string, string[]>, ground: Record<string, string[]> = {}): Tile {
   const units = (m: Record<string, string[]>) =>
@@ -43,6 +43,18 @@ describe("fxTargets (RULES.md 64.4)", () => {
   it("Nova Seed: kafel supernowej Muaat (po wymianie kafla), jeden", () => {
     const board = [tile("301", "81", { muaat: ["ws"] }), tile("302", "43", { muaat: ["ws"] })];
     expect(fxTargets(HERO_BOARD_FX.muaathero, board, { faction: "muaat", color: "orange" }, "302")).toEqual(["301"]);
+  });
+
+  it("zasłony kafli: z kolejki momentów, odsłonięcie po jednej pozycji", () => {
+    const covers = coversForQueue([
+      { kind: "breakthrough" },
+      { kind: "hero", replaced: [{ position: "305", from: "26" }] },
+    ]);
+    expect(covers).toEqual({ "305": "26" });
+    useHeroFx.getState().setCovers(covers);
+    useHeroFx.getState().uncover("305");
+    expect(useHeroFx.getState().covers).toEqual({});
+    expect(HERO_BOARD_FX.muaathero.revealAt).toBeLessThan(HERO_BOARD_FX.muaathero.ms);
   });
 
   it("każdy bohater z silnika ma przepis", () => {

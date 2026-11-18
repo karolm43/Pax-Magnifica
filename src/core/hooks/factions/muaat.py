@@ -628,9 +628,11 @@ def genesis_systems(state: GameState, registry: StaticDataRegistry, player_id: s
 def genesis_inputs(
     state: GameState, registry: Any, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
+    # ``always``: gracz klika system na mapie także przy jednej legalnej opcji („gain” przełomu
+    # widać na planszy, decyzja nie dzieje się po cichu).
     return [oi.choice("position", "System for the Avernus planet token", [
         _system_option(state, registry, pos) for pos in genesis_systems(state, registry, player_id)
-    ])]
+    ], always=True)]
 
 
 def _gains_genesis(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:

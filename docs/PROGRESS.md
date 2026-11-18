@@ -1139,7 +1139,24 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Animacja: Nova Seed na planszy (`heroBoardFx` → `muaathero`, cel `nova` = kafel `81`, znacznik
   `nova`: rozbłysk gwiazdy, fala uderzeniowa, promienie plazmy) po scenie bohatera; sprawdzone
   zrzutem ekranu. Stellar Genesis — wspólna scena przełomu.
-- ⚠️ ZAŁOŻENIE (do decyzji użytkownika): siły naziemne Muaat z planet wymienionego kafla trafiają
-  do przestrzeni, struktury Muaat z tych planet wracają do rezerwy.
+- Decyzja użytkownika: siły naziemne Muaat z planet wymienionego kafla trafiają do przestrzeni,
+  struktury Muaat z tych planet wracają do rezerwy.
 - QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint (zmienione) ✓, vitest (game-shell, map) ✓.
   e2e i `npm run build` pominięte (bez nowych zależności, kreatora). Wymaga restartu backendu.
+
+## 2026-11-18 — Muaat: żeton Avernus na mapie, decyzja Stellar Genesis, Nova Seed przed wymianą kafla
+
+- ✅ Żeton Avernus widać na mapie: web-data wystawia planety-żetony z `added_planets`
+  (`PLANET_TOKENS` = Mirage, Avernus) jako token w przestrzeni systemu.
+- ✅ Stellar Genesis: wybór systemu klikiem na mapie także przy jednej legalnej opcji
+  (`choice(always=True)`), nic nie dzieje się po cichu.
+- ✅ Nova Seed: do chwili wybuchu mapa rysuje STARY kafel (`useHeroFx.covers` z faktu
+  `tile_replaced` we wpisie bohatera → `MapTile`); nowa animacja: brzeg heksa żarzy się,
+  pierścienie zapadają do środka, błysk zasłania wymianę (`revealAt` 1,65 s), cienka fala
+  uderzeniowa, odłamki plazmy, poświata supernowej; dźwięk (`warSunEnter`, `explosionHeavy`,
+  `explosion` — próbki walki, suwak „Battle effects”). Przepisy bohaterów mogą mieć `sounds`.
+- War suny w walce mają już własną animację (wyłanianie z wormhole, dźwięk wejścia, salwa
+  „sunfire”) — Prototype War Sun Muaat używa tej samej grafiki `ws`.
+- QA: pytest (Muaat, API, ruling coverage) ✓, ruff ✓, mypy (zmienione) ✓, tsc ✓, eslint ✓,
+  vitest (game-shell, map) ✓; zrzuty animacji (bez obrazów kafli — harness bez backendu).
+  e2e i build pominięte. Wymaga restartu backendu.

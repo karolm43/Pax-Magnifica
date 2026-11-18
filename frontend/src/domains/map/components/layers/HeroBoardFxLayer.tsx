@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
@@ -6,6 +6,7 @@ import type { Tile } from "@/entities/game/types";
 import { HEX_PATH, TILE_HEIGHT, TILE_WIDTH } from "@/entities/geometry/tilePositioning";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
 import { Unit } from "@/shared/ui/Unit";
+import { playBattleSound, preloadBattleSounds } from "@/domains/battle/battleSound";
 import {
   fxTargets,
   useHeroFx,
@@ -23,7 +24,7 @@ const PARTS: Record<FxMark, number> = {
   seal: 3,
   pulse: 2,
   aegis: 3,
-  nova: 8,
+  nova: 0, // własny rysunek: `NovaMark`
 };
 
 function Mark({ mark, tile, index }: { mark: FxMark; tile: Tile; index: number }) {
@@ -80,15 +81,6 @@ function MarkPart({ mark }: { mark: FxMark }) {
           <ellipse className={classes.domeBase} cx={0} cy={18} rx={92} ry={22} />
         </>
       );
-    case "nova":
-      // Supernowa: rdzeń i fala uderzeniowa (raz, w pierwszym elemencie) + promień wyrzutu plazmy.
-      return (
-        <>
-          <circle className={classes.novaCore} r={70} />
-          <circle className={classes.novaShock} r={80} />
-          <path className={classes.novaRay} d="M 0 -40 L 10 -150 L 0 -230 L -10 -150 Z" />
-        </>
-      );
     case "seal":
       return (
         <>
@@ -97,6 +89,76 @@ function MarkPart({ mark }: { mark: FxMark }) {
         </>
       );
   }
+}
+
+/** Odłamki plazmy Nova Seed: kąt, zasięg (px), promień — stałe, bez losowania w renderze. */
+const EMBERS = Array.from({ length: 28 }, (_, i) => ({
+  angle: i * (360 / 28) + ((i * 37) % 11) - 5,
+  dist: 170 + ((i * 53) % 150),
+  r: 4 + (i % 3) * 2,
+}));
+
+/**
+ * Nova Seed: gwiazda zapada się w sobie (pierścienie ściągają do środka, brzeg heksa żarzy się),
+ * błysk zasłania wymianę kafla, potem cienka fala uderzeniowa, odłamki plazmy i poświata nowej
+ * supernowej. Chwile zgodne z `revealAt` i dźwiękami przepisu `muaathero`.
+ */
+function NovaMark({ tile }: { tile: Tile }) {
+  const cx = tile.properties.x + TILE_WIDTH / 2;
+  const cy = tile.properties.y + TILE_HEIGHT / 2;
+  return (
+    <g className={classes.nova}>
+      <path
+        className={classes.novaRim}
+        d={HEX_PATH}
+        transform={`translate(${tile.properties.x} ${tile.properties.y})`}
+      />
+      <g transform={`translate(${cx} ${cy})`}>
+        {[0, 1, 2].map((i) => (
+          <circle key={i} className={classes.novaImplode} r={160} style={{ "--i": i } as CSSProperties} />
+        ))}
+        <circle className={classes.novaCore} r={26} fill="url(#fxNovaCore)" />
+        <circle className={classes.novaAfterglow} r={200} fill="url(#fxNovaGlow)" />
+        <circle className={classes.novaFlash} r={320} fill="url(#fxNovaFlash)" />
+        <circle className={classes.novaShock} r={110} />
+        <circle className={classes.novaShock} data-late r={110} />
+        {EMBERS.map((e, i) => (
+          <g key={i} style={{ rotate: `${e.angle}deg` }}>
+            <circle
+              className={classes.novaEmber}
+              r={e.r}
+              style={{ "--dist": `${-e.dist}px`, "--i": i } as CSSProperties}
+            />
+          </g>
+        ))}
+      </g>
+    </g>
+  );
+}
+
+/** Gradienty Nova Seed (kolor z `--tone` warstwy). */
+function NovaDefs() {
+  const tone = (a: number) => ({ stopColor: "rgb(var(--tone))", stopOpacity: a });
+  return (
+    <defs>
+      <radialGradient id="fxNovaCore">
+        <stop offset="0%" style={{ stopColor: "#fff" }} />
+        <stop offset="55%" style={{ stopColor: "rgb(255 236 200)" }} />
+        <stop offset="100%" style={tone(0)} />
+      </radialGradient>
+      <radialGradient id="fxNovaFlash">
+        <stop offset="0%" style={{ stopColor: "#fff", stopOpacity: 1 }} />
+        <stop offset="30%" style={{ stopColor: "rgb(255 240 210)", stopOpacity: 0.95 }} />
+        <stop offset="60%" style={tone(0.55)} />
+        <stop offset="100%" style={tone(0)} />
+      </radialGradient>
+      <radialGradient id="fxNovaGlow">
+        <stop offset="0%" style={tone(0.55)} />
+        <stop offset="45%" style={tone(0.25)} />
+        <stop offset="100%" style={tone(0)} />
+      </radialGradient>
+    </defs>
+  );
 }
 
 /**
@@ -112,8 +174,24 @@ export function HeroBoardFxLayer({
   contentSize: { width: number; height: number };
 }) {
   const run = useHeroFx((s) => s.run);
+  const uncover = useHeroFx((s) => s.uncover);
   const params = useParams<{ mapid: string }>();
   const { data: gameState } = useGameState(params.mapid ?? DEFAULT_GAME_ID);
+
+  // Dźwięki przepisu i odsłonięcie wymienionego kafla (pod błyskiem) — raz na uruchomienie.
+  useEffect(() => {
+    if (!run) return;
+    const timers: number[] = [];
+    if (run.recipe.sounds?.length) preloadBattleSounds();
+    for (const s of run.recipe.sounds ?? []) {
+      timers.push(window.setTimeout(() => playBattleSound(s.name, { gain: s.gain }), s.at));
+    }
+    for (const r of run.replaced ?? []) {
+      timers.push(window.setTimeout(() => uncover(r.position), run.recipe.revealAt ?? 0));
+    }
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [run, uncover]);
+
   if (!run) return null;
   const { recipe } = run;
   const rgb = run.color ? resolvePrimaryRgb(run.color) : undefined;
@@ -150,9 +228,14 @@ export function HeroBoardFxLayer({
         </div>
       )}
       <svg className={classes.svg} width={contentSize.width} height={contentSize.height}>
-        {targets.map((tile, index) => (
-          <Mark key={tile.position} mark={recipe.mark} tile={tile} index={index} />
-        ))}
+        {recipe.mark === "nova" && <NovaDefs />}
+        {targets.map((tile, index) =>
+          recipe.mark === "nova" ? (
+            <NovaMark key={tile.position} tile={tile} />
+          ) : (
+            <Mark key={tile.position} mark={recipe.mark} tile={tile} index={index} />
+          ),
+        )}
       </svg>
     </div>
   );

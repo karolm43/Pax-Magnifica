@@ -8,7 +8,7 @@ pamięta mapa (``HexGrid.tile_originals``), więc Undo przywraca układ.
 F_muaat Nova Seed 3: żetony dowodzenia, żeton frontier i jednostki gracza zostają na nowym
 kaflu; pozostałe żetony (wormhole, Ion Storm, ingress, planety-żetony jak Mirage / Avernus)
 przepadają. Planety starego kafla wychodzą z gry: tracą kontrolera, załączniki są purge.
-⚠️ ZAŁOŻENIE (RULES.md 62.13): siły naziemne gracza z planet kafla trafiają do przestrzeni,
+Decyzja użytkownika (RULES.md 62.13): siły naziemne gracza z planet kafla trafiają do przestrzeni,
 jego struktury z tych planet wracają do rezerwy.
 """
 

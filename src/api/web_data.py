@@ -770,11 +770,14 @@ def _build_tile_unit_data(
             space.setdefault("neutral", []).append(
                 {"entityId": f"ion{sys_state.ion_storm.lower()}", "entityType": "token", "count": 1}
             )
-        # Mirage (karta frontier): żeton planety leży w przestrzeni systemu, jak Thunder's Edge.
-        if sys_state is not None and "mirage" in sys_state.added_planets:
-            space.setdefault("neutral", []).append(
-                {"entityId": "mirage", "entityType": "token", "count": 1}
-            )
+        # Planety-żetony (Mirage z karty frontier, Avernus ze Stellar Genesis Muaat): żeton
+        # planety leży w przestrzeni systemu, jak Thunder's Edge (id = token katalogu frontu).
+        if sys_state is not None:
+            for planet_id in sys_state.added_planets:
+                if planet_id in PLANET_TOKENS:
+                    space.setdefault("neutral", []).append(
+                        {"entityId": planet_id, "entityType": "token", "count": 1}
+                    )
         # Attachmenty z eksploracji (RULES.md 46): żeton przy planecie, rysowany przez front
         # jak inne wpisy `entityType: "attachment"` (id = `attachmentId` karty, np. "dysonsphere").
         for planet_id, entry in planets.items():
@@ -793,6 +796,10 @@ def _build_tile_unit_data(
         }
 
     return tile_unit_data, tile_positions
+
+
+# Planety dodawane do systemu jako żeton w przestrzeni (``SystemState.added_planets``).
+PLANET_TOKENS = frozenset({"mirage", "avernus"})
 
 
 def _planet_controller(

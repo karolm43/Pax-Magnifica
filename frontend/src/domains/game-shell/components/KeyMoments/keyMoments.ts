@@ -7,13 +7,16 @@ import type { ActivityEntry } from "@/api/useBoardEditor";
 
 export type KeyMoment =
   /** Bohater frakcji użyty (purge po rozpatrzeniu — R_leaders). */
-  | { kind: "hero"; seq: number; player: string; leaderId: string }
+  | { kind: "hero"; seq: number; player: string; leaderId: string; replaced?: ReplacedTile[] }
   /** The Fracture weszła do gry (`player` = kto ją wprowadził). */
   | { kind: "fracture"; seq: number; player: string | null }
   /** Przełom frakcji zdobyty. */
   | { kind: "breakthrough"; seq: number; player: string }
   /** Żeton Custodians zdjęty z Mecatol Rex. */
   | { kind: "custodians"; seq: number; player: string | null };
+
+/** Kafel wymieniony w tym samym wpisie (Nova Seed): mapa pokazuje stary do chwili wybuchu. */
+export type ReplacedTile = { position: string; from: string };
 
 /** Rozpoznanie typu lidera (wstrzykiwane — w aplikacji `getLeaderById`). */
 export type IsHero = (leaderId: string) => boolean;
@@ -51,6 +54,12 @@ export function momentsForEntry(entry: ActivityEntry, isHero: IsHero): KeyMoment
       out.push({ kind: "custodians", seq, player: scorer ?? a.actor_id });
     }
   }
+  // Wymiana kafla (fakt `tile_replaced`, detail "<stary>><nowy>") należy do bohatera z wpisu.
+  const replaced = a.facts
+    .filter((f) => f.type === "tile_replaced" && f.value && f.detail?.includes(">"))
+    .map((f) => ({ position: f.value ?? "", from: (f.detail ?? "").split(">")[0] }));
+  const hero = out.find((m) => m.kind === "hero");
+  if (hero?.kind === "hero" && replaced.length > 0) hero.replaced = replaced;
   // Fracture otwiera scenę: jeśli w jednym wpisie jest kilka momentów (przełom -> rzut 1/10),
   // najpierw przełom, potem Fracture.
   return out.sort((x, y) => order(x) - order(y));

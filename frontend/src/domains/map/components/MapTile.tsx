@@ -28,6 +28,7 @@ import { FactionColorOverlay } from "./FactionColorOverlay";
 import { FactionControlBorderOverlay } from "./FactionControlBorderOverlay";
 import { SystemHexTarget } from "./SystemHexTarget";
 import { getTileById } from "@/entities/lookup/systems";
+import { useHeroFx } from "@/domains/game-shell/components/KeyMoments/heroBoardFx";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import { searchKey, searchTarget } from "@/domains/search/searchKeys";
 import { IconInfoCircle, IconTarget } from "@tabler/icons-react";
@@ -72,6 +73,8 @@ export const MapTile = React.memo<Props>(
 
     const ringPosition = mapTile.position;
     const systemId = mapTile.systemId;
+    // Nova Seed: stary kafel na mapie, dopóki efekt bohatera nie odsłoni nowego (`heroBoardFx`).
+    const coverSystemId = useHeroFx((s) => s.covers[ringPosition]);
     const position = {
       x: mapTile.properties.x,
       y: mapTile.properties.y,
@@ -243,7 +246,7 @@ export const MapTile = React.memo<Props>(
           }`}
         >
           <Tile
-            systemId={systemId}
+            systemId={coverSystemId ?? systemId}
             className={classes.tile}
             data-map-tile-visual="true"
             {...(!embedded &&

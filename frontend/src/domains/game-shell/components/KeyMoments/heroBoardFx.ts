@@ -6,6 +6,8 @@
  */
 import { create } from "zustand";
 import type { Tile } from "@/entities/game/types";
+import type { SoundName } from "@/domains/battle/battleSound";
+import type { ReplacedTile } from "./keyMoments";
 
 /** Gdzie na planszy dzieje się efekt. */
 export type FxTarget =
@@ -33,6 +35,10 @@ export type HeroFxRecipe = {
   tone?: string;
   /** Czas efektu (ms). */
   ms: number;
+  /** Dźwięki efektu (ms od startu, próbki walki — `battleSound`). */
+  sounds?: { at: number; name: SoundName; gain?: number }[];
+  /** Chwila (ms), w której wymieniony kafel odsłania nowy (pod błyskiem); domyślnie od razu. */
+  revealAt?: number;
 };
 
 /** Bohaterowie zaimplementowani w silniku (`core/hooks/factions/*`). */
@@ -62,7 +68,20 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   // Dark Space Navigation: flagowiec i pancerniki wychodzą z mroku w jednym systemie — cienie i słupy.
   l1z1xhero: { dim: 0.5, shadows: ["dn", "fs", "dn"], target: "ships", mark: "beam", tone: "210 60 60", ms: 4400 },
   // Nova Seed: system staje się supernową — błysk, fala uderzeniowa i wyrzuty plazmy z nowego kafla.
-  muaathero: { dim: 0.5, target: "nova", mark: "nova", tone: "255 120 40", ms: 4800 },
+  // Stary kafel zostaje do błysku (revealAt), nowa supernowa wyłania się z poświaty.
+  muaathero: {
+    dim: 0.55,
+    target: "nova",
+    mark: "nova",
+    tone: "255 130 50",
+    ms: 5200,
+    revealAt: 1650,
+    sounds: [
+      { at: 0, name: "warSunEnter", gain: 0.55 },
+      { at: 1550, name: "explosionHeavy", gain: 0.9 },
+      { at: 1700, name: "explosion", gain: 0.5 },
+    ],
+  },
 };
 
 const GROUND = new Set(["gf", "mf"]);
@@ -121,17 +140,39 @@ export type HeroFxRun = {
   recipe: HeroFxRecipe;
   faction: string | null;
   color: string | null;
+  /** Kafle wymienione przez bohatera (odsłaniane w `recipe.revealAt`). */
+  replaced?: ReplacedTile[];
 };
 
 type HeroFxStore = {
   run: HeroFxRun | null;
+  /** Pozycja -> kafel sprzed wymiany: `MapTile` rysuje go, póki efekt go nie odsłoni. */
+  covers: Record<string, string>;
   play: (run: Omit<HeroFxRun, "id">) => void;
   stop: () => void;
+  setCovers: (covers: Record<string, string>) => void;
+  uncover: (position: string) => void;
 };
 
 /** Bieżący efekt na planszy (jeden naraz) — uruchamia `KeyMomentStage`, rysuje warstwa mapy. */
 export const useHeroFx = create<HeroFxStore>((set) => ({
   run: null,
+  covers: {},
   play: (run) => set({ run: { ...run, id: Date.now() } }),
   stop: () => set({ run: null }),
+  setCovers: (covers) => set({ covers }),
+  uncover: (position) =>
+    set((s) => {
+      if (!(position in s.covers)) return s;
+      const rest = { ...s.covers };
+      delete rest[position];
+      return { covers: rest };
+    }),
 }));
+
+/** Zasłony kafli dla kolejki momentów: każdy czekający bohater z wymianą kafla. */
+export function coversForQueue(queue: { kind: string; replaced?: ReplacedTile[] }[]) {
+  const covers: Record<string, string> = {};
+  for (const m of queue) for (const r of m.replaced ?? []) covers[r.position] ??= r.from;
+  return covers;
+}

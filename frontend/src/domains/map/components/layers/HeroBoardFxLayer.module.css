@@ -234,49 +234,70 @@
   animation: pop 600ms ease-out calc(var(--d) + 200ms) both, fadeLate var(--fx-ms, 4400ms) ease both;
 }
 
-/* Nova Seed: rozbłysk gwiazdy, fala uderzeniowa i promienie plazmy z nowej supernowej. */
-.mark[data-mark="nova"] .part {
-  rotate: calc(var(--i) * 360deg / var(--n) + 8deg);
+/* Nova Seed (chwile: zapadanie 0–1,5 s, błysk ~1,55 s = odsłonięcie kafla, fala, poświata). */
+.nova circle,
+.nova path {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
-.mark[data-mark="nova"] .part:not(:first-child) .novaCore,
-.mark[data-mark="nova"] .part:not(:first-child) .novaShock {
-  display: none;
+.novaRim {
+  fill: rgb(var(--tone) / 0.12);
+  stroke: rgb(255 190 120);
+  stroke-width: 4;
+  filter: drop-shadow(0 0 10px rgb(var(--tone))) drop-shadow(0 0 26px rgb(var(--tone) / 0.7));
+  opacity: 0;
+  animation: novaHeat 1700ms ease-in both, novaRimOut 900ms ease-out 1600ms forwards;
 }
 
-.mark[data-mark="nova"] .part:nth-child(odd) .novaRay {
-  scale: 0.7;
+.novaImplode {
+  fill: none;
+  stroke: rgb(255 200 150 / 0.8);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+  opacity: 0;
+  animation: novaImplode 900ms cubic-bezier(0.6, 0, 0.9, 0.6) calc(250ms + var(--i) * 330ms) both;
 }
 
 .novaCore {
-  fill: rgb(255 248 230);
-  filter: drop-shadow(0 0 24px rgb(var(--tone))) drop-shadow(0 0 60px rgb(var(--tone)));
-  transform-box: fill-box;
-  transform-origin: center;
   opacity: 0;
-  animation: novaFlash 2600ms cubic-bezier(0.2, 0.8, 0.3, 1) calc(var(--d) + 200ms) both;
+  animation: novaCore 1600ms cubic-bezier(0.5, 0, 0.9, 0.5) both;
+}
+
+.novaFlash {
+  opacity: 0;
+  mix-blend-mode: screen;
+  animation: novaFlash 1300ms cubic-bezier(0.1, 0.8, 0.3, 1) 1500ms both;
 }
 
 .novaShock {
   fill: none;
-  stroke: rgb(var(--tone));
-  stroke-width: 8;
-  vector-effect: non-scaling-stroke; /* fala rośnie, obręcz zostaje cienka */
-  filter: drop-shadow(0 0 16px rgb(var(--tone)));
-  transform-box: fill-box;
-  transform-origin: center;
+  stroke: rgb(255 220 180);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 8px rgb(var(--tone))) drop-shadow(0 0 18px rgb(var(--tone) / 0.6));
   opacity: 0;
-  animation: novaShock 1900ms cubic-bezier(0.1, 0.7, 0.3, 1) calc(var(--d) + 700ms) both;
+  animation: novaShock 2200ms cubic-bezier(0.05, 0.6, 0.3, 1) 1560ms both;
 }
 
-.novaRay {
-  fill: rgb(var(--tone) / 0.85);
-  filter: blur(3px) drop-shadow(0 0 10px rgb(var(--tone)));
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
+.novaShock[data-late] {
+  stroke-width: 1.5;
+  animation-delay: 1820ms;
+  animation-duration: 2600ms;
+}
+
+.novaEmber {
+  fill: rgb(255 225 170);
+  filter: drop-shadow(0 0 5px rgb(var(--tone)));
   opacity: 0;
-  animation: novaRay 1500ms cubic-bezier(0.2, 0.7, 0.4, 1) calc(var(--d) + 650ms + var(--i) * 40ms) both,
-    fadeLate var(--fx-ms, 4800ms) ease both;
+  animation: novaEmber 1700ms cubic-bezier(0.1, 0.7, 0.4, 1) calc(1560ms + (var(--i) * 17ms)) both;
+}
+
+.novaAfterglow {
+  opacity: 0;
+  mix-blend-mode: screen;
+  animation: novaAfterglow 3600ms ease-out 1600ms both;
 }
 
 /* --- Keyframes ---------------------------------------------------------------------------- */
@@ -344,21 +365,45 @@
   from { opacity: 0; scale: 2.2; }
   to { opacity: 1; scale: 1; }
 }
+@keyframes novaHeat {
+  0% { opacity: 0; }
+  70% { opacity: 0.7; }
+  85%, 100% { opacity: 1; }
+}
+@keyframes novaRimOut { to { opacity: 0; } }
+@keyframes novaImplode {
+  0% { opacity: 0; scale: 1.6; }
+  40% { opacity: 1; }
+  100% { opacity: 0; scale: 0.05; }
+}
+@keyframes novaCore {
+  0% { opacity: 0; scale: 0.2; }
+  60% { opacity: 0.9; scale: 1; }
+  92% { opacity: 1; scale: 0.45; }
+  100% { opacity: 0; scale: 2.5; }
+}
 @keyframes novaFlash {
-  0% { opacity: 0; scale: 0.1; }
-  18% { opacity: 1; scale: 1.5; }
-  45% { opacity: 0.9; scale: 1; }
-  100% { opacity: 0; scale: 0.6; }
+  0% { opacity: 0; scale: 0.15; }
+  12% { opacity: 1; scale: 0.9; }
+  35% { opacity: 0.95; scale: 1.05; }
+  100% { opacity: 0; scale: 1.25; }
 }
 @keyframes novaShock {
-  0% { opacity: 0; scale: 0.4; }
-  15% { opacity: 1; }
-  100% { opacity: 0; scale: 3.4; }
+  0% { opacity: 0; scale: 0.6; }
+  10% { opacity: 1; }
+  100% { opacity: 0; scale: 7; }
 }
-@keyframes novaRay {
-  0% { opacity: 0; scale: 1 0; }
-  35% { opacity: 1; scale: 1 1.15; }
-  100% { opacity: 0; scale: 0.5 0.8; }
+@keyframes novaEmber {
+  0% { opacity: 0; translate: 0 -20px; }
+  10% { opacity: 1; }
+  70% { opacity: 0.8; }
+  100% { opacity: 0; translate: 0 var(--dist); scale: 0.4; }
+}
+@keyframes novaAfterglow {
+  0% { opacity: 0; scale: 0.6; }
+  20% { opacity: 1; scale: 1; }
+  60% { opacity: 0.7; scale: 1.05; }
+  100% { opacity: 0; scale: 1.1; }
 }
 @keyframes sealWave {
   0% { scale: 1; }

@@ -12,7 +12,7 @@ import { seatColorStyle } from "@/domains/game-shell/components/FactionsInGame/s
 import { useFactions, type FactionInfo } from "@/api/useNewGame";
 import { FactionPortraitLayer } from "@/domains/setup/FactionBackdrop";
 import { momentsForEntry, type KeyMoment } from "./keyMoments";
-import { HERO_BOARD_FX, useHeroFx } from "./heroBoardFx";
+import { HERO_BOARD_FX, coversForQueue, useHeroFx } from "./heroBoardFx";
 import styles from "./KeyMomentStage.module.css";
 
 /** Czas sceny (ms) bez wygaszania. */
@@ -198,6 +198,13 @@ export function KeyMomentStage() {
 
   const current = queue[0];
 
+  // Wymieniony kafel (Nova Seed) czeka pod starym obrazem, aż efekt na planszy go odsłoni.
+  const setCovers = useHeroFx((s) => s.setCovers);
+  useEffect(() => {
+    setCovers(coversForQueue(queue));
+  }, [queue, setCovers]);
+  useEffect(() => () => setCovers({}), [setCovers]);
+
   // Start sceny: najpierw niech wyląduje kość (rzut d10 na Fracture), potem scena.
   useEffect(() => {
     if (!current) return;
@@ -242,6 +249,7 @@ export function KeyMomentStage() {
       recipe,
       faction: owner?.faction ?? null,
       color: owner?.color ?? null,
+      replaced: current.replaced,
     });
     return () => stopFx();
     // Zależności celowo tylko [shown, current]: jeden start na wejście w „board”.
