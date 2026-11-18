@@ -85,6 +85,10 @@ ENABLED_SOURCES_PATH: Path = ASSETS_DIR / "enabled_sources.json"
 # zbiór poziomów trudności to ⚠️ ZAŁOŻENIE (koncepcja warstwy AI, nie reguła TI4).
 ENGINE_CONFIG_PATH: Path = ASSETS_DIR / "config" / "engine_config.json"
 
+# Moduły wariantów gry (fanowskie talie, erraty, własne komponenty) - core/variants.py,
+# instrukcja: docs/WARIANTY.md.
+VARIANTS_PATH: Path = ASSETS_DIR / "config" / "variants.json"
+
 
 # --- Ładowanie manifestu aktywnych źródeł -------------------------------
 

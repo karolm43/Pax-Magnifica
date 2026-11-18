@@ -17,9 +17,9 @@ from __future__ import annotations
 import pytest
 
 from src.audit.diffs import load_expected_gaps
+from src.core import variants as game_variants
 from src.core.components import CATEGORY_SPECS, ComponentCategory
 from src.core.registry import StaticDataRegistry
-from src.core.sources import AGENDA_VARIANT_SOURCES
 
 
 @pytest.fixture(scope="module")
@@ -50,17 +50,16 @@ def test_wszystkie_source_naleza_do_aktywnych(registry: StaticDataRegistry) -> N
     _Requirements: 5.1_
     """
     enabled = set(registry.report().enabled_sources)
-    # Wyjątek: fanowskie talie agend (wybierane w setupie) - tylko agendy i talie agend.
-    variants = AGENDA_VARIANT_SOURCES
+    # Wyjątek: moduły wariantów gry (assets/config/variants.json) - loader dociąga z ich
+    # źródeł WYŁĄCZNIE to, co przewiduje plan ładowania (core/variants.load_plan).
+    plan = game_variants.load_plan()
     offending: dict[str, set[str]] = {}
     for category in CATEGORY_SPECS:
         for component in registry.catalog.all(category).values():
             if component.source in enabled:
                 continue
-            if component.source in variants and category in (
-                ComponentCategory.AGENDA,
-                ComponentCategory.DECK,
-                ComponentCategory.PROMISSORY_NOTE,
+            if component.source in plan.sources_for(category) and plan.admits(
+                category, component.raw
             ):
                 continue
             offending.setdefault(category.value, set()).add(component.source)

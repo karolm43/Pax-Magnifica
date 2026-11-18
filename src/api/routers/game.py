@@ -24,7 +24,7 @@ from src.api.schemas import (
 from src.api.serializers import AUTO_SLOT_ORDER, DEFAULT_MAP_STRING, build_map_view
 from src.api.web_data import build_web_data
 from src.core import actor as actor_rules
-from src.core import game_clock, reaction_window, strategy_phase
+from src.core import game_clock, reaction_window, strategy_phase, variants
 from src.core.faction_setup import (
     OFF_BOARD_HOME,
     apply_setup_to_state,
@@ -36,7 +36,6 @@ from src.core.game_state import GameState, Phase
 from src.core.hex_grid import Hex, HexGrid
 from src.core.map_string import build_grid_from_map_string
 from src.core.models import FactionDef
-from src.core.objectives import agenda_deck_ids
 from src.core.player_colors import all_color_aliases, canonical_color
 from src.core.registry import StaticDataRegistry
 from src.core.setup_service import (
@@ -549,15 +548,18 @@ async def post_new_game(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     try:
-        # FAN-AGENDAS: walidacja wariantu talii agend (standard / absol).
-        agenda_deck_ids(ctx.registry, request.agenda_deck)
+        # Moduły wariantów gry (fanowskie talie, erraty) - core/variants.py, docs/WARIANTY.md.
+        variant_ids, agenda_variant = variants.resolve_new_game(
+            ctx.registry, request.variants, request.agenda_deck
+        )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     _place_locked_mallice(grid, ctx.registry)
 
     new_state = GameState()
-    new_state.decks.agenda_variant = request.agenda_deck
+    new_state.decks.variants = variant_ids
+    new_state.decks.agenda_variant = agenda_variant
     seating: list[str] = []  # kolejność graczy przy stole (RULES.md 24)
     taken_corners: set[str] = set()  # rogi off-board zajęte przez Ghost/Crimson
     taken_homes: set[str] = set()  # zajęte pozycje domowe (R14.4)

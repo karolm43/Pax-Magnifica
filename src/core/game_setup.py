@@ -17,8 +17,16 @@ komponentów — zero hardkodowania.
 from __future__ import annotations
 
 import random
+from collections.abc import Sequence
 
-from src.core import objectives, promissory_notes, secret_objectives, strategy_phase, triggers
+from src.core import (
+    objectives,
+    promissory_notes,
+    secret_objectives,
+    strategy_phase,
+    triggers,
+    variants,
+)
 from src.core.components import ComponentCategory
 from src.core.dice import next_rng
 from src.core.game_events import GameEvent, Moment
@@ -31,35 +39,31 @@ from src.core.game_state import (
 )
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
-from src.core.sources import AGENDA_STANDARD, AGENDA_VARIANT_SOURCES
 
 # Placeholder koloru w identyfikatorach wspólnych promissory notes (plik color.json).
 _COLOR_PLACEHOLDER = "<color>"
 
 
 def common_promissory_note_ids(
-    registry: StaticDataRegistry, color: str, variant: str = AGENDA_STANDARD
+    registry: StaticDataRegistry,
+    color: str,
+    mods: Sequence[variants.VariantModule] = (),
 ) -> list[str]:
     """Identyfikatory wspólnych promissory notes dla danego koloru (np. ``red_cf``).
 
     Szablony ``<color>_*`` z aktywnych (oficjalnych) źródeł katalogu; kolejność
-    deterministyczna (alias). FAN-AGENDAS: w wariancie fanowskim (np. ``absol``) notki tego
-    źródła z ``homebrewReplacesID`` ZASTĘPUJĄ oficjalny szablon w tym samym miejscu ręki
-    (``<color>_ps`` → ``absol_<color>_ps``, Absol's Political Secret).
+    deterministyczna (alias). Moduły wariantów z ``replaces: ["promissory_note"]`` podmieniają
+    oficjalny szablon w tym samym miejscu ręki (``<color>_ps`` -> ``absol_<color>_ps``,
+    Absol's Political Secret) - ``core/variants.promissory_replacements``.
     """
     notes = registry.catalog.all(ComponentCategory.PROMISSORY_NOTE)
+    fan = variants.variant_sources()
     templates = sorted(
         note_id
         for note_id, note in notes.items()
-        if note_id.startswith(f"{_COLOR_PLACEHOLDER}_")
-        and note.source not in AGENDA_VARIANT_SOURCES
+        if note_id.startswith(f"{_COLOR_PLACEHOLDER}_") and note.source not in fan
     )
-    replacements: dict[str, str] = {}
-    if variant != AGENDA_STANDARD:
-        for note_id, note in notes.items():
-            replaced = note.raw.get("homebrewReplacesID")
-            if note.source == variant and isinstance(replaced, str):
-                replacements[replaced] = note_id
+    replacements = variants.promissory_replacements(registry, mods)
     return [
         replacements.get(note_id, note_id).replace(_COLOR_PLACEHOLDER, color, 1)
         for note_id in templates
@@ -74,7 +78,11 @@ def deal_promissory_notes(state: GameState, registry: StaticDataRegistry) -> Gam
         if player.color is not None:
             hand.extend(
                 common_promissory_note_ids(
-                    registry, player.color, new_state.decks.agenda_variant
+                    registry,
+                    player.color,
+                    variants.game_modules(
+                        new_state.decks.variants, new_state.decks.agenda_variant
+                    ),
                 )
             )
         faction = registry.factions.get(player.faction) if player.faction else None

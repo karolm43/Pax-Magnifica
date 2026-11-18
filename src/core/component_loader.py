@@ -29,49 +29,30 @@ from src.core.components import (
     build_component,
 )
 from src.core.sources import source_rank
+from src.core.variants import VariantLoadPlan
 
 RawEntry = dict[str, object]
 
 
-def _without_non_agenda_variant_decks(
+def _variant_entries(
     entries: Iterable[tuple[EntryOrigin, Mapping[str, object]]],
+    category: ComponentCategory,
     enabled: Collection[str],
-    variant_sources: Collection[str],
+    plan: VariantLoadPlan,
 ) -> Iterator[tuple[EntryOrigin, Mapping[str, object]]]:
-    """Pomija talie źródeł fanowskich innego typu niż ``agenda`` (np. karty akcji Absol).
+    """Ze źródeł wariantów spoza manifestu przepuszcza tylko to, czego potrzebują moduły.
 
-    Talie źródeł z manifestu przechodzą bez zmian; źródła wariantowe (``variant_sources``),
-    których nie ma w manifeście, wnoszą WYŁĄCZNIE talie agend.
+    Plan (``core/variants.load_plan``): całe karty talii zastępowanych w całości, same
+    zamienniki (``homebrewReplacesID``) dla erraty, definicje talii wskazanych typów.
     """
+    sources = plan.sources_for(category)
     for origin, entry in entries:
         source = entry.get("source")
         if (
             isinstance(source, str)
-            and source in variant_sources
+            and source in sources
             and source not in enabled
-            and entry.get("type") != "agenda"
-        ):
-            continue
-        yield origin, entry
-
-
-def _only_replacement_variant_notes(
-    entries: Iterable[tuple[EntryOrigin, Mapping[str, object]]],
-    enabled: Collection[str],
-    variant_sources: Collection[str],
-) -> Iterator[tuple[EntryOrigin, Mapping[str, object]]]:
-    """Z notek źródeł wariantowych przepuszcza tylko ZAMIENNIKI oficjalnych notek.
-
-    FAN-AGENDAS: zamiennik ma ``homebrewReplacesID`` (np. ``absol_<color>_ps`` →
-    ``<color>_ps``); podmiana przy rozdawaniu: ``game_setup.common_promissory_note_ids``.
-    """
-    for origin, entry in entries:
-        source = entry.get("source")
-        if (
-            isinstance(source, str)
-            and source in variant_sources
-            and source not in enabled
-            and not isinstance(entry.get("homebrewReplacesID"), str)
+            and not plan.admits(category, entry)
         ):
             continue
         yield origin, entry
@@ -231,16 +212,15 @@ def load_components(
     enabled: Collection[str],
     specs: Mapping[ComponentCategory, CategorySpec] | None = None,
     *,
-    agenda_variant_sources: Collection[str] = (),
+    variant_plan: VariantLoadPlan | None = None,
 ) -> tuple[dict[ComponentCategory, dict[str, ComponentBase]], LoadReport]:
     """Wczytuje komponenty wszystkich kategorii z ``CATEGORY_SPECS``.
 
     Args:
         enabled: Aktywne źródła (pole ``source`` wpisów).
         specs: Opcjonalna tabela kategorii (domyślnie ``CATEGORY_SPECS``).
-        agenda_variant_sources: Dodatkowe źródła (fanowskie talie agend), ładowane WYŁĄCZNIE
-            dla agend, talii agend i notek zastępujących oficjalne; reszta ich danych
-            pozostaje nieaktywna.
+        variant_plan: Co dociągnąć ze źródeł modułów wariantów (``core/variants``) spoza
+            ``enabled``; reszta danych tych źródeł pozostaje nieaktywna. Domyślnie nic.
 
     Raises:
         DataValidationError: Gdy wybrany wpis nie przechodzi walidacji modelu.
@@ -253,22 +233,10 @@ def load_components(
         entries: Iterable[tuple[EntryOrigin, Mapping[str, object]]] = (
             iter_entries_with_origin(spec.directory) if spec.directory.is_dir() else ()
         )
-        if agenda_variant_sources and category in (
-            ComponentCategory.AGENDA,
-            ComponentCategory.DECK,
-            ComponentCategory.PROMISSORY_NOTE,
-        ):
-            # FAN-AGENDAS: wariant Absol - ładujemy tylko agendy, talie agend i notki
-            # ZASTĘPUJĄCE oficjalne (``homebrewReplacesID``, np. Absol's Political Secret).
-            category_enabled = {*enabled, *agenda_variant_sources}
-            if category is ComponentCategory.DECK:
-                entries = _without_non_agenda_variant_decks(
-                    entries, enabled, agenda_variant_sources
-                )
-            elif category is ComponentCategory.PROMISSORY_NOTE:
-                entries = _only_replacement_variant_notes(
-                    entries, enabled, agenda_variant_sources
-                )
+        variant_sources = variant_plan.sources_for(category) if variant_plan else frozenset()
+        if variant_plan is not None and variant_sources:
+            category_enabled = {*enabled, *variant_sources}
+            entries = _variant_entries(entries, category, enabled, variant_plan)
         selection = select_entries(entries, category_enabled, spec.id_field)
         table: dict[str, ComponentBase] = {}
         per_source: dict[str, int] = {}

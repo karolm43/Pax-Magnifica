@@ -376,7 +376,9 @@ class NewGameRequest(BaseModel):
     players: list[NewGamePlayer] = Field(default_factory=list)
     map_string: str | None = None
     include_center: bool = True
-    # FAN-AGENDAS: talia agend - "standard" (PoK/TE) albo fanowska "absol".
+    # Moduły wariantów gry (id z ``assets/config/variants.json``); None = moduły domyślne.
+    variants: list[str] | None = None
+    # Zgodność wstecz: talia agend "standard" albo źródło modułu talii agend (np. "absol").
     agenda_deck: str = "standard"
     # Zegar szachowy (RULES.md 58) — None = gra bez zegara.
     chess_clock: ChessClockConfig | None = None

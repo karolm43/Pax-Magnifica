@@ -43,6 +43,7 @@ Pełna wizja i architektura docelowa: [`specyfikacja_techniczna_i_architektura_s
 | **`POKRYCIE_HOOKOW.md`** | **GENEROWANY raport pokrycia hooków** — krótkie podsumowanie (~10 KB: % per kategoria, obszary, kolejka ACTION, frakcje); szczegóły (lista hooków, tabele per kategoria) w `pokrycie_hookow/*.md`, czytaj punktowo. Nie edytuj; odśwież: `uv run python -m src.audit.hook_coverage --write`. | 🟢 generowany |
 | **`OKNA_CZASOWE.md`** | **GENEROWANY katalog okien czasowych** wszystkich komponentów (zdarzenia, agendy, frakcje, efekty trwałe, przypadki szczególne). Nie edytuj; odśwież: `uv run python -m src.audit.timing_catalog --write`. Kontrakt: RULES.md 54. | 🟢 generowany |
 | **`UI_WYBOR_FRAKCJI.md`** | **Scena wyboru frakcji + krok „Gracze" kreatora**: układ, pliki, format treści (portrety/cytaty/lore), animacje, Obsidian (pismo + groza), gotchas. Czytaj przed zmianą UI setupu. | 🟢 żywy |
+| **`WARIANTY.md`** | **Moduły wariantów gry**: fanowskie talie (Absol, Black Spectrum), erraty pojedynczych kart, własne komponenty — przepisy krok po kroku i ograniczenia. Dane: `assets/config/variants.json`. | 🟢 żywy |
 | **`PROJEKT_KARTY_STRATEGII.md`** | Projekt kart strategii 1–8 (zestaw `te`, errata, primary/secondary) — zrealizowany w `core/strategy_cards/`. | 🟡 referencyjny |
 | **`ARCHITEKTURA_PO_MIGRACJI.md`** | Mapa kodu: backend/frontend, kontrakt `web-data`, endpointy. | 🟡 referencyjny |
 | **`specyfikacja_techniczna_i_architektura_systemu.md`** | Wizja docelowa + architektura warstw AI. | 🟡 referencyjny |

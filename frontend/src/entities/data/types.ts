@@ -283,8 +283,10 @@ export type CardPoolData = {
   agendaDeckSize: number;
   agendaFullDeckSize: number;
   agendaDiscardSize: number;
-  /** Wariant talii agend gry: "standard" (PoK) albo "absol". */
+  /** Talia agend gry: "standard" albo źródło modułu talii agend (np. "absol"). */
   agendaVariant?: string;
+  /** Moduły wariantów gry (`assets/config/variants.json`), np. ["absol_relics"]. */
+  variants?: string[];
   technologyDeck: string[];
 };
 

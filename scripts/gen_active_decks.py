@@ -6,21 +6,25 @@ w PoK, 3 nadliczbowe karty akcji, relikwia wycofana w TE). Silnik losuje z talii
 wybranej przez ``core.objectives.deck_card_ids`` (największa, kumulatywna talia danego
 typu), więc UI musi pokazywać DOKŁADNIE te same karty.
 
-Uruchomienie: ``uv run python scripts/gen_active_decks.py`` (po zmianie assetów).
+Drugi blok pliku to moduły wariantów (``assets/config/variants.json``) ze składem talii,
+które zmieniają - front buduje z nich przełączniki w Ustawieniach i pule kart gry.
+
+Uruchomienie: ``uv run python scripts/gen_active_decks.py`` (po zmianie assetów/manifestu).
 Test ``tests/test_active_decks_sync.py`` pilnuje zgodności pliku z silnikiem.
 """
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src.core.objectives import agenda_deck_ids, deck_card_ids  # noqa: E402
+from src.core import variants  # noqa: E402
+from src.core.objectives import deck_card_ids  # noqa: E402
 from src.core.registry import StaticDataRegistry  # noqa: E402
-from src.core.sources import AGENDA_VARIANT_DECKS  # noqa: E402
 
 OUTPUT = ROOT / "frontend" / "src" / "entities" / "data" / "activeDecks.ts"
 
@@ -33,6 +37,50 @@ DECK_KEYS: dict[str, str] = {
     "stage1Objective": "public_stage_1_objective",
     "stage2Objective": "public_stage_2_objective",
 }
+
+
+def _render_modules(registry: StaticDataRegistry) -> list[str]:
+    """Blok ``VARIANT_MODULES``: moduły manifestu ze składem zmienianych talii."""
+    lines = [
+        "// Moduły wariantów gry (assets/config/variants.json, silnik: core/variants.py).",
+        "// `decks` = skład talii W GRZE z tym modułem (tylko typy, które moduł zmienia).",
+        "export type VariantModuleInfo = {",
+        "  id: string;",
+        "  name: string;",
+        "  description: string;",
+        "  source: string;",
+        "  badge: string | null;",
+        "  default: boolean;",
+        "  /** Talie zastępowane W CAŁOŚCI (dwa takie moduły tej samej talii się wykluczają). */",
+        "  wholeDecks: readonly ActiveDeckKind[];",
+        "  decks: Partial<Record<ActiveDeckKind, readonly string[]>>;",
+        "};",
+        "",
+        "export const VARIANT_MODULES: readonly VariantModuleInfo[] = [",
+    ]
+    for module in variants.modules().values():
+        whole = [key for key, deck_type in DECK_KEYS.items() if deck_type in module.decks]
+        lines += [
+            "  {",
+            f"    id: {json.dumps(module.id)},",
+            f"    name: {json.dumps(module.name, ensure_ascii=False)},",
+            f"    description: {json.dumps(module.description, ensure_ascii=False)},",
+            f"    source: {json.dumps(module.source)},",
+            f"    badge: {json.dumps(module.badge)},",
+            f"    default: {json.dumps(module.default)},",
+            f"    wholeDecks: {json.dumps(whole)},",
+            "    decks: {",
+        ]
+        for key, deck_type in DECK_KEYS.items():
+            if deck_type not in module.deck_types():
+                continue
+            ids = sorted(set(variants.game_deck_ids(registry, deck_type, [module])))
+            lines.append(f"      {key}: [")
+            lines.extend(f'        "{card_id}",' for card_id in ids)
+            lines.append("      ],")
+        lines += ["    },", "  },"]
+    lines += ["];", ""]
+    return lines
 
 
 def render(registry: StaticDataRegistry) -> str:
@@ -53,20 +101,7 @@ def render(registry: StaticDataRegistry) -> str:
         "",
         "export type ActiveDeckKind = keyof typeof ACTIVE_DECK_IDS;",
         "",
-        "// Fanowskie talie agend z Ustawień (silnik: core.objectives.agenda_deck_ids).",
-        "export const AGENDA_VARIANT_DECK_IDS = {",
-    ]
-    for variant, alias in AGENDA_VARIANT_DECKS.items():
-        if alias is None:
-            continue
-        lines.append(f"  {variant}: [")
-        lines.extend(f'    "{card_id}",' for card_id in sorted(agenda_deck_ids(registry, variant)))
-        lines.append("  ],")
-    lines += [
-        "} as const;",
-        "",
-        "export type AgendaVariant = keyof typeof AGENDA_VARIANT_DECK_IDS;",
-        "",
+        *_render_modules(registry),
     ]
     return "\n".join(lines)
 

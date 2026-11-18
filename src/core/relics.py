@@ -47,7 +47,7 @@ def ensure_relic_deck(state: GameState, registry: StaticDataRegistry) -> None:
         return
     # Relikty już leżące u graczy nie wracają do talii (np. stan z God-Mode).
     held = {relic for player in state.players.values() for relic in player.relics}
-    cards = [c for c in deck_card_ids(registry, _RELIC_DECK) if c not in held]
+    cards = [c for c in deck_card_ids(registry, _RELIC_DECK, state) if c not in held]
     next_rng(state).shuffle(cards)
     decks.relic_deck = cards
     decks.relic_discard = []

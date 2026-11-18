@@ -4,12 +4,7 @@ import { publicObjectives } from "@/entities/data/publicObjectives";
 import { secretObjectives } from "@/entities/data/secretObjectives";
 import { relics } from "@/entities/data/relics";
 import { explorations } from "@/entities/data/explorations";
-import {
-  isAgendaVariant,
-  isInActiveDeck,
-  isInAgendaDeck,
-  isOfficialSource,
-} from "@/entities/data/officialSources";
+import { isInGameDeck, isOfficialSource } from "@/entities/data/officialSources";
 
 /** Jedna pozycja listy w przeglądarce puli kart. */
 export type PoolEntry = {
@@ -57,16 +52,11 @@ function agendaText(text1: string, text2?: string, mapText?: string): string {
 
 /**
  * Pełna pula agend talii gry, rozbita na Prawa i Dyrektywy.
- * `variant` = `cardPool.agendaVariant`: "standard" (aktywne źródła) albo fanowska talia
- * (np. "absol"). Źródło: statyczne dane `entities/data/agendas` (cała talia, nie stan gry).
+ * `variants` = moduły wariantów gry (`gameVariantIds(cardPool)`), np. talia agend Absol.
+ * Źródło: statyczne dane `entities/data/agendas` (cała talia, nie stan gry).
  */
-export function agendaPool(variant?: string): PoolGroup[] {
-  const fan = isAgendaVariant(variant);
-  const official = agendas.filter(
-    (a) =>
-      (fan ? a.source === variant : isOfficialSource(a.source)) &&
-      isInAgendaDeck(variant, a.alias),
-  );
+export function agendaPool(variants?: readonly string[]): PoolGroup[] {
+  const official = agendas.filter((a) => isInGameDeck("agenda", a.alias, a.source, variants));
   const laws: PoolEntry[] = [];
   const directives: PoolEntry[] = [];
   for (const a of official) {
@@ -100,10 +90,10 @@ export function agendaPool(variant?: string): PoolGroup[] {
  * wszystkie, grupując identyczne kopie po tożsamości karty (`automationID`, albo
  * nazwa+okno) i podając liczbę kopii. Źródło: `entities/data/actionCards`.
  */
-export function actionCardPool(): PoolGroup[] {
+export function actionCardPool(variants?: readonly string[]): PoolGroup[] {
   const byCard = new Map<string, PoolEntry>();
   for (const c of actionCards) {
-    if (!isOfficialSource(c.source) || !isInActiveDeck("actionCard", c.alias)) continue;
+    if (!isInGameDeck("actionCard", c.alias, c.source, variants)) continue;
     const key = c.automationID || `${c.name}\u0000${c.window}`;
     const existing = byCard.get(key);
     if (existing) {
@@ -116,6 +106,7 @@ export function actionCardPool(): PoolGroup[] {
         meta: c.window,
         copies: 1,
         flavor: c.flavorText,
+        source: c.source,
       });
     }
   }
@@ -130,21 +121,29 @@ export function actionCardPool(): PoolGroup[] {
  * Etap kodowany jest polem `points` (1 = Etap I, 2 = Etap II).
  * Źródło: statyczne dane `entities/data/publicObjectives`.
  */
-export function publicObjectivePool(stage: 1 | 2): PoolGroup[] {
+export function publicObjectivePool(
+  stage: 1 | 2,
+  variants?: readonly string[],
+): PoolGroup[] {
   const tone =
     stage === 1 ? "var(--ds-sig-stage1)" : "var(--ds-sig-stage2)";
   const entries: PoolEntry[] = publicObjectives
     .filter(
       (o) =>
-        isOfficialSource(o.source) &&
         o.points === stage &&
-        isInActiveDeck(stage === 1 ? "stage1Objective" : "stage2Objective", o.alias),
+        isInGameDeck(
+          stage === 1 ? "stage1Objective" : "stage2Objective",
+          o.alias,
+          o.source,
+          variants,
+        ),
     )
     .map((o) => ({
       alias: o.alias,
       name: o.name,
       text: o.text,
       meta: `${o.phase} phase`,
+      source: o.source,
     }))
     .sort(byName);
   const title = stage === 1 ? "Stage I" : "Stage II";
@@ -155,14 +154,15 @@ export function publicObjectivePool(stage: 1 | 2): PoolGroup[] {
  * Pełna pula celów sekretnych z aktywnych źródeł (jedna grupa, po nazwie).
  * To referencja całej talii — nie ręka gracza. Źródło: `entities/data`.
  */
-export function secretObjectivePool(): PoolGroup[] {
+export function secretObjectivePool(variants?: readonly string[]): PoolGroup[] {
   const entries: PoolEntry[] = secretObjectives
-    .filter((o) => isOfficialSource(o.source) && isInActiveDeck("secretObjective", o.alias))
+    .filter((o) => isInGameDeck("secretObjective", o.alias, o.source, variants))
     .map((o) => ({
       alias: o.alias,
       name: o.name,
       text: o.text,
       meta: `${o.phase} phase`,
+      source: o.source,
     }))
     .sort(byName);
   return entries.length > 0
@@ -174,14 +174,15 @@ export function secretObjectivePool(): PoolGroup[] {
  * Pełna pula relikwii z aktywnych źródeł (jedna grupa, po nazwie).
  * Źródło: `entities/data/relics`.
  */
-export function relicPool(): PoolGroup[] {
+export function relicPool(variants?: readonly string[]): PoolGroup[] {
   const entries: PoolEntry[] = relics
-    .filter((r) => isOfficialSource(r.source) && isInActiveDeck("relic", r.alias))
+    .filter((r) => isInGameDeck("relic", r.alias, r.source, variants))
     .map((r) => ({
       alias: r.alias,
       name: r.name,
       text: r.text,
       flavor: r.flavourText,
+      source: r.source,
     }))
     .sort(byName);
   return entries.length > 0

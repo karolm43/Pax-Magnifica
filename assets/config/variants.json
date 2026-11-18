@@ -1,0 +1,36 @@
+{
+  "_doc": [
+    "Moduły wariantów gry (fanowskie talie, erraty, własne komponenty). Silnik: src/core/variants.py.",
+    "Instrukcja dodawania: docs/WARIANTY.md. Moduł wybiera się per gra (Ustawienia > Game variants -> /game/new 'variants').",
+    "Pola modułu:",
+    "  id          - unikalny identyfikator modułu (trafia do GameState.decks.variants).",
+    "  name        - nazwa przełącznika w UI (po angielsku); description - opis pod przełącznikiem.",
+    "  source      - pole 'source' kart w assets/data/** (np. 'absol'). Źródło NIE musi być w enabled_sources.json.",
+    "  badge       - krótka plakietka kart tego źródła w UI (np. 'ABS'); null = brak.",
+    "  decks       - {typ_talii: alias talii z assets/data/decks} - CAŁA talia danego typu zastąpiona talią wariantu.",
+    "  replaces    - [typ_talii] - pojedyncze karty źródła z 'homebrewReplacesID' podmieniają oficjalne (erraty).",
+    "                'promissory_note' = podmiana wspólnych notek przy rozdawaniu (<color>_ps -> absol_<color>_ps).",
+    "  default     - true = włączony domyślnie w nowych grach (np. własne erraty, które chcesz mieć zawsze).",
+    "Typy talii: agenda, action_card, relic, explore, secret_objective, public_stage_1_objective,",
+    "  public_stage_2_objective, promissory_note."
+  ],
+  "modules": [
+    {
+      "id": "absol_agendas",
+      "name": "Absol agenda deck",
+      "description": "Replaces the agenda deck and the Political Secret promissory note with the Absol fan versions (60 agendas).",
+      "source": "absol",
+      "badge": "ABS",
+      "decks": { "agenda": "agendas_absol" },
+      "replaces": ["promissory_note"]
+    },
+    {
+      "id": "absol_relics",
+      "name": "Absol relics",
+      "description": "Replaces the relic deck with the Absol fan relics (20 cards, rewritten texts).",
+      "source": "absol",
+      "badge": "ABS",
+      "decks": { "relic": "relics_absol" }
+    }
+  ]
+}

@@ -42,7 +42,7 @@ def explore_piles(state: GameState, registry: StaticDataRegistry, deck: str) -> 
     # Niezasiana talia = pełna pula (bez tego, co już odrzucono / purge'owano).
     gone = {*discard, *decks.purged}
     return DeckPiles(
-        [c for c in exploration.deck_card_ids(registry, deck) if c not in gone], discard
+        [c for c in exploration.deck_card_ids(registry, deck, state) if c not in gone], discard
     )
 
 

@@ -19,7 +19,7 @@
     "thunders_edge": 1
   },
   "decks": {
-    "absol": 1,
+    "absol": 2,
     "base": 9,
     "pok": 11,
     "thunders_edge": 5
@@ -46,6 +46,7 @@
     "pok": 20
   },
   "relics": {
+    "absol": 20,
     "codex2": 3,
     "codex4": 3,
     "pok": 11,

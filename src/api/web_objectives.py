@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.api import web_points
-from src.core import deck_piles, fleet_pool, objective_payment, objective_progress
+from src.core import deck_piles, fleet_pool, objective_payment, objective_progress, variants
 from src.core import objectives as obj
 from src.core.game_state import GameState, PlayerState, StatusStep
 from src.core.hex_grid import HexGrid
@@ -226,8 +226,12 @@ def card_pool_counts(state: GameState, registry: StaticDataRegistry) -> dict[str
         "actionCardDeck": sorted(state.decks.action_card_deck),
         "actionCardDiscard": list(state.decks.action_card_discard),
         "purgedCards": list(state.decks.purged),
-        # FAN-AGENDAS: wariant talii agend ("standard" / "absol") - front pokazuje właściwą pulę.
+        # Talia agend ("standard" / źródło modułu, np. "absol") i moduły wariantów gry
+        # (core/variants) - front pokazuje właściwe pule kart.
         "agendaVariant": state.decks.agenda_variant,
+        "variants": [
+            m.id for m in variants.game_modules(state.decks.variants, state.decks.agenda_variant)
+        ],
     }
     top: dict[str, str] = {}
     for deck, prefix in explore_keys.items():

@@ -963,3 +963,25 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   przed Assault Cannon po dołożeniu statków, Ceasefire blokuje przeniesienie sił z planet na statki.
 - QA: pytest 3041 ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (TurnControls, battle, movement,
   Activity, StatusPhase) ✓, build ✓. e2e pominięte (bez zmian kreatora/lobby). Wymaga restartu backendu.
+
+## 2026-11-18 — Moduły wariantów gry (fanowskie talie, erraty, własne komponenty)
+
+- Wariant agend Absol był wpisany na sztywno (stałe w `sources.py`, ~15 miejsc `FAN-AGENDAS`).
+  Teraz to ogólny mechanizm sterowany danymi: `assets/config/variants.json` + `core/variants.py`.
+  Instrukcja: `docs/WARIANTY.md`.
+- Moduł: cała talia (`decks`) albo errata pojedynczych kart (`replaces`, `homebrewReplacesID`;
+  1 karta może zastąpić N kopii) dla agend, kart akcji, reliktów, eksploracji, celów i wspólnych
+  notek. Loader dociąga ze źródła modułu tylko potrzebne wpisy (`VariantLoadPlan`).
+- Gra: `/game/new` `variants` (stare `agenda_deck` działa dalej), `DecksState.variants`;
+  `objectives.deck_card_ids(..., state)` liczy skład talii gry (agendy, relikty, karty akcji,
+  cele, eksploracje). Stare gry z `agenda_variant="absol"` mapują się na moduł `absol_agendas`.
+- Nowy moduł `absol_relics` (talia 20 reliktów Absol). Efekty reliktów Absol nie są
+  oprogramowane (własne id, ręczna ewidencja).
+- Front: przełączniki w Ustawieniach generowane z manifestu (`settings.gameVariants`, migracja
+  z `absolAgendas`), pule kart i edytor gracza wg `cardPool.variants` (`isInGameDeck`),
+  plakietki źródeł z manifestu. `scripts/gen_active_decks.py` emituje `VARIANT_MODULES`.
+- Ograniczenia: front zna tylko karty ze starego eksportu (Black Spectrum i własne karty
+  wymagają dopisania danych), tech/jednostki/frakcje nadal tylko globalnie przez
+  `enabled_sources.json`.
+- QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (entities, cards, search,
+  settings, player, state, api) ✓. e2e pominięte (kreator bez zmian). Wymaga restartu backendu.

@@ -22,7 +22,7 @@ from typing import Protocol, TypeVar, cast
 from pydantic import BaseModel
 
 from src import config
-from src.core import rules_hooks
+from src.core import rules_hooks, variants
 from src.core.component_loader import LoadReport, load_components
 from src.core.components import ComponentCatalog, build_timing_specs
 from src.core.effects_registry import EffectRegistry
@@ -47,7 +47,6 @@ from src.core.references import (
 )
 from src.core.rules_links import RulesTopicIndex
 from src.core.sources import (
-    AGENDA_VARIANT_SOURCES,
     SOURCE_PRIORITY,
     known_source_ids,
     validate_enabled_sources,
@@ -225,7 +224,7 @@ class StaticDataRegistry:
         # deterministyczny wybór przy kolizji id — D9). Specyfikacje czasowe budujemy
         # z kart akcji, zdolności frakcji i liderów (R8.2).
         tables, self.load_report = load_components(
-            self._enabled, agenda_variant_sources=AGENDA_VARIANT_SOURCES
+            self._enabled, variant_plan=variants.load_plan()
         )
         timing_specs = build_timing_specs(
             tables, leaders=self.leaders, abilities=self.abilities

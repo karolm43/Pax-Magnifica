@@ -24,6 +24,7 @@ from src.core import (
     relic_fragments,
     triggers,
     unit_ops,
+    variants,
 )
 from src.core.card_draw import draw_action_card
 from src.core.components import ComponentCategory, ExplorationDef
@@ -132,20 +133,26 @@ def _add_unit(
     unit_ops.place_units(state, system, planet, player_id, base_type, 1, UnitCause.PLACED)
 
 
-def deck_card_ids(registry: StaticDataRegistry, deck: str) -> list[str]:
-    """Wszystkie karty talii eksploracji (posortowane) wg typu karty w katalogu."""
-    return sorted(
-        card_id
-        for card_id, card in registry.catalog.all(ComponentCategory.EXPLORATION).items()
-        if isinstance(card, ExplorationDef) and (card.type or "").lower() == deck
+def deck_card_ids(
+    registry: StaticDataRegistry, deck: str, state: GameState | None = None
+) -> list[str]:
+    """Wszystkie karty talii eksploracji (posortowane) wg typu karty w katalogu.
+
+    Ze ``state`` uwzględnia moduły wariantów gry (``core/variants.explore_deck_ids``).
+    """
+    mods = (
+        variants.game_modules(state.decks.variants, state.decks.agenda_variant)
+        if state is not None
+        else []
     )
+    return variants.explore_deck_ids(registry, deck, mods)
 
 
 def seed_deck(state: GameState, registry: StaticDataRegistry, deck: str) -> None:
     """Zasiewa (tasuje) talię eksploracji, jeśli jeszcze nie istnieje — MUTUJE ``state``."""
     decks = state.decks
     if deck not in decks.exploration_deck:
-        ids = deck_card_ids(registry, deck)
+        ids = deck_card_ids(registry, deck, state)
         next_rng(state).shuffle(ids)
         decks.exploration_deck[deck] = ids
         decks.exploration_discard.setdefault(deck, [])

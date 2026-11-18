@@ -8,6 +8,7 @@ import {
   saveStoredChoice,
 } from "@/utils/localStorageSettings";
 import type { ControlTokenDisplayMode } from "@/entities/game/controlTokenDisplay";
+import { defaultVariantIds, variantModules } from "@/entities/data/officialSources";
 import {
   otherRoleCount,
   pickKey,
@@ -70,7 +71,7 @@ const DEFAULT_SETTINGS: Settings = {
   showPlayerAreaFactionAbilities: true,
   showPlayerAreaNeighborship: true,
   adminFastMode: false,
-  absolAgendas: false,
+  gameVariants: defaultVariantIds(),
   blackSpectrumFirmamentPlots: false,
   freeUnitDrag: false,
   skipPhases: false,
@@ -92,11 +93,26 @@ function resolveControlTokenDisplayMode(
   return stored.showControlTokens ? "always" : "empty";
 }
 
+/**
+ * Zapisane moduły wariantów (tylko znane id). Migracja: stare ustawienie `absolAgendas: true`
+ * = moduł talii agend Absol.
+ */
+function resolveGameVariants(stored: Record<string, unknown> | null): string[] {
+  const known = new Set(variantModules().map((m) => m.id));
+  const value = stored?.gameVariants;
+  if (Array.isArray(value)) {
+    return value.filter((id): id is string => typeof id === "string" && known.has(id));
+  }
+  if (stored?.absolAgendas === true && known.has("absol_agendas")) return ["absol_agendas"];
+  return defaultVariantIds();
+}
+
 function loadSettingsFromStorage(): Settings {
   const stored = readStoredObject(STORAGE_KEY);
   return {
     ...mergeStoredSettings(stored, DEFAULT_SETTINGS),
     controlTokenDisplayMode: resolveControlTokenDisplayMode(stored),
+    gameVariants: resolveGameVariants(stored),
   };
 }
 
@@ -652,10 +668,11 @@ export type Settings = {
    */
   adminFastMode: boolean;
   /*
-   * FAN-AGENDAS: talia agend Absol zamiast standardowej (PoK). Czytana przy tworzeniu NOWEJ gry
-   * (`createNewGame` wysyła `agenda_deck`); zmiana nie wpływa na grę w toku.
+   * Moduły wariantów gry (fanowskie talie, erraty, własne komponenty) z
+   * `assets/config/variants.json` - id modułów. Czytane przy tworzeniu NOWEJ gry
+   * (`createNewGame` wysyła `variants`); zmiana nie wpływa na grę w toku.
    */
-  absolAgendas: boolean;
+  gameVariants: string[];
   /*
    * Black Spectrum Firmament Plots zamiast standardowych Firmament Plots (fanowska
    * zmiana). Podmienia karty Plot w wyborze frakcji (FactionSummary) i w szczegółach

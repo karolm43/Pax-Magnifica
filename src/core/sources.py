@@ -24,24 +24,10 @@ SOURCE_PRIORITY: tuple[str, ...] = (
 )
 
 
-# ==========================================================================================
-# FAN-AGENDAS: świadomy wyjątek od zasady „tylko oficjalne źródła" (decyzja użytkownika,
-# 2026-11-08). Agendy z podstawki/PoK zastępujemy opcjonalnie FANOWSKĄ talią Absol
-# (przełącznik „Absol agenda deck" w Ustawieniach → ``/game/new`` ``agenda_deck``).
-# Karty Absol mają INNE teksty niż oficjalne - przy kodowaniu efektu agendy sprawdź, czy
-# ``state.decks.agenda_variant`` to "absol", i bierz treść z ``assets/data/agendas/absol.json``
-# (aliasy ``absol_*``), nie z wersji base/PoK. Wszystkie miejsca: grep ``FAN-AGENDAS``.
-# ==========================================================================================
-# Fanowskie warianty TALII AGEND (wybierane w Ustawieniach, nie w manifeście źródeł).
-# Wariant -> alias talii w katalogu. ``standard`` (None) = talia aktywnych źródeł (PoK/TE).
-# Źródła fanowskie (``AGENDA_VARIANT_SOURCES``) ładują się WYŁĄCZNIE dla kart agend i talii
-# agend - reszta ich danych (jednostki, technologie, karty akcji…) pozostaje nieaktywna.
+# Warianty gry (fanowskie talie, erraty, własne komponenty) są DANYMI: moduły w
+# ``assets/config/variants.json``, logika w ``core/variants.py`` (instrukcja: docs/WARIANTY.md).
+# Zgodność wstecz: ``DecksState.agenda_variant`` = "standard" albo źródło modułu talii agend.
 AGENDA_STANDARD = "standard"
-AGENDA_VARIANT_DECKS: dict[str, str | None] = {
-    AGENDA_STANDARD: None,
-    "absol": "agendas_absol",
-}
-AGENDA_VARIANT_SOURCES: frozenset[str] = frozenset({"absol"})
 
 
 class UnknownSourcesError(ValueError):

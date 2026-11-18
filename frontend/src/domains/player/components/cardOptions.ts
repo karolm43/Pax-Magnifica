@@ -5,7 +5,7 @@ import {
 import { promissoryNotes as ALL_PROMISSORY_NOTES } from "@/entities/data/promissoryNotes";
 import { relics as ALL_RELICS } from "@/entities/data/relics";
 import { explorations as ALL_EXPLORATIONS } from "@/entities/data/explorations";
-import { isInActiveDeck, isOfficialSource } from "@/entities/data/officialSources";
+import { isInGameDeck, isOfficialSource } from "@/entities/data/officialSources";
 
 /** Opcja listy wyboru (Select): wartość = id karty/komponentu, etykieta = nazwa. */
 export type CardOption = { value: string; label: string };
@@ -33,14 +33,14 @@ function fromPool(groups: { entries: { alias: string; name: string }[] }[]): Car
   return out.sort(byLabel);
 }
 
-/** Opcje kart akcji (oficjalne źródła), nazwa → alias. */
-export function actionCardOptions(): CardOption[] {
-  return fromPool(actionCardPool());
+/** Opcje kart akcji talii gry (`variants` = moduły wariantów gry), nazwa → alias. */
+export function actionCardOptions(variants?: readonly string[]): CardOption[] {
+  return fromPool(actionCardPool(variants));
 }
 
-/** Opcje tajnych celów (oficjalne źródła), nazwa → alias. */
-export function secretObjectiveOptions(): CardOption[] {
-  return fromPool(secretObjectivePool());
+/** Opcje tajnych celów talii gry (`variants` = moduły wariantów gry), nazwa → alias. */
+export function secretObjectiveOptions(variants?: readonly string[]): CardOption[] {
+  return fromPool(secretObjectivePool(variants));
 }
 
 /**
@@ -80,12 +80,12 @@ export function relicFragmentKinds(): FragmentKind[] {
   return [...byType.values()].sort((a, b) => naturalCollator.compare(a.label, b.label));
 }
 
-/** Opcje relikwii (oficjalne źródła), nazwa → alias. */
-export function relicOptions(): CardOption[] {
+/** Opcje relikwii talii gry (`variants` = moduły wariantów gry), nazwa → alias. */
+export function relicOptions(variants?: readonly string[]): CardOption[] {
   const out: CardOption[] = [];
   const seen = new Set<string>();
   for (const relic of ALL_RELICS) {
-    if (!isOfficialSource(relic.source) || !isInActiveDeck("relic", relic.alias)) continue;
+    if (!isInGameDeck("relic", relic.alias, relic.source, variants)) continue;
     if (seen.has(relic.alias)) continue;
     seen.add(relic.alias);
     out.push({ value: relic.alias, label: relic.name });

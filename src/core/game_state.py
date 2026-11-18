@@ -353,9 +353,12 @@ class DecksState(BaseModel):
     agenda_deck: list[str] = Field(default_factory=list)
     agenda_discard: list[str] = Field(default_factory=list)
     agenda_deck_seeded: bool = False
-    # FAN-AGENDAS: wariant talii agend gry - "standard" (PoK/TE) albo fanowski "absol"
-    # (``core/sources.AGENDA_VARIANT_DECKS``). Ustawiany raz przy tworzeniu gry (``/game/new``);
-    # decyduje, z czego zasiewa się ``agenda_deck``.
+    # Moduły wariantów gry (``assets/config/variants.json``, ``core/variants.py``): fanowskie
+    # talie, erraty kart, własne komponenty. Ustawiane raz w ``/game/new``; decydują o składzie
+    # talii (agendy, relikty, karty akcji, eksploracje, cele) i podmianie wspólnych notek.
+    variants: list[str] = Field(default_factory=list)
+    # Talia agend gry - "standard" albo źródło modułu talii agend (np. "absol"). Pole zgodności
+    # wstecz (front: ``cardPool.agendaVariant``); źródłem prawdy jest ``variants``.
     agenda_variant: str = "standard"
     # Prawa (laws) w grze: {id agendy: rozstrzygnięty wynik ("for" / id gracza / id planety…)}.
     # Prawo zostaje w grze po wyniku „For" albo „Elect" (R_agenda_card); dyrektywy i „Against"

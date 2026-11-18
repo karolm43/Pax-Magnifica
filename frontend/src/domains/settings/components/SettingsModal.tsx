@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from "react";
 import { NumberInput, Switch, SegmentedControl, Tabs } from "@/ds";
 import { useSettingsStore } from "@/state/appStore";
+import { toggleVariant, variantModules } from "@/entities/data/officialSources";
 import { AppModal } from "@/shared/ui/AppModal";
 import type { ControlTokenDisplayMode } from "@/entities/game/controlTokenDisplay";
 import { CurrentGameClockControls } from "@/domains/clock/CurrentGameClockControls";
@@ -174,14 +175,19 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
           </SettingGroup>
 
           <SettingGroup label="Game variants">
-            <SwitchRow
-              label="Absol agenda deck"
-              description="Use the Absol agenda deck instead of the standard one. Applies to the next new game; a game in progress keeps its deck."
-              checked={settings.absolAgendas}
-              onToggle={(checked) =>
-                handlers.updateSettings({ absolAgendas: checked })
-              }
-            />
+            {variantModules().map((module) => (
+              <SwitchRow
+                key={module.id}
+                label={module.name}
+                description={`${module.description} Applies to the next new game; a game in progress keeps its decks.`}
+                checked={settings.gameVariants.includes(module.id)}
+                onToggle={(checked) =>
+                  handlers.updateSettings({
+                    gameVariants: toggleVariant(settings.gameVariants, module, checked),
+                  })
+                }
+              />
+            ))}
             <SwitchRow
               label="Black Spectrum Firmament Plots"
               description="Replace the standard Firmament Plots with the Black Spectrum ones in the faction picker and in plot card details. Display only: the plot effects are not enforced by the engine yet."

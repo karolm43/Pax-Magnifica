@@ -16,7 +16,7 @@ from __future__ import annotations
 import random
 from collections.abc import Sequence
 
-from src.core import card_draw, secret_objectives, triggers
+from src.core import card_draw, secret_objectives, triggers, variants
 from src.core.components import ComponentCategory, DeckDef, ObjectiveDef
 from src.core.dice import next_rng
 from src.core.game_events import GameEvent, Moment
@@ -25,12 +25,7 @@ from src.core.hex_grid import HexGrid
 from src.core.objective_payment import ObjectivePayment, pay_for_objective
 from src.core.objective_progress import evaluate
 from src.core.registry import StaticDataRegistry
-from src.core.sources import (
-    AGENDA_STANDARD,
-    AGENDA_VARIANT_DECKS,
-    AGENDA_VARIANT_SOURCES,
-    source_rank,
-)
+from src.core.sources import AGENDA_STANDARD
 
 # R_objective_cards: „Each game contains five stage I and five stage II public objective
 # cards"; mówca odkrywa dwa cele I etapu w setupie.
@@ -49,49 +44,53 @@ _ACTION_DECK = "action_card"
 STATUS_PHASE_LABEL = "Status"
 
 
-def deck_card_ids(registry: StaticDataRegistry, deck_type: str) -> list[str]:
-    """Identyfikatory kart NAJWIĘKSZEJ talii danego typu (np. pełna talia PoK/TE).
+def game_variant_modules(state: GameState) -> list[variants.VariantModule]:
+    """Moduły wariantów gry (``decks.variants`` + zgodność wstecz ``decks.agenda_variant``)."""
+    return variants.game_modules(state.decks.variants, state.decks.agenda_variant)
 
-    Katalog zawiera talie per źródło (base, pok, thunders_edge); kumulatywne są te większe
-    (np. ``action_cards_te`` = base+pok+codexy+TE). Wybór „największej" jest deterministyczny
-    i nie wymaga hardkodowania identyfikatorów talii.
 
-    Remis rozmiaru rozstrzyga PRIORYTET ŹRÓDŁA talii (RULES.md 14: nowsze rozszerzenie
-    wygrywa), potem alias. To istotne dla agend: PoK usunął 13 kart i dodał 13 nowych,
-    więc ``agendas_pok`` i ``agendas_base_game`` mają po 50 kart — remis nie może wybrać
-    przestarzałej talii base.
+def deck_card_ids(
+    registry: StaticDataRegistry, deck_type: str, state: GameState | None = None
+) -> list[str]:
+    """Identyfikatory kart talii danego typu (np. pełna talia PoK/TE).
+
+    Bez ``state``: NAJWIĘKSZA talia aktywnych źródeł. Katalog zawiera talie per źródło
+    (base, pok, thunders_edge); kumulatywne są te większe (np. ``action_cards_te`` =
+    base+pok+codexy+TE). Remis rozmiaru rozstrzyga PRIORYTET ŹRÓDŁA talii (RULES.md 14:
+    nowsze rozszerzenie wygrywa), potem alias - ``agendas_pok`` i ``agendas_base_game``
+    mają po 50 kart, remis nie może wybrać przestarzałej talii base.
+
+    Ze ``state``: skład talii W TEJ GRZE - moduły wariantów (``core/variants``) mogą
+    zastąpić całą talię albo podmienić pojedyncze karty (erraty).
     """
-    best: DeckDef | None = None
-    decks = registry.catalog.all(ComponentCategory.DECK)
-    for deck_id in sorted(decks):
-        deck = decks[deck_id]
-        if not isinstance(deck, DeckDef) or deck.deck_type != deck_type:
-            continue
-        if deck.source in AGENDA_VARIANT_SOURCES:
-            continue  # FAN-AGENDAS: fanowskie talie wybiera się jawnie (``agenda_deck_ids``)
-        if best is None or (-len(deck.card_ids), source_rank(deck.source)) < (
-            -len(best.card_ids),
-            source_rank(best.source),
-        ):
-            best = deck
-    return list(best.card_ids) if best is not None else []
+    if state is None:
+        return variants.official_deck_ids(registry, deck_type)
+    return variants.game_deck_ids(registry, deck_type, game_variant_modules(state))
 
 
 def agenda_deck_ids(registry: StaticDataRegistry, variant: str = AGENDA_STANDARD) -> list[str]:
-    """FAN-AGENDAS: karty talii agend dla wariantu gry (``standard`` albo fanowski ``absol``).
+    """Karty talii agend dla starego pola ``agenda_variant`` (``standard`` albo np. ``absol``).
 
-    ``standard`` = talia aktywnych źródeł (PoK/TE). Warianty fanowskie biorą wskazaną talię
-    z katalogu (``AGENDA_VARIANT_DECKS``). Nieznany wariant albo brak talii → ``ValueError``.
+    Nieznany wariant albo brak talii -> ``ValueError``. Nowy kod: ``deck_card_ids(..., state)``.
     """
-    if variant not in AGENDA_VARIANT_DECKS:
-        raise ValueError(f"Unknown agenda deck variant: {variant!r}.")
-    alias = AGENDA_VARIANT_DECKS[variant]
-    if alias is None:
-        return deck_card_ids(registry, "agenda")
-    deck = registry.catalog.get(ComponentCategory.DECK, alias)
-    if not isinstance(deck, DeckDef) or not deck.card_ids:
-        raise ValueError(f"The agenda deck {alias!r} is not available in the catalog.")
-    return list(deck.card_ids)
+    module = variants.module_for_agenda_variant(variant)
+    return variants.game_deck_ids(registry, "agenda", [module] if module else [])
+
+
+def _in_any_deck(registry: StaticDataRegistry, deck_type: str, card_id: str) -> bool:
+    """Czy karta należy do talii typu ``deck_type`` - oficjalnej albo któregoś modułu."""
+    if card_id in variants.official_deck_ids(registry, deck_type):
+        return True
+    decks = registry.catalog.all(ComponentCategory.DECK)
+    return any(
+        isinstance(deck, DeckDef) and deck.deck_type == deck_type and card_id in deck.card_ids
+        for deck in decks.values()
+    ) or any(
+        card_id in found
+        for found in variants.replacement_map(
+            registry, deck_type, variants.modules().values()
+        ).values()
+    )
 
 
 def objective_def(
@@ -107,9 +106,9 @@ def objective_def(
 
 def objective_stage(registry: StaticDataRegistry, objective_id: str) -> int | None:
     """Etap celu publicznego (1 albo 2) wg talii, do której należy; ``None`` gdy to nie cel."""
-    if objective_id in deck_card_ids(registry, _STAGE1_DECK):
+    if _in_any_deck(registry, _STAGE1_DECK, objective_id):
         return 1
-    if objective_id in deck_card_ids(registry, _STAGE2_DECK):
+    if _in_any_deck(registry, _STAGE2_DECK, objective_id):
         return 2
     return None
 
@@ -137,8 +136,8 @@ def setup_objectives(
     chooser = rng if rng is not None else random.Random()
     new_state = state.clone()
 
-    stage1 = deck_card_ids(registry, _STAGE1_DECK)
-    stage2 = deck_card_ids(registry, _STAGE2_DECK)
+    stage1 = deck_card_ids(registry, _STAGE1_DECK, new_state)
+    stage2 = deck_card_ids(registry, _STAGE2_DECK, new_state)
     count1 = min(PUBLIC_OBJECTIVES_PER_STAGE, len(stage1))
     count2 = min(PUBLIC_OBJECTIVES_PER_STAGE, len(stage2))
     drawn1 = chooser.sample(stage1, count1)
@@ -152,7 +151,7 @@ def setup_objectives(
         custom_points={"custodians": 1},
     )
 
-    secrets_deck = deck_card_ids(registry, _SECRET_DECK)
+    secrets_deck = deck_card_ids(registry, _SECRET_DECK, new_state)
     chooser.shuffle(secrets_deck)
     secret_objectives.seed_deck(new_state, secrets_deck)
     for player_id in new_state.players:
@@ -163,7 +162,7 @@ def setup_objectives(
         else:
             secret_objectives.deal_one_to_hand(new_state, player_id)
 
-    actions = deck_card_ids(registry, _ACTION_DECK)
+    actions = deck_card_ids(registry, _ACTION_DECK, new_state)
     chooser.shuffle(actions)
     card_draw.seed_action_deck(new_state, actions)
     return new_state

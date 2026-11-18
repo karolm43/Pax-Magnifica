@@ -221,17 +221,17 @@ def clear_agenda_peek(state: GameState) -> None:
 def ensure_agenda_deck(state: GameState, registry: StaticDataRegistry) -> None:
     """Leniwie zasiewa talię agend (talia wybranego wariantu, potasowana).
 
-    Wariant (``decks.agenda_variant``): ``standard`` = pełna talia aktywnych źródeł, albo
-    fanowska talia wybrana w setupie. Talia powstaje raz: dopóki ``agenda_deck_seeded`` jest
-    False. Potem pusta talia nie jest już zasiewana (agendy zużyte w fazie agendy trafiają
-    na stos odrzuconych).
+    Skład talii zależy od modułów wariantów gry (``core/variants``, np. talia Absol):
+    bez modułu = pełna talia aktywnych źródeł. Talia powstaje raz: dopóki
+    ``agenda_deck_seeded`` jest False. Potem pusta talia nie jest już zasiewana (agendy
+    zużyte w fazie agendy trafiają na stos odrzuconych).
     """
-    from src.core.objectives import agenda_deck_ids  # lokalnie: objectives importuje card_draw
+    from src.core.objectives import deck_card_ids  # lokalnie: objectives importuje card_draw
 
     decks = state.decks
     if decks.agenda_deck_seeded:
         return
-    cards = agenda_deck_ids(registry, decks.agenda_variant)
+    cards = deck_card_ids(registry, "agenda", state)
     next_rng(state).shuffle(cards)
     decks.agenda_deck = cards
     decks.agenda_discard = []

@@ -62,6 +62,8 @@ assets/*
 assets/config/*
 !assets/config/engine_config.json
 !assets/config/effects_status.json
+# Moduły wariantów gry (fanowskie talie, erraty, własne komponenty) - docs/WARIANTY.md.
+!assets/config/variants.json
 !assets/data/
 !assets/systems/
 !assets/planets/

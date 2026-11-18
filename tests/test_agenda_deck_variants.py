@@ -31,12 +31,13 @@ def test_fan_deck_cards_exist_in_catalog(
         assert registry.catalog.get(ComponentCategory.AGENDA, card_id) is not None
 
 
-def test_fan_sources_load_only_agendas_and_agenda_decks(registry: StaticDataRegistry) -> None:
+def test_fan_sources_load_only_what_variant_modules_need(registry: StaticDataRegistry) -> None:
     action_cards = registry.catalog.all(ComponentCategory.ACTION_CARD)
     assert not [c for c in action_cards.values() if c.source in ("absol",)]
     decks = registry.catalog.all(ComponentCategory.DECK)
     fan = [d for d in decks.values() if d.source in ("absol",)]
-    assert fan and all(d.id.startswith("agendas_") for d in fan)
+    # Moduły Absol (assets/config/variants.json): talia agend i talia reliktów - nic więcej.
+    assert sorted(d.id for d in fan) == ["agendas_absol", "relics_absol"]
 
 
 def test_unknown_variant_rejected(registry: StaticDataRegistry) -> None:
@@ -114,10 +115,11 @@ def test_absol_laws_reach_laws_in_play_and_player_area() -> None:
 
 def test_absol_variant_replaces_political_secret(registry: StaticDataRegistry) -> None:
     """FAN-AGENDAS: w wariancie Absol ``red_ps`` zastępuje Absol's Political Secret."""
+    from src.core import variants
     from src.core.game_setup import common_promissory_note_ids
 
     standard = common_promissory_note_ids(registry, "red")
-    absol = common_promissory_note_ids(registry, "red", "absol")
+    absol = common_promissory_note_ids(registry, "red", variants.game_modules([], "absol"))
     assert "red_ps" in standard and "absol_red_ps" not in standard
     assert "absol_red_ps" in absol and "red_ps" not in absol
     assert len(absol) == len(standard)
