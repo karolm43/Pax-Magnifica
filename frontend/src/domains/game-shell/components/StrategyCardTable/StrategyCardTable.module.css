@@ -308,7 +308,8 @@
   /* Większy zapas u góry: uniesiona/powiększona na hover karta (translateY -14px +
      scale 1.18) ma mieścić się POD ściętym górnym łukiem boksu, nie wychodzić
      ponad niego. */
-  padding-top: var(--ds-space-xl);
+  /* Zapas na plakietkę właściciela nad wybraną kartą (.ownerTag). */
+  padding-top: calc(var(--ds-space-xl) + 26px);
 }
 
 /*
@@ -591,45 +592,51 @@
 .ownerTag {
   position: absolute;
   left: 50%;
-  top: 0;
+  bottom: calc(100% + 4px);
   z-index: 2;
-  transform: translate(-50%, -60%);
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  max-width: 108%;
+  width: max-content;
+  max-width: calc(100% + 28px);
   padding: 3px 10px 3px 4px;
   border: 2px solid rgb(var(--owner-rgb));
-  border-radius: 999px;
+  border-radius: 14px;
   background: rgb(14 16 22 / 0.95);
   box-shadow: 0 0 12px rgb(var(--owner-rgb) / 0.7), 0 2px 6px rgb(0 0 0 / 0.6);
   pointer-events: none;
 }
 
+/* Pełna nazwa frakcji - zawija się do 2 linii zamiast ucinać się „…”. */
 .ownerTagName {
   min-width: 0;
   font-family: var(--ds-font-display);
-  font-size: var(--ds-fz-sm);
+  font-size: var(--ds-fz-xs);
   font-weight: 700;
+  line-height: 1.15;
   color: #fff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-/* Duży żeton frakcji na środku wyszarzonej karty. */
+/* Duży żeton frakcji DOKŁADNIE na środku karty (inset + margin: auto - niezależnie od
+   transformacji łuku i animacji karty). */
 .ownerStamp {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
   display: grid;
   place-items: center;
   padding: 6px;
   border: 3px solid rgb(var(--owner-rgb));
   border-radius: 50%;
-  background: rgb(10 12 16 / 0.85);
+  background: rgb(10 12 16 / 0.8);
   box-shadow: 0 0 18px rgb(var(--owner-rgb) / 0.8);
+  line-height: 0;
   pointer-events: none;
 }
 
@@ -643,7 +650,8 @@
 
 .card[data-picked] .cardImage,
 .card[data-picked] .cardFallback {
-  filter: grayscale(1) brightness(0.42);
+  /* Szarość, ale tytuł i teksty karty wciąż czytelne. */
+  filter: grayscale(1) brightness(0.7) contrast(1.05);
 }
 
 /* Kolejka wyboru w nagłówku: wszyscy gracze w porządku mówcy, ich karty i kto wybiera. */
@@ -696,8 +704,11 @@
   height: 20px;
   padding: 0 8px;
   border-radius: 999px;
-  background: var(--scc);
-  color: #111;
+  /* Biały tekst na przyciemnionym kolorze karty - czytelny na każdym kolorze. */
+  border: 1px solid var(--scc);
+  background: color-mix(in srgb, var(--scc) 45%, rgb(10 12 16));
+  color: #fff;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.9);
   font-family: var(--ds-font-data);
   font-size: 12px;
   font-weight: 800;
