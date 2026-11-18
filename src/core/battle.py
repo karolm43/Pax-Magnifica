@@ -1058,9 +1058,42 @@ def _extra_hits(
     }
 
 
+def _direct_hits_to_non_fighters(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry, combat: ActiveCombat
+) -> None:
+    """Hook FORBID ``combat.hits_to_non_fighters`` ([0.0.1], RULES.md 62.12) - MUTUJE klon.
+
+    Trafienia z rzutów wskazanych grup (końcowe kości rundy, po przerzutach) stają się wymaganym
+    celem przypisania: statki przeciwnika poza myśliwcami, „if able” (``_check_hit_targets``).
+    """
+    if combat.kind != "space":
+        return
+    opponent_of = {combat.attacker: combat.defender, combat.defender: combat.attacker}
+    for pid, entries in combat.rolls.items():
+        types = rules_hooks.forbidden(
+            rules_hooks.POINT_COMBAT_HITS_TO_NON_FIGHTERS, state, pid,
+            {"position": combat.position},
+        )
+        if not types:
+            continue
+        hits = sum(int(e.get("hits") or 0) for e in entries if e.get("baseType") in types)
+        victim = opponent_of.get(pid)
+        if hits <= 0 or victim is None:
+            continue
+        targets = [
+            u.base_type for u in side_units(state, grid, registry, victim)
+            if u.base_type != "fighter"
+        ]
+        if targets:
+            # Etykieta = pełne nazwy rzucających grup z danych (np. „[0.0.1]”).
+            names = sorted({str(e.get("name")) for e in entries if e.get("baseType") in types})
+            _add_hit_target(combat, victim, targets, hits, " / ".join(names))
+
+
 def _open_assign(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
     """Okno przypisania strat po rzutach rundy (albo koniec rundy, gdy nikt nie ma trafień)."""
     combat = _combat(state)
+    _direct_hits_to_non_fighters(state, grid, registry, combat)
     queue = [
         pid
         for pid in (combat.defender, combat.attacker)

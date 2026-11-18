@@ -10,7 +10,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `analytical` | Analytical | jolnar | when | TRIGGER (okno reakcji) | technologie | ✔ | You may ignore 1 prerequisite. |
 | `arbiters` | Arbiters | hacan | — | PERMIT (pozwolenie) | karty | ✔ | When you are negotiating a transaction, action cards can be exchanged as part of that transaction. |
 | `armada` | Armada | letnev | — | MODIFY (liczba/rzut) | żetony dowodzenia | ✔ | The maximum number of non-fighter ships you can have in each system is equal to 2 more than the number of tokens in your fleet pool |
-| `assimilate` | Assimilate | l1z1x | when | TRIGGER (okno reakcji) | produkcja, planety i eksploracja | — | Replace each PDS and space dock that is on that planet with a matching unit from your reinforcements. |
+| `assimilate` | Assimilate | l1z1x | when | TRIGGER (okno reakcji) | produkcja, planety i eksploracja | ✔ | Replace each PDS and space dock that is on that planet with a matching unit from your reinforcements. |
 | `awaken` | Awaken | titans | after | TRIGGER (okno reakcji) | produkcja | — | You may replace each of those tokens with 1 PDS from your reinforcements. |
 | `bladesorchestra` | The Blade's Orchestra | obsidian | when | TRIGGER (okno reakcji) | planety i eksploracja, status i odświeżanie | — | flip your home system, double-sided faction components, and all of your in-play plot cards. Then, ready Cronos Hollow and Tallin Hollow if … |
 | `blood_ties` | Blood Ties | winnu | — | — | ekonomia i płatności | ✔ | You do not have to spend influence to remove the custodians token from Mecatol Rex. |
@@ -32,7 +32,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `galvanize` | Galvanize | bastion | when | TRIGGER (okno reakcji) | walka | — | Galvanized units roll 1 additional die for combat rolls and unit abilities. they place a galvanize token beneath it if it does not have one. |
 | `gashlai_physiology` | Gashlai Physiology | muaat | — | PERMIT (pozwolenie) | ruch | — | Your ships can move through supernovas |
 | `guild_ships` | Guild Ships | hacan | — | PERMIT (pozwolenie) | — | ✔ | You can negotiate transactions with players who are not your neighbor. |
-| `harrow` | Harrow | l1z1x | at_end | PERMIT (pozwolenie) | walka, planety i eksploracja | — | Your ships in the active system may use their BOMBARDMENT abilities against your opponent's ground forces on the planet. |
+| `harrow` | Harrow | l1z1x | at_end | PERMIT (pozwolenie) | walka, planety i eksploracja | ✔ | Your ships in the active system may use their BOMBARDMENT abilities against your opponent's ground forces on the planet. |
 | `hubris` | Hubris | mahact | — | FORBID (zakaz) | karty | — | During setup, purge your "Alliance" promissory note. Other players cannot give you their 'Alliance" promissory note. |
 | `imperia` | Imperia | mahact | — | PERMIT (pozwolenie) | żetony dowodzenia | — | While another player's command token is in your fleet pool, you can use the ability of that player's commander, if it is unlocked. |
 | `incursion` | Incursion | crimson | — | PERMIT (pozwolenie) | ruch, status i odświeżanie | — | When you activate a system that contains a breach, you may flip that breach; systems that contain active breaches are adjacent. at the end … |

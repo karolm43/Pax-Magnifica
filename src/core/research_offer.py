@@ -110,7 +110,7 @@ def gain_input(
             row["tokenCost"] = len(row["prerequisites"])
     # Bez skipów i płatności: nic nie trzeba wyczerpywać.
     view.update(
-        specialties={}, aida=False, relic_skips=[], infantry_skips=[], planets={},
+        specialties={}, aida=False, relic_skips=[], infantry_skips=[], paid_skips=[], planets={},
         compound_planets={},
     )
     view["gain"] = {
@@ -236,7 +236,7 @@ def resolve(
         raise ValueError("'trade_goods' must be a number.")
     technology.pay_research(
         state, registry, player_id, int(ctx.get(COST_KEY, 0)), planets, trade_goods,
-        skip_planets=plan.exhaust_planets, trade_goods_only=trade_goods_only,
+        skip_planets=plan.reserved_planets, trade_goods_only=trade_goods_only,
     )
     technology.apply_research(state, player_id, plan)
     return tech_id

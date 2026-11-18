@@ -38,9 +38,9 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `jolnar_mech` | Shield Paling | jolnar | — | — | planety i eksploracja | ✔ | Your infantry on this planet are not affected by your Fragile faction ability. |
 | `keleres_flagship` | Artemiris | keleresm | — | — | ekonomia i płatności | — | Other players must spend 2 influence to activate the system that contains this ship. |
 | `keleres_mech` | Omniopiares | keleresm | — | — | ekonomia i płatności, planety i eksploracja | — | Other players must spend 1 influence to commit ground forces to the planet that contains this unit. |
-| `l1z1x_dreadnought2` | Super Dreadnought II | l1z1x | — | FORBID (zakaz) | walka, karty | — | This unit cannot be destroyed by "Direct Hit" action cards. |
-| `l1z1x_flagship` | [0.0.1] | l1z1x | — | PERMIT (pozwolenie) | walka, produkcja | — | During a space combat, hits produced by this ship and by your dreadnoughts in this system must be assigned to non-fighter ships if able. |
-| `l1z1x_mech` | Annihilator | l1z1x | — | PERMIT (pozwolenie) | walka, planety i eksploracja | — | While not participating in ground combat, this unit can use its BOMBARDMENT ability on planets in its system as if it were a ship. |
+| `l1z1x_dreadnought2` | Super Dreadnought II | l1z1x | — | FORBID (zakaz) | walka, karty | ✔ | This unit cannot be destroyed by "Direct Hit" action cards. |
+| `l1z1x_flagship` | [0.0.1] | l1z1x | — | PERMIT (pozwolenie) | walka, produkcja | ✔ | During a space combat, hits produced by this ship and by your dreadnoughts in this system must be assigned to non-fighter ships if able. |
+| `l1z1x_mech` | Annihilator | l1z1x | — | PERMIT (pozwolenie) | walka, planety i eksploracja | ✔ | While not participating in ground combat, this unit can use its BOMBARDMENT ability on planets in its system as if it were a ship. |
 | `letnev_flagship` | Arc Secundus | letnev | — | — | walka | ✔ | Other player's units in this system lose PLANETARY SHIELD. At the start of each space combat round, repair this ship. |
 | `letnev_mech` | Dunlain Reaper | letnev | — | PERMIT (pozwolenie) | walka, ekonomia i płatności | ✔ | DEPLOY: At the start of a round of ground combat, you may spend 2 resources to replace 1 of your infantry in that combat with 1 mech. |
 | `mahact_flagship` | Arvicon Rex | mahact | — | MODIFY (liczba/rzut) | walka, żetony dowodzenia | — | During combat against an opponent whose command token is not in your fleet pool, apply +2 to the results of this unit's combat rolls. |

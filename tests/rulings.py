@@ -37,7 +37,9 @@ RULINGS_DIR = Path(__file__).resolve().parent.parent / "docs" / "rules_tirules"
 RULING_ATTR = "__rulings__"
 
 # Moduł hooków frakcji -> plik rulingów, gdy nazwy się różnią.
-_RULINGS_FILE = {"jolnar": "F_jol_nar", "sardakk": "F_norr", "naazrokha": "F_naaz_rokha"}
+_RULINGS_FILE = {
+    "jolnar": "F_jol_nar", "l1z1x": "F_lizix", "sardakk": "F_norr", "naazrokha": "F_naaz_rokha",
+}
 
 _BULLET = re.compile(r"^(?P<indent>\s*)- (?P<text>.+)$")
 _SPLIT = re.compile(r"(?<=[.;!?])\s+|\n+")

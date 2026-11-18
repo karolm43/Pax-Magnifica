@@ -1087,3 +1087,26 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   (`frontend/src/ds/overlays.tsx`), więc zaznaczenie Ctrl trafia do `UnitMovesField`.
 - Test: `frontend/src/ds/overlays.test.tsx` (bez poprawki pada).
 - QA: tsc ✓, eslint ✓, vitest (offers, ds) ✓. Backend bez zmian; build/e2e pominięte.
+
+## 2026-11-18 — B9: The L1Z1X Mindnet (RULES.md 62.12)
+
+- Moduł `core/hooks/factions/l1z1x.py` (11/11 komponentów): Assimilate (wymiana PDS/doków przy
+  przejęciu, pusta rezerwa → struktura z planszy wybrana na mapie), Harrow (bombardowanie po
+  rundzie walki naziemnej — oferta, rzut na stół, trafienia przypisuje obrońca), Inheritance
+  Systems, Super Dreadnought II (dane), [0.0.1], Annihilator, I48S, 2RAM, Dark Space Navigation,
+  Cybernetic Enhancements, Fealty Uplink (wybór „przed / po eksploracji”).
+- Nowe punkty silnika: `control.structures_replaced` (inwazja nie niszczy struktur przed
+  Assimilate), `bombardment.ignores_planetary_shield`, `bombardment.ground_units`
+  (`invasion.ground_bombarders`), `combat.hits_to_non_fighters` (wymagany cel trafień w
+  `battle._open_assign`), `technology.paid_ignore_all` (skip `paid:<karta>|<planety>|<tg>`,
+  `ResearchPlan.reserved_planets` — osobna zapłata). Nowy rdzeń `core/combat_bombardment.py`.
+  Okno „When you gain command tokens during the status phase” (krok REDISTRIBUTE).
+- UI: `TechnologyOverlay` — przełącznik Inheritance Systems z osobną płatnością (wspólny
+  `PaymentPicker` z „Auto”); efekt bohatera na planszy (`heroBoardFx`). Reszta przez zwykłe okna
+  decyzji (mapa, chipy).
+- ⚠️ Otwarte (zgłoszone): Infiltrate dla innych frakcji nie ma czego wymienić — `_establish_control`
+  niszczy cudze struktury przed oknem karty (stan sprzed bloku); Harrow nie otwiera okna „przed
+  rzutem zdolności” (Strike Wing Ambuscade przy Harrow — jeszcze nie).
+- QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint (zmienione) ✓, vitest (technology,
+  KeyMoments) ✓. e2e i `npm run build` pominięte (bez nowych zależności i zmian kreatora).
+  Wymaga restartu backendu.

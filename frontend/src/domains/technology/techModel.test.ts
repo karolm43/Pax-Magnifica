@@ -9,6 +9,7 @@ import {
   totalMissing,
   type ResearchOptions,
   type TechRow,
+  paidSkipValue,
 } from "./techModel";
 
 const row = (over: Partial<TechRow>): TechRow => ({
@@ -32,6 +33,7 @@ const options = (over: Partial<ResearchOptions>): ResearchOptions => ({
   aida: false,
   relicSkips: [],
   infantrySkips: [],
+  paidSkips: [],
   planets: {},
   tradeGoods: 0,
   tradeGoodValue: 1,
@@ -117,5 +119,14 @@ describe("techModel", () => {
     expect(after.tree.find((r) => r.id === "first")?.status).toBe("owned");
     expect(after.tree.find((r) => r.id === "next")?.status).toBe("available");
     expect(after.ownedColors.BIOTIC).toBe(1);
+  });
+});
+
+describe("Inheritance Systems (paid skip)", () => {
+  it("skip paid: ignoruje wszystkie brakujące prerekwizyty", () => {
+    const row = { missing: { BIOTIC: 2 } } as unknown as Parameters<typeof remainingAfter>[0];
+    expect(remainingAfter(row, [], options({}))).toEqual({ BIOTIC: 2 });
+    expect(remainingAfter(row, [paidSkipValue("is", ["a", "b"], 1)], options({}))).toEqual({});
+    expect(paidSkipValue("is", [], 2)).toBe("paid:is||2");
   });
 });

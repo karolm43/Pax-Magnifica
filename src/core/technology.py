@@ -279,6 +279,12 @@ def _remaining_after_skips(
     """Ile symboli prerekwizytów zostanie po zachłannym użyciu skipów (planety + AIDA)."""
     if _infantry_skip_ready(state, player_id, tech):
         return 0  # zwrot piechoty ignoruje wszystkie prerekwizyty (Brother Omar)
+    registry = rules_hooks.bound_registry()
+    if registry is not None and any(
+        _can_afford(state, registry, player_id, cost)
+        for cost in paid_ignore_cards(state, player_id).values()
+    ):
+        return 0  # Inheritance Systems: wyczerpanie + osobna zapłata ignoruje wszystko
     left = Counter(missing)
     for colors in planets.values():
         color = next((c for c in colors if left[c] > 0), None)
@@ -390,6 +396,48 @@ def ignore_prerequisite_relics(state: GameState, player_id: str) -> list[str]:
     )
 
 
+PAID_SKIP_PREFIX = "paid:"  # ``paid:<karta>|<planeta,planeta>|<tg>`` (Inheritance Systems)
+
+
+def paid_ignore_cards(state: GameState, player_id: str) -> dict[str, int]:
+    """``{karta: koszt}`` gotowych kart gracza, które za wyczerpanie i OSOBNĄ zapłatę ignorują
+    wszystkie prerekwizyty (FORBID ``technology.paid_ignore_all``, wartości ``"<karta>:<koszt>"``).
+    """
+    player = state.players[player_id]
+    found: dict[str, int] = {}
+    for value in rules_hooks.forbidden(
+        rules_hooks.POINT_TECHNOLOGY_PAID_IGNORE_ALL, state, player_id
+    ):
+        card, _, cost = str(value).partition(":")
+        if card in player.technologies and card not in player.exhausted_technologies:
+            found[card] = int(cost or 0)
+    return dict(sorted(found.items()))
+
+
+def _can_afford(state: GameState, registry: StaticDataRegistry, player_id: str, cost: int) -> bool:
+    from src.core import payment  # lokalnie: payment -> relic_planets -> ... (bez cyklu)
+
+    values = payment.ready_planet_values(state, registry, player_id, "resources")
+    total = sum(values.values()) + state.players[player_id].trade_goods * payment.trade_good_value(
+        state, player_id
+    )
+    return total >= cost
+
+
+def parse_paid_skip(skip: str) -> tuple[str, list[str], int]:
+    """``paid:<karta>|<planety>|<tg>`` -> ``(karta, planety, tg)``.
+
+    Raises:
+        ValueError: Zły format skipu.
+    """
+    card, _, rest = skip[len(PAID_SKIP_PREFIX):].partition("|")
+    planets_raw, _, tg_raw = rest.partition("|")
+    if not card or (tg_raw and not tg_raw.isdigit()):
+        raise ValueError("Paid prerequisite skip must be 'paid:<card>|<planets>|<trade goods>'.")
+    planets = [p for p in planets_raw.split(",") if p]
+    return card, planets, int(tg_raw or 0)
+
+
 @dataclass(frozen=True)
 class ResearchPlan:
     """Zweryfikowane badanie: co gracz dostaje i co wyczerpuje."""
@@ -402,6 +450,15 @@ class ResearchPlan:
     free_ignores: int = 0
     # Piechota zwracana do rezerwy za zignorowanie prerekwizytów ``(pozycja, strefa)`` (Omar).
     return_infantry: tuple[str, str] | None = None
+    # Karta wyczerpana za zignorowanie wszystkich prerekwizytów i jej OSOBNA zapłata
+    # ``(karta, planety, tg)`` (Inheritance Systems, RULES.md 62.12).
+    paid_ignore: tuple[str, tuple[str, ...], int] | None = None
+
+    @property
+    def reserved_planets(self) -> tuple[str, ...]:
+        """Planety zużyte przez plan (specjalność, osobna zapłata) - nie płacą kosztu badania."""
+        paid = self.paid_ignore[1] if self.paid_ignore is not None else ()
+        return (*self.exhaust_planets, *paid)
 
 
 def plan_research(
@@ -441,7 +498,12 @@ def plan_research(
     used_relics: list[str] = []
     use_aida = False
     return_infantry: tuple[str, str] | None = None
+    paid_ignore: tuple[str, tuple[str, ...], int] | None = None
     for skip in skips:
+        if skip.startswith(PAID_SKIP_PREFIX):
+            paid_ignore = _plan_paid_ignore(state, registry, player_id, skip, paid_ignore, missing)
+            missing = Counter()
+            continue
         if skip.startswith(INFANTRY_SKIP_PREFIX):
             position, _, zone = skip[len(INFANTRY_SKIP_PREFIX):].partition("|")
             if not infantry_skip_allowed(state, player_id, tech_id):
@@ -501,10 +563,36 @@ def plan_research(
     if left:
         text = ", ".join(f"{n}× {c.lower()}" for c, n in left.items())
         raise ValueError(f"Prerequisites not met for {tech.name}: missing {text}.")
+    if paid_ignore is not None and set(paid_ignore[1]) & set(used_planets):
+        raise ValueError("A planet exhausted for its technology specialty cannot also pay.")
     return ResearchPlan(
         tech_id, tuple(used_planets), use_aida, tuple(used_relics), free_ignores=ignored,
-        return_infantry=return_infantry,
+        return_infantry=return_infantry, paid_ignore=paid_ignore,
     )
+
+
+def _plan_paid_ignore(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    skip: str,
+    current: tuple[str, tuple[str, ...], int] | None,
+    missing: Counter[str],
+) -> tuple[str, tuple[str, ...], int]:
+    """Walidacja skipu ``paid:`` (Inheritance Systems): karta gotowa, zapłata pokrywa koszt."""
+    from src.core import payment  # lokalnie: payment -> relic_planets -> ... (bez cyklu)
+
+    card, planets, trade_goods = parse_paid_skip(skip)
+    cards = paid_ignore_cards(state, player_id)
+    if card not in cards:
+        raise ValueError("That card cannot ignore prerequisites right now.")
+    if current is not None or not +missing:
+        raise ValueError("Ignoring all prerequisites would ignore nothing.")
+    paid = payment.validate_payment(state, registry, player_id, "resources", planets, trade_goods)
+    if paid < cards[card]:
+        raise ValueError(f"Spend {cards[card]} resources to ignore the prerequisites "
+                         f"(you chose {paid}).")
+    return card, tuple(planets), trade_goods
 
 
 def grant_technology(state: GameState, player_id: str, tech_id: str) -> None:
@@ -650,6 +738,14 @@ def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None
         )
     for relic_id in plan.exhaust_relics:
         exhaust.exhaust_relic(state, player_id, relic_id)
+    if plan.paid_ignore is not None:
+        from src.core import ability_notes, payment  # lokalnie: unika cyklu importów
+
+        card, planets, trade_goods = plan.paid_ignore
+        exhaust.exhaust_technology(state, player_id, card)
+        payment.apply_payment(state, player_id, list(planets), trade_goods)
+        ability_notes.note(state, player_id, f"technologies:{card}",
+                           "ignored all prerequisites")
     # Ślad dla okien „after <gracz> researches a technology" (Research Agreement, RULES.md 62.3);
     # zeruje go ``action_budget.clear_reaction_traces`` przy następnej akcji.
     state.last_research = [*state.last_research, {"player": player_id, "technology": plan.tech_id}]
@@ -799,7 +895,7 @@ def validate_specialty_payment(
         raise ValueError("A technology specialty cannot pay for a unit upgrade.")
     if tech_color(tech) not in planets[planet_id]:
         raise ValueError("The planet's technology specialty must match the technology's color.")
-    if planet_id in plan.exhaust_planets:
+    if planet_id in plan.reserved_planets:
         raise ValueError("The same planet cannot both ignore a prerequisite and pay.")
 
 

@@ -46,7 +46,7 @@ def _research_with_cost(
         planets, trade_goods = parse_payment(payload)
         technology.pay_research(
             state, ctx.registry, player_id, cost, planets, trade_goods,
-            skip_planets=plan.exhaust_planets,
+            skip_planets=plan.reserved_planets,
         )
     technology.apply_research(state, player_id, plan)
     return tech_id
@@ -143,6 +143,17 @@ def research_view(
             {"value": value, "label": label}
             for value, label in technology.skip_choices(state, registry, player_id)
             if value.startswith(technology.INFANTRY_SKIP_PREFIX)
+        ],
+        # Inheritance Systems: wyczerpanie karty + OSOBNA zapłata ignoruje wszystkie prerekwizyty
+        # (skip ``paid:<karta>|<planety>|<tg>``, RULES.md 62.12).
+        "paid_skips": [
+            {
+                "card": card,
+                "name": registry.technologies[card].name if card in registry.technologies
+                else card,
+                "cost": cost,
+            }
+            for card, cost in technology.paid_ignore_cards(state, player_id).items()
         ],
         "planets": (
             {} if trade_goods_only

@@ -58,6 +58,8 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   argenthero: { dim: 0.4, shadows: ["dd", "dd", "fs", "dd"], target: "ships", mark: "beam", tone: "255 150 60", ms: 4400 },
   // Quantum Dissemination: piechota z rezerwy ląduje na planetach — impulsy nad systemami walk.
   yinhero: { dim: 0.4, target: "ground", mark: "pulse", tone: "235 235 245", ms: 4200 },
+  // Dark Space Navigation: flagowiec i pancerniki wychodzą z mroku w jednym systemie — cienie i słupy.
+  l1z1xhero: { dim: 0.5, shadows: ["dn", "fs", "dn"], target: "ships", mark: "beam", tone: "210 60 60", ms: 4400 },
 };
 
 const GROUND = new Set(["gf", "mf"]);

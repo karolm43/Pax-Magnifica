@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **344**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **355**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -23,6 +23,8 @@ Razem: **344**. Opis = pierwsza linia docstringu funkcji hooka.
 | `bombardment.extra_dice` | MODIFY | technology:ps | technologies:ps | Plasma Scoring: 1 z jednostek używających BOMBARDMENT rzuca 1 dodatkową kością. |
 | `bombardment.forbidden_traits` | FORBID | agenda:conventions | agendas:conventions | — |
 | `bombardment.granted_hits_on` | FORBID | effect:action_cards:blitz | — | — |
+| `bombardment.ground_units` | FORBID | unit:l1z1x_mech | units:l1z1x_mech | Annihilator: While not participating in ground combat, this unit can use its BOMBARDMENT |
+| `bombardment.ignores_planetary_shield` | PERMIT | leader:l1z1xcommander | leaders:l1z1xcommander | 2RAM: At any time: Units that have PLANETARY SHIELD do not prevent you from using |
 | `bombardment.roll_modifier` | MODIFY | effect:action_cards:bunker | — | — |
 | `combat.afb_all_ships` | PERMIT | effect:action_cards:waylay | — | — |
 | `combat.afb_extra_dice` | MODIFY | leader:argentcommander | leaders:argentcommander | — |
@@ -36,6 +38,7 @@ Razem: **344**. Opis = pierwsza linia docstringu funkcji hooka.
 | `combat.extra_hits` | MODIFY | technology:vpw | technologies:vpw | Valkyrie Particle Weave: After making combat rolls during a round of ground combat, if your |
 | `combat.granted_sustain` | PERMIT | relic:metalivoidshielding | relics:metalivoidshielding | Metali Void Shielding: Each time hits are produced against 1 or more of your non-fighter |
 | `combat.hit_multiplier` | MODIFY | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: podwaja trafienia z bombardowania i z rzutów w walce NAZIEMNEJ. |
+| `combat.hits_to_non_fighters` | FORBID | unit:l1z1x_flagship | units:l1z1x_flagship | [0.0.1]: During a space combat, hits produced by this ship and by your dreadnoughts in this |
 | `combat.natural_extra_hits` | MODIFY | unit:jolnar_flagship | units:jolnar_flagship | J.N.S. Hylarim: When making a combat roll for this ship, each result of 9 or 10, before |
 | `combat.reroll_plus_one` | PERMIT | relic:thalnos | relics:thalnos | The Crown of Thalnos: During each combat round, this card's owner may reroll any number of |
 | `combat.roll_modifier` | MODIFY | effect:action_cards:f_prototype | — | — |
@@ -57,6 +60,7 @@ Razem: **344**. Opis = pierwsza linia docstringu funkcji hooka.
 | `combat.sustain_denied` | PERMIT | unit:mentak_flagship | units:mentak_flagship | Fourth Moon: Other player's ships in this system cannot use SUSTAIN DAMAGE. |
 | `combat.sustain_denied` | PERMIT | unit:mentak_mech | units:mentak_mech | Moll Terminus: Other player's ground forces on this planet cannot use SUSTAIN DAMAGE. |
 | `command_tokens.strategy_from_reinforcements` | FORBID | relic:emelpar | relics:emelpar | — |
+| `control.structures_replaced` | PERMIT | faction:l1z1x | abilities:assimilate | Assimilate: struktury na zdobytej planecie wymienia hook niżej (nie giną od razu). |
 | `custodians.free` | PERMIT | faction:winnu | abilities:blood_ties | Blood Ties: You do not have to spend influence to remove the custodians token from Mecatol |
 | `dice.adjust_result` | FORBID | relic:heartofixth | relics:heartofixth | — |
 | `economy.commodity_value` | MODIFY | relic:dynamiscore | relics:dynamiscore | Dynamis Core: While this card is in your play area, your commodity value is +2. |
@@ -126,6 +130,7 @@ Razem: **344**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat.roll:after` | TRIGGER | unit:hacan_flagship | units:hacan_flagship | Wrath of Kenara: After you roll a die during a space combat in this system, you may spend 1 |
 | `event:combat.round:end` | TRIGGER | technology:da | technologies:da | Duranium Armor: w każdej rundzie walki po przypisaniu strat naprawia 1 uszkodzoną jednostkę. |
 | `event:combat.round:end` | TRIGGER | technology:exo2 | technologies:exo2 | Exotrireme II: After a round of space combat, you may destroy this unit to destroy up to 2 |
+| `event:combat.round:end` | TRIGGER | faction:l1z1x | abilities:harrow | Harrow: At the end of each round of ground combat: Your ships in the active system may use |
 | `event:combat.round:end` | TRIGGER | effect:leaders:mentakhero:sleeper | leaders:mentakhero | Po przypisaniu strat obu stron (F_mentak: „before the Mentak player places"). |
 | `event:combat.round:end` | TRIGGER | faction:yin | abilities:devotion | Devotion: After each space combat round: You may destroy 1 of your cruisers or destroyers in |
 | `event:combat.round:start` | TRIGGER | effect:leaders:mentakhero:sleeper | leaders:mentakhero | Straty z Ambush (przed 1. rundą) - statki przed rzutami rundy. |
@@ -168,6 +173,7 @@ Razem: **344**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:faction.ability_used:after` | TRIGGER | faction:argent | abilities:raid_formation | Argent wybiera statki do uszkodzenia (wybrany uszkodzony statek - bez skutku, F_argent). |
 | `event:faction.ability_used:after` | TRIGGER | leader:argentagent | — | Gracz produkujący przenosi wyprodukowane siły naziemne na swoje planety (0 = zostają). |
 | `event:faction.ability_used:after` | TRIGGER | leader:jolnaragent | leaders:jolnaragent | — |
+| `event:faction.ability_used:after` | TRIGGER | leader:l1z1xagent | — | Aktywny gracz wymienia 1 piechotę na mecha (mech zdjęty z planszy - nieuszkodzony, F_lizix |
 | `event:faction.ability_used:after` | TRIGGER | leader:mentakagent | leaders:mentakagent | Suffi An: After the Pillage faction ability is used against another player: You may exhaust |
 | `event:faction.ability_used:after` | TRIGGER | leader:mentakcommander | — | Przeciwnik oddaje wybraną notkę z ręki (decyzja obowiązkowa przeciwnika). |
 | `event:faction.ability_used:after` | TRIGGER | unit:sol_mech | units:sol_mech | ZS Thunderbolt M2 — DEPLOY: After you use your Orbital Drop faction ability, you may spend |
@@ -193,11 +199,14 @@ Razem: **344**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:phase:start` | TRIGGER | technology:so2 | technologies:so2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:phase:start` | TRIGGER | technology:td | technologies:td | Transit Diodes: na początku Twojej tury w fazie akcji wyczerp kartę i przenieś do 4 sił |
 | `event:planet.control_gained:after` | TRIGGER | technology:ie | technologies:ie | Integrated Economy: po zdobyciu planety możesz wyprodukować dowolną liczbę jednostek |
+| `event:planet.control_gained:after` | TRIGGER | faction:l1z1x | abilities:assimilate | Assimilate: When you gain control of a planet: Replace each PDS and space dock that is on |
+| `event:planet.control_gained:after` | TRIGGER | breakthrough:l1z1xbt | breakthroughs:l1z1xbt | Fealty Uplink: When you gain control of a planet, place infantry from your reinforcements |
 | `event:planet.control_gained:after` | TRIGGER | agenda:minister_exploration | agendas:minister_exploration | — |
 | `event:planet.control_gained:after` | TRIGGER | relic:shard | relics:shard | Shard of the Throne: When a player gains control of a legendary planet you control or a |
 | `event:planet.control_gained:after` | TRIGGER | planet:styx | planets:styx | A Song Like Marrow: When you gain this card, gain 1 victory point. |
 | `event:planet.control_gained:after` | TRIGGER | planet:thundersedge | planets:thundersedge | Jupiter Brain: Gain your breakthrough when you gain this card if you do not already have |
 | `event:planet.control_lost:when` | TRIGGER | planet:styx | planets:styx | A Song Like Marrow: When you lose this card, lose 1 victory point. |
+| `event:planet.explored:after` | TRIGGER | effect:breakthroughs:l1z1xbt:after_explore | — | Piechota Fealty Uplink postawiona po eksploracji planety (wybór gracza, F_lizix 1). |
 | `event:player.passed:when` | TRIGGER | planet:faunus | planets:faunus | Maxis Central Control: You may exhaust this card when you pass to gain control of a non-home, non-legendary planet that contains no units and has no attachments. |
 | `event:player.passed:when` | TRIGGER | planet:garbozia | planets:garbozia | Dok 'N Pic's Salvage Yard: You may exhaust this card when you pass to place 1 action card from the discard pile faceup on this card. |
 | `event:player.passed:when` | TRIGGER | planet:industrex | planets:industrex | Aeurex Mechanica: You may exhaust this card when you pass to place 1 ship that matches a unit upgrade technology you own from your reinforcements into a system that contains your ships. |
@@ -226,6 +235,7 @@ Razem: **344**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.system_activated:after` | TRIGGER | promissory:convoys | promissory_notes:convoys | If you activate a system that contains 1 or more of the Hacan player's units, return this |
 | `event:tactical.system_activated:after` | TRIGGER | relic:dominusorb | relics:dominusorb | Dominus Orb: Before you move units during a tactical action, you may purge this card to |
 | `event:tactical.system_activated:after` | TRIGGER | technology:ers | technologies:ers | E-Res Siphons: After another player activates a system that contains 1 or more of your |
+| `event:tactical.system_activated:after` | TRIGGER | leader:l1z1xagent | leaders:l1z1xagent | I48S: After a player activates a system: You may exhaust this card to allow that player to |
 | `event:tactical.system_activated:after` | TRIGGER | agenda:minister_peace | agendas:minister_peace | — |
 | `event:tactical.system_activated:after` | TRIGGER | technology:nf | technologies:nf | Nullification Field: After another player activates a system that contains 1 or more of your |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:pop | promissory_notes:pop | If you activate a system that contains 1 or more of the Mentak player's units, return this |
@@ -336,6 +346,7 @@ Razem: **344**. Opis = pierwsza linia docstringu funkcji hooka.
 | `technology.free_prerequisite_ignores` | MODIFY | agenda:schematics | agendas:schematics | — |
 | `technology.ignore_prerequisite` | FORBID | relic:prophetstears | relics:prophetstears | — |
 | `technology.infantry_skip` | PERMIT | leader:yincommander | leaders:yincommander | Brother Omar Ω: When you research a tech owned by another player, you may return 1 of your |
+| `technology.paid_ignore_all` | FORBID | technology:is | technologies:is | Inheritance Systems: You may exhaust this card and spend 2 resources when you research a |
 | `technology.specialty_pays` | PERMIT | breakthrough:jolnarbt | breakthroughs:jolnarbt | Specialist Compounds: When you research technology using the 'Technology' strategy card, |
 | `technology.specialty_without_exhaust` | PERMIT | technology:pa | — | Psychoarchaeology: specjalności technologii działają bez wyczerpywania planet, także |
 | `technology.strategy_card_free` | PERMIT | agenda:minister_sciences | agendas:minister_sciences | — |
@@ -366,6 +377,8 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `bombardment.extra_dice`
 - `bombardment.forbidden_traits`
 - `bombardment.granted_hits_on`
+- `bombardment.ground_units`
+- `bombardment.ignores_planetary_shield`
 - `bombardment.roll_modifier`
 - `bombardment.empty_planets`
 - `combat.afb_all_ships`
@@ -377,6 +390,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `combat.extra_dice`
 - `combat.extra_hits`
 - `combat.granted_sustain`
+- `combat.hits_to_non_fighters`
 - `combat.hit_multiplier`
 - `combat.natural_extra_hits`
 - `combat.reroll_misses`
@@ -386,6 +400,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `combat.sustain_cancels`
 - `combat.sustain_denied`
 - `economy.commodity_value`
+- `control.structures_replaced`
 - `custodians.free`
 - `dice.adjust_result`
 - `fleet_pool.capacity`
@@ -438,6 +453,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `technology.free_prerequisite_ignores`
 - `technology.ignore_prerequisite`
 - `technology.infantry_skip`
+- `technology.paid_ignore_all`
 - `technology.strategy_card_free`
 - `technology.specialty_without_exhaust`
 - `technology.specialty_pays`

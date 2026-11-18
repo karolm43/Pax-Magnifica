@@ -66,6 +66,7 @@ export function pickTreeOptions(allowed: string[], owned: string[]): ResearchOpt
     aida: false,
     relicSkips: [],
     infantrySkips: [],
+    paidSkips: [],
     planets: {},
     tradeGoods: 0,
     tradeGoodValue: 1,

@@ -236,7 +236,10 @@ def planet_infos(state: GameState, registry: StaticDataRegistry) -> list[PlanetI
     """Planety aktywnego systemu: właściciel, obrońcy (siły naziemne), tarcza, Space Cannon."""
     invasion = _inv(state)
     system = _system(state)
-    ignores = _attacker_ignores_shield(state, registry)
+    # War sun atakującego albo 2RAM (L1Z1X, RULES.md 62.12): tarcza nie blokuje bombardowania.
+    ignores = _attacker_ignores_shield(state, registry) or rules_hooks.permits(
+        rules_hooks.POINT_BOMBARDMENT_IGNORES_SHIELD, state, invasion.attacker
+    )
     infos: list[PlanetInfo] = []
     for planet in system_planets(state, registry, invasion.position):
         has_shield, shield_up = planet_shield(
@@ -374,7 +377,7 @@ def granted_bombard_hits_on(state: GameState) -> int | None:
     return min(numbers) if numbers else None
 
 
-def _bombard_modifier(state: GameState, planet: str) -> int:
+def bombard_modifier(state: GameState, planet: str) -> int:
     """Modyfikator wyniku kości bombardowania przeciw planecie (Bunker kontrolującego: -4)."""
     inv = _inv(state)
     owner = _system(state).planet_owners.get(planet)
@@ -394,8 +397,11 @@ def bombard_groups(state: GameState, registry: StaticDataRegistry) -> list[Bomba
         return []
     groups: list[BombardGroup] = []
     granted = granted_bombard_hits_on(state)
-    for bt, count in sorted(system.space_units.get(invasion.attacker, {}).items()):
-        if count <= 0 or not is_space_unit(bt):
+    units = dict(system.space_units.get(invasion.attacker, {}))
+    ground = ground_bombarders(state, invasion.attacker, invasion.position)
+    units.update(ground)  # przestrzeń + planety systemu (``ground_bombarders`` liczy obie)
+    for bt, count in sorted(units.items()):
+        if count <= 0 or not (is_space_unit(bt) or bt in ground):
             continue
         unit = unit_variant(state, registry, invasion.attacker, bt)
         if unit is None:
@@ -421,6 +427,35 @@ def bombard_groups(state: GameState, registry: StaticDataRegistry) -> list[Bomba
             )
         )
     return groups
+
+
+def ground_bombarder_types(state: GameState, player_id: str) -> set[str]:
+    """Typy sił naziemnych gracza bombardujące „jak statek” (Annihilator, RULES.md 62.12)."""
+    point = rules_hooks.POINT_BOMBARDMENT_GROUND_UNITS
+    return {str(bt) for bt in rules_hooks.forbidden(point, state, player_id)}
+
+
+def ground_bombarders(
+    state: GameState, player_id: str, position: str, *, exclude_planet: str | None = None
+) -> dict[str, int]:
+    """Siły naziemne gracza w systemie, które mogą bombardować jak statek (przestrzeń + planety).
+
+    ``exclude_planet`` - planeta, na której toczy się walka naziemna (tam walczą - F_lizix)."""
+    types = ground_bombarder_types(state, player_id)
+    system = state.systems.get(position)
+    found: dict[str, int] = {}
+    if not types or system is None:
+        return found
+    zones = [system.space_units.get(player_id, {})] + [
+        by_player.get(player_id, {})
+        for planet, by_player in system.planet_units.items()
+        if planet != exclude_planet
+    ]
+    for units in zones:
+        for bt in types:
+            if units.get(bt, 0) > 0:
+                found[bt] = found.get(bt, 0) + units[bt]
+    return found
 
 
 def plasma_bombard_dice(state: GameState) -> int:
@@ -510,7 +545,7 @@ def bombard(
         group = groups[item.base_type]
         bonus = extra_by_item.pop(item.key, 0)
         rolled, dice = roll_dice(rolled, item.count * group.dice_per_unit + bonus)
-        modifier = _bombard_modifier(state, item.planet)
+        modifier = bombard_modifier(state, item.planet)
         # Hook MODIFY: mnożnik trafień bombardowania (X-89 ΩΩ: podwójne trafienia).
         hits = count_hits([d + modifier for d in dice], group.hits_on) * rules_hooks.modify(
             rules_hooks.POINT_COMBAT_HIT_MULTIPLIER, state, _inv(state).attacker, 1,
@@ -1127,8 +1162,12 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
             result["outcome"] = "already_controlled"
         elif attacker_present:
             destroyed: dict[str, dict[str, int]] = {}
+            # Assimilate (RULES.md 62.12): struktury wymienia hook „gain control” - nie niszczymy.
+            keeps = rules_hooks.permits(
+                rules_hooks.POINT_CONTROL_STRUCTURES_REPLACED, state, inv.attacker
+            )
             for pid in list(system.planet_units.get(planet, {})):
-                if pid == inv.attacker:
+                if pid == inv.attacker or keeps:
                     continue
                 structures = {
                     bt: n

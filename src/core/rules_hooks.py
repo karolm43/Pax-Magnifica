@@ -271,6 +271,20 @@ POINT_MOVEMENT_PASSAGE_BLOCKED = "movement.passage_blocked"
 # MODIFY -> wartość PRODUCTION samej PLANETY gracza (``ctx["planet"]``, ``position``) - planeta
 # produkuje „jak jednostka” (Aerie Hololattice: planeta ze strukturą gracza = PRODUCTION 1).
 POINT_PRODUCTION_PLANET_VALUE = "production.planet_value"
+# --- L1Z1X Mindnet (RULES.md 62.12) ---
+# PERMIT -> przy przejęciu planety cudze struktury NIE są niszczone od razu (Assimilate wymienia je
+# w hooku „gain control”; czego nie wymieni, niszczy sam).
+POINT_CONTROL_STRUCTURES_REPLACED = "control.structures_replaced"
+# PERMIT -> Planetary Shield nie blokuje BOMBARDMENT gracza (2RAM); jednostki nadal mają tarczę.
+POINT_BOMBARDMENT_IGNORES_SHIELD = "bombardment.ignores_planetary_shield"
+# FORBID -> typy sił naziemnych gracza, które bombardują „jak statek”, gdy nie walczą (Annihilator).
+POINT_BOMBARDMENT_GROUND_UNITS = "bombardment.ground_units"
+# FORBID -> typy jednostek gracza, których trafienia w walce kosmicznej muszą trafić statki
+# przeciwnika inne niż myśliwce, o ile się da ([0.0.1]: flagowiec i pancerniki).
+POINT_COMBAT_HITS_TO_NON_FIGHTERS = "combat.hits_to_non_fighters"
+# FORBID jako zbiór "<karta>:<koszt>": wyczerpanie karty i OSOBNA zapłata kosztu zasobami ignoruje
+# WSZYSTKIE prerekwizyty badanej technologii (Inheritance Systems: "is:2").
+POINT_TECHNOLOGY_PAID_IGNORE_ALL = "technology.paid_ignore_all"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"

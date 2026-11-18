@@ -50,6 +50,12 @@
     "requires": ["faction:nekro"],
     "reason": "Mechy Nekro w walce kosmicznej (The Alastor) mogą zostać uszkodzone przez Raid Formation - frakcja niezaimplementowana."
   },
+  "F_lizix/cybernetic-enhancements/1": {
+    "na": "Ruling dotyczy starej wersji notki (żeton z puli strategii L1Z1X). Assety mają tekst „When you gain command tokens during the status phase: Gain 1 additional command token” - bez puli L1Z1X (RULES.md 62.12)."
+  },
+  "F_lizix/the-helmsman-dark-space-navigation/2": {
+    "na": "Zastąpione rulingiem FAQ the-helmsman-dark-space-navigation/2.2 (podany przez użytkownika 2026-11-18): przy ruchu bohaterem wolno transportować z systemu z własnym żetonem (test 2.2 w tests/factions/test_l1z1x.py)."
+  },
   "F_argent/mirik-aun-sissiri-helix-protocol/3": {
     "na": "Zastąpione rulingiem FAQ helix-protocol/3.2 (podany przez użytkownika 2026-11-18): przy ruchu bohaterem wolno transportować z systemu z własnym żetonem (test 3.2 w tests/factions/test_argent.py)."
   },
@@ -80,14 +86,6 @@
   "F_letnev/rear-admiral-farran/2.1": {
     "requires": ["faction:titans"],
     "reason": "Ul z notką Alliance Letneva: Farran przy Sustain Damage Hel-Titan PDS."
-  },
-  "F_norr/ghom-sekkus/6.1": {
-    "requires": ["faction:l1z1x"],
-    "reason": "Harrow L1Z1X przy inwazji N'orr (tylko aktywny gracz bombarduje - test ghom-sekkus/6)."
-  },
-  "F_sol/evelyn-delouis/1.1": {
-    "requires": ["faction:l1z1x"],
-    "reason": "Harrow L1Z1X (Annihilator) nie dostaje kości bombardowania od Evelyn DeLouis. Część ogólna (tylko rzuty walki) ma test test_evelyn_tylko_rzuty_walki."
   },
   "F_norr/ghom-sekkus/8.3": {
     "requires": ["faction:muaat"],

@@ -27,6 +27,14 @@ export type TechRow = {
 /** Brother Omar: skąd zwrócić piechotę (skip = `infantry:<pozycja>|<strefa>`). */
 export type InfantrySkip = { value: string; label: string };
 export const INFANTRY_SKIP_PREFIX = "infantry:";
+/** Karta, która za wyczerpanie i OSOBNĄ zapłatę ignoruje wszystkie prerekwizyty (Inheritance Systems). */
+export type PaidSkip = { card: string; name: string; cost: number };
+export const PAID_SKIP_PREFIX = "paid:";
+
+/** Skip `paid:<karta>|<planety>|<tg>` - zapłata osobno od kosztu badania. */
+export function paidSkipValue(card: string, planets: string[], tradeGoods: number): string {
+  return `${PAID_SKIP_PREFIX}${card}|${planets.join(",")}|${tradeGoods}`;
+}
 
 /**
  * Tryb „GAIN” okna: technologia przychodzi bez płatności i bez prerekwizytów (Research Grant
@@ -49,6 +57,8 @@ export type ResearchOptions = {
   relicSkips: string[];
   /** Brother Omar: miejsca z piechotą do zwrotu (ignoruje prerekwizyty technologii innego gracza). */
   infantrySkips: InfantrySkip[];
+  /** Inheritance Systems: wyczerpanie + osobna zapłata ignoruje wszystkie prerekwizyty. */
+  paidSkips: PaidSkip[];
   /** Gotowe planety → zasoby (płatność). */
   planets: Record<string, number>;
   tradeGoods: number;
@@ -110,6 +120,7 @@ export function toResearchOptions(raw: Record<string, unknown>): ResearchOptions
     infantrySkips: Array.isArray(raw.infantry_skips)
       ? (raw.infantry_skips as InfantrySkip[])
       : [],
+    paidSkips: Array.isArray(raw.paid_skips) ? (raw.paid_skips as PaidSkip[]) : [],
     planets: (raw.planets ?? {}) as Record<string, number>,
     tradeGoods: typeof raw.trade_goods === "number" ? raw.trade_goods : 0,
     // Karta „Spend N trade goods” liczy sztuki TG, nie ich wartość (Mirror Computing nie działa).
@@ -258,7 +269,9 @@ export function remainingAfter(
   skips: string[],
   options: ResearchOptions,
 ): Partial<Record<TechColor, number>> {
-  if (skips.some((s) => s.startsWith(INFANTRY_SKIP_PREFIX))) return {};
+  if (skips.some((s) => s.startsWith(INFANTRY_SKIP_PREFIX) || s.startsWith(PAID_SKIP_PREFIX))) {
+    return {};
+  }
   const left: Partial<Record<TechColor, number>> = { ...row.missing };
   for (const skip of skips) {
     if (skip === AIDA_SKIP || skip.startsWith("relic:")) {

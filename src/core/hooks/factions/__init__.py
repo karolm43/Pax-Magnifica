@@ -11,6 +11,7 @@ from src.core.hooks.factions import (
     argent,
     hacan,
     jolnar,
+    l1z1x,
     letnev,
     mentak,
     sardakk,
@@ -21,6 +22,6 @@ from src.core.hooks.factions import (
 )
 
 __all__ = [
-    "arborec", "argent", "hacan", "jolnar", "letnev", "mentak", "sardakk", "sol", "winnu",
+    "arborec", "argent", "hacan", "jolnar", "l1z1x", "letnev", "mentak", "sardakk", "sol", "winnu",
     "xxcha", "yin",
 ]

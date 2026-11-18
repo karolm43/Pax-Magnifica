@@ -20,6 +20,7 @@ import { TechCard } from "@/domains/cards/components/TechCard/TechCard";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
+import { PaymentPicker, paymentTotal } from "@/domains/strategy/PromptParts";
 import {
   AIDA_SKIP,
   COLOR_HUE,
@@ -29,6 +30,7 @@ import {
   compoundChoices,
   autoSkips,
   layoutColumns,
+  paidSkipValue,
   otherTechs,
   remainingAfter,
   tier,
@@ -190,6 +192,12 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
     tradeGoods: number;
   } | null>(null);
   const [compound, setCompound] = useState<string | null>(null);
+  // Inheritance Systems: karta + jej OSOBNA zapłata (null = „Auto”).
+  const [paidCard, setPaidCard] = useState<string | null>(null);
+  const [paidPayment, setPaidPayment] = useState<{
+    planets: string[];
+    tradeGoods: number;
+  } | null>(null);
 
   const grid = useMemo(() => layoutColumns(options.tree), [options.tree]);
   const upgrades = useMemo(() => unitUpgrades(options.tree), [options.tree]);
@@ -206,13 +214,40 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
     setSkips(nextSkips);
     setPayment(null); // płatność liczona automatycznie, dopóki gracz nie zmieni ręcznie
     setCompound(null);
+    setPaidCard(null);
+    setPaidPayment(null);
   };
 
-  const left = selected ? remainingAfter(selected, skips, options) : {};
+  // Inheritance Systems: osobna zapłata z planet spoza skipów (i spoza ręcznej płatności kosztu).
+  const paidSkip = options.paidSkips.find((p) => p.card === paidCard) ?? null;
+  const paidValues = Object.fromEntries(
+    Object.entries(options.planets).filter(
+      ([id]) => !skips.includes(id) && !(payment?.planets ?? []).includes(id),
+    ),
+  );
+  const paidTgMax = Math.max(0, options.tradeGoods - (payment?.tradeGoods ?? 0));
+  const paidPay = paidSkip
+    ? (paidPayment ??
+      autoPay(paidValues, [], paidTgMax, paidSkip.cost, options.tradeGoodValue))
+    : { planets: [], tradeGoods: 0 };
+  const paidShort = paidSkip
+    ? Math.max(0, paidSkip.cost - paymentTotal(paidValues, paidPay, options.tradeGoodValue))
+    : 0;
+  const allSkips = paidSkip
+    ? [...skips, paidSkipValue(paidSkip.card, paidPay.planets, paidPay.tradeGoods)]
+    : skips;
+
+  const left = selected ? remainingAfter(selected, allSkips, options) : {};
   const stillMissing = selected ? totalMissing(left) : 0;
   const pay =
     payment ??
-    autoPay(options.planets, skips, options.tradeGoods, options.cost, options.tradeGoodValue);
+    autoPay(
+      options.planets,
+      [...skips, ...paidPay.planets],
+      options.tradeGoods - paidPay.tradeGoods,
+      options.cost,
+      options.tradeGoodValue,
+    );
   const paid =
     pay.planets.reduce((s, id) => s + (options.planets[id] ?? 0), 0) +
     pay.tradeGoods * options.tradeGoodValue;
@@ -222,7 +257,7 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
   // Focused Research: „Spend 4 trade goods” - płaci się tylko TG (bez planet).
   const costUnit = options.tradeGoodsOnly ? "trade goods" : "resources";
   const canResearch =
-    researchable && stillMissing === 0 && short === 0 && !busy;
+    researchable && stillMissing === 0 && short === 0 && paidShort === 0 && !busy;
 
   const togglePlanetSkip = (planet: string) =>
     setSkips((cur) =>
@@ -260,7 +295,7 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
   const synergyActive = options.breakthrough?.active === true;
   const specialtyPlanets = Object.keys(options.specialties);
   const payPlanets = Object.keys(options.planets)
-    .filter((id) => !skips.includes(id))
+    .filter((id) => !skips.includes(id) && !paidPay.planets.includes(id))
     .sort(
       (a, b) =>
         (options.planets[b] ?? 0) - (options.planets[a] ?? 0) ||
@@ -601,6 +636,57 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                     </>
                   ) : null}
 
+                  {options.paidSkips.length > 0 && !gain && selected.status === "skippable"
+                    ? options.paidSkips.map((paid) => (
+                        <div key={paid.card}>
+                          <h4>
+                            {paid.name} · exhaust and spend {paid.cost} resources
+                          </h4>
+                          <p className={styles.small}>
+                            Ignore all prerequisites of this technology. Paid
+                            separately from the research cost.
+                          </p>
+                          <button
+                            type="button"
+                            className={styles.toggle}
+                            data-on={paidCard === paid.card || undefined}
+                            disabled={busy}
+                            onClick={() => {
+                              const on = paidCard !== paid.card;
+                              setPaidCard(on ? paid.card : null);
+                              setPaidPayment(null);
+                              // Karta ignoruje wszystko - planety specjalności są zbędne.
+                              if (on) setSkips([]);
+                            }}
+                          >
+                            <IconBolt size={14} aria-hidden="true" /> Use {paid.name}
+                          </button>
+                          {paidCard === paid.card ? (
+                            <>
+                              <PaymentPicker
+                                values={paidValues}
+                                tradeGoodsAvailable={paidTgMax}
+                                tradeGoodValue={options.tradeGoodValue}
+                                value={paidPay}
+                                onChange={setPaidPayment}
+                                unit="resources"
+                                busy={busy}
+                                target={paid.cost}
+                              />
+                              <p
+                                className={styles.payLine}
+                                data-bad={paidShort > 0 || undefined}
+                              >
+                                {paidShort > 0
+                                  ? `${paidShort} resource(s) short`
+                                  : `Paying ${paid.cost} for ${paid.name}`}
+                              </p>
+                            </>
+                          ) : null}
+                        </div>
+                      ))
+                    : null}
+
                   {compoundOptions.length > 0 ? (
                     <>
                       <h4>Specialist Compounds · pay with a specialty planet</h4>
@@ -762,7 +848,7 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
               selected &&
               props.onResearch({
                 tech: selected.id,
-                skips,
+                skips: allSkips,
                 planets: options.cost > 0 && !compoundUsed ? pay.planets : [],
                 trade_goods: options.cost > 0 && !compoundUsed ? pay.tradeGoods : 0,
                 ...(compoundUsed && compound ? { compound_planet: compound } : {}),

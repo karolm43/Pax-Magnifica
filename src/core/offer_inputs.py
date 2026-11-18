@@ -138,8 +138,8 @@ def unit_moves(
                 f"{unit['value']}{MOVE_SEP}{dest}", f"{unit['label']} → {dest}",
                 meta={**meta, "move": {"unit": str(unit["value"]), "from": source, "to": dest}},
             ))
-    return multi(key, label, options, 0, len(units),
-                 hint or "Click a glowing system, choose units, then click the destination (or drag).")
+    hint = hint or "Click a glowing system, choose units, then click the destination (or drag)."
+    return multi(key, label, options, 0, len(units), hint)
 
 
 def split_move(value: str) -> tuple[str, str]:
