@@ -183,6 +183,8 @@ def test_magmus_reactor_supernowa_produkuje_5(registry: StaticDataRegistry) -> N
     state.systems[NOVA].space_units = {"p1": {"destroyer": 1}}
     found = production.producers(state, registry, "p1", NOVA)
     assert [(p.zone, p.value) for p in found] == [("space", 5)]
+    # Źródło zdolności = technologia (okno produkcji pokazuje jej ikonę, nie sprite jednostki).
+    assert found[0].source is not None and found[0].source.component_id == "mr"
 
 
 @ruling("F_muaat/magmus-reactor-omega/1")

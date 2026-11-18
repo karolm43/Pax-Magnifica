@@ -48,6 +48,8 @@ type UnitStackProps = {
   delayedDamageStates?: StateCounts;
   /** Pozycja kafelka (RPP) — włącza drag-and-drop przenoszenia jednostek. */
   tilePosition?: string;
+  /** Żeton-planeta wyczerpana (Avernus) - szary sprite. */
+  exhausted?: boolean;
 };
 
 export function UnitStack({
@@ -66,6 +68,7 @@ export function UnitStack({
   damageAtMs,
   delayedDamageStates,
   tilePosition,
+  exhausted = false,
 }: UnitStackProps) {
   const { entityId: unitType, faction, count, x, y, entityType } = stack;
   const isBadge = isBadgeUnit(unitType);
@@ -285,6 +288,7 @@ export function UnitStack({
               tokenId={unitType}
               faction={faction}
               tilePosition={tilePosition}
+              exhausted={exhausted}
               x={xPos}
               y={yPos}
               zIndex={baseZIndex + zIndexOffset}

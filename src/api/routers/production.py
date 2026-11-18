@@ -58,11 +58,22 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
             or (planet.name if planet is not None else None)
             or p.base_type
         )
+        # Rodzaj producenta decyduje o ikonie w oknie: sprite jednostki, karta planety albo
+        # technologia (Magmus Reactor: supernowa produkuje „jak jednostka”).
+        kind = "unit" if variant is not None else ("planet" if planet is not None else "other")
+        source_id: str | None = None
+        if p.source is not None:
+            kind = p.source.kind
+            source_id = p.source.component_id
+            tech = registry.technologies.get(source_id)
+            fallback = tech.name if tech is not None else source_id
         producers.append(
             {
                 "zone": p.zone,
                 "baseType": p.base_type,
                 "asyncId": ASYNC_ID_BY_BASE_TYPE.get(p.base_type, p.base_type),
+                "kind": kind,
+                "sourceId": source_id,
                 "name": variant.name if variant is not None else fallback,
                 "count": p.count,
                 "value": p.value,

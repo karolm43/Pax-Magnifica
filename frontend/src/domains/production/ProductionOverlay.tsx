@@ -10,6 +10,7 @@ import {
   IconCheck,
   IconMinimize,
   IconMinus,
+  IconPlanet,
   IconPlus,
   IconSparkles,
   IconTrash,
@@ -23,6 +24,8 @@ import { useAppStore } from "@/state/appStore";
 import { getTileById } from "@/entities/lookup/systems";
 import { useGameData } from "@/state/useGameContext";
 import { Unit } from "@/shared/ui/Unit";
+import { TechSkipIcon, type TechType } from "@/shared/ui/TechSkipIcon";
+import { getTechData } from "@/entities/lookup/tech";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { usePlayerLook } from "@/domains/invasion/invasionUi";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
@@ -45,6 +48,7 @@ import {
   skipProductionGrant,
   useProductionView,
   type ProductionBody,
+  type ProductionProducer,
   type ProductionUnit,
 } from "./useProduction";
 import styles from "./ProductionOverlay.module.css";
@@ -446,11 +450,10 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             {(grant ? [] : view.producers).map((p) => (
               <div className={styles.producer} key={`${p.zone}-${p.baseType}`}>
                 <span className={styles.producerSprite}>
-                  <Unit
-                    unitType={p.asyncId}
+                  <ProducerIcon
+                    producer={p}
                     colorAlias={player?.colorAlias ?? "gry"}
                     faction={view.faction ?? undefined}
-                    scaleSprite
                   />
                 </span>
                 <span className={styles.producerText}>
@@ -770,3 +773,27 @@ export function ProductionOverlay() {
 }
 
 export default ProductionOverlay;
+
+/** Ikona producenta: sprite jednostki, a dla planety/technologii ich własny znak (bez pustego obrazka). */
+function ProducerIcon({
+  producer,
+  colorAlias,
+  faction,
+}: {
+  producer: ProductionProducer;
+  colorAlias: string;
+  faction?: string;
+}) {
+  if (producer.kind === "technology") {
+    const type = getTechData(producer.sourceId ?? "")?.types?.[0]?.toLowerCase();
+    return type && ["biotic", "propulsion", "cybernetic", "warfare"].includes(type) ? (
+      <TechSkipIcon techType={type as TechType} size={28} />
+    ) : (
+      <IconBuildingFactory2 size={26} aria-hidden="true" />
+    );
+  }
+  if (producer.kind === "planet" || producer.kind === "other") {
+    return <IconPlanet size={26} aria-hidden="true" />;
+  }
+  return <Unit unitType={producer.asyncId} colorAlias={colorAlias} faction={faction} scaleSprite />;
+}

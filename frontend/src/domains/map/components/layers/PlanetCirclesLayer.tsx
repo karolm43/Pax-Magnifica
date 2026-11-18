@@ -122,8 +122,9 @@ export function PlanetCirclesLayer({
     const isSpaceStation =
       planet.planetTypes?.some((type) => (type as string) === "SPACESTATION") ??
       false;
+    // Żeton-planeta (Avernus) szarzeje sam w Token.tsx - okrąg zakrywałby tylko jego część.
     const showExhausted =
-      isExhausted && showExhaustedPlanets && !isSpaceStation;
+      isExhausted && showExhaustedPlanets && !isSpaceStation && !isTokenPlanet;
     const isHighlighted = hoveredPlanetId === planetId;
     const isPickTarget = planetPick?.planets.includes(planetId) ?? false;
 

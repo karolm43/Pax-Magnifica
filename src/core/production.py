@@ -81,6 +81,9 @@ class Producer:
     per_unit: int = 0  # wartość PRODUCTION jednej sztuki (value = per_unit × count)
     # Typy jednostek, których TA zdolność PRODUCTION nie może produkować (hook frakcji).
     forbids: tuple[str, ...] = ()
+    # Komponent dający tę zdolność, gdy producent nie jest jednostką ani planetą (Magmus Reactor:
+    # ``HookSource`` technologii) - UI pokazuje wtedy jego ikonę i nazwę zamiast sprite'a.
+    source: rules_hooks.HookSource | None = None
 
 
 # Struktury nie są "produkowane" przez PRODUCTION (to Construction) — poza zamówieniami.
@@ -387,16 +390,19 @@ def producers(
             )
     # System produkujący „jak jednostka” gracza (Magmus Reactor: supernowa z jego jednostką =
     # PRODUCTION 5) - producent w PRZESTRZENI systemu (RULES.md 62.13).
-    system_value = rules_hooks.modify(
-        rules_hooks.POINT_PRODUCTION_SYSTEM_VALUE, state, player_id, 0, {"position": position}
-    )
-    if system_value > 0:
-        result.append(
-            Producer(
-                "space", _SYSTEM_PRODUCER, 1, system_value, system_value,
-                forbidden_types(state, player_id, _SYSTEM_PRODUCER),
+    # Każdy hook MODIFY to osobna zdolność PRODUCTION z własnym źródłem (ikona/nazwa w oknie).
+    system_ctx = {"position": position}
+    for hook in rules_hooks.hooks_at(rules_hooks.POINT_PRODUCTION_SYSTEM_VALUE, state, player_id):
+        if hook.kind is not rules_hooks.HookKind.MODIFY:
+            continue
+        system_value = int(hook.fn(state, player_id, system_ctx))
+        if system_value > 0:
+            result.append(
+                Producer(
+                    "space", _SYSTEM_PRODUCER, 1, system_value, system_value,
+                    forbidden_types(state, player_id, _SYSTEM_PRODUCER), hook.source,
+                )
             )
-        )
     # Custodian's Favour (Custodia Vigilia): kontrolowany Mecatol Rex sam ma PRODUCTION - osobna
     # zdolność (planeta, nie jednostka), więc jest oddzielnym producentem z własną wartością.
     mecatol = legendary_planets.mecatol_grants_planet(state, player_id, position)

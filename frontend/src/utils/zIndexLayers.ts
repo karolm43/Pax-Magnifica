@@ -7,6 +7,10 @@ const UNIT_BASE_Z_INDEX = 53;
 
 /** Higher priority renders above lower. */
 const UNIT_PRIORITIES: Record<string, number> = {
+  // Żeton Custodians leży najniżej: przykrywa go wszystko (jednostki, żetony, okręgi planet,
+  // numery pozycji) - zostaje tylko nad grafiką kafla.
+  CUSTODIAN: 2,
+  CUSTODIANVP: 2,
   THUNDERS_EDGE: 53,
   FF: 110,
   MF: 120,

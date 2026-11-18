@@ -47,6 +47,10 @@ export type ProductionProducer = {
   zone: string;
   baseType: string;
   asyncId: string;
+  /** Czym jest producent: "unit" (sprite), "planet", "technology" (np. Magmus Reactor), "other". */
+  kind?: string;
+  /** Id komponentu dającego zdolność (technologia Magmus Reactor itp.). */
+  sourceId?: string | null;
   name: string;
   count: number;
   /** Łączna wartość PRODUCTION tej grupy. */

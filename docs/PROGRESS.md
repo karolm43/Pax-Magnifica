@@ -1216,3 +1216,15 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   automatycznie. Błędy UI: następny krok to odtwarzanie zapisanych stanów w przeglądarce (Playwright).
 - QA: pytest `tests/engine` ✓, ruff ✓, mypy ✓. Pełny pytest i front pominięte (zmiana tylko
   w warstwie bota i testach). Wymaga restartu backendu (nowe akcje bota).
+
+## Poprawki UI: ikona producenta Magmus Reactor, szary Avernus, Custodians najniżej (XI 2026)
+
+- Okno produkcji: producent spoza jednostek dostaje `kind`/`sourceId` (`Producer.source` = HookSource
+  hooka `POINT_PRODUCTION_SYSTEM_VALUE`) — Magmus Reactor pokazuje ikonę koloru technologii i jej
+  nazwę zamiast pustego sprite'a „system”; planety-producenci (Custodian's Favour, Aerie Hololattice)
+  ikonę planety.
+- Wyczerpany żeton-planeta (Avernus) szarzeje cały (filtr na sprite w `Token.tsx`), okrąg planety
+  go już nie przyciemnia częściowo.
+- Żeton Custodians (`custodian`, `custodianvp`) ma z-index 2 — przykrywa go wszystko na kafelku.
+- QA: pytest `-k "production or muaat"` ✓, ruff ✓, mypy ✓ (zmienione pliki), tsc ✓, eslint ✓,
+  vitest production/map/utils ✓. Pełny pytest, build i e2e pominięte. Wymaga restartu backendu (nowe pola).

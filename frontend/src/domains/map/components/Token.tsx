@@ -23,12 +23,17 @@ type TokenProps = {
   zIndex: number;
   /** Pozycja systemu — dla podglądu „dokąd prowadzi” wormhole / ingress. */
   tilePosition?: string;
+  /** Żeton-planeta (np. Avernus) wyczerpana: cały sprite szary, jak karta planety. */
+  exhausted?: boolean;
 };
+
+const EXHAUSTED_FILTER = "brightness(0.7) grayscale(1)";
 
 /** Opóźnienie dymka po najechaniu — jak przy planetach, ale krócej (żeton jest mały). */
 const HOVER_DELAY_MS = 500;
 
-export const Token = ({ tokenId, faction, x, y, zIndex, tilePosition }: TokenProps) => {
+export const Token = ({ tokenId, faction, x, y, zIndex, tilePosition, exhausted }: TokenProps) => {
+  const filter = exhausted ? EXHAUSTED_FILTER : undefined;
   const alt = `${faction || "token"} ${tokenId}`;
   const tokenImagePath = getTokenImagePath(tokenId);
   const imagePath = tokenImagePath || getAttachmentImagePath(tokenId);
@@ -78,6 +83,7 @@ export const Token = ({ tokenId, faction, x, y, zIndex, tilePosition }: TokenPro
           top: `${y}px`,
           transform,
           zIndex,
+          filter,
         }}
       />
     );
@@ -115,6 +121,7 @@ export const Token = ({ tokenId, faction, x, y, zIndex, tilePosition }: TokenPro
           left: `${width / 2}px`,
           top: `${height / 2}px`,
           transform,
+          filter,
         }}
       />
     </TokenWithInfo>

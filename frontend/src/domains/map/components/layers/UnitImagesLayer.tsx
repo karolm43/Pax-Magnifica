@@ -5,6 +5,8 @@ import type { Tile } from "@/entities/game/types";
 import { mapUnitLocationKey } from "@/entities/replay/unitState";
 import { stateCount, unitStates } from "@/entities/replay/unitState";
 import { isBadgeUnit } from "../UnitStack/unitType";
+import { getTokenData } from "@/entities/lookup/tokens";
+import { useSettingsStore } from "@/state/appStore";
 
 type Props = {
   systemId: string;
@@ -34,6 +36,16 @@ export function UnitImagesLayer({
   const lawsInPlay = useGameData()?.lawsInPlay;
   const resolveColorAlias = useResolveColorAlias();
   const mapReplay = useMapReplay();
+  const showExhaustedPlanets = useSettingsStore(
+    (state) => state.settings.showExhaustedPlanets,
+  );
+  // Żeton-planeta (Avernus) szarzeje cały, gdy planeta jest wyczerpana.
+  const tokenPlanetExhausted = (entityId: string, entityType: string) => {
+    if (entityType !== "token" || !showExhaustedPlanets) return false;
+    const token = getTokenData(entityId);
+    if (!token?.isPlanet || !token.tokenPlanetName) return false;
+    return mapTile.planets?.[token.tokenPlanetName]?.exhausted === true;
+  };
 
   const unitImages = Object.entries(mapTile.entityPlacements).map(
     ([key, stack]) => {
@@ -72,6 +84,7 @@ export function UnitImagesLayer({
           colorAlias={colorAlias}
           stackKey={key}
           tilePosition={mapTile.position}
+          exhausted={tokenPlanetExhausted(stack.entityId, stack.entityType)}
           lawsInPlay={lawsInPlay}
           layoutUnitStates={usesSlottedReplay ? finalUnitStates : undefined}
           damageAtMs={delayedDamage?.damageAtMs}
