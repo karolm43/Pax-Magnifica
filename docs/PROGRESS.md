@@ -1078,3 +1078,12 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Ruch statków komponentem wydzielony do `core/direct_move.py` (Helix, Wing Transfer; dalej
   L1Z1X Dark Space Navigation).
 - QA: pytest (Argent, flows, ruling coverage) ✓, ruff ✓. Wymaga restartu backendu.
+
+## 2026-11-18 — Okna pływające nie zamykają się przy kliku w mapę (Helix Protocol)
+
+- ✅ Błąd: Ctrl+klik / przeciągnięcie jednostki przy ruchu bohaterem Argent zamykało okno i
+  pokazywało „Activate a system first”. Przyczyna: `Dialog` base-ui ma `closeOnFocusOut`, a ds
+  `Modal` dla `floating` ignorował tylko `outside-press`. Teraz ignoruje też `focus-out`
+  (`frontend/src/ds/overlays.tsx`), więc zaznaczenie Ctrl trafia do `UnitMovesField`.
+- Test: `frontend/src/ds/overlays.test.tsx` (bez poprawki pada).
+- QA: tsc ✓, eslint ✓, vitest (offers, ds) ✓. Backend bez zmian; build/e2e pominięte.

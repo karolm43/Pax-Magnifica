@@ -197,6 +197,9 @@ export function Modal({
       onOpenChange={(open, details) => {
         if (open) return;
         if (details.reason === "outside-press" && (floating || !closeOnClickOutside)) return;
+        // Okno pływające współistnieje z planszą: klik / Ctrl+klik / przeciągnięcie jednostki na
+        // mapie zabiera fokus, ale NIE zamyka okna (ruch z efektu, wybór celu na mapie).
+        if (details.reason === "focus-out" && floating) return;
         if (details.reason === "escape-key" && !closeOnEscape) return;
         onClose();
       }}
