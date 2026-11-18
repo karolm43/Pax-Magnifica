@@ -50,8 +50,8 @@
     "requires": ["faction:nekro"],
     "reason": "Mechy Nekro w walce kosmicznej (The Alastor) mogą zostać uszkodzone przez Raid Formation - frakcja niezaimplementowana."
   },
-  "F_argent/mirik-aun-sissiri-helix-protocol/3.1": {
-    "na": "Zapowiedź przyszłej zmiany reguł bez jej treści; obowiązuje F_argent/mirik-aun-sissiri-helix-protocol/3 (test w tests/factions/test_argent.py). ⚠️ Do potwierdzenia przez użytkownika (RULES.md 62.11)."
+  "F_argent/mirik-aun-sissiri-helix-protocol/3": {
+    "na": "Zastąpione rulingiem FAQ helix-protocol/3.2 (podany przez użytkownika 2026-11-18): przy ruchu bohaterem wolno transportować z systemu z własnym żetonem (test 3.2 w tests/factions/test_argent.py)."
   },
   "F_jol_nar/research-agreement/3": {
     "na": "Umowy między graczami są niewiążące i poza silnikiem (R_trade, RULES.md 47): silnik nie egzekwuje obietnic co do momentu zagrania notki."

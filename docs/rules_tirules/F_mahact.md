@@ -57,6 +57,7 @@
 
 - Fighters and ground forces in the space area of the origin system are moved. Ground forces on planets are left behind.
     - If the Mahact player moves their own ships, they may transport ground forces on planets.
+    - Q: When using the hero ability, can fighters and infantry be transported? A: Yes. During movement abilities (L1Z1X Hero, Argent Hero, Mahact Hero), you may transport units out of systems that contain your tokens. _(FAQ ruling dodany przez użytkownika 2026-11-18 — zastępuje zakaz z punktu wyżej.)_
     - If the Mahact player moves the Saar player’s units, any Floating Factories in the origin system will also be moved.
 - Any abilities that trigger when a player moves ships trigger from the perspective of the Mahact player.
 - Any abilities that trigger when a player’s ships move trigger from the perspective of the player that owns them.

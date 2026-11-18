@@ -19,9 +19,9 @@ from src.core import (
     active_effects,
     battle,
     command_tokens,
+    direct_move,
     faction_components,
     leaders,
-    movement,
     promissory_play,
     rules_hooks,
     unit_ops,
@@ -62,7 +62,6 @@ from src.core.rules_hooks import (
 )
 from src.core.state_grid import grid_from_state
 from src.core.unit_catalog import is_space_unit
-from src.core.unit_ops import UnitCause
 
 FACTION = "argent"
 AGENT = "argentagent"
@@ -506,98 +505,6 @@ def ambuscade_spent(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -
             active_effects.remove_effect(state, effect.id)
 
 
-# ----------------------------------------------------- Ruch statków komponentem (hero, przełom)
-
-
-def _ship_options(
-    state: GameState, registry: Any, player_id: str, sources: list[str]
-) -> list[dict[str, Any]]:
-    """Jednostki gracza w przestrzeni systemów ``sources`` - każdy egzemplarz osobno (mapa)."""
-    options: list[dict[str, Any]] = []
-    for position in sources:
-        system = state.systems.get(position)
-        for bt, n in sorted((system.space_units.get(player_id, {}) if system else {}).items()):
-            name = unit_name(state, registry, player_id, bt)
-            for i in range(n):
-                options.append(oi.option(
-                    f"{position}|{bt}|{i}", name,
-                    meta=oi.unit_at(state, player_id, bt, position=position),
-                ))
-    return options
-
-
-def _move_inputs(
-    state: GameState, registry: Any, player_id: str, sources: list[str], dests: list[str]
-) -> list[dict[str, Any]]:
-    """Ruch jak ruch taktyczny: przeciąganie jednostek na mapie na świecące cele
-    (``oi.unit_moves``), bez slotów „Destination N”."""
-    ships = _ship_options(state, registry, player_id, sources)
-    return [oi.unit_moves("moves", "Move ships", ships, dests)]
-
-
-def _parse_moves(params: Mapping[str, Any]) -> dict[str, dict[str, dict[str, int]]]:
-    """``{cel: {źródło: {typ: n}}}`` z ``moves`` (``"<źródło>|<typ>|<n>><cel>"``)."""
-    seen: set[str] = set()
-    moves: dict[str, dict[str, dict[str, int]]] = {}
-    for raw in params.get("moves") or []:
-        unit, dest = oi.split_move(str(raw))
-        if unit in seen:
-            raise ValueError("A unit cannot move to two systems.")
-        seen.add(unit)
-        source, bt, _ = unit.split("|")
-        by_type = moves.setdefault(dest, {}).setdefault(source, {})
-        by_type[bt] = by_type.get(bt, 0) + 1
-    return moves
-
-
-def _apply_moves(
-    state: GameState,
-    player_id: str,
-    moves: dict[str, dict[str, dict[str, int]]],
-    *,
-    transport_blocked_by_token: bool,
-    fighters_free: bool,
-) -> None:
-    """Przenosi jednostki (MUTUJE): rzut szczeliny grawitacyjnej przy wyjściu, pojemność celu.
-
-    ``transport_blocked_by_token`` - siły naziemne nie mogą wyjść z systemu z żetonem gracza
-    (Helix Protocol, F_argent); ``fighters_free`` - myśliwce lecą bez transportu (Helix)."""
-    registry = _registry()
-    grid = grid_from_state(state, registry)
-    for dest, by_source in sorted(moves.items()):
-        target = state.systems.get(dest)
-        if target is None:
-            raise ValueError(f"Unknown system {dest}.")
-        for source, by_type in sorted(by_source.items()):
-            origin = state.systems.get(source)
-            if origin is None or source == dest:
-                raise ValueError("Units must move to another system.")
-            own = origin.space_units.get(player_id, {})
-            for bt, n in by_type.items():
-                if own.get(bt, 0) < n:
-                    raise ValueError(f"Not enough {bt} in system {source}.")
-            carried = _GROUND_FORCES if fighters_free else (*_GROUND_FORCES, "fighter")
-            cargo = {bt: n for bt, n in by_type.items() if bt in carried}
-            ground = {bt: n for bt, n in cargo.items() if bt in _GROUND_FORCES}
-            if ground and transport_blocked_by_token and player_id in origin.command_tokens:
-                raise ValueError("Ships cannot transport units out of a system that contains your "
-                                 "command token.")
-            ships = {bt: n for bt, n in by_type.items() if bt not in _GROUND_FORCES}
-            if cargo and not any(n > 0 and bt != "fighter" for bt, n in ships.items()):
-                raise ValueError("Units without a move value must be transported by ships moving "
-                                 "with them.")
-            lost: dict[str, int] = {}
-            if movement.is_gravity_rift(grid, source):
-                lost = movement.roll_rift_exit(state, player_id, ships)
-            for bt, n in by_type.items():
-                unit_ops.transfer_units(state, origin, _SPACE, target, _SPACE, player_id, bt, n)
-            for bt, n in lost.items():
-                unit_ops.remove_units(state, target, _SPACE, player_id, bt, n, UnitCause.DESTROYED)
-    # Pojemność po ruchu: nadwyżkę (np. myśliwce zostawione bez statku z pojemnością) usuwa
-    # ``limits.enforce_limits`` po akcji - okno CAPACITY albo od razu, gdy wybór jest wymuszony
-    # (R_capacity: ruch może spowodować usunięcie, nie jest przez to nielegalny).
-
-
 # ------------------------------------------------- Mirik Aun Sissiri — Helix Protocol (hero)
 
 
@@ -633,29 +540,30 @@ def _own_space(state: GameState, player_id: str) -> list[str]:
 def hero_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
-    return _move_inputs(state, registry, player_id, _own_space(state, player_id),
+    return direct_move.move_inputs(state, registry, player_id, _own_space(state, player_id),
                         helix_destinations(state, player_id))
 
 
 @register_effect(f"leaders:{HERO}")
 def helix_protocol(
-    state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
+    state: GameState, registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
 ) -> None:
     """Mirik Aun Sissiri — Helix Protocol: ACTION: Move any number of your ships from any systems
     to any number of other systems that contain 1 of your command tokens and no other players'
     ships. Then, purge this card.
 
     F_argent: ruch prosto do celu (bez trasy), także z systemów z żetonem Argent; myśliwce bez
-    transportu; siły naziemne tylko z przestrzeni źródła bez żetonu Argent; rzut szczeliny przy
-    wyjściu; Wormhole Nexus odwraca się sam (``step_settle``)."""
+    transportu; siły naziemne tylko ze statkami z tego samego systemu - także z systemu z żetonem
+    Argent (ruling użytkownika 2026-11-18: ruch zdolnością bohatera, F_argent helix/3.2); rzut
+    szczeliny przy wyjściu; Wormhole Nexus odwraca się sam (``step_settle``)."""
     dests = helix_destinations(state, player_id)
-    moves = _parse_moves(params)
+    moves = direct_move.parse_moves(params)
     if not moves:
         raise ValueError("Move at least 1 ship.")
     if any(d not in dests for d in moves):
         raise ValueError("Ships can move only to systems with your command token and no other "
                          "players' ships.")
-    _apply_moves(state, player_id, moves, transport_blocked_by_token=True, fighters_free=True)
+    direct_move.apply_moves(state, registry, player_id, moves, fighters_free=True)
 
 
 # --------------------------------------------------------------- Wing Transfer (przełom)
@@ -735,7 +643,7 @@ def transfer_move_inputs(
     state: GameState, registry: Any, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
     systems = _transfer_systems(state, player_id, str(ctx.get("position") or ""))
-    return _move_inputs(state, registry, player_id, systems, systems)
+    return direct_move.move_inputs(state, registry, player_id, systems, systems)
 
 
 @on_event(
@@ -747,9 +655,9 @@ def wing_transfer_move(state: GameState, player_id: str, ctx: Mapping[str, Any])
     """Wing Transfer: … at the end of this action, you may move ships among the active system and
     systems adjacent to it that contain your command tokens (pojemność obowiązuje - F_argent)."""
     systems = _transfer_systems(state, player_id, str(ctx.get("position") or ""))
-    moves = _parse_moves(ctx.get("params", {}))
+    moves = direct_move.parse_moves(ctx.get("params", {}))
     if any(d not in systems or any(s not in systems for s in by) for d, by in moves.items()):
         raise ValueError("Move ships only among the active system and adjacent systems with "
                          "your command tokens.")
-    _apply_moves(state, player_id, moves, transport_blocked_by_token=False, fighters_free=False)
+    direct_move.apply_moves(state, _registry(), player_id, moves, fighters_free=False)
     ability_notes.note(state, player_id, f"breakthroughs:{BREAKTHROUGH}", "moved ships")

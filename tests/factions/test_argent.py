@@ -503,16 +503,28 @@ def test_helix_zostawione_mysliwce_gina_zamiast_bledu(registry: StaticDataRegist
 
 
 @ruling("F_argent/mirik-aun-sissiri-helix-protocol/2",
-        "F_argent/mirik-aun-sissiri-helix-protocol/3")
-def test_helix_ze_zetonem_rusza_ale_bez_ladunku(registry: StaticDataRegistry) -> None:
+        "F_argent/mirik-aun-sissiri-helix-protocol/3.1",
+        "F_argent/mirik-aun-sissiri-helix-protocol/3.2")
+def test_helix_ze_zetonem_rusza_i_zabiera_ladunek(registry: StaticDataRegistry) -> None:
+    """Statki z systemu z żetonem Argent ruszają i - wg rulingu FAQ (3.2, zastępuje zakaz z 3)
+    - zabierają ze sobą piechotę i myśliwce z tego systemu."""
     state = _helix_state(registry)
     state.systems["101"].command_tokens = ["p1"]
-    with pytest.raises(ValueError, match="command token"):
+    argent.helix_protocol(state, registry, "p1", _mv("103", [
+        "101|carrier|0", "101|infantry|0", "101|infantry|1", "101|fighter|0",
+    ]))
+    assert state.systems["103"].space_units["p1"] == {"carrier": 1, "infantry": 2, "fighter": 1}
+
+
+@ruling("F_argent/mirik-aun-sissiri-helix-protocol/4")
+def test_helix_piechota_tylko_ze_statkiem_z_tego_samego_systemu(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _helix_state(registry)
+    state.systems["102"].space_units = {"p1": {"infantry": 1}}
+    with pytest.raises(ValueError, match="transported"):
         argent.helix_protocol(state, registry, "p1",
-                              _mv("103", ["101|carrier|0", "101|infantry|0"]))
-    state.systems["101"].space_units = {"p1": {"carrier": 1}}
-    argent.helix_protocol(state, registry, "p1", _mv("103", ["101|carrier|0"]))
-    assert state.systems["103"].space_units["p1"] == {"carrier": 1}
+                              _mv("103", ["101|carrier|0", "102|infantry|0"]))
 
 
 @ruling("F_argent/mirik-aun-sissiri-helix-protocol/6",

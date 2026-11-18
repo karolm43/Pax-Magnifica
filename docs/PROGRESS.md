@@ -1068,3 +1068,13 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - ✅ Karty z ręki: poza przeciągnięciem także przycisk „Play …” / „Discard …” w podglądzie.
 - QA: pytest (pełny) ✓, ruff ✓, mypy (zmienione moduły) ✓, tsc ✓, eslint ✓, vitest (offers, dice,
   map, game-shell) ✓. e2e i build pominięte. Wymaga restartu backendu.
+
+## 2026-11-18 — Argent: transport przy ruchu bohaterem (ruling FAQ)
+
+- ✅ Ruling FAQ od użytkownika (dopisany do `F_argent`, `F_lizix`, `F_mahact`): „During movement
+  abilities (L1Z1X Hero, Argent Hero, Mahact Hero), you may transport units out of systems that
+  contain your tokens”. Helix Protocol zabiera piechotę/myśliwce także z systemu z żetonem Argent
+  (zakaz `helix-protocol/3` → status „zastąpione”, 3.1/3.2 z testem).
+- Ruch statków komponentem wydzielony do `core/direct_move.py` (Helix, Wing Transfer; dalej
+  L1Z1X Dark Space Navigation).
+- QA: pytest (Argent, flows, ruling coverage) ✓, ruff ✓. Wymaga restartu backendu.

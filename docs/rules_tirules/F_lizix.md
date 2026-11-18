@@ -47,6 +47,7 @@
 - Ships in systems with one of the L1Z1X player’s command tokens may move.
 - Ships may transport units only if their origin system does not contain one of the L1Z1X player’s command tokens.
     - A future rule change will allow a player’s ships to transport units from systems that contain that player’s command token when those ships move outside of a tactical action.
+    - Q: When using the hero ability, can fighters and infantry be transported? A: Yes. During movement abilities (L1Z1X Hero, Argent Hero, Mahact Hero), you may transport units out of systems that contain your tokens. _(FAQ ruling dodany przez użytkownika 2026-11-18 — zastępuje zakaz z punktu wyżej.)_
 - Ships move directly to their destination system. They may only transport units from their origin system.
 - Ships moving out of a gravity rift must roll for removal.
 - Ships cannot move into a nebula or supernova, even if it contains one of the L1Z1X player’s command tokens.
