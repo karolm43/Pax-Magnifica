@@ -37,6 +37,7 @@ import {
   resolveCardName,
   resolveObjectiveName,
   resolvePlanetName,
+  resolveSystemName,
   resolveTechName,
   resolveUnitName,
 } from "../GameEventPanel/eventFormatting";
@@ -870,6 +871,21 @@ function describeFact(
           <>The Fracture entered play</>
         ),
       };
+    case "tile_replaced": {
+      // Nova Seed (Muaat): kafel systemu wymieniony — detail = "<stary kafel>><nowy kafel>".
+      const position = fact.value ?? "";
+      const oldTile = (fact.detail ?? "").split(">")[0];
+      return {
+        key,
+        tone: "bad",
+        text: (
+          <>
+            <b>{oldTile ? resolveSystemName(oldTile) : position}</b> was replaced by{" "}
+            <Named kind="system" id={position} name={ctx.systemName(position)} systemText={ctx.systemHint(position)} />
+          </>
+        ),
+      };
+    }
     case "battle_result": {
       // Podsumowanie bitwy: zwycięzca w nagłówku, tu długość walki.
       const rounds = `${delta} round${delta === 1 ? "" : "s"}`;

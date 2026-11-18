@@ -31,12 +31,16 @@ BREAKTHROUGH = "breakthrough"
 # Technologia frakcyjna z oknem użycia (``window_use``), np. Instinct Training (RULES.md 62.9):
 # tylko takie trafiają do ``owned`` - zwykłe technologie działają przez hooki i oferty.
 TECHNOLOGY = "technology"
-KINDS: tuple[str, ...] = (LEADER, ABILITY, BREAKTHROUGH, TECHNOLOGY)
+# Jednostka frakcyjna z „ACTION:” w zdolności (The Inferno Muaat, RULES.md 62.13): dostępna, gdy
+# gracz ma ją na planszy; id = id wariantu jednostki (``muaat_flagship``).
+UNIT = "unit"
+KINDS: tuple[str, ...] = (LEADER, ABILITY, BREAKTHROUGH, TECHNOLOGY, UNIT)
 _CATEGORY = {
     LEADER: ComponentCategory.LEADER.value,
     ABILITY: ComponentCategory.ABILITY.value,
     BREAKTHROUGH: ComponentCategory.BREAKTHROUGH.value,
     TECHNOLOGY: ComponentCategory.TECHNOLOGY.value,
+    UNIT: ComponentCategory.UNIT.value,
 }
 # Nagłówek akcji komponentu (dane piszą go WIELKIMI literami; „an action:" to nie nagłówek).
 _ACTION = re.compile(r"(?:^|[\n.:]\s*)ACTION\s*:")
@@ -157,6 +161,11 @@ def describe(registry: StaticDataRegistry, kind: str, component: str) -> tuple[s
         if tech is None:
             raise ValueError(f"Unknown technology: {component}")
         return tech.name, tech.text or ""
+    if kind == UNIT:
+        unit = registry.units.get(component)
+        if unit is None:
+            raise ValueError(f"Unknown unit: {component}")
+        return unit.name, unit.ability or ""
     breakthrough = registry.breakthroughs.get(component)
     if breakthrough is None:
         raise ValueError(f"Unknown breakthrough: {component}")
@@ -189,7 +198,30 @@ def owned(state: GameState, registry: StaticDataRegistry, player_id: str) -> lis
         (LEADER, lid) for lid in borrowed_commanders(state, player_id)
         if (LEADER, lid) not in rows and _has_window_use(LEADER, lid)
     ]
+    rows += [(UNIT, uid) for uid in action_units(state, registry, player_id)]
     return rows
+
+
+def action_units(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[str]:
+    """Warianty jednostek frakcyjnych gracza z „ACTION:” w zdolności, które stoją na planszy."""
+    from src.core.combat import resolve_unit_variant  # lokalnie: combat jest ciężkim modułem
+
+    player = state.players[player_id]
+    types = {
+        bt
+        for system in state.systems.values()
+        for bt, n in (
+            *system.space_units.get(player_id, {}).items(),
+            *(i for by in system.planet_units.values() for i in by.get(player_id, {}).items()),
+        )
+        if n > 0
+    }
+    found: list[str] = []
+    for bt in sorted(types):
+        unit = resolve_unit_variant(registry, player.faction, player.technologies, bt)
+        if unit is not None and unit.faction and _ACTION.search(unit.ability or ""):
+            found.append(unit.id)
+    return found
 
 
 def borrowed_commanders(state: GameState, player_id: str) -> list[str]:

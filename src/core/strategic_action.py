@@ -473,17 +473,11 @@ def resolve_secondary(
         if spec.secondary_costs_token and not is_free and not no_cost:
             # Scepter of Emelpar (C_relics): gracz MOŻE wyczerpać relikt i wydać żeton z rezerwy.
             scepter = bool((payload or {}).get("scepter"))
+            # STRATEGY_TOKEN_SPENT emituje sam ``spend_strategy_token`` (punkt centralny).
             command_tokens.spend_strategy_token(
                 new_state,
                 player_id,
                 source=command_tokens.SOURCE_SCEPTER if scepter else command_tokens.SOURCE_POOL,
-            )
-            triggers.fire(
-                new_state,
-                GameEvent.STRATEGY_TOKEN_SPENT,
-                Moment.AFTER,
-                subject=player_id,
-                ctx={"player": player_id, "initiative": initiative},
             )
         secondary_ctx = {"player": player_id, "initiative": initiative, "ability": "secondary"}
         triggers.fire(

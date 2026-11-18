@@ -313,3 +313,12 @@ def spend_strategy_token(
     if _player(state, player_id).strategic_cc < 1:
         raise ValueError("You need 1 command token in your strategy pool.")
     spend_to_reinforcements(state, player_id, "strategic")
+    # „After you spend a token from your strategy pool” (Magmus, RULES.md 62.13): każdy żeton
+    # osobno (C_objectives: Lead From the Front = 3 razy); Scepter (wyżej) nie wydaje z puli.
+    from src.core import triggers  # lokalnie: triggers importuje hooki
+    from src.core.game_events import GameEvent, Moment
+
+    triggers.fire(
+        state, GameEvent.STRATEGY_TOKEN_SPENT, Moment.AFTER, subject=player_id,
+        ctx={"player": player_id},
+    )

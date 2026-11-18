@@ -34,6 +34,7 @@ from src.core import (
     promissory_notes,
     relic_fragments,
     relics,
+    rules_hooks,
     secret_objectives,
     strategy_phase,
     triggers,
@@ -86,6 +87,9 @@ def meets_conditions(state: GameState, registry: StaticDataRegistry, player_id: 
         return False
     types = _unit_types_on_board(state, player_id)
     if any(bt in _GROUND_FORCES for bt in types):
+        return False
+    # PRODUCTION spoza jednostek (Magmus Reactor Ω: supernowa z jednostką gracza - F_muaat).
+    if rules_hooks.permits(rules_hooks.POINT_ELIMINATION_HAS_PRODUCTION, state, player_id):
         return False
     return not _has_production_unit(registry, state, player_id, types)
 

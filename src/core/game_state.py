@@ -789,6 +789,8 @@ class ProductionGrant(BaseModel):
     # kosztu (Integrated Economy: zasoby planety), ``ships_only`` = tylko statki (Sling Relay).
     free: bool = False
     max_cost: float | None = None
+    # Górny limit kosztu JEDNEJ sztuki (Umbat: „units that each have a cost of 4 or less”).
+    max_unit_cost: float | None = None
     ships_only: bool = False
     # Dozwolone typy jednostek (``base_type``); pusta lista = bez ograniczenia. Salvage Operations:
     # typy statków zniszczonych w walce (RULES.md 62.8).
@@ -1201,6 +1203,11 @@ class GameState(BaseModel):
     # Karty eksploracji PRZYCZEPIONE do planet (attach): {planet_id: [card_id, ...]}. Zostają
     # przy planecie niezależnie od zmiany kontroli (R_attach).
     planet_attachments: dict[str, list[str]] = Field(default_factory=dict)
+
+    # Kafle systemów WYMIENIONE w trakcie gry: {pozycja: nowy system_id} (Nova Seed Muaat ->
+    # supernowa ``81``). Mapa (``HexGrid``) synchronizuje się z tego (``core/tile_swap``), więc
+    # Undo/Redo przywraca kafel z układu mapy.
+    replaced_tiles: dict[str, str] = Field(default_factory=dict)
 
     # Karty akcji leżące jawnie NA karcie zdolności legendarnej planety: {planet_id: [card_id]}
     # (Dok 'N Pic's Salvage Yard na Garbozii). Zostają przy karcie, gdy zmienia ona kontrolera.

@@ -152,3 +152,19 @@ def recompute_from_units(state: GameState, position: str, planet: str) -> None:
     }
     if len(present) == 1:
         set_planet_control(state, position, planet, next(iter(present)))
+
+
+def relocate_planet(state: GameState, planet: str, from_pos: str, to_pos: str) -> None:
+    """Przenosi KONTROLĘ planety-żetonu do innego systemu (Avernus, Stellar Genesis - RULES.md
+    62.13): kontroler bez zmian, bez zdarzeń utraty/zdobycia. Jednostki przenosi wołający
+    (``unit_ops.transfer_units``). MUTUJE ``state``.
+
+    Raises:
+        ValueError: Nieznany system.
+    """
+    origin, target = state.systems.get(from_pos), state.systems.get(to_pos)
+    if origin is None or target is None:
+        raise ValueError("Unknown system position.")
+    owner = origin.planet_owners.pop(planet, None)
+    if owner is not None:
+        target.planet_owners[planet] = owner

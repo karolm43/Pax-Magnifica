@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **355**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **366**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -64,6 +64,7 @@ Razem: **355**. Opis = pierwsza linia docstringu funkcji hooka.
 | `custodians.free` | PERMIT | faction:winnu | abilities:blood_ties | Blood Ties: You do not have to spend influence to remove the custodians token from Mecatol |
 | `dice.adjust_result` | FORBID | relic:heartofixth | relics:heartofixth | — |
 | `economy.commodity_value` | MODIFY | relic:dynamiscore | relics:dynamiscore | Dynamis Core: While this card is in your play area, your commodity value is +2. |
+| `elimination.has_production` | PERMIT | technology:mr | technologies:mr | F_muaat Magmus Reactor Ω 1: jednostka w supernowej = PRODUCTION, gracz nie odpada. |
 | `event:agenda.law_discarded:when` | TRIGGER | agenda:censure | agendas:censure | — |
 | `event:agenda.law_discarded:when` | TRIGGER | agenda:classified | agendas:classified | — |
 | `event:agenda.law_discarded:when` | TRIGGER | agenda:defense_act | agendas:defense_act | — |
@@ -160,6 +161,7 @@ Razem: **355**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.decision:after` | TRIGGER | effect:research:reveal_prototype | action_cards:reveal_prototype | — |
 | `event:component.exhausted:after` | TRIGGER | leader:sardakkagent | — | — |
 | `event:component.gained:when` | TRIGGER | relic:bookoflatvinia | — | Book of Latvinia: When you gain this card, research up to 2 technologies that have no |
+| `event:component.gained:when` | TRIGGER | breakthrough:muaatbt | breakthroughs:muaatbt | Stellar Genesis: When you gain this card, place the Avernus planet token into a non-home |
 | `event:component.gained:when` | TRIGGER | relic:obsidian | relics:obsidian | The Obsidian: When you gain this card, draw 1 secret objective. |
 | `event:component.gained:when` | TRIGGER | relic:quantumcore | relics:quantumcore | The Quantumcore: When you gain this card, gain your breakthrough. |
 | `event:component.gained:when` | TRIGGER | relic:shard | — | Shard of the Throne: When you gain this card, gain 1 victory point. |
@@ -176,6 +178,8 @@ Razem: **355**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:faction.ability_used:after` | TRIGGER | leader:l1z1xagent | — | Aktywny gracz wymienia 1 piechotę na mecha (mech zdjęty z planszy - nieuszkodzony, F_lizix |
 | `event:faction.ability_used:after` | TRIGGER | leader:mentakagent | leaders:mentakagent | Suffi An: After the Pillage faction ability is used against another player: You may exhaust |
 | `event:faction.ability_used:after` | TRIGGER | leader:mentakcommander | — | Przeciwnik oddaje wybraną notkę z ręki (decyzja obowiązkowa przeciwnika). |
+| `event:faction.ability_used:after` | TRIGGER | unit:muaat_mech | units:muaat_mech | Ember Colossus: When you use your Star Forge faction ability in this system or an adjacent |
+| `event:faction.ability_used:after` | TRIGGER | leader:muaatagent | — | Wybrany gracz otwiera produkcję: grant ``free`` (bez PRODUCTION jednostek - F_muaat umbat |
 | `event:faction.ability_used:after` | TRIGGER | unit:sol_mech | units:sol_mech | ZS Thunderbolt M2 — DEPLOY: After you use your Orbital Drop faction ability, you may spend |
 | `event:faction.ability_used:after` | TRIGGER | faction:yin | unlocks:yincommander | Unlock: Use one of your faction abilities (Indoctrination albo Devotion - F_yin Ω). |
 | `event:objective.revealed:after` | TRIGGER | relic:neuraloop | relics:neuraloop | Neuraloop: When a public objective is revealed, you may purge one of your relics to discard |
@@ -214,12 +218,14 @@ Razem: **355**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:player.passed:when` | TRIGGER | planet:ordinianc4 | planets:ordinianc4 | Hyperion: You may exhaust this card when you pass to draw 1 action card and gain 1 command token. |
 | `event:production.units_produced:after` | TRIGGER | leader:argentagent | leaders:argentagent | Trilossa Aun Mirik: When a player produces ground forces in a system: You may exhaust this |
 | `event:production.units_produced:after` | TRIGGER | breakthrough:hacanbt | breakthroughs:hacanbt | Auto-Factories: When you produce 3 or more non-fighter ships, place 1 command token from your |
+| `event:production.units_produced:after` | TRIGGER | faction:muaat | unlocks:muaatcommander | Unlock: Produce a war sun. |
 | `event:production.units_produced:after` | TRIGGER | technology:yso | technologies:yso | Yin Spinner Ω: After you produce units, place up to 2 infantry from your reinforcements on |
 | `event:production.used:after` | TRIGGER | agenda:prophecy | agendas:prophecy | — |
 | `event:production.used:after` | TRIGGER | technology:sar | technologies:sar | Self-Assembly Routines: po PRODUCTION wyczerp kartę, by postawić 1 mecha z rezerwy |
 | `event:strategy.action:after` | TRIGGER | faction:xxcha | abilities:peace_accords | Peace Accords: After you resolve the primary or secondary ability of the "Diplomacy" |
 | `event:strategy.card_chosen:after` | TRIGGER | agenda:arbiter | agendas:arbiter | — |
 | `event:strategy.imperial_victory_point:after` | TRIGGER | planet:custodiavigilia | planets:custodiavigilia | Custodian's Favour: Gain 2 command tokens when another player scores a victory point with |
+| `event:strategy.token_spent:after` | TRIGGER | leader:muaatcommander | leaders:muaatcommander | Magmus: After you spend a token from your strategy pool: You may gain 1 trade good. |
 | `event:tactical.action:end` | TRIGGER | breakthrough:argentbt | breakthroughs:argentbt | Wing Transfer: … at the end of this action, you may move ships among the active system and |
 | `event:tactical.action:end` | TRIGGER | technology:det | technologies:det | Dark Energy Tap: po akcji taktycznej w systemie z żetonem frontier i Twoim statkiem |
 | `event:tactical.action:end` | TRIGGER | relic:emphidia | relics:emphidia | The Crown of Emphidia: After you perform a tactical action, you may exhaust this card to |
@@ -227,6 +233,8 @@ Razem: **355**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.action:end` | TRIGGER | leader:sardakkagent | leaders:sardakkagent | T'ro: At the end of a player's tactical action: You may exhaust this card: if you do, that |
 | `event:tactical.action:end` | TRIGGER | faction:winnu | abilities:reclamation | Reclamation: After you resolve a tactical action during which you gained control of Mecatol |
 | `event:tactical.action:end` | TRIGGER | unit:winnu_mech | units:winnu_mech | Reclaimer: After you resolve a tactical action where you gained control of this planet, you |
+| `event:tactical.ships_moved:after` | TRIGGER | breakthrough:muaatbt | breakthroughs:muaatbt | After you move one of your war suns out of or through Avernus's system and into a non-home |
+| `event:tactical.ships_moved:after` | TRIGGER | leader:muaathero | leaders:muaathero | Adjudicator Ba'al — Nova Seed: After you move a war sun into a non-home system other than |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:<color>_an | promissory_notes:<color>_an | — |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:<color>_sftt | promissory_notes:<color>_sftt | — |
 | `event:tactical.system_activated:after` | TRIGGER | unit:arborec_flagship | units:arborec_flagship | Duha Menaimon: After you activate this system, you may produce up to 5 units in this |
@@ -298,6 +306,7 @@ Razem: **355**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.ignore_anomalies` | PERMIT | effect:action_cards:nav_suite | — | — |
 | `movement.ignore_anomalies_keep_rift` | PERMIT | relic:circletofthevoid | relics:circletofthevoid | Circlet of the Void: Your units do not roll for gravity rifts, and you ignore the effects |
 | `movement.ignore_own_command_token` | PERMIT | effect:relics:dominusorb | — | — |
+| `movement.into_supernova` | PERMIT | technology:mr | technologies:mr | Magmus Reactor: Your ships can move into supernovas (cel ruchu i odwrót - R_space_combat). |
 | `movement.match_highest` | PERMIT | breakthrough:letnevbt | — | Gravleash Maneuvers: During movement, your non-fighter ships' move values are equal to the |
 | `movement.move_value` | MODIFY | effect:action_cards:fs1 | — | — |
 | `movement.move_value` | MODIFY | effect:action_cards:fs2 | — | — |
@@ -311,6 +320,7 @@ Razem: **355**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.pass_foreign_ships` | PERMIT | unit:mentak_cruiser3 | units:mentak_cruiser3 | Corsair: If the active system contains another player's non-fighter ships, this unit can |
 | `movement.passage_blocked` | PERMIT | technology:ah | technologies:ah | Aerie Hololattice: Other players cannot move ships through systems that contain your |
 | `movement.through_nebula` | PERMIT | agenda:shared_research | agendas:shared_research | — |
+| `movement.through_supernova` | PERMIT | faction:muaat | abilities:gashlai_physiology | Gashlai Physiology: Your ships can move through supernovas (węzeł pośredni trasy). |
 | `movement.wormholes_blocked` | FORBID | agenda:nexus | agendas:nexus | — |
 | `movement.wormholes_blocked` | FORBID | agenda:travel_ban | agendas:travel_ban | — |
 | `objectives.secret_limit` | MODIFY | relic:obsidian | relics:obsidian | The Obsidian: You can have 1 additional scored or unscored secret objective. |
@@ -324,6 +334,7 @@ Razem: **355**. Opis = pierwsza linia docstringu funkcji hooka.
 | `production.free` | PERMIT | effect:leaders:hacanhero:free | — | — |
 | `production.free_cargo` | PERMIT | breakthrough:solbt | breakthroughs:solbt | Bellum Gloriosum: When you produce a ship that has capacity, you may also produce any |
 | `production.planet_value` | MODIFY | technology:ah | technologies:ah | Aerie Hololattice: Each planet that contains 1 or more of your structures gains the |
+| `production.system_value` | MODIFY | technology:mr | technologies:mr | Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability as if |
 | `production.total_value` | MODIFY | effect:action_cards:war_machine | — | — |
 | `production.units_per_cost` | MODIFY | agenda:conscription | agendas:conscription | — |
 | `retreat.anywhere` | PERMIT | technology:det | — | Dark Energy Tap: statki mogą wycofać się do sąsiedniego systemu bez cudzych jednostek. |
@@ -403,6 +414,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `control.structures_replaced`
 - `custodians.free`
 - `dice.adjust_result`
+- `elimination.has_production`
 - `fleet_pool.capacity`
 - `fleet_pool.token_cap`
 - `fleet_pool.unlimited`
@@ -415,11 +427,13 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `movement.ignore_anomalies`
 - `movement.ignore_anomalies_keep_rift`
 - `movement.ignore_own_command_token`
+- `movement.into_supernova`
 - `movement.match_highest`
 - `movement.move_value`
 - `movement.passage_blocked`
 - `movement.pass_foreign_ships`
 - `movement.through_nebula`
+- `movement.through_supernova`
 - `movement.wormholes_blocked`
 - `payment.commodities_as_trade_goods`
 - `payment.flex_spend`
@@ -433,6 +447,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `production.free`
 - `production.free_cargo`
 - `production.planet_value`
+- `production.system_value`
 - `production.total_value`
 - `production.units_per_cost`
 - `production.value`

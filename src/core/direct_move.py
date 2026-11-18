@@ -127,3 +127,5 @@ def apply_moves(
                 unit_ops.transfer_units(state, origin, SPACE, target, SPACE, player_id, bt, n)
             for bt, n in lost.items():
                 unit_ops.remove_units(state, target, SPACE, player_id, bt, n, UnitCause.DESTROYED)
+            arrived = {bt: n - lost.get(bt, 0) for bt, n in ships.items()}
+            movement.fire_ships_moved(state, player_id, dest, source, arrived, kind="direct")

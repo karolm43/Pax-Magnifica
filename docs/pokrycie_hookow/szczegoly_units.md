@@ -50,10 +50,10 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `mentak_cruiser3` | Corsair | mentak | — | PERMIT (pozwolenie) | ruch | ✔ | If the active system contains another player's non-fighter ships, this unit can move through systems that contain other players' ships. |
 | `mentak_flagship` | Fourth Moon | mentak | — | FORBID (zakaz) | walka | ✔ | Other player's ships in this system cannot use SUSTAIN DAMAGE. |
 | `mentak_mech` | Moll Terminus | mentak | — | FORBID (zakaz) | walka, planety i eksploracja | ✔ | Other player's ground forces on this planet cannot use SUSTAIN DAMAGE. |
-| `muaat_flagship` | The Inferno | muaat | — | — | ekonomia i płatności, żetony dowodzenia | — | ACTION: Spend 1 token from your strategy pool to place 1 cruiser in this system. |
-| `muaat_mech` | Ember Colossus | muaat | — | PERMIT (pozwolenie) | ruch, produkcja | — | When you use your Star Forge faction ability in this system or an adjacent system, you may place 1 infantry from your reinforcements with t… |
-| `muaat_warsun` | Prototype War Sun I | muaat | — | — | — | — | Other players' units in this system lose the PLANETARY SHIELD ability. |
-| `muaat_warsun2` | Prototype War Sun II | muaat | — | — | — | — | Other players' units in this system lose the PLANETARY SHIELD ability. |
+| `muaat_flagship` | The Inferno | muaat | — | — | ekonomia i płatności, żetony dowodzenia | ✔ | ACTION: Spend 1 token from your strategy pool to place 1 cruiser in this system. |
+| `muaat_mech` | Ember Colossus | muaat | — | PERMIT (pozwolenie) | ruch, produkcja | ✔ | When you use your Star Forge faction ability in this system or an adjacent system, you may place 1 infantry from your reinforcements with t… |
+| `muaat_warsun` | Prototype War Sun I | muaat | — | — | — | ✔ | Other players' units in this system lose the PLANETARY SHIELD ability. |
+| `muaat_warsun2` | Prototype War Sun II | muaat | — | — | — | ✔ | Other players' units in this system lose the PLANETARY SHIELD ability. |
 | `naalu_fighter2` | Hybrid Crystal Fighter II | naalu | — | PERMIT (pozwolenie) | ruch, żetony dowodzenia | — | This unit may move without being transported. Each fighter in excess of your ships' capacity counts as 1/2 of a ship against your fleet poo… |
 | `naalu_flagship` | Matriarch | naalu | — | PERMIT (pozwolenie) | walka, planety i eksploracja | — | During an invasion in this system, you may commit fighters to planets as if they were ground forces. After combat, return those units to th… |
 | `naalu_mech` | Iconoclast | naalu | — | MODIFY (liczba/rzut) | walka, planety i eksploracja | — | During combat against an opponent who has at least 1 relic fragment, apply +2 to the results of this unit's combat rolls. |

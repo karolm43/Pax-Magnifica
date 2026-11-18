@@ -40,6 +40,7 @@ from src.core.unit_ops import UnitCause
 
 # Jednostki produkowane podwójnie (2 sztuki za koszt) — RULES.md 22/33.2.
 _DUAL = {"fighter", "infantry"}
+_SYSTEM_PRODUCER = "system"  # producent-system (Magmus Reactor), nie jednostka
 
 
 @dataclass(frozen=True)
@@ -384,6 +385,18 @@ def producers(
                     forbidden_types(state, player_id, planet_id),
                 )
             )
+    # System produkujący „jak jednostka” gracza (Magmus Reactor: supernowa z jego jednostką =
+    # PRODUCTION 5) - producent w PRZESTRZENI systemu (RULES.md 62.13).
+    system_value = rules_hooks.modify(
+        rules_hooks.POINT_PRODUCTION_SYSTEM_VALUE, state, player_id, 0, {"position": position}
+    )
+    if system_value > 0:
+        result.append(
+            Producer(
+                "space", _SYSTEM_PRODUCER, 1, system_value, system_value,
+                forbidden_types(state, player_id, _SYSTEM_PRODUCER),
+            )
+        )
     # Custodian's Favour (Custodia Vigilia): kontrolowany Mecatol Rex sam ma PRODUCTION - osobna
     # zdolność (planeta, nie jednostka), więc jest oddzielnym producentem z własną wartością.
     mecatol = legendary_planets.mecatol_grants_planet(state, player_id, position)
@@ -678,6 +691,17 @@ def validate_production(
                 f"{free_grant.source or "This ability"} can produce only: "
                 f"{", ".join(sorted(allowed))}."
             )
+        if free_grant.max_unit_cost is not None:
+            player = state.players[player_id]
+            for o in orders:
+                unit = resolve_unit_variant(registry, player.faction, player.technologies,
+                                            o.base_type)
+                unit_cost = unit.cost if unit is not None and unit.cost is not None else 0.0
+                if unit_cost > free_grant.max_unit_cost:
+                    raise ValueError(
+                        f"{free_grant.source or "This ability"} produces only units that cost "
+                        f"{free_grant.max_unit_cost:g} or less."
+                    )
         if free_grant.max_cost is not None:
             cost = order_cost(state, registry, player_id, orders, exhaust_aida=exhaust_aida)
             if cost > free_grant.max_cost:

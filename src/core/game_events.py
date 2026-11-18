@@ -207,9 +207,9 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
         "strategic_action",
     ),
     GameEvent.STRATEGY_TOKEN_SPENT: EventInfo(
-        "Żeton z puli strategicznej wydany na secondary.",
+        "Żeton z puli strategicznej wydany (secondary, cele, zdolności).",
         ("player",),
-        "strategic_action.resolve_secondary",
+        "command_tokens.spend_strategy_token",
     ),
     GameEvent.TACTICAL_ACTION: EventInfo(
         "Akcja taktyczna (początek/koniec).", ("player", "system"), "tactical.end_tactical_action"

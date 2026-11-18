@@ -30,7 +30,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `future_sight` | Future Sight | nomad | during | — | ekonomia i płatności | — | Gain 1 trade good |
 | `galactic_threat` | Galactic Threat | nekro | unclassified | FORBID (zakaz) | technologie, agenda i głosowanie | — | You cannot vote on agendas You may predict aloud the outcome of that agenda. If your prediction is correct, gain 1 technology that is owned… |
 | `galvanize` | Galvanize | bastion | when | TRIGGER (okno reakcji) | walka | — | Galvanized units roll 1 additional die for combat rolls and unit abilities. they place a galvanize token beneath it if it does not have one. |
-| `gashlai_physiology` | Gashlai Physiology | muaat | — | PERMIT (pozwolenie) | ruch | — | Your ships can move through supernovas |
+| `gashlai_physiology` | Gashlai Physiology | muaat | — | PERMIT (pozwolenie) | ruch | ✔ | Your ships can move through supernovas |
 | `guild_ships` | Guild Ships | hacan | — | PERMIT (pozwolenie) | — | ✔ | You can negotiate transactions with players who are not your neighbor. |
 | `harrow` | Harrow | l1z1x | at_end | PERMIT (pozwolenie) | walka, planety i eksploracja | ✔ | Your ships in the active system may use their BOMBARDMENT abilities against your opponent's ground forces on the planet. |
 | `hubris` | Hubris | mahact | — | FORBID (zakaz) | karty | — | During setup, purge your "Alliance" promissory note. Other players cannot give you their 'Alliance" promissory note. |
@@ -65,7 +65,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `slipstream` | Slipstream | ghost | during | MODIFY (liczba/rzut) | ruch | — | Apply +1 to the move value of each of your ships that starts its movement in your home system or in a system that contains either an alpha … |
 | `sorrow` | Sorrow | crimson | — | — | — | — | When you create the game board, place the Sorrow (tile 94) where your home system would normally be placed, then place a inactive breach th… |
 | `stall_tactics` | Stall Tactics | yssaril | action | — | karty | — | Discard 1 action card from your hand |
-| `star_forge` | Star Forge | muaat | action | MODIFY (liczba/rzut) | walka, produkcja, ekonomia i płatności, żetony dowodzenia | — | Spend 1 token from your strategy pool to place either 2 fighters or 1 destroyer from your reinforcements in a system that contains 1 or mor… |
+| `star_forge` | Star Forge | muaat | action | MODIFY (liczba/rzut) | walka, produkcja, ekonomia i płatności, żetony dowodzenia | ✔ | Spend 1 token from your strategy pool to place either 2 fighters or 1 destroyer from your reinforcements in a system that contains 1 or mor… |
 | `sundered` | Sundered | crimson | — | FORBID (zakaz) | ruch, walka | — | You cannot use wormholes other than epsilon wormholes. Other players' units that move or are placed into your home system are destroyed. |
 | `survivalinstinct` | Survival Instinct | ralnel | after | TRIGGER (okno reakcji) | ruch, żetony dowodzenia | — | you may move up to 2 of your ships into the active system from adjacent systems that do not contain your command tokens. |
 | `technological_singularity` | Technological Singularity | nekro | unclassified | PERMIT (pozwolenie) | technologie | — | You may gain 1 technology that is owned by that player. |

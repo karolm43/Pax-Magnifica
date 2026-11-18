@@ -40,8 +40,13 @@ describe("fxTargets (RULES.md 64.4)", () => {
     expect(fxTargets(HERO_BOARD_FX["xxchahero-te"], board, { faction: "xxcha", color: "green" }, null)).toEqual(["201", "203"]);
   });
 
+  it("Nova Seed: kafel supernowej Muaat (po wymianie kafla), jeden", () => {
+    const board = [tile("301", "81", { muaat: ["ws"] }), tile("302", "43", { muaat: ["ws"] })];
+    expect(fxTargets(HERO_BOARD_FX.muaathero, board, { faction: "muaat", color: "orange" }, "302")).toEqual(["301"]);
+  });
+
   it("każdy bohater z silnika ma przepis", () => {
-    const engineHeroes = ["arborechero", "argenthero", "hacanhero", "jolnarhero", "l1z1xhero", "letnevhero", "mentakhero", "sardakkhero", "solhero", "winnuhero", "xxchahero-te", "yinhero"];
+    const engineHeroes = ["arborechero", "argenthero", "hacanhero", "jolnarhero", "l1z1xhero", "letnevhero", "mentakhero", "muaathero", "sardakkhero", "solhero", "winnuhero", "xxchahero-te", "yinhero"];
     expect(Object.keys(HERO_BOARD_FX).sort()).toEqual(engineHeroes);
   });
 });

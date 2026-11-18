@@ -23,6 +23,7 @@ const PARTS: Record<FxMark, number> = {
   seal: 3,
   pulse: 2,
   aegis: 3,
+  nova: 8,
 };
 
 function Mark({ mark, tile, index }: { mark: FxMark; tile: Tile; index: number }) {
@@ -77,6 +78,15 @@ function MarkPart({ mark }: { mark: FxMark }) {
         <>
           <path className={classes.dome} d="M -92 18 A 92 92 0 0 1 92 18 Z" />
           <ellipse className={classes.domeBase} cx={0} cy={18} rx={92} ry={22} />
+        </>
+      );
+    case "nova":
+      // Supernowa: rdzeń i fala uderzeniowa (raz, w pierwszym elemencie) + promień wyrzutu plazmy.
+      return (
+        <>
+          <circle className={classes.novaCore} r={70} />
+          <circle className={classes.novaShock} r={80} />
+          <path className={classes.novaRay} d="M 0 -40 L 10 -150 L 0 -230 L -10 -150 Z" />
         </>
       );
     case "seal":

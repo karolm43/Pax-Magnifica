@@ -87,10 +87,6 @@
     "requires": ["faction:titans"],
     "reason": "Ul z notką Alliance Letneva: Farran przy Sustain Damage Hel-Titan PDS."
   },
-  "F_norr/ghom-sekkus/8.3": {
-    "requires": ["faction:muaat"],
-    "reason": "Magmus Reactor Muaat + Alliance N'orr: lądowanie z supernowej. Część o N'orr (Mirage w supernowej niedostępna) ma test test_commander_nie_do_asteroid_ani_supernowej."
-  },
   "F_winnu/acquiescence/*": {
     "na": "Nieaktywny wariant: assety mają tylko Acquiescence Ω („When the Winnu player resolves a strategic action: You do not have to spend or place a command token…”); ta sekcja opisuje starą notkę z zamianą kart strategii."
   },
@@ -120,10 +116,6 @@
   "C_relics/the-prophets-tears/2": {
     "requires": ["faction:nekro"],
     "reason": "Nekro dobiera kartę akcji z Prophet's Tears, gdy badałby technologię."
-  },
-  "C_relics/scepter-of-emelpar/3": {
-    "requires": ["faction:muaat"],
-    "reason": "Magmus (dowódca Muaat) nie daje TG przy żetonie z rezerwy."
   },
   "C_exploration_cards/ion-storm/2.1": {
     "requires": ["faction:creuss"],
@@ -180,5 +172,31 @@
   },
   "C_promissory_notes/ceasefire/3": {
     "gap": "Pod Ceasefire aktywny gracz nie może przenieść sił naziemnych z planet aktywnego systemu do jego przestrzeni na statki, które już tam są - silnik pobiera ładunek z planet tylko przy ruchu statków (movement.move_fleet), a Ceasefire blokuje każdy ruch."
+  },
+  "F_muaat/magmus-reactor/1": {
+    "na": "Ruling dotyczy starej wersji Magmus Reactor (TG za war suna przy produkcji). Assety mają tekst Ω: „Your ships can move into supernovas. Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability...” (RULES.md 62.13)."
+  },
+  "F_muaat/magmus-reactor/2": {
+    "na": "Ruling dotyczy starej wersji Magmus Reactor (TG za war suna przy produkcji). Assety mają tekst Ω: „Your ships can move into supernovas. Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability...” (RULES.md 62.13)."
+  },
+  "F_muaat/umbat/4": {
+    "requires": ["faction:naalu"],
+    "reason": "Commander Naalu (myśliwce) przy Umbat - limit 2 sztuk grantu (units=2) ma test test_umbat_wybrany_gracz_produkuje_2_tanie_jednostki; commander Yin w assetach to Brother Omar Ω (zielony prerekwizyt) - bez wpływu na produkcję."
+  },
+  "F_muaat/umbat/4.1": {
+    "requires": ["faction:naalu"],
+    "reason": "Regulated Conscription + commander Naalu/Yin przy Umbat (2 jednostki za 1 zasób)."
+  },
+  "F_muaat/magmus/2.2": {
+    "requires": ["secret_objectives:fsn", "leaders:mentakagent"],
+    "reason": "Jednoczesne punktowanie Lead From the Front i Form a Spy Network przed Pillage (Suffi An) - wymaga punktowania kilku celów naraz."
+  },
+  "F_muaat/adjudicator-baal-nova-seed/1.1": {
+    "requires": ["faction:mahact"],
+    "reason": "Benediction (bohater Mahact) przesuwa war suna Muaat - wtedy bez Nova Seed."
+  },
+  "F_muaat/adjudicator-baal-nova-seed/8": {
+    "requires": ["faction:empyrean"],
+    "reason": "Agent Empyrean (Acamar) po Nova Seed na systemie z planetami."
   }
 }

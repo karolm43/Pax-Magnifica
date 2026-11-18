@@ -59,7 +59,8 @@ class ActivityFact(BaseModel):
     # "fracture_entered" (player_id = kto wprowadził The Fracture),
     # "eliminated" (player_id = wyeliminowany, value = frakcja, detail = nazwa gracza),
     # "winner", "battle_result" (player_id = zwycięzca walki, detail = "winner"/"draw",
-    # delta = liczba rund), "rider" (value = karta, detail = przewidziany wynik agendy).
+    # delta = liczba rund), "rider" (value = karta, detail = przewidziany wynik agendy),
+    # "tile_replaced" (value = pozycja, detail = "<stary kafel>><nowy kafel>"; Nova Seed).
     # NOWY skutek gry => dopisz tu fakt i jego opis w ``describeActivity.tsx``.
     type: str
     # Czyj skutek; None dla zdarzeń talii/stołu bez jednego właściciela.
@@ -599,6 +600,13 @@ def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
     if after.fracture.in_play and not before.fracture.in_play:
         # The Fracture weszła do gry (rzut po przełomie, efekt karty, God-Mode) — RULES.md 64.
         facts.append(ActivityFact(type="fracture_entered", player_id=after.fracture.entered_by))
+    for position, tile in sorted(after.replaced_tiles.items()):
+        if before.replaced_tiles.get(position) != tile:  # Nova Seed: kafel -> supernowa
+            old_system = before.systems.get(position)
+            old_tile = old_system.system_id if old_system is not None else ""
+            facts.append(
+                ActivityFact(type="tile_replaced", value=position, detail=f"{old_tile}>{tile}")
+            )
     if after.winner_id and not before.winner_id:
         facts.append(ActivityFact(type="winner", player_id=after.winner_id))
     known = {e.player_id for e in before.eliminated_players}

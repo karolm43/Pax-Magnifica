@@ -1123,3 +1123,23 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   `reactions_invasion.unit_ability_roll_windows`); źródło kości bez pola w formularzu = „Auto”.
 - QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (battle) ✓. Animacja nie
   sprawdzona zrzutem ekranu. e2e i build pominięte. Wymaga restartu backendu.
+
+## 2026-11-18 — B10: The Embers of Muaat (RULES.md 62.13)
+
+- Moduł `core/hooks/factions/muaat.py` (13/13 komponentów): Star Forge, Gashlai Physiology,
+  Magmus Reactor Ω (wejście do supernowej, PRODUCTION 5, brak eliminacji), Prototype War Sun I/II,
+  The Inferno (nowy rodzaj akcji komponentu `unit:<id>`), Ember Colossus, Umbat, Magmus,
+  Adjudicator Ba'al — Nova Seed, Fires of the Gashlai, Stellar Genesis (Avernus, The Nucleus).
+- Nowe punkty silnika: `movement.through_supernova` / `movement.into_supernova`,
+  `production.system_value`, `elimination.has_production`; `command_tokens.spend_strategy_token`
+  emituje `STRATEGY_TOKEN_SPENT`; jedno miejsce emisji `SHIPS_MOVED` (`movement.fire_ships_moved`,
+  `ctx.ships/route/kind` — ruch taktyczny, odwrót, ruch komponentem); wymiana kafla
+  `core/tile_swap.py` (`GameState.replaced_tiles`, Undo przez `HexGrid.tile_originals`).
+- Feed Activity: fakt `tile_replaced` („<stary system> was replaced by <nowy>”).
+- Animacja: Nova Seed na planszy (`heroBoardFx` → `muaathero`, cel `nova` = kafel `81`, znacznik
+  `nova`: rozbłysk gwiazdy, fala uderzeniowa, promienie plazmy) po scenie bohatera; sprawdzone
+  zrzutem ekranu. Stellar Genesis — wspólna scena przełomu.
+- ⚠️ ZAŁOŻENIE (do decyzji użytkownika): siły naziemne Muaat z planet wymienionego kafla trafiają
+  do przestrzeni, struktury Muaat z tych planet wracają do rezerwy.
+- QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint (zmienione) ✓, vitest (game-shell, map) ✓.
+  e2e i `npm run build` pominięte (bez nowych zależności, kreatora). Wymaga restartu backendu.

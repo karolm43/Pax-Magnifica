@@ -73,6 +73,23 @@ def condition(template: str) -> Callable[[NoteCondition], NoteCondition]:
     return decorate
 
 
+ActionBlocker = Callable[[GameState, StaticDataRegistry, str], str | None]
+_ACTION_BLOCKERS: dict[str, ActionBlocker] = {}
+
+
+def action_blocker(template: str) -> Callable[[ActionBlocker], ActionBlocker]:
+    """Rejestruje warunek zagrania notki ACTION (powód odmowy albo None) - np. Fires of the
+    Gashlai: nie dla gracza, który ma już technologię war suna (F_muaat)."""
+
+    def decorate(fn: ActionBlocker) -> ActionBlocker:
+        if template in _ACTION_BLOCKERS:
+            raise ValueError(f"Action blocker already registered for {template}.")
+        _ACTION_BLOCKERS[template] = fn
+        return fn
+
+    return decorate
+
+
 def silenced(state: GameState, player_id: str) -> bool:
     """Political Secret: gracz nie może grać kart akcji ani używać zdolności frakcji."""
     return any(
@@ -280,7 +297,9 @@ def _block_reason(
             )
         except ValueError as exc:
             return str(exc)
-        return None
+        rules_hooks.effect_for(effect_key(template))  # ładuje pakiet hooków (rejestr blokad)
+        blocker = _ACTION_BLOCKERS.get(template)
+        return blocker(state, registry, player_id) if blocker is not None else None
     _window, reason = _reaction_window(state, registry, player_id, template, owner)
     return reason
 

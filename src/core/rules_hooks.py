@@ -285,6 +285,16 @@ POINT_COMBAT_HITS_TO_NON_FIGHTERS = "combat.hits_to_non_fighters"
 # FORBID jako zbiór "<karta>:<koszt>": wyczerpanie karty i OSOBNA zapłata kosztu zasobami ignoruje
 # WSZYSTKIE prerekwizyty badanej technologii (Inheritance Systems: "is:2").
 POINT_TECHNOLOGY_PAID_IGNORE_ALL = "technology.paid_ignore_all"
+# --- Embers of Muaat (RULES.md 62.13) ---
+# PERMIT -> statki gracza przelatują PRZEZ supernowe (węzeł pośredni trasy; Gashlai Physiology).
+POINT_MOVEMENT_THROUGH_SUPERNOVA = "movement.through_supernova"
+# PERMIT -> jednostki gracza wchodzą DO supernowej (cel ruchu, odwrót, wejście sił; Magmus Reactor).
+POINT_MOVEMENT_INTO_SUPERNOVA = "movement.into_supernova"
+# MODIFY -> wartość PRODUCTION samego SYSTEMU (``ctx["position"]``) „jak jednostki” gracza -
+# producent w przestrzeni (Magmus Reactor: supernowa z jednostką gracza = PRODUCTION 5).
+POINT_PRODUCTION_SYSTEM_VALUE = "production.system_value"
+# PERMIT -> gracz ma zdolność PRODUCTION na planszy spoza jednostek (warunek eliminacji, Magmus Ω).
+POINT_ELIMINATION_HAS_PRODUCTION = "elimination.has_production"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"

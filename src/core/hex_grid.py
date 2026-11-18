@@ -141,6 +141,9 @@ class HexGrid:
         # Każdy ingress sąsiaduje z każdym egressem (ingress–ingress i egress–egress NIE).
         self._ingress: set[str] = set()
         self._egress: set[str] = set()
+        # Kafle wymienione w trakcie gry (Nova Seed, ``core/tile_swap``): pozycja -> kafel z
+        # układu mapy sprzed wymiany - powrót przy Undo.
+        self.tile_originals: dict[str, str] = {}
 
     # --- Umieszczanie systemów -----------------------------------------
 

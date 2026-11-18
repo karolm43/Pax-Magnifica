@@ -8,7 +8,7 @@ planety (``exhaust.exhaust_legendary``). Teksty w docstringach to dosłowne cyta
 ``C_legendary_planets.md``.
 
 Niezrealizowane (⚠ patrz RULES.md 60.6): granie kart akcji leżących na Dok 'N Pic's Salvage Yard
-(Garbozia) oraz zwykły STAR FORGE Muaat (bez zdolności Avernus).
+(Garbozia) oraz STAR FORGE Muaat (The Nucleus - wspólna funkcja z ``factions/muaat``).
 """
 
 from __future__ import annotations
@@ -792,21 +792,18 @@ register(
 # --- The Nucleus (Avernus) --------------------------------------------------------------------
 
 _NUCLEUS = "avernus"
-_STAR_FORGE_FIGHTERS = 2  # STAR FORGE: „either 2 fighters or 1 destroyer”
 
 
 def _war_sun_positions(state: GameState, pid: str) -> list[str]:
-    return [
-        position
-        for position, system in state.systems.items()
-        if system.space_units.get(pid, {}).get("warsun", 0) > 0
-    ]
+    from src.core.hooks.factions import muaat  # lokalnie: moduł frakcji importuje hooki ogólne
+
+    return muaat.war_sun_positions(state, pid)
 
 
 @planet_blocker(_NUCLEUS)
 def _nucleus_blocker(state: GameState, registry: StaticDataRegistry, pid: str) -> str | None:
     del registry
-    if not _war_sun_positions(state, pid):
+    if not _war_sun_positions(state, pid):  # F_muaat Avernus 3: także inny kontroler Avernus
         return "You need a war sun on the game board to use Star Forge."
     return None
 
@@ -814,22 +811,9 @@ def _nucleus_blocker(state: GameState, registry: StaticDataRegistry, pid: str) -
 @register_effect_inputs(f"planets:{_NUCLEUS}")
 def nucleus_inputs(state: GameState, registry: StaticDataRegistry, pid: str) -> Inputs:
     """System z własnym war sunem i wybór: 2 myśliwce albo 1 niszczyciel (z rezerwy)."""
-    units = []
-    fighters_left = reinforcements_left(state, pid, "fighter")  # None = żetony, bez limitu
-    if fighters_left is None or fighters_left >= _STAR_FORGE_FIGHTERS:
-        units.append(oi.option("fighters", f"Place {_STAR_FORGE_FIGHTERS} fighters"))
-    if reinforcements_left(state, pid, "destroyer") != 0:
-        units.append(oi.option("destroyer", "Place 1 destroyer"))
-    return [
-        oi.choice(
-            "position", "System that contains one of your war suns",
-            [
-                oi.option(pos, card_labels.describe_system(state, registry, pos))
-                for pos in _war_sun_positions(state, pid)
-            ],
-        ),
-        oi.choice("unit", "Units to place", units),
-    ]
+    from src.core.hooks.factions import muaat
+
+    return muaat.forge_inputs(state, registry, pid)
 
 
 @register_effect(f"planets:{_NUCLEUS}")
@@ -839,25 +823,14 @@ def nucleus(
     """The Nucleus: ACTION: Exhaust this card to use the Embers of Muaat's STAR FORGE faction
     ability without spending a command token.
 
-    STAR FORGE: place either 2 fighters or 1 destroyer from your reinforcements in a system that
-    contains 1 or more of your war suns. Inny kontroler Avernus może z tego korzystać tylko, gdy
-    ma war suna na planszy (F_muaat). ⚠ Zwykły STAR FORGE Muaat (z żetonem z puli strategii) nie
-    jest jeszcze zakodowany.
+    Ten sam skutek co Star Forge (``muaat.resolve_star_forge``): mech Ember Colossus działa
+    (F_muaat Avernus 2), Magmus nie - nie wydano żetonu (1). Inny kontroler Avernus tylko z war
+    sunem na planszy (3).
     """
     del registry
-    position = str(params.get("position", ""))
-    unit = str(params.get("unit", ""))
-    if position not in _war_sun_positions(state, player_id):
-        raise ValueError("Choose a system that contains one of your war suns ('position').")
-    system = state.systems[position]
-    if unit == "fighters":
-        require_reinforcements(state, player_id, "fighter", _STAR_FORGE_FIGHTERS)
-        unit_ops.place_units(state, system, "space", player_id, "fighter", _STAR_FORGE_FIGHTERS)
-    elif unit == "destroyer":
-        require_reinforcements(state, player_id, "destroyer", 1)
-        unit_ops.place_units(state, system, "space", player_id, "destroyer", 1)
-    else:
-        raise ValueError("Choose 2 fighters or 1 destroyer ('unit').")
+    from src.core.hooks.factions import muaat
+
+    muaat.resolve_star_forge(state, player_id, params, source=f"planets:{_NUCLEUS}")
     exhaust.exhaust_legendary(state, player_id, _NUCLEUS)
 
 

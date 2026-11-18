@@ -14,10 +14,11 @@ export type FxTarget =
   | "ships" // systemy ze statkami bohatera
   | "units" // systemy z dowolnymi jednostkami bohatera
   | "active" // aktywny system (produkcja / walka / inwazja), inaczej „units”
-  | "mecatol"; // Mecatol Rex
+  | "mecatol" // Mecatol Rex
+  | "nova"; // kafel supernowej Muaat (Nova Seed) — po wymianie kafla
 
 /** Wygląd efektu w systemie docelowym. */
-export type FxMark = "bloom" | "beam" | "coins" | "ripple" | "slash" | "seal" | "pulse" | "aegis";
+export type FxMark = "bloom" | "beam" | "coins" | "ripple" | "slash" | "seal" | "pulse" | "aegis" | "nova";
 
 export type HeroFxRecipe = {
   /** Przyciemnienie całej planszy (0–1). */
@@ -60,11 +61,15 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   yinhero: { dim: 0.4, target: "ground", mark: "pulse", tone: "235 235 245", ms: 4200 },
   // Dark Space Navigation: flagowiec i pancerniki wychodzą z mroku w jednym systemie — cienie i słupy.
   l1z1xhero: { dim: 0.5, shadows: ["dn", "fs", "dn"], target: "ships", mark: "beam", tone: "210 60 60", ms: 4400 },
+  // Nova Seed: system staje się supernową — błysk, fala uderzeniowa i wyrzuty plazmy z nowego kafla.
+  muaathero: { dim: 0.5, target: "nova", mark: "nova", tone: "255 120 40", ms: 4800 },
 };
 
 const GROUND = new Set(["gf", "mf"]);
 const DEFENSE = new Set(["pd", "mf"]);
 const MECATOL_SYSTEM_IDS = new Set(["18", "112"]);
+/** Kafel „Nova Seed” (supernowa Muaat, `assets/systems/81.json`) — jeden w grze. */
+const NOVA_SEED_SYSTEM_ID = "81";
 
 /** Jednostki gracza w kafelku (klucz `unitsByFaction` = frakcja; zapasowo kolor). */
 function unitsOf(tile: Tile, keys: string[]) {
@@ -87,6 +92,8 @@ export function fxTargets(
   switch (recipe.target) {
     case "mecatol":
       return pick((t) => MECATOL_SYSTEM_IDS.has(t.systemId)).slice(0, 1);
+    case "nova":
+      return pick((t) => t.systemId === NOVA_SEED_SYSTEM_ID).slice(0, 1);
     case "active":
       if (activeSystem && tiles.some((t) => t.position === activeSystem)) return [activeSystem];
       return fxTargets({ ...recipe, target: "units" }, tiles, owner, null);

@@ -23,6 +23,8 @@ from src.core.movement import (
     _can_enter_asteroids,
     _capacity_provided,
     _capacity_used,
+    can_enter_supernova,
+    fire_ships_moved,
     wormhole_link_blocked,
 )
 from src.core.registry import StaticDataRegistry
@@ -120,8 +122,10 @@ def retreat_destinations(
         ):
             continue
         anomalies = grid.anomalies_at(neighbor)
-        if _SUPERNOVA in anomalies or _NEBULA in anomalies:
+        if _NEBULA in anomalies:
             continue
+        if _SUPERNOVA in anomalies and not can_enter_supernova(state, player_id):
+            continue  # R_space_combat: odwrót do supernowej tylko z Magmus Reactor
         if _ASTEROID in anomalies and not can_enter_asteroids:
             continue
         system = state.systems.get(neighbor)
@@ -175,6 +179,10 @@ def perform_retreat(
     result = retreat_in_place(
         new_state, grid, registry, position, player_id, destination, cargo, token_pool
     )
+    ships = {bt: n for bt, n in result.moved.items() if is_space_unit(bt)}
+    # Odwrót to ruch (F_muaat Nova Seed 1: „the Muaat player may trigger Nova Seed when they
+    # retreat”) - ``kind = retreat`` odróżnia go od ruchu akcji taktycznej.
+    fire_ships_moved(new_state, player_id, destination, position, ships, kind="retreat")
     # Koniec kroku Retreat: odwrót przez wormhole Ion Storm obraca żeton (Skilled Retreat: nie).
     ion_storm.note_move(new_state, grid, registry, position, destination, ion_storm_token)
     ion_storm.flip_used(new_state)
@@ -197,8 +205,10 @@ def ships_move_destinations(
         ):
             continue
         anomalies = grid.anomalies_at(neighbor)
-        if _SUPERNOVA in anomalies or _NEBULA in anomalies:
+        if _NEBULA in anomalies:
             continue
+        if _SUPERNOVA in anomalies and not can_enter_supernova(state, player_id):
+            continue  # R_space_combat: odwrót do supernowej tylko z Magmus Reactor
         if _ASTEROID in anomalies and not can_enter_asteroids:
             continue
         system = state.systems.get(neighbor)

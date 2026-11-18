@@ -13,9 +13,10 @@ istnienia legalnej trasy o długości ≤ moveValue (węzły pośrednie respektu
 from __future__ import annotations
 
 from collections import deque
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
 from itertools import combinations as _combinations
+from typing import Any
 
 from src.core import ion_storm, rules_hooks, timing, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
@@ -112,8 +113,8 @@ def _node_passable_intermediate(
     „przelot przez obce statki" (In The Silence Of Space: dotyczy statków z wybranego systemu).
     """
     anomalies = set() if ignore_anomalies else grid.anomalies_at(position)
-    if _SUPERNOVA in anomalies:
-        return False
+    if _SUPERNOVA in anomalies and not can_pass_supernova(state, player_id):
+        return False  # Gashlai Physiology: przelot przez supernowe (RULES.md 62.13)
     if _ASTEROID in anomalies and not can_enter_asteroids:
         return False
     if _NEBULA in anomalies and not rules_hooks.permits(
@@ -140,17 +141,18 @@ def _target_passable(
     *,
     can_enter_asteroids: bool,
     ignore_anomalies: bool = False,
+    into_supernova: bool = False,
 ) -> bool:
     """Czy CEL (aktywny system) jest przejezdny anomalicznie (R6).
 
-    Cel może mieć obce statki (tam dojdzie do walki). Ale supernova zawsze blokuje,
-    a asteroid wymaga Antimass. Nebula jako cel jest dozwolona (wejście tylko do
-    aktywnego — a cel nim jest). ``ignore_anomalies`` (Nav Suite) pomija te blokady.
+    Cel może mieć obce statki (tam dojdzie do walki). Supernowa blokuje (poza ``into_supernova``
+    — Magmus Reactor), a asteroid wymaga Antimass. Nebula jako cel jest dozwolona (wejście tylko
+    do aktywnego — a cel nim jest). ``ignore_anomalies`` (Nav Suite) pomija te blokady.
     """
     if ignore_anomalies:
         return True
     anomalies = grid.anomalies_at(position)
-    if _SUPERNOVA in anomalies:
+    if _SUPERNOVA in anomalies and not into_supernova:
         return False
     if _ASTEROID in anomalies and not can_enter_asteroids:
         return False
@@ -255,6 +257,7 @@ def shortest_legal_path(
             to_pos,
             can_enter_asteroids=can_enter_asteroids,
             ignore_anomalies=ignore_anomalies,
+            into_supernova=can_enter_supernova(state, player_id),
         ):
             return None
     elif not _node_passable_intermediate(
@@ -396,7 +399,8 @@ def route_error(
         ):
             return f"The route passes through system {node}, which blocks movement (R4/R6)."
     if not _target_passable(
-        grid, active, can_enter_asteroids=ast, ignore_anomalies=ignore
+        grid, active, can_enter_asteroids=ast, ignore_anomalies=ignore,
+        into_supernova=can_enter_supernova(state, player_id),
     ):
         return "The active system cannot be entered (R6)."
     return None
@@ -423,7 +427,8 @@ def legal_routes(
     ast = _can_enter_asteroids(state, player_id)
     ignore = _ignores_anomalies(state, player_id)
     target_ok = _target_passable(
-        grid, active, can_enter_asteroids=ast, ignore_anomalies=ignore
+        grid, active, can_enter_asteroids=ast, ignore_anomalies=ignore,
+        into_supernova=can_enter_supernova(state, player_id),
     )
     if not target_ok:
         return []
@@ -574,6 +579,19 @@ def route_cargo(
 def _can_enter_asteroids(state: GameState, player_id: str) -> bool:
     """Czy gracz może wchodzić w pola asteroid (hook PERMIT, np. Antimass Deflectors)."""
     return rules_hooks.permits(rules_hooks.POINT_MOVEMENT_ENTER_ASTEROIDS, state, player_id)
+
+
+def can_enter_supernova(state: GameState, player_id: str) -> bool:
+    """Czy jednostki gracza wchodzą DO supernowej (Magmus Reactor; R_space_combat: także odwrót)."""
+    return rules_hooks.permits(rules_hooks.POINT_MOVEMENT_INTO_SUPERNOVA, state, player_id)
+
+
+def can_pass_supernova(state: GameState, player_id: str) -> bool:
+    """Czy statki gracza przelatują PRZEZ supernowe (Gashlai Physiology; wejście daje też Magmus
+    Reactor - przelot to wejście i wyjście)."""
+    return rules_hooks.permits(
+        rules_hooks.POINT_MOVEMENT_THROUGH_SUPERNOVA, state, player_id
+    ) or can_enter_supernova(state, player_id)
 
 
 def _effective_move_value(
@@ -784,7 +802,7 @@ def move_ships(
     unit_ops.place_units(new_state, dest, "space", player_id, base_type, count, UnitCause.MOVED)
     new_state.tactical_moved = True
     ion_storm.note_move(new_state, grid, registry, from_pos, active, ion_storm_token)
-    triggers.fire(new_state, GameEvent.SHIPS_MOVED, Moment.AFTER, subject=player_id, ctx=moved_ctx)
+    fire_ships_moved(new_state, player_id, active, from_pos, {base_type: count})
     return new_state
 
 
@@ -939,7 +957,8 @@ def entry_blocked(grid: HexGrid, state: GameState, position: str, player_id: str
     blokuje zawsze, pole asteroid bez Antimass Deflectors (F_norr). Zwraca powód albo ``None``.
     """
     if _target_passable(
-        grid, position, can_enter_asteroids=_can_enter_asteroids(state, player_id)
+        grid, position, can_enter_asteroids=_can_enter_asteroids(state, player_id),
+        into_supernova=can_enter_supernova(state, player_id),
     ):
         return None
     if _SUPERNOVA in grid.anomalies_at(position):
@@ -1347,11 +1366,36 @@ def move_fleet(
     new_state.tactical_moved = True
     ion_storm.note_move(new_state, grid, registry, from_pos, active, ion_storm_token)
     if ships:
-        moved_ctx = {
-            "player": player_id, "position": active, "from": from_pos,
-            "base_type": next(iter(ships)),
-        }
-        triggers.fire(
-            new_state, GameEvent.SHIPS_MOVED, Moment.AFTER, subject=player_id, ctx=moved_ctx
+        fire_ships_moved(
+            new_state, player_id, active, from_pos, dict(ships), route=plan_route
         )
     return new_state
+
+
+def fire_ships_moved(
+    state: GameState,
+    player_id: str,
+    position: str,
+    from_pos: str,
+    ships: Mapping[str, int],
+    *,
+    route: list[str] | None = None,
+    kind: str = "tactical",
+) -> None:
+    """JEDYNE miejsce emisji ``SHIPS_MOVED/AFTER`` (MUTUJE ``state``): statki gracza weszły do
+    systemu ``position``.
+
+    ``ctx``: ``from`` (system startowy), ``ships`` (typ -> liczba), ``route`` (trasa od startu do
+    celu, gdy znana), ``kind`` = ``tactical`` (ruch akcji taktycznej) | ``retreat`` (odwrót) |
+    ``direct`` (ruch komponentem: Helix Protocol, Dark Space Navigation). F_muaat Nova Seed 1:
+    „any method of movement”.
+    """
+    moved = {bt: n for bt, n in ships.items() if n > 0}
+    if not moved:
+        return
+    ctx: dict[str, Any] = {
+        "player": player_id, "position": position, "from": from_pos,
+        "base_type": next(iter(moved)), "ships": moved, "kind": kind,
+        "route": list(route) if route else [from_pos, position],
+    }
+    triggers.fire(state, GameEvent.SHIPS_MOVED, Moment.AFTER, subject=player_id, ctx=ctx)

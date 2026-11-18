@@ -234,6 +234,51 @@
   animation: pop 600ms ease-out calc(var(--d) + 200ms) both, fadeLate var(--fx-ms, 4400ms) ease both;
 }
 
+/* Nova Seed: rozbłysk gwiazdy, fala uderzeniowa i promienie plazmy z nowej supernowej. */
+.mark[data-mark="nova"] .part {
+  rotate: calc(var(--i) * 360deg / var(--n) + 8deg);
+}
+
+.mark[data-mark="nova"] .part:not(:first-child) .novaCore,
+.mark[data-mark="nova"] .part:not(:first-child) .novaShock {
+  display: none;
+}
+
+.mark[data-mark="nova"] .part:nth-child(odd) .novaRay {
+  scale: 0.7;
+}
+
+.novaCore {
+  fill: rgb(255 248 230);
+  filter: drop-shadow(0 0 24px rgb(var(--tone))) drop-shadow(0 0 60px rgb(var(--tone)));
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: novaFlash 2600ms cubic-bezier(0.2, 0.8, 0.3, 1) calc(var(--d) + 200ms) both;
+}
+
+.novaShock {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 8;
+  vector-effect: non-scaling-stroke; /* fala rośnie, obręcz zostaje cienka */
+  filter: drop-shadow(0 0 16px rgb(var(--tone)));
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: novaShock 1900ms cubic-bezier(0.1, 0.7, 0.3, 1) calc(var(--d) + 700ms) both;
+}
+
+.novaRay {
+  fill: rgb(var(--tone) / 0.85);
+  filter: blur(3px) drop-shadow(0 0 10px rgb(var(--tone)));
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  opacity: 0;
+  animation: novaRay 1500ms cubic-bezier(0.2, 0.7, 0.4, 1) calc(var(--d) + 650ms + var(--i) * 40ms) both,
+    fadeLate var(--fx-ms, 4800ms) ease both;
+}
+
 /* --- Keyframes ---------------------------------------------------------------------------- */
 
 @keyframes fxLife {
@@ -298,6 +343,22 @@
 @keyframes sealStamp {
   from { opacity: 0; scale: 2.2; }
   to { opacity: 1; scale: 1; }
+}
+@keyframes novaFlash {
+  0% { opacity: 0; scale: 0.1; }
+  18% { opacity: 1; scale: 1.5; }
+  45% { opacity: 0.9; scale: 1; }
+  100% { opacity: 0; scale: 0.6; }
+}
+@keyframes novaShock {
+  0% { opacity: 0; scale: 0.4; }
+  15% { opacity: 1; }
+  100% { opacity: 0; scale: 3.4; }
+}
+@keyframes novaRay {
+  0% { opacity: 0; scale: 1 0; }
+  35% { opacity: 1; scale: 1 1.15; }
+  100% { opacity: 0; scale: 0.5 0.8; }
 }
 @keyframes sealWave {
   0% { scale: 1; }
