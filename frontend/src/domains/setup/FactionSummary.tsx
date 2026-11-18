@@ -1,4 +1,5 @@
 // Podgląd wybranej frakcji na ekranie setupu (faction summary).
+import { selectedModulesReplace } from "@/entities/data/officialSources";
 //
 // Panel środkowy sceny: prosty nagłówek (lokalna ikona frakcji + nazwa + złożoność) oraz
 // bogate dane — zdolności, przełom (breakthrough), technologie frakcyjne, liderzy, weksel,
@@ -455,8 +456,10 @@ function SummaryBody({
 
   // Specjalne żetony/karty frakcji (Sleepers, Plots, Breach, Void Tether...) — patrz
   // `factionComponents.ts`; puste dla frakcji bez własnych komponentów.
-  const bspPlots = useSettingsStore(
-    (s) => s.settings.blackSpectrumFirmamentPlots,
+  // Ploty Black Spectrum, gdy wybrany moduł wariantu (Ustawienia → Game variants) podmienia
+  // karty ogólne (genericcards) źródłem Black Spectrum.
+  const bspPlots = useSettingsStore((s) =>
+    selectedModulesReplace(s.settings.gameVariants, "genericcards", "black_spectrum"),
   );
   const components = factionComponents(faction.id, bspPlots);
   const componentPlanets = factionComponentPlanets(faction.id);

@@ -3,6 +3,8 @@ import { PlayerDataResponse, GameStateMessage } from "@/entities/data/types";
 import { useGameSocket } from "./useGameSocket";
 import { useRef } from "react";
 import { config } from "@/config";
+import { gameVariantIds } from "@/entities/data/officialSources";
+import { setVariantData, type VariantPayload } from "@/entities/lookup/variantData";
 
 // RFC 7386-style merge: null removes the key, arrays/scalars replace, objects recurse.
 function deepMergePatch<T>(base: T, patch: unknown): T {
@@ -98,8 +100,40 @@ function useWebDataPatcher(gameId: string) {
   };
 }
 
+async function fetchVariantData(gameId: string): Promise<VariantPayload> {
+  const response = await fetch(`${config.api.gameDataUrl}/${gameId}/variant-data`);
+  if (!response.ok) {
+    throw new GameDataFetchError(response.status, response.statusText);
+  }
+  const payload = (await response.json()) as VariantPayload;
+  // Dane wariantów nakładają się w lookupach (getTechData, getRelicData…) - ustawiamy je
+  // ZANIM gra się wyrenderuje (patrz `isLoading` niżej).
+  setVariantData(payload);
+  return payload;
+}
+
+/**
+ * Moduły wariantów gry (fanowskie zestawy, erraty): teksty i talie z `/variant-data`,
+ * pobierane raz na zestaw modułów (klucz = lista modułów z `cardPool.variants`).
+ */
+function useVariantData(gameId: string, data: PlayerDataResponse | undefined) {
+  const ids = data ? gameVariantIds(data.cardPool) : [];
+  const key = ids.join(",");
+  const query = useQuery({
+    queryKey: ["variantData", gameId, key],
+    queryFn: () => fetchVariantData(gameId),
+    enabled: !!data && ids.length > 0,
+    staleTime: Infinity,
+    retry: false,
+  });
+  if (data && ids.length === 0) setVariantData(null);
+  return { loading: ids.length > 0 && query.isLoading };
+}
+
 export function usePlayerDataSocket(gameId: string) {
-  const { data, isLoading, isError, error, refetch } = usePlayerData(gameId);
+  const { data, isLoading: dataLoading, isError, error, refetch } = usePlayerData(gameId);
+  const variantState = useVariantData(gameId, data);
+  const isLoading = dataLoading || variantState.loading;
   const queryClient = useQueryClient();
   const hasConnectedBefore = useRef(false);
   const hasSocketConnectedBefore = useRef(false);

@@ -188,14 +188,6 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
                 }
               />
             ))}
-            <SwitchRow
-              label="Black Spectrum Firmament Plots"
-              description="Replace the standard Firmament Plots with the Black Spectrum ones in the faction picker and in plot card details. Display only: the plot effects are not enforced by the engine yet."
-              checked={settings.blackSpectrumFirmamentPlots}
-              onToggle={(checked) =>
-                handlers.updateSettings({ blackSpectrumFirmamentPlots: checked })
-              }
-            />
           </SettingGroup>
 
           <SettingGroup label="Chess clock">

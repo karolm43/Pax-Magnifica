@@ -1,11 +1,12 @@
 import { abilities } from "@/entities/data/abilities";
+import { withVariant } from "@/entities/lookup/variantData";
 import { indexBy } from "@/entities/lookup/indexBy";
 import type { Ability } from "@/entities/data/types";
 
 const abilitiesMap = indexBy(abilities, (ability) => ability.id);
 
 export function getAbility(abilityId: string): Ability | undefined {
-  return abilitiesMap.get(abilityId);
+  return withVariant("abilities", abilityId, abilitiesMap.get(abilityId));
 }
 
 export type AbilityKind = "action" | "triggered" | "passive";

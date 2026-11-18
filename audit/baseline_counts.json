@@ -6,7 +6,6 @@
     "thunders_edge": 20
   },
   "agendas": {
-    "absol": 60,
     "base": 50,
     "pok": 13
   },
@@ -19,7 +18,6 @@
     "thunders_edge": 1
   },
   "decks": {
-    "absol": 2,
     "base": 9,
     "pok": 11,
     "thunders_edge": 5
@@ -35,7 +33,6 @@
     "thunders_edge": 10
   },
   "promissory_notes": {
-    "absol": 1,
     "base": 21,
     "codex3": 4,
     "pok": 9,
@@ -46,7 +43,6 @@
     "pok": 20
   },
   "relics": {
-    "absol": 20,
     "codex2": 3,
     "codex4": 3,
     "pok": 11,

@@ -1,4 +1,5 @@
 import { units } from "@/entities/data/units";
+import { withVariant } from "@/entities/lookup/variantData";
 import { groupBy, indexBy } from "@/entities/lookup/indexBy";
 import type { PlayerData, Unit } from "@/entities/data/types";
 
@@ -12,7 +13,7 @@ const unitsByRequiredTechIdMap = groupBy(
 );
 
 export const getUnitData = (unitId: string) => {
-  return unitsMap.get(unitId);
+  return withVariant("units", unitId, unitsMap.get(unitId));
 };
 
 export const getOwnedTwilightsFallUnitByAsyncId = (

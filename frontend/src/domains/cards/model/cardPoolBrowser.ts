@@ -5,6 +5,7 @@ import { secretObjectives } from "@/entities/data/secretObjectives";
 import { relics } from "@/entities/data/relics";
 import { explorations } from "@/entities/data/explorations";
 import { isInGameDeck, isOfficialSource } from "@/entities/data/officialSources";
+import { variantDeck, withVariantList } from "@/entities/lookup/variantData";
 
 /** Jedna pozycja listy w przeglądarce puli kart. */
 export type PoolEntry = {
@@ -51,12 +52,14 @@ function agendaText(text1: string, text2?: string, mapText?: string): string {
 }
 
 /**
- * Pełna pula agend talii gry, rozbita na Prawa i Dyrektywy.
- * `variants` = moduły wariantów gry (`gameVariantIds(cardPool)`), np. talia agend Absol.
+ * Pełna pula agend talii gry, rozbita na Prawa i Dyrektywy. Moduły wariantów gry (np. talia
+ * agend Absol, erraty) nakłada `entities/lookup/variantData`.
  * Źródło: statyczne dane `entities/data/agendas` (cała talia, nie stan gry).
  */
-export function agendaPool(variants?: readonly string[]): PoolGroup[] {
-  const official = agendas.filter((a) => isInGameDeck("agenda", a.alias, a.source, variants));
+export function agendaPool(): PoolGroup[] {
+  const official = withVariantList("agendas", agendas, (a) => a.alias).filter((a) =>
+    isInGameDeck("agenda", a.alias, a.source),
+  );
   const laws: PoolEntry[] = [];
   const directives: PoolEntry[] = [];
   for (const a of official) {
@@ -90,10 +93,10 @@ export function agendaPool(variants?: readonly string[]): PoolGroup[] {
  * wszystkie, grupując identyczne kopie po tożsamości karty (`automationID`, albo
  * nazwa+okno) i podając liczbę kopii. Źródło: `entities/data/actionCards`.
  */
-export function actionCardPool(variants?: readonly string[]): PoolGroup[] {
+export function actionCardPool(): PoolGroup[] {
   const byCard = new Map<string, PoolEntry>();
-  for (const c of actionCards) {
-    if (!isInGameDeck("actionCard", c.alias, c.source, variants)) continue;
+  for (const c of withVariantList("action_cards", actionCards, (card) => card.alias)) {
+    if (!isInGameDeck("actionCard", c.alias, c.source)) continue;
     const key = c.automationID || `${c.name}\u0000${c.window}`;
     const existing = byCard.get(key);
     if (existing) {
@@ -121,13 +124,10 @@ export function actionCardPool(variants?: readonly string[]): PoolGroup[] {
  * Etap kodowany jest polem `points` (1 = Etap I, 2 = Etap II).
  * Źródło: statyczne dane `entities/data/publicObjectives`.
  */
-export function publicObjectivePool(
-  stage: 1 | 2,
-  variants?: readonly string[],
-): PoolGroup[] {
+export function publicObjectivePool(stage: 1 | 2): PoolGroup[] {
   const tone =
     stage === 1 ? "var(--ds-sig-stage1)" : "var(--ds-sig-stage2)";
-  const entries: PoolEntry[] = publicObjectives
+  const entries: PoolEntry[] = withVariantList("public_objectives", publicObjectives, (o) => o.alias)
     .filter(
       (o) =>
         o.points === stage &&
@@ -135,7 +135,6 @@ export function publicObjectivePool(
           stage === 1 ? "stage1Objective" : "stage2Objective",
           o.alias,
           o.source,
-          variants,
         ),
     )
     .map((o) => ({
@@ -154,9 +153,9 @@ export function publicObjectivePool(
  * Pełna pula celów sekretnych z aktywnych źródeł (jedna grupa, po nazwie).
  * To referencja całej talii — nie ręka gracza. Źródło: `entities/data`.
  */
-export function secretObjectivePool(variants?: readonly string[]): PoolGroup[] {
-  const entries: PoolEntry[] = secretObjectives
-    .filter((o) => isInGameDeck("secretObjective", o.alias, o.source, variants))
+export function secretObjectivePool(): PoolGroup[] {
+  const entries: PoolEntry[] = withVariantList("secret_objectives", secretObjectives, (o) => o.alias)
+    .filter((o) => isInGameDeck("secretObjective", o.alias, o.source))
     .map((o) => ({
       alias: o.alias,
       name: o.name,
@@ -174,9 +173,9 @@ export function secretObjectivePool(variants?: readonly string[]): PoolGroup[] {
  * Pełna pula relikwii z aktywnych źródeł (jedna grupa, po nazwie).
  * Źródło: `entities/data/relics`.
  */
-export function relicPool(variants?: readonly string[]): PoolGroup[] {
-  const entries: PoolEntry[] = relics
-    .filter((r) => isInGameDeck("relic", r.alias, r.source, variants))
+export function relicPool(): PoolGroup[] {
+  const entries: PoolEntry[] = withVariantList("relics", relics, (r) => r.alias)
+    .filter((r) => isInGameDeck("relic", r.alias, r.source))
     .map((r) => ({
       alias: r.alias,
       name: r.name,
@@ -207,8 +206,10 @@ const EXPLORE_TONE: Record<string, string> = {
  */
 export function explorationPool(type: string): PoolGroup[] {
   const byCard = new Map<string, PoolEntry>();
-  for (const card of explorations) {
-    if (!isOfficialSource(card.source)) continue;
+  // Talia eksploracji zastąpiona przez moduł gry = lista z backendu; inaczej oficjalne źródła.
+  const deck = variantDeck("explore");
+  for (const card of withVariantList("explores", explorations, (c) => c.id)) {
+    if (deck ? !deck.has(card.id) : !isOfficialSource(card.source)) continue;
     if ((card.type ?? "") !== type) continue;
     const key = `${card.name}\u0000${card.text}`;
     const existing = byCard.get(key);

@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **320**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **325**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -114,6 +114,7 @@ Razem: **320**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:agenda.outcome_resolved:during` | TRIGGER | agenda:wormhole_research | agendas:wormhole_research | — |
 | `event:agenda.revealed:after` | TRIGGER | agenda:committee | agendas:committee | — |
 | `event:cards.action_played:after` | TRIGGER | effect:action_cards:dp_give | — | — |
+| `event:cards.action_played:when` | TRIGGER | effect:leaders:mentakhero:sleeper | leaders:mentakhero | Mentak zagrywa Direct Hit: statek zniszczony tą kartą zastępuje się OD RAZU, zanim inne |
 | `event:combat.roll:after` | TRIGGER | unit:hacan_flagship | units:hacan_flagship | Wrath of Kenara: After you roll a die during a space combat in this system, you may spend 1 |
 | `event:combat.round:end` | TRIGGER | technology:da | technologies:da | Duranium Armor: w każdej rundzie walki po przypisaniu strat naprawia 1 uszkodzoną jednostkę. |
 | `event:combat.round:end` | TRIGGER | technology:exo2 | technologies:exo2 | Exotrireme II: After a round of space combat, you may destroy this unit to destroy up to 2 |
@@ -140,6 +141,7 @@ Razem: **320**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat:start` | TRIGGER | leader:solcommander | leaders:solcommander | Claire Gibson: At the start of a ground combat on a planet you control: You may place 1 |
 | `event:combat:start` | TRIGGER | faction:yin | abilities:indoctrination | Indoctrination: At the start of a ground combat: You may spend 2 influence to replace 1 of |
 | `event:component.action:after` | TRIGGER | agenda:minister_war | agendas:minister_war | — |
+| `event:component.decision:after` | TRIGGER | effect:research:divert_funding | action_cards:divert_funding | — |
 | `event:component.decision:after` | TRIGGER | effect:research:enigmatic_device | explores:ed1 | — |
 | `event:component.decision:after` | TRIGGER | effect:research:f_researched | action_cards:f_researched | — |
 | `event:component.decision:after` | TRIGGER | effect:research:reveal_prototype | action_cards:reveal_prototype | — |
@@ -172,12 +174,12 @@ Razem: **320**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:phase:start` | TRIGGER | effect:agendas:rep_govt:against | agendas:rep_govt | — |
 | `event:phase:start` | TRIGGER | effect:agendas:revolution:against | agendas:revolution | — |
 | `event:phase:start` | TRIGGER | faction:arborec | abilities:mitosis | Mitosis: At the start of the status phase: Place 1 infantry from your reinforcements on any |
-| `event:phase:start` | TRIGGER | technology:inf2 | technologies:inf2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
+| `event:phase:start` | TRIGGER | technology:inf2 | technologies:inf2 | Każda piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:phase:start` | TRIGGER | technology:inf2 | technologies:inf2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
-| `event:phase:start` | TRIGGER | technology:lw2 | technologies:lw2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
+| `event:phase:start` | TRIGGER | technology:lw2 | technologies:lw2 | Każda piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:phase:start` | TRIGGER | technology:lw2 | technologies:lw2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:phase:start` | TRIGGER | relic:mawofworlds | relics:mawofworlds | Maw of Worlds: At the start of the agenda phase, you may purge this card and exhaust all of |
-| `event:phase:start` | TRIGGER | technology:so2 | technologies:so2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
+| `event:phase:start` | TRIGGER | technology:so2 | technologies:so2 | Każda piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:phase:start` | TRIGGER | technology:so2 | technologies:so2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:phase:start` | TRIGGER | technology:td | technologies:td | Transit Diodes: na początku Twojej tury w fazie akcji wyczerp kartę i przenieś do 4 sił |
 | `event:planet.control_gained:after` | TRIGGER | technology:ie | technologies:ie | Integrated Economy: po zdobyciu planety możesz wyprodukować dowolną liczbę jednostek |
@@ -236,16 +238,17 @@ Razem: **320**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:turn:end` | TRIGGER | technology:pi | technologies:pi | Predictive Intelligence: na końcu tury wyczerp kartę, by przerozdzielić żetony dowodzenia. |
 | `event:turn:end` | TRIGGER | planet:primor | planets:primor | The Atrament: You may exhaust this card at the end of your turn to place up to 2 infantry from your reinforcements on any planet you control. |
 | `event:turn:end` | TRIGGER | planet:thundersedge | planets:thundersedge | Jupiter Brain: You may exhaust this card at the end of your turn to perform another action. |
-| `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
+| `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Każda piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
-| `event:turn:start` | TRIGGER | technology:lw2 | technologies:lw2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
+| `event:turn:start` | TRIGGER | technology:lw2 | technologies:lw2 | Każda piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:turn:start` | TRIGGER | technology:lw2 | technologies:lw2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
-| `event:turn:start` | TRIGGER | technology:so2 | technologies:so2 | Piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
+| `event:turn:start` | TRIGGER | technology:so2 | technologies:so2 | Każda piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:turn:start` | TRIGGER | technology:so2 | technologies:so2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:turn:start` | TRIGGER | technology:td | — | Transit Diodes: na początku Twojej tury w fazie akcji wyczerp kartę i przenieś do 4 sił |
 | `event:unit.ability_used:after` | TRIGGER | leader:jolnarcommander | — | Agnlan Oln (AFB): walka czeka po rzucie AFB na tę ofertę (``battle.resolve_afb``). |
 | `event:unit.ability_used:after` | TRIGGER | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: każda planeta, przeciw której użyto BOMBARDMENT, zostaje wyczerpana. |
 | `event:unit.destroyed:after` | TRIGGER | technology:inf2 | technologies:inf2 | Infantry II / Spec Ops II: po zniszczeniu piechoty rzuć kością; przy progu+ jednostka |
+| `event:unit.destroyed:after` | TRIGGER | effect:leaders:mentakhero:sleeper | leaders:mentakhero | F_mentak 7.1: po Direct Hit Mentaka statek tego typu staje od razu (może jeszcze w tej |
 | `event:unit.destroyed:after` | TRIGGER | technology:lw2 | technologies:lw2 | Infantry II / Spec Ops II: po zniszczeniu piechoty rzuć kością; przy progu+ jednostka |
 | `event:unit.destroyed:after` | TRIGGER | technology:sar | — | Self-Assembly Routines: po zniszczeniu Twojego mecha zdobywasz 1 TG (za każdego mecha; |
 | `event:unit.destroyed:after` | TRIGGER | technology:so2 | technologies:so2 | Infantry II / Spec Ops II: po zniszczeniu piechoty rzuć kością; przy progu+ jednostka |
@@ -258,6 +261,7 @@ Razem: **320**. Opis = pierwsza linia docstringu funkcji hooka.
 | `fleet_pool.token_cap` | MODIFY | agenda:regulations | agendas:regulations | — |
 | `fleet_pool.unlimited` | PERMIT | effect:leaders:letnevhero | — | — |
 | `hand_limit.action_cards` | MODIFY | agenda:sanctions | agendas:sanctions | — |
+| `invasion.commit_from_planets` | PERMIT | leader:sardakkcommander | — | F_norr: G'hom Sek'kus działa także bez statków w aktywnym systemie - inwazja otwiera |
 | `invasion.skip_bombardment` | PERMIT | effect:leaders:sardakkhero | — | — |
 | `invasion.strips_planetary_shield` | PERMIT | unit:letnev_flagship | units:letnev_flagship | Arc Secundus: Other player's units in this system lose PLANETARY SHIELD. |
 | `limits.pds_unlimited` | PERMIT | agenda:defense_act | agendas:defense_act | — |
@@ -268,7 +272,7 @@ Razem: **320**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.extra_adjacent` | FORBID | technology:lgf | technologies:lgf | Lazax Gate Folding: During your tactical actions, if you do not control Mecatol Rex, treat |
 | `movement.extra_adjacent` | FORBID | effect:technologies:scc | — | Aktywny system sąsiaduje ze wszystkimi systemami z jednostkami gracza (i odwrotnie). |
 | `movement.ignore_anomalies` | PERMIT | effect:action_cards:nav_suite | — | — |
-| `movement.ignore_anomalies` | PERMIT | relic:circletofthevoid | relics:circletofthevoid | Circlet of the Void: you ignore the effects of all other anomalies on movement. |
+| `movement.ignore_anomalies_keep_rift` | PERMIT | relic:circletofthevoid | relics:circletofthevoid | Circlet of the Void: Your units do not roll for gravity rifts, and you ignore the effects |
 | `movement.ignore_own_command_token` | PERMIT | effect:relics:dominusorb | — | — |
 | `movement.match_highest` | PERMIT | breakthrough:letnevbt | — | Gravleash Maneuvers: During movement, your non-fighter ships' move values are equal to the |
 | `movement.move_value` | MODIFY | effect:action_cards:fs1 | — | — |
@@ -323,6 +327,7 @@ Razem: **320**. Opis = pierwsza linia docstringu funkcji hooka.
 | `transaction.any_player` | PERMIT | faction:hacan | abilities:guild_ships | Guild Ships: You can negotiate transactions with players who are not your neighbor. |
 | `transaction.extra_items` | PERMIT | effect:action_cards:blackmarketdealing | — | — |
 | `transaction.planets` | FORBID | unit:hacan_mech | units:hacan_mech | Pride of Kenara: This planet's card may be traded as part of a transaction; if you do, move |
+| `transaction.tradable_relics` | FORBID | relic:thesilverflame | relics:thesilverflame | „The Silver Flame may be exchanged as part of a transaction” - bez Black Market Dealings. |
 | `turn.action_started` | PERSISTENT | effect:action_cards:extremeduress | — | Pierwsza akcja celu: strategiczna = bez kary; inna = karty, TG i tajne cele dla gracza. |
 | `turn.actions` | MODIFY | effect:action_cards:master_plan | — | — |
 | `turn.actions` | MODIFY | effect:agendas:minister_war:action | agendas:minister_war | — |
@@ -364,11 +369,13 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `fleet_pool.token_cap`
 - `fleet_pool.unlimited`
 - `hand_limit.action_cards`
+- `invasion.commit_from_planets`
 - `invasion.skip_bombardment`
 - `movement.alpha_beta_adjacent`
 - `movement.enter_asteroids`
 - `movement.extra_adjacent`
 - `movement.ignore_anomalies`
+- `movement.ignore_anomalies_keep_rift`
 - `movement.ignore_own_command_token`
 - `movement.match_highest`
 - `movement.move_value`
@@ -415,5 +422,6 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `transaction.any_player`
 - `transaction.extra_items`
 - `transaction.planets`
+- `transaction.tradable_relics`
 - `turn.actions`
 - `units.sustain_lost`

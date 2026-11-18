@@ -1,18 +1,23 @@
 {
   "_doc": [
-    "Moduły wariantów gry (fanowskie talie, erraty, własne komponenty). Silnik: src/core/variants.py.",
-    "Instrukcja dodawania: docs/WARIANTY.md. Moduł wybiera się per gra (Ustawienia > Game variants -> /game/new 'variants').",
+    "Moduły wariantów gry (fanowskie zestawy, erraty, własne komponenty, parametry reguł).",
+    "Silnik: src/core/variants.py. Instrukcja: docs/WARIANTY.md. Wybór per gra: Ustawienia > Game variants.",
     "Pola modułu:",
-    "  id          - unikalny identyfikator modułu (trafia do GameState.decks.variants).",
-    "  name        - nazwa przełącznika w UI (po angielsku); description - opis pod przełącznikiem.",
-    "  source      - pole 'source' kart w assets/data/** (np. 'absol'). Źródło NIE musi być w enabled_sources.json.",
-    "  badge       - krótka plakietka kart tego źródła w UI (np. 'ABS'); null = brak.",
-    "  decks       - {typ_talii: alias talii z assets/data/decks} - CAŁA talia danego typu zastąpiona talią wariantu.",
-    "  replaces    - [typ_talii] - pojedyncze karty źródła z 'homebrewReplacesID' podmieniają oficjalne (erraty).",
-    "                'promissory_note' = podmiana wspólnych notek przy rozdawaniu (<color>_ps -> absol_<color>_ps).",
-    "  default     - true = włączony domyślnie w nowych grach (np. własne erraty, które chcesz mieć zawsze).",
-    "Typy talii: agenda, action_card, relic, explore, secret_objective, public_stage_1_objective,",
-    "  public_stage_2_objective, promissory_note."
+    "  id, name, description - identyfikator i opis przełącznika (UI po angielsku).",
+    "  source   - pole 'source' wpisów w assets/data/<kategoria>/ (NIE musi być w enabled_sources.json).",
+    "  badge    - plakietka komponentów tego źródła w UI (np. 'BSP'); null = brak.",
+    "  replaces - [kategoria] albo 'all': ERRATA W MIEJSCU - wpis z homebrewReplacesID nadpisuje komponent",
+    "             oficjalny (tekst, liczby), który zachowuje oficjalne id. Oficjalne hooki tego komponentu",
+    "             się wyłączają; działają hooki zarejestrowane z variant=<source> (brak = ręczna ewidencja).",
+    "  adds     - [kategoria] albo 'all': NOWE komponenty źródła (bez homebrewReplacesID) pod własnymi id.",
+    "  decks    - {typ_talii: alias z assets/data/decks}: CAŁA talia danego typu w grze.",
+    "  rules    - {klucz: wartość}: parametry reguł/setupu (np. 'fracture.roll_success': [1, 10]).",
+    "  default  - true = włączony domyślnie w nowych grach.",
+    "Kategorie: technologies, units, factions, abilities, leaders, breakthroughs, planets, strategy_cards,",
+    "  action_cards, agendas, relics, explores, promissory_notes, public_objectives, secret_objectives,",
+    "  genericcards (np. ploty Firmament), attachments, tokens, galactic_events.",
+    "Typy talii: agenda, action_card, relic, explore, secret_objective, public_stage_1_objective, public_stage_2_objective.",
+    "Dwa moduły poprawiające ten sam komponent: wygrywa moduł wybrany wcześniej."
   ],
   "modules": [
     {
@@ -22,7 +27,7 @@
       "source": "absol",
       "badge": "ABS",
       "decks": { "agenda": "agendas_absol" },
-      "replaces": ["promissory_note"]
+      "replaces": ["promissory_notes"]
     },
     {
       "id": "absol_relics",
@@ -31,6 +36,59 @@
       "source": "absol",
       "badge": "ABS",
       "decks": { "relic": "relics_absol" }
+    },
+    {
+      "id": "absol_tech",
+      "name": "Absol technologies and mechs",
+      "description": "Absol rewrites of technologies and units (mechs, unit upgrades).",
+      "source": "absol",
+      "badge": "ABS",
+      "replaces": ["technologies", "units"],
+      "adds": ["technologies", "units"]
+    },
+    {
+      "id": "bsp_factions",
+      "name": "Black Spectrum faction errata",
+      "description": "Black Spectrum rewrites of technologies, units, leaders, breakthroughs and promissory notes.",
+      "source": "black_spectrum",
+      "badge": "BSP",
+      "replaces": ["technologies", "units", "leaders", "breakthroughs", "promissory_notes"]
+    },
+    {
+      "id": "bsp_firmament_plots",
+      "name": "Black Spectrum Firmament Plots",
+      "description": "Replaces the Firmament / Obsidian plot cards with the Black Spectrum versions.",
+      "source": "black_spectrum",
+      "badge": "BSP",
+      "replaces": ["genericcards"]
+    },
+    {
+      "id": "bsp_objectives",
+      "name": "Black Spectrum objectives",
+      "description": "Black Spectrum rewrites of public and secret objectives.",
+      "source": "black_spectrum",
+      "badge": "BSP",
+      "replaces": ["public_objectives", "secret_objectives"]
+    },
+    {
+      "id": "bsp_cards",
+      "name": "Black Spectrum decks",
+      "description": "Black Spectrum action card, exploration and relic decks.",
+      "source": "black_spectrum",
+      "badge": "BSP",
+      "decks": {
+        "action_card": "action_cards_bsp",
+        "explore": "explores_bsp",
+        "relic": "relics_bsp"
+      }
+    },
+    {
+      "id": "bsp_agendas",
+      "name": "Black Spectrum agenda deck",
+      "description": "Replaces the agenda deck with the Black Spectrum one (50 agendas).",
+      "source": "black_spectrum",
+      "badge": "BSP",
+      "decks": { "agenda": "agendas_bsp" }
     }
   ]
 }

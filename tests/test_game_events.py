@@ -176,16 +176,19 @@ def test_katalog_okien_jest_deterministyczny_i_pelny(registry: StaticDataRegistr
         "## 1. Kontrakt silnika",
         "## 2. Zdarzenia",
         "## 4. Efekty trwałe",
-        "## 5. Agendy (123: absol×60, base×50, pok×13)",
+        "## 5. Agendy (63: base×50, pok×13)",
         "## 6. Frakcje",
         "## 9. Przypadki szczególne",
     ):
         assert header in text
-    assert "| `absol_conscription` |" in text  # agendy Absol są w katalogu
+    # Agendy Absol wchodzą tylko z modułem wariantu (core/variants) - katalog gry z modułem.
+    absol_text = timing_catalog.render_markdown(StaticDataRegistry(variant_ids=["absol_agendas"]))
+    assert "| `absol_conscription` |" in absol_text
     assert "* pole okna bez dopasowania: **0**" in text
 
 
-def test_katalog_obejmuje_wszystkie_agendy(registry: StaticDataRegistry) -> None:
+def test_katalog_obejmuje_wszystkie_agendy() -> None:
+    registry = StaticDataRegistry(variant_ids=["absol_agendas"])
     entries = [e for e in timing_catalog.collect(registry) if e.category == "agendas"]
     assert len(entries) == len(registry.catalog.all(ComponentCategory.AGENDA))
     assert all(e.kind == "agenda" for e in entries)

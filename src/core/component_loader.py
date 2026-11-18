@@ -34,30 +34,6 @@ from src.core.variants import VariantLoadPlan
 RawEntry = dict[str, object]
 
 
-def _variant_entries(
-    entries: Iterable[tuple[EntryOrigin, Mapping[str, object]]],
-    category: ComponentCategory,
-    enabled: Collection[str],
-    plan: VariantLoadPlan,
-) -> Iterator[tuple[EntryOrigin, Mapping[str, object]]]:
-    """Ze źródeł wariantów spoza manifestu przepuszcza tylko to, czego potrzebują moduły.
-
-    Plan (``core/variants.load_plan``): całe karty talii zastępowanych w całości, same
-    zamienniki (``homebrewReplacesID``) dla erraty, definicje talii wskazanych typów.
-    """
-    sources = plan.sources_for(category)
-    for origin, entry in entries:
-        source = entry.get("source")
-        if (
-            isinstance(source, str)
-            and source in sources
-            and source not in enabled
-            and not plan.admits(category, entry)
-        ):
-            continue
-        yield origin, entry
-
-
 @dataclass(frozen=True)
 class EntryOrigin:
     """Skąd pochodzi wpis: plik i numer wpisu w pliku (od 0)."""
@@ -123,6 +99,10 @@ class LoadReport:
     sourceless: dict[ComponentCategory, list[SourcelessEntry]] = field(default_factory=dict)
     invalid_id: dict[ComponentCategory, list[InvalidIdEntry]] = field(default_factory=dict)
     conflicts: dict[ComponentCategory, list[IdConflict]] = field(default_factory=dict)
+    # Erraty modułów wariantów nałożone w miejscu: "<kategoria>:<id oficjalne>" -> źródło.
+    variant_replaced: dict[str, str] = field(default_factory=dict)
+    # Surowe wpisy zmienione/dodane przez moduły: "<kategoria>:<id>" -> wpis (teksty dla UI).
+    variant_entries: dict[str, Mapping[str, object]] = field(default_factory=dict)
 
 
 class DataValidationError(ValueError):
@@ -233,10 +213,13 @@ def load_components(
         entries: Iterable[tuple[EntryOrigin, Mapping[str, object]]] = (
             iter_entries_with_origin(spec.directory) if spec.directory.is_dir() else ()
         )
-        variant_sources = variant_plan.sources_for(category) if variant_plan else frozenset()
-        if variant_plan is not None and variant_sources:
-            category_enabled = {*enabled, *variant_sources}
-            entries = _variant_entries(entries, category, enabled, variant_plan)
+        if variant_plan is not None and variant_plan.sources_for(category):
+            # Moduły wariantów (core/variants): erraty nadpisują wpisy oficjalne w miejscu,
+            # nowe komponenty i całe talie wchodzą pod własnymi id.
+            category_enabled = {*enabled, *variant_plan.own_sources_for(category)}
+            entries = variant_plan.overlay(
+                category, entries, enabled, report.variant_replaced, report.variant_entries
+            )
         selection = select_entries(entries, category_enabled, spec.id_field)
         table: dict[str, ComponentBase] = {}
         per_source: dict[str, int] = {}

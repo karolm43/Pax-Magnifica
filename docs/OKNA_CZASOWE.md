@@ -81,8 +81,8 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `objective.scored` | Cel zdobyty. | 2 | when×2 | abilities×1, breakthroughs×1 | `objectives.score_public` |
 | `objective.secret_discarded` | Tajny cel odrzucony. | 0 | — | — | — |
 | `agenda.revealed` | Agenda ujawniona. | 28 | after×18, when×10 | action_cards×19, promissory_notes×6, abilities×2, leaders×1 | `agenda_phase.reveal_agenda` |
-| `agenda.votes_cast` | Głosy oddane. | 7 | when×4, after×3 | action_cards×2, leaders×2, promissory_notes×1, galactic_events×1, abilities×1 | `agenda_phase.cast_vote` |
-| `agenda.outcome_resolved` | Wynik agendy rozstrzygany. | 125 | after×124, during×1 | agendas×123, action_cards×1, abilities×1 | `agenda_phase._resolve` |
+| `agenda.votes_cast` | Głosy oddane. | 6 | after×3, when×3 | action_cards×2, leaders×2, galactic_events×1, abilities×1 | `agenda_phase.cast_vote` |
+| `agenda.outcome_resolved` | Wynik agendy rozstrzygany. | 65 | after×64, during×1 | agendas×63, action_cards×1, abilities×1 | `agenda_phase._resolve` |
 | `agenda.elected` | Gracz wybrany jako wynik agendy. | 2 | when×2 | action_cards×2 | — |
 | `agenda.law_discarded` | Prawo zdjęte z gry. | 0 | — | — | `agenda_phase.remove_law` |
 | `any_time` | Dowolna chwila („at any time”). | 8 | any×8 | leaders×8 | — |
@@ -123,13 +123,13 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `phase` · start [phase=status] | 1 | 4 | Hydrothermal Mining, Neural Parasite (Firmament), Radical Advancement, The Reaping |
 | `turn` · end | 3 | 2 | Field Marshal Mercer, Garv and Gunn |
 | `unit.sustain_damage` · after | 5 | 0 |  |
-| `agenda.votes_cast` · when | 3 | 1 | Zeal |
 | `cards.action_played` · when | 4 | 0 |  |
 | `game.setup` · during | 0 | 4 | Dark Whispers, Hubris, The Company, The Tribuni |
 | `phase` · start [phase=strategy] | 3 | 1 | Council Patronage |
 | `planet.control_gained` · after | 2 | 2 | Dart and Tai, Scavenge |
 | `planet.control_gained` · when | 1 | 3 | Assimilate, Fealty Uplink, Liberate |
 | `unit.ability_used` · when [ability=roll] | 3 | 1 | Trrakan Aun Zulok |
+| `agenda.votes_cast` · when | 2 | 1 | Zeal |
 | `combat.roll` · after | 3 | 0 |  |
 | `combat.round` · after | 3 | 0 |  |
 | `economy.resources_spent` · when | 2 | 1 | Aello |
@@ -226,27 +226,22 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 |---|---:|---:|---:|---:|---:|---:|---:|
 | abilities | 5 | 51 | 0 | 0 | 17 | 0 | 73 |
 | action_cards | 42 | 101 | 0 | 0 | 0 | 0 | 143 |
-| agendas | 0 | 0 | 0 | 0 | 0 | 123 | 123 |
+| agendas | 0 | 0 | 0 | 0 | 0 | 63 | 63 |
 | breakthroughs | 5 | 20 | 3 | 0 | 3 | 0 | 31 |
 | explores | 23 | 2 | 0 | 0 | 55 | 0 | 80 |
 | galactic_events | 0 | 4 | 0 | 0 | 16 | 0 | 20 |
 | leaders | 30 | 73 | 0 | 0 | 0 | 0 | 103 |
-| promissory_notes | 9 | 29 | 3 | 0 | 0 | 0 | 41 |
+| promissory_notes | 9 | 28 | 3 | 0 | 0 | 0 | 40 |
 | relics | 7 | 10 | 4 | 0 | 3 | 0 | 24 |
 | technologies | 10 | 57 | 1 | 0 | 34 | 0 | 102 |
 
-## 4. Efekty trwałe i czasy trwania (82)
+## 4. Efekty trwałe i czasy trwania (77)
 
 Zakres wygasania wykryty w tekście. `deferred` = „at the start of the next ... phase” (odroczony wyzwalacz; hook na `phase`/`start` sprawdza efekt w magazynie).
 
 | Komponent | Nazwa | Zakresy | deferred | Tekst |
 |---|---|---|---|---|
 | `agendas:abolishment` | Judicial Abolishment | agenda | — | Elect Law (When this agenda is revealed, if there are no laws in play, discard this card and reveal another a… |
-| `agendas:absol_affirmation` | Affimation of Divine Right | while_in_play | — | For/Against. For: Mecatol Rex is a legendary planet. At the end of each strategy phase, each other player mus… |
-| `agendas:absol_covert` | Covert Legislation | agenda | — | When this agenda is revealed, the speaker draws the next card in the agenda deck but does not reveal it to th… |
-| `agendas:absol_government` | Representative Government | — | strategy | For/Against. For: The player who cast the most votes "For" takes the speaker token. When casting votes, playe… |
-| `agendas:absol_miscount` | Miscount Disclosed | agenda | — | Elect Law. When this agenda is revealed, if there are no laws in play, discard this card and reveal another a… |
-| `agendas:absol_schematics` | Publicize Weapon Schematics | agenda | — | Elect owned non-faction unit upgrade technology. When this agenda is revealed, if there are no eligible techn… |
 | `agendas:arms_reduction` | Arms Reduction | — | strategy | For/Against. For: Each player destroys all but 2 of their dreadnoughts and all but 4 of their cruisers. Again… |
 | `agendas:checks` | Checks and Balances | agenda | — | For/Against. For: When a player chooses a strategy card during the strategy phase, they give that strategy ca… |
 | `agendas:classified` | Classified Document Leaks | agenda | — | Elect Scored Secret Objective (When this agenda is revealed, if there are no scored secret objectives, discar… |
@@ -324,73 +319,13 @@ Zakres wygasania wykryty w tekście. `deferred` = „at the start of the next ..
 | `breakthroughs:argentbt` | Wing Transfer | tactical_action | — | When you activate a system that contains only your units, you may place command tokens from your reinforcemen… |
 | `breakthroughs:winnubt` | Imperator | tactical_action | — | Apply +1 to the results of each of your unit's combat rolls for each "Support for the Throne" in your opponen… |
 
-## 5. Agendy (123: absol×60, base×50, pok×13)
+## 5. Agendy (63: base×50, pok×13)
 
 Każda agenda: efekt wyniku rozstrzyga się `agenda.outcome_resolved`/`after`; prawo zostaje w grze (`while_in_play`), a jego klauzule czasowe stają się hookami prawa (`SOURCE_AGENDA`). Kolumna „Klauzule” to okna WEWNĄTRZ tekstu agendy.
 
 | Id | Nazwa | Źródło | Typ | Klauzule czasowe w tekście | Trwanie | Tekst |
 |---|---|---|---|---|---|---|
 | `abolishment` | Judicial Abolishment | base | law | — | agenda | Elect Law (When this agenda is revealed, if there are no laws in play, discard this card and reveal another a… |
-| `absol_abolishment` | Judicial Abolishment | absol | law | `phase` · start [phase=agenda] | — | For/Against. For: At the start of the Agenda Phase, the speaker may spend 6 influence to discard any 1 law in… |
-| `absol_affirmation` | Affimation of Divine Right | absol | law | `phase` · end [phase=strategy] | while_in_play | For/Against. For: Mecatol Rex is a legendary planet. At the end of each strategy phase, each other player mus… |
-| `absol_agreement` | Rearmament Agreement | absol | — | — | — | For/Against. For: Each player places 1 mech from their reinforcements on a planet they control in their home … |
-| `absol_arbiter` | Imperial Arbiter | absol | — | `phase` · end [phase=strategy] | — | Elect Player. The elected player gains this card and gives each other player who voted for them 1 promissory … |
-| `absol_articleswar` | Articles of War | absol | — | `tactical.system_activated` · when; `tactical.system_activated` · after | — | For/Against. For: The player who cast the most votes "For" places 3 of their control tokens on this card. All… |
-| `absol_artifact` | Ixthian Artifact | absol | — | — | — | For/Against. For: The speaker rolls 1 die. If the result is 7-10, each player may research 2 technologies. If… |
-| `absol_censure` | Political Censure | absol | — | — | — | Elect Player. The elected player gains this card and 1 victory point. If they are speaker, the other player w… |
-| `absol_checks` | Checks and Balances | absol | — | `strategy.card_chosen` · when; `strategy.card_chosen` · when | — | For/Against. For: The player who cast the most votes "For" places 1 of their control tokens on this card. Whe… |
-| `absol_conscription` | Regulated Conscription | absol | — | `production.units_produced` · when; `phase` · start [phase=strategy]; `production.units_produced` · when | — | For/Against. For: The player who cast the most votes "For" gains 1 trade good for every industrial planet the… |
-| `absol_constitution` | New Constitution | absol | law | — | — | For/Against. For: Discard all laws in play, if any. The player who cast the most votes "For" takes the speake… |
-| `absol_conventionswar` | Conventions of War | absol | — | — | — | For/Against. For: The player who cast the most votes "For" gains 1 trade good for each of their cultural plan… |
-| `absol_covert` | Covert Legislation | absol | — | `agenda.revealed` · when | agenda | When this agenda is revealed, the speaker draws the next card in the agenda deck but does not reveal it to th… |
-| `absol_crisis` | Galactic Crisis Pact | absol | — | — | — | Elect Strategy Card. Each player may resolve the secondary ability of the elected strategy card without spend… |
-| `absol_defenseact` | Homeland Defense Act | absol | — | `unit.placed` · when; `unit.placed` · when | — | For/Against. For: When placing 1 or more PDS on a planet, players may place an additional PDS on that planet.… |
-| `absol_disarmament` | Compensated Disarmament | absol | — | — | — | Elect non-home Planet. Remove each ground force on the elected planet; the player who controls that planet ga… |
-| `absol_emergency1` | Emergency Session | absol | — | `agenda.revealed` · when; `agenda.outcome_resolved` · after | — | . When this card is revealed, place it in the common play area. This card is not an agenda, and players do no… |
-| `absol_emergency2` | Emergency Session | absol | — | `agenda.revealed` · when; `agenda.outcome_resolved` · after | — | . When this card is revealed, place it in the common play area. This card is not an agenda, and players do no… |
-| `absol_emergency3` | Emergency Session | absol | — | `agenda.revealed` · when; `agenda.outcome_resolved` · after | — | . When this card is revealed, place it in the common play area. This card is not an agenda, and players do no… |
-| `absol_emergency4` | Emergency Session | absol | — | `agenda.revealed` · when; `agenda.outcome_resolved` · after | — | . When this card is revealed, place it in the common play area. This card is not an agenda, and players do no… |
-| `absol_equality` | Economic Equality | absol | — | — | — | For/Against. Each player returns all their trade goods to the supply. All players have a commodity value of 3… |
-| `absol_execution` | Public Execution | absol | — | — | — | Elect Player. The elected player exhausts all of their planets, then reveals the action cards in their hand. … |
-| `absol_formation` | Committee Formation | absol | — | `agenda.votes_cast` · before; `agenda.votes_cast` · before | — | Elect Player. The elected player gains this card and gives each other player who voted for them 1 promissory … |
-| `absol_government` | Representative Government | absol | — | `agenda.votes_cast` · when; `phase` · start [phase=strategy] | — | For/Against. For: The player who cast the most votes "For" takes the speaker token. When casting votes, playe… |
-| `absol_grant` | Research Grant Allocation | absol | — | — | — | Elect Player. The elected player researches any 1 non-faction technology. The other player who cast the most … |
-| `absol_hyperlane` | Hyperlane Development Program | absol | — | — | — | For/Against. For: The player who cast the most votes "For" may research 1 propulsion technology. Non-anomaly … |
-| `absol_incentive` | Incentive Program | absol | — | — | — | For/Against. For: Draw and reveal 1 stage I public objective from the deck and place it near the public objec… |
-| `absol_leak` | Classified Document Leak | absol | — | — | — | Elect Scored Secret Objective. The elected secret objective becomes a public objective. The player who cast t… |
-| `absol_limits` | Term Limits | absol | — | `speaker.changed` · when | — | For/Against. For: The speaker places 1 of their control tokens on this card. When a player takes or receives … |
-| `absol_measures` | Unconventional Measures | absol | — | — | — | For/Against. For: Each player who voted "For" draws 2 action cards. Each player who voted "Against" gains 1 c… |
-| `absol_minsantique` | Minister of Antiquities | absol | — | `objective.scored` · when | — | Elect Player. The elected player gains this card. The owner of this card may resolve the secondary ability of… |
-| `absol_minscomm` | Minister of Commerce | absol | — | `economy.commodities_replenished` · when; `economy.commodities_replenished` · when | — | Elect Player. The elected player gains this card. The owner of this card may resolve the secondary ability of… |
-| `absol_minsexp` | Minister of Exploration | absol | — | `tactical.action` · after; `strategy.action` · when; `tactical.action` · after | — | Elect Player. The elected player gains this card. The owner of this card gains 1 additional command token whe… |
-| `absol_minsindus` | Minister of Industry | absol | — | — | — | Elect Player. The elected player gains this card. The owner of this card may resolve the secondary ability of… |
-| `absol_minspeace` | Minister of Peace | absol | — | `tactical.system_activated` · after; `tactical.system_activated` · after | — | Elect Player. The elected player gains this card. The owner of this card may resolve the secondary ability of… |
-| `absol_minspolicy` | Minister of Policy | absol | — | `status.step` · during [step=draw_action_cards] | — | Elect Player. The elected player gains this card. The owner of this card may use the secondary ability of the… |
-| `absol_minssci` | Minister of Sciences | absol | — | — | — | Elect Player. The elected player gains this card. The owner of this card may resolve the secondary ability of… |
-| `absol_minswar` | Minister of War | absol | — | — | — | Elect Player. The elected player gains this card. The owner of this card may resolve the secondary ability of… |
-| `absol_miscount` | Miscount Disclosed | absol | law | `agenda.revealed` · when | agenda | Elect Law. When this agenda is revealed, if there are no laws in play, discard this card and reveal another a… |
-| `absol_mutiny` | Mutiny | absol | — | — | — | For/Against. For: Exhaust the Politics strategy card. The player who cast the most votes "For" takes the spea… |
-| `absol_nexus` | Nexus Sovereignty | absol | — | — | — | For/Against. For: Alpha and beta wormholes in the wormhole nexus have no effect on movement. The player who c… |
-| `absol_operations` | Clandestine Operations | absol | — | — | — | For/Against. For: The player who cast the most votes "For" gains 2 command tokens and takes the speaker token… |
-| `absol_pax` | Pax Magnifica, Bellum Gloriosum | absol | — | `agenda.outcome_resolved` · after | — | For/Against. For: Exhaust the Warfare strategy card. The player who cast the most votes "For" adds 2 command … |
-| `absol_prophecy` | Prophecy of Ixth | absol | — | `production.used` · when; `production.used` · when | — | Elect Player. The elected player gains this card. The owner of this card may ignore the prerequisites on figh… |
-| `absol_recon` | Wormhole Reconstruction | absol | — | — | — | For/Against. For: The player who cast the most votes "For" places 1 control token on this card. Players may t… |
-| `absol_redistribution` | Colonial Redistribution | absol | — | — | — | Elect non-home Planet other than Mecatol Rex. Remove each unit on the elected planet. The player who controls… |
-| `absol_reduction` | Arms Reduction | absol | — | — | — | For/Against. For: Each player destroys all of their dreadnoughts and half of their cruisers (rounding up). Pl… |
-| `absol_regulations` | Fleet Regulations | absol | — | — | — | For/Against. For: The player who cast the most votes "For" places 1 of their control tokens on this card. A p… |
-| `absol_revolution` | Anti-Intellectual Revolution | absol | — | — | — | For/Against. For: Each player who voted "For" or abstained returns 1 technology they own with the most prereq… |
-| `absol_sanctions` | Executive Sanctions | absol | — | — | — | For/Against. For: The player who cast the most votes “For” places 1 of their control tokens on this card. A p… |
-| `absol_schematics` | Publicize Weapon Schematics | absol | — | `agenda.revealed` · when | agenda | Elect owned non-faction unit upgrade technology. When this agenda is revealed, if there are no eligible techn… |
-| `absol_secret` | Archived Secret | absol | — | — | — | Elect Player. The elected player draws 2 secret objectives, then gives 1 promissory note from their hand to t… |
-| `absol_seeds` | Seed of an Empire | absol | — | — | — | For/Against. For: The player with the most victory points (speaker breaks ties) gains the speaker token and 1… |
-| `absol_shared` | Shared Research | absol | — | `tactical.action` · during; `tactical.action` · during | — | For/Against. For: The player who cast the most votes "For" may explore any frontier tokens in systems that co… |
-| `absol_sites` | Preservation of Historical Sites | absol | — | — | — | For/Against. For: The player who cast the most votes "For" gains 2 trade goods for each legendary planet or p… |
-| `absol_spending` | Discretionary Spending | absol | — | — | — | For/Against. For: All players gain trade goods equal to the number of planets they control. The player who ca… |
-| `absol_standardization` | Armed Forces Standardization | absol | — | — | — | Elect Player. The elected player places command tokens from their reinforcements until they they have 3 token… |
-| `absol_swords` | Swords to Plowshares | absol | — | — | — | For/Against. For: Each player removes half of their infantry on each planet they control, rounding down. Each… |
-| `absol_travelban` | Enforced Travel Ban | absol | — | `tactical.system_activated` · when | — | For/Against. For: The player who cast the most votes "For" places 3 of their control tokens on this card. Alp… |
-| `absol_warrant` | Search Warrant | absol | — | `objective.secret_discarded` · when [would]; `objective.secret_discarded` · when [would] | — | Elect Player. The non-elected player who cast the most votes for the elected player places 1 of their control… |
-| `absol_whresearch` | Wormhole Research | absol | — | — | — | For/Against. For: Players with ships in systems that contain 1 or more wormholes may research a technology wi… |
 | `arbiter` | Imperial Arbiter | base | — | `phase` · end [phase=strategy]; `phase` · end [phase=strategy] | — | Elect Player. The elected player gains this card. At the end of the strategy phase, the owner of this card ma… |
 | `arms_reduction` | Arms Reduction | base | — | `phase` · start [phase=strategy] | — | For/Against. For: Each player destroys all but 2 of their dreadnoughts and all but 4 of their cruisers. Again… |
 | `articles_war` | Articles of War | pok | — | — | — | For/Against. For: All mechs lose their printed abilities except for SUSTAIN DAMAGE. Against: Each player that… |
@@ -1287,11 +1222,10 @@ Dla każdej frakcji komponenty z oknem (reakcja/akcja/przy zdobyciu) i efekty ci
 | `promissory_notes:riderm` | Keleres Rider | `agenda.revealed` · after | codex3 | After an agenda is revealed: You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your… |
 | `promissory_notes:riderx` | Keleres Rider | `agenda.revealed` · after | codex3 | After an agenda is revealed: You cannot vote on this agenda. Predict aloud an outcome of this agenda. If your… |
 
-### `agenda.votes_cast` (2)
+### `agenda.votes_cast` (1)
 
 | Komponent | Nazwa | Okno | Źródło | Tekst |
 |---|---|---|---|---|
-| `promissory_notes:absol_<color>_ps` | Absol's Political Secret | `agenda.votes_cast` · when | absol | When you cast votes: You may exhaust up to 3 of the <color> player's planets and cast votes as if you control… |
 | `galactic_events:hidden_agenda` | Hidden Agenda | `agenda.votes_cast` · after [scope=all] | thunders_edge | - During the agenda phase, only the speaker can talk; all other players must remain silent except when declar… |
 
 ### `combat` (5)

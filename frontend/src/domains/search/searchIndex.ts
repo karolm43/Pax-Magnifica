@@ -28,7 +28,7 @@ import {
   entriesFromIds,
   type PileTab,
 } from "@/domains/cards/model/deckPiles";
-import { gameVariantIds } from "@/entities/data/officialSources";
+
 import { buildCategoryEntries } from "./searchCategories";
 import { normalizeSearchText, toTerms } from "./searchText";
 
@@ -364,14 +364,13 @@ function addDeckCards(builder: IndexBuilder, gameData: GameData) {
     );
   };
 
-  const variants = gameVariantIds(gameData.cardPool);
   const decks: { id: string; label: string; groups: PoolGroup[] }[] = [
-    { id: "action", label: "Action deck", groups: actionCardPool(variants) },
-    { id: "agenda", label: "Agenda deck", groups: agendaPool(variants) },
-    { id: "relic", label: "Relic deck", groups: relicPool(variants) },
-    { id: "secret", label: "Secret objectives deck", groups: secretObjectivePool(variants) },
-    { id: "stage1", label: "Stage I objectives", groups: publicObjectivePool(1, variants) },
-    { id: "stage2", label: "Stage II objectives", groups: publicObjectivePool(2, variants) },
+    { id: "action", label: "Action deck", groups: actionCardPool() },
+    { id: "agenda", label: "Agenda deck", groups: agendaPool() },
+    { id: "relic", label: "Relic deck", groups: relicPool() },
+    { id: "secret", label: "Secret objectives deck", groups: secretObjectivePool() },
+    { id: "stage1", label: "Stage I objectives", groups: publicObjectivePool(1) },
+    { id: "stage2", label: "Stage II objectives", groups: publicObjectivePool(2) },
     ...(["Cultural", "Industrial", "Hazardous", "Frontier"] as const).map((type) => ({
       id: type.toLowerCase(),
       label: `${type} exploration deck`,

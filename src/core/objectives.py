@@ -44,11 +44,6 @@ _ACTION_DECK = "action_card"
 STATUS_PHASE_LABEL = "Status"
 
 
-def game_variant_modules(state: GameState) -> list[variants.VariantModule]:
-    """Moduły wariantów gry (``decks.variants`` + zgodność wstecz ``decks.agenda_variant``)."""
-    return variants.game_modules(state.decks.variants, state.decks.agenda_variant)
-
-
 def deck_card_ids(
     registry: StaticDataRegistry, deck_type: str, state: GameState | None = None
 ) -> list[str]:
@@ -60,21 +55,25 @@ def deck_card_ids(
     nowsze rozszerzenie wygrywa), potem alias - ``agendas_pok`` i ``agendas_base_game``
     mają po 50 kart, remis nie może wybrać przestarzałej talii base.
 
-    Ze ``state``: skład talii W TEJ GRZE - moduły wariantów (``core/variants``) mogą
-    zastąpić całą talię albo podmienić pojedyncze karty (erraty).
+    Ze ``state``: skład talii W TEJ GRZE - moduł wariantu rejestru gry
+    (``registry.variant_modules``, core/variants) może zastąpić całą talię. Erraty
+    pojedynczych kart są nałożone w rejestrze (te same id).
     """
     if state is None:
         return variants.official_deck_ids(registry, deck_type)
-    return variants.game_deck_ids(registry, deck_type, game_variant_modules(state))
+    return variants.game_deck_ids(registry, deck_type)
 
 
 def agenda_deck_ids(registry: StaticDataRegistry, variant: str = AGENDA_STANDARD) -> list[str]:
     """Karty talii agend dla starego pola ``agenda_variant`` (``standard`` albo np. ``absol``).
 
-    Nieznany wariant albo brak talii -> ``ValueError``. Nowy kod: ``deck_card_ids(..., state)``.
+    Rejestr musi mieć moduł tej talii (``StaticDataRegistry(variant_ids=...)``). Nieznany
+    wariant albo brak talii -> ``ValueError``. Nowy kod: ``deck_card_ids(..., state)``.
     """
     module = variants.module_for_agenda_variant(variant)
-    return variants.game_deck_ids(registry, "agenda", [module] if module else [])
+    if module is None:
+        return variants.official_deck_ids(registry, "agenda")
+    return variants.variant_deck_ids(registry, module, "agenda")
 
 
 def _in_any_deck(registry: StaticDataRegistry, deck_type: str, card_id: str) -> bool:
@@ -85,11 +84,6 @@ def _in_any_deck(registry: StaticDataRegistry, deck_type: str, card_id: str) -> 
     return any(
         isinstance(deck, DeckDef) and deck.deck_type == deck_type and card_id in deck.card_ids
         for deck in decks.values()
-    ) or any(
-        card_id in found
-        for found in variants.replacement_map(
-            registry, deck_type, variants.modules().values()
-        ).values()
     )
 
 

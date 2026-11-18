@@ -13,7 +13,8 @@ from src.core.registry import StaticDataRegistry
 
 @pytest.fixture(scope="module")
 def registry() -> StaticDataRegistry:
-    return StaticDataRegistry()
+    """Rejestr gry z modułem talii agend Absol (moduły nakłada rejestr gry)."""
+    return StaticDataRegistry(variant_ids=["absol_agendas"])
 
 
 def test_standard_deck_unchanged_by_fan_decks(registry: StaticDataRegistry) -> None:
@@ -36,8 +37,7 @@ def test_fan_sources_load_only_what_variant_modules_need(registry: StaticDataReg
     assert not [c for c in action_cards.values() if c.source in ("absol",)]
     decks = registry.catalog.all(ComponentCategory.DECK)
     fan = [d for d in decks.values() if d.source in ("absol",)]
-    # Moduły Absol (assets/config/variants.json): talia agend i talia reliktów - nic więcej.
-    assert sorted(d.id for d in fan) == ["agendas_absol", "relics_absol"]
+    assert sorted(d.id for d in fan) == ["agendas_absol"]
 
 
 def test_unknown_variant_rejected(registry: StaticDataRegistry) -> None:
@@ -49,10 +49,12 @@ def test_unknown_variant_rejected(registry: StaticDataRegistry) -> None:
 def test_ensure_agenda_deck_uses_selected_variant(
     registry: StaticDataRegistry, variant: str
 ) -> None:
+    """Rejestr gry niesie moduły: gra standardowa ma rejestr bez modułów, gra Absol - z nimi."""
+    game_registry = registry if variant == "absol" else StaticDataRegistry()
     state = GameState()
     state.decks.agenda_variant = variant
-    ensure_agenda_deck(state, registry)
-    assert sorted(state.decks.agenda_deck) == sorted(agenda_deck_ids(registry, variant))
+    ensure_agenda_deck(state, game_registry)
+    assert sorted(state.decks.agenda_deck) == sorted(agenda_deck_ids(game_registry, variant))
 
 
 
@@ -87,9 +89,9 @@ def test_absol_laws_reach_laws_in_play_and_player_area() -> None:
     ctx = app.state.ctx
     state = ctx.service.current_state().clone()
     assert state.decks.agenda_variant == "absol"
+    assert ctx.registry.variant_replaced["promissory_notes:<color>_ps"] == "absol"
     for player in state.players.values():
-        hand = player.private.promissory_notes
-        assert f"absol_{player.color}_ps" in hand and f"{player.color}_ps" not in hand
+        assert f"{player.color}_ps" in player.private.promissory_notes
     state.phase = Phase.AGENDA
     state.agenda = AgendaPhaseState()
     state.custodians_removed = True
@@ -114,18 +116,18 @@ def test_absol_laws_reach_laws_in_play_and_player_area() -> None:
 
 
 def test_absol_variant_replaces_political_secret(registry: StaticDataRegistry) -> None:
-    """FAN-AGENDAS: w wariancie Absol ``red_ps`` zastępuje Absol's Political Secret."""
-    from src.core import variants
+    """Absol's Political Secret to errata W MIEJSCU: ten sam szablon ``<color>_ps``, nowa treść."""
     from src.core.game_setup import common_promissory_note_ids
 
-    standard = common_promissory_note_ids(registry, "red")
-    absol = common_promissory_note_ids(registry, "red", variants.game_modules([], "absol"))
-    assert "red_ps" in standard and "absol_red_ps" not in standard
-    assert "absol_red_ps" in absol and "red_ps" not in absol
-    assert len(absol) == len(standard)
-    assert [n for n in standard if n != "red_ps"] == [n for n in absol if n != "absol_red_ps"]
-    note = registry.catalog.get(ComponentCategory.PROMISSORY_NOTE, "absol_<color>_ps")
-    assert note is not None and note.name == "Absol's Political Secret"
-    # Tylko zamienniki - żadne inne notki Absol nie trafiają do katalogu.
+    standard_registry = StaticDataRegistry()
+    assert common_promissory_note_ids(registry, "red") == common_promissory_note_ids(
+        standard_registry, "red"
+    )
+    note = registry.catalog.get(ComponentCategory.PROMISSORY_NOTE, "<color>_ps")
+    official = standard_registry.catalog.get(ComponentCategory.PROMISSORY_NOTE, "<color>_ps")
+    assert note is not None and official is not None
+    assert note.name == "Absol's Political Secret" and official.name != note.name
+    assert registry.variant_replaced["promissory_notes:<color>_ps"] == "absol"
+    # Tylko zamiennik - żadne inne notki Absol nie trafiają do katalogu.
     notes = registry.catalog.all(ComponentCategory.PROMISSORY_NOTE)
-    assert [i for i, n in notes.items() if n.source == "absol"] == ["absol_<color>_ps"]
+    assert not [i for i, n in notes.items() if n.source == "absol"]

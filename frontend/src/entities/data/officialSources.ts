@@ -11,6 +11,7 @@ import {
   type ActiveDeckKind,
   type VariantModuleInfo,
 } from "./activeDecks";
+import { variantBadge, variantDeck } from "@/entities/lookup/variantData";
 
 export const OFFICIAL_SOURCES: ReadonlySet<string> = new Set([
   "base",
@@ -45,18 +46,10 @@ export function isInActiveDeck(kind: ActiveDeckKind, alias: string): boolean {
   return activeDeckSets[kind].has(alias);
 }
 
-// Moduły wariantów gry (fanowskie talie, erraty, własne komponenty) - wygenerowane z
-// `assets/config/variants.json` (backend: `src/core/variants.py`, instrukcja: docs/WARIANTY.md).
-// Gra niesie wybrane moduły w `cardPool.variants`; starsze gry tylko `cardPool.agendaVariant`.
+// Moduły wariantów gry (fanowskie zestawy, erraty, własne komponenty). Opis modułów do
+// Ustawień jest wygenerowany z `assets/config/variants.json`; skład talii i teksty kart
+// BIEŻĄCEJ gry przychodzą z backendu (`entities/lookup/variantData`, `/variant-data`).
 const moduleById = new Map(VARIANT_MODULES.map((m) => [m.id, m]));
-const moduleDeckSets = new Map(
-  VARIANT_MODULES.map((m) => [
-    m.id,
-    Object.fromEntries(
-      Object.entries(m.decks).map(([kind, ids]) => [kind, new Set(ids)]),
-    ) as Partial<Record<ActiveDeckKind, ReadonlySet<string>>>,
-  ]),
-);
 
 /** Moduły wariantów dostępne w Ustawieniach (kolejność z manifestu). */
 export function variantModules(): readonly VariantModuleInfo[] {
@@ -95,42 +88,38 @@ export function gameVariantIds(
 ): string[] {
   if (pool?.variants) return [...pool.variants];
   const legacy = VARIANT_MODULES.find(
-    (m) => m.source === pool?.agendaVariant && m.decks.agenda,
+    (m) => m.source === pool?.agendaVariant && m.wholeDecks.includes("agenda"),
   );
   return legacy ? [legacy.id] : [];
 }
 
-/** Moduł gry, który zmienia talię `kind` (pierwszy wg kolejności wyboru) albo `undefined`. */
-function deckModule(
-  kind: ActiveDeckKind,
-  variantIds: readonly string[] | undefined,
-): VariantModuleInfo | undefined {
-  return (variantIds ?? [])
-    .map((id) => moduleById.get(id))
-    .find((m): m is VariantModuleInfo => !!m && !!m.decks[kind]);
+/** Czy wybrane moduły (Ustawienia) podmieniają karty danej kategorii źródłem `source`. */
+export function selectedModulesReplace(
+  selected: readonly string[],
+  category: string,
+  source: string,
+): boolean {
+  return selected.some((id) => {
+    const module = moduleById.get(id);
+    return !!module && module.source === source && module.replaces.includes(category);
+  });
 }
 
 /**
- * Czy karta należy do talii `kind` W TEJ GRZE (moduły `variantIds`), z kontrolą źródła:
- * oficjalne źródło albo źródło modułu, który zmienia tę talię. Bez modułu = `isInActiveDeck`.
+ * Czy karta należy do talii `kind` W TEJ GRZE. Talia zastąpiona w całości przez moduł gry
+ * = lista z backendu; inaczej talia oficjalna (erraty mają te same id co oficjalne karty).
  */
-export function isInGameDeck(
-  kind: ActiveDeckKind,
-  alias: string,
-  source: string,
-  variantIds?: readonly string[],
-): boolean {
-  const module = deckModule(kind, variantIds);
-  if (!module) return isOfficialSource(source) && isInActiveDeck(kind, alias);
-  const ids = moduleDeckSets.get(module.id)?.[kind];
-  return (isOfficialSource(source) || source === module.source) && !!ids?.has(alias);
+export function isInGameDeck(kind: ActiveDeckKind, alias: string, source: string): boolean {
+  const deck = variantDeck(kind);
+  if (deck) return deck.has(alias);
+  return isOfficialSource(source) && isInActiveDeck(kind, alias);
 }
 
-const badgeBySource = new Map(
+const staticBadges = new Map(
   VARIANT_MODULES.filter((m) => m.badge).map((m) => [m.source, m.badge as string]),
 );
 
 /** Krótka plakietka źródła fanowskiej karty (np. "ABS" dla Absol); `null` = oficjalna. */
 export function fanSourceBadge(source: string | undefined): string | null {
-  return (source && badgeBySource.get(source)) || null;
+  return variantBadge(source) ?? ((source && staticBadges.get(source)) || null);
 }

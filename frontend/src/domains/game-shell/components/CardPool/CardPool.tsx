@@ -14,7 +14,6 @@ import {
   PurgedPile,
 } from "@/domains/cards/components/DeckInspector/DeckInspector";
 import { deckSpecs } from "@/domains/cards/model/deckPiles";
-import { gameVariantIds } from "@/entities/data/officialSources";
 
 type Props = {
   cardPool?: CardPoolData;
@@ -47,8 +46,6 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
  */
 function CardPool({ cardPool }: Props) {
   const specs = useMemo(() => (cardPool ? deckSpecs(cardPool) : []), [cardPool]);
-  // Moduły wariantów gry (np. talie Absol) - decydują o składzie przeglądanych talii.
-  const variants = useMemo(() => gameVariantIds(cardPool), [cardPool]);
   if (!cardPool) {
     return <Text className={styles.empty}>No card pool data available</Text>;
   }
@@ -60,13 +57,13 @@ function CardPool({ cardPool }: Props) {
     <Box className={styles.pool}>
       <Group title="Objectives">
         <Slot label="Stage I">
-          <PublicObjectiveDeckCardBack stage={1} variants={variants} />
+          <PublicObjectiveDeckCardBack stage={1} />
         </Slot>
         <Slot label="Stage II">
-          <PublicObjectiveDeckCardBack stage={2} variants={variants} />
+          <PublicObjectiveDeckCardBack stage={2} />
         </Slot>
         <Slot label="Secrets">
-          <SecretObjectiveDeckCardBack variants={variants} />
+          <SecretObjectiveDeckCardBack />
         </Slot>
       </Group>
 
@@ -77,10 +74,10 @@ function CardPool({ cardPool }: Props) {
           </Slot>
         )}
         <Slot label="Agenda">
-          <AgendaDeckCardBack count={cardPool.agendaDeckSize} variants={variants} />
+          <AgendaDeckCardBack count={cardPool.agendaDeckSize} />
         </Slot>
         <Slot label="Relics">
-          <RelicDeckCardBack count={cardPool.relicDeckSize} variants={variants} />
+          <RelicDeckCardBack count={cardPool.relicDeckSize} />
         </Slot>
       </Group>
 

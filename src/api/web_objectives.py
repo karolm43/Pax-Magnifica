@@ -229,9 +229,9 @@ def card_pool_counts(state: GameState, registry: StaticDataRegistry) -> dict[str
         # Talia agend ("standard" / źródło modułu, np. "absol") i moduły wariantów gry
         # (core/variants) - front pokazuje właściwe pule kart.
         "agendaVariant": state.decks.agenda_variant,
-        "variants": [
-            m.id for m in variants.game_modules(state.decks.variants, state.decks.agenda_variant)
-        ],
+        "variants": list(
+            variants.game_module_ids(state.decks.variants, state.decks.agenda_variant)
+        ),
     }
     top: dict[str, str] = {}
     for deck, prefix in explore_keys.items():

@@ -6,8 +6,8 @@ w PoK, 3 nadliczbowe karty akcji, relikwia wycofana w TE). Silnik losuje z talii
 wybranej przez ``core.objectives.deck_card_ids`` (największa, kumulatywna talia danego
 typu), więc UI musi pokazywać DOKŁADNIE te same karty.
 
-Drugi blok pliku to moduły wariantów (``assets/config/variants.json``) ze składem talii,
-które zmieniają - front buduje z nich przełączniki w Ustawieniach i pule kart gry.
+Drugi blok pliku to opis modułów wariantów (``assets/config/variants.json``) - front buduje
+z nich przełączniki w Ustawieniach. Teksty i skład talii gry z modułami: ``/variant-data``.
 
 Uruchomienie: ``uv run python scripts/gen_active_decks.py`` (po zmianie assetów/manifestu).
 Test ``tests/test_active_decks_sync.py`` pilnuje zgodności pliku z silnikiem.
@@ -39,11 +39,12 @@ DECK_KEYS: dict[str, str] = {
 }
 
 
-def _render_modules(registry: StaticDataRegistry) -> list[str]:
-    """Blok ``VARIANT_MODULES``: moduły manifestu ze składem zmienianych talii."""
+def _render_modules() -> list[str]:
+    """Blok ``VARIANT_MODULES``: opis modułów manifestu (przełączniki w Ustawieniach)."""
     lines = [
         "// Moduły wariantów gry (assets/config/variants.json, silnik: core/variants.py).",
-        "// `decks` = skład talii W GRZE z tym modułem (tylko typy, które moduł zmienia).",
+        "// Skład talii i teksty kart gry przychodzą z backendu (/variant-data); tu tylko opis",
+        "// modułów do przełączników w Ustawieniach.",
         "export type VariantModuleInfo = {",
         "  id: string;",
         "  name: string;",
@@ -51,9 +52,10 @@ def _render_modules(registry: StaticDataRegistry) -> list[str]:
         "  source: string;",
         "  badge: string | null;",
         "  default: boolean;",
+        "  /** Kategorie z erratami w miejscu (np. \"genericcards\" = ploty). */",
+        "  replaces: readonly string[];",
         "  /** Talie zastępowane W CAŁOŚCI (dwa takie moduły tej samej talii się wykluczają). */",
         "  wholeDecks: readonly ActiveDeckKind[];",
-        "  decks: Partial<Record<ActiveDeckKind, readonly string[]>>;",
         "};",
         "",
         "export const VARIANT_MODULES: readonly VariantModuleInfo[] = [",
@@ -68,17 +70,10 @@ def _render_modules(registry: StaticDataRegistry) -> list[str]:
             f"    source: {json.dumps(module.source)},",
             f"    badge: {json.dumps(module.badge)},",
             f"    default: {json.dumps(module.default)},",
+            f"    replaces: {json.dumps(sorted(c.value for c in module.replaces))},",
             f"    wholeDecks: {json.dumps(whole)},",
-            "    decks: {",
+            "  },",
         ]
-        for key, deck_type in DECK_KEYS.items():
-            if deck_type not in module.deck_types():
-                continue
-            ids = sorted(set(variants.game_deck_ids(registry, deck_type, [module])))
-            lines.append(f"      {key}: [")
-            lines.extend(f'        "{card_id}",' for card_id in ids)
-            lines.append("      ],")
-        lines += ["    },", "  },"]
     lines += ["];", ""]
     return lines
 
@@ -101,7 +96,7 @@ def render(registry: StaticDataRegistry) -> str:
         "",
         "export type ActiveDeckKind = keyof typeof ACTIVE_DECK_IDS;",
         "",
-        *_render_modules(registry),
+        *_render_modules(),
     ]
     return "\n".join(lines)
 

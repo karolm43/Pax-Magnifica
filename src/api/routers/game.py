@@ -24,7 +24,7 @@ from src.api.schemas import (
 from src.api.serializers import AUTO_SLOT_ORDER, DEFAULT_MAP_STRING, build_map_view
 from src.api.web_data import build_web_data
 from src.core import actor as actor_rules
-from src.core import game_clock, reaction_window, strategy_phase, variants
+from src.core import game_clock, reaction_window, rules_hooks, strategy_phase, variants
 from src.core.faction_setup import (
     OFF_BOARD_HOME,
     apply_setup_to_state,
@@ -71,6 +71,18 @@ def get_map(ctx: AppContext = Depends(get_ctx)) -> MapView:
 def get_game_events(game_id: str) -> list[dict[str, object]]:
     """Log zdarzeń AsyncTI4 — nie produkujemy go (mamy własną historię)."""
     return []
+
+
+@router.get("/api/public/game/{game_id}/variant-data")
+def get_variant_data(game_id: str, ctx: AppContext = Depends(get_ctx)) -> dict[str, object]:
+    """Dane komponentów zmienionych/dodanych przez moduły wariantów bieżącej gry (dla UI).
+
+    ``entries``: {kategoria: {id: surowy wpis}} - erraty (oficjalne id, nowa treść) i nowe
+    komponenty. Front nakłada je na swoje statyczne dane (``entities/lookup/variantData``).
+    Publiczne: to dane statyczne kart, nie stan gry.
+    """
+    del game_id
+    return variants.ui_payload(ctx.registry)
 
 
 @router.get("/api/public/game/{game_id}/web-data")
@@ -519,10 +531,22 @@ async def post_new_game(
     iteruje ``ResolvedPlayer`` i nanosi ich na stan. ``ValueError`` z walidacji →
     ``HTTPException(422)`` z komunikatem wskazującym pole i gracza (R11.4).
     """
+    try:
+        # Moduły wariantów gry (fanowskie zestawy, erraty) - core/variants.py, docs/WARIANTY.md.
+        # Cały setup idzie na rejestrze z nałożonymi modułami (frakcje, jednostki, techy, talie).
+        variant_ids, agenda_variant = variants.resolve_new_game(
+            request.variants, request.agenda_deck
+        )
+        registry = ctx.registry_for(variant_ids)
+        variants.check_decks(registry)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    rules_hooks.bind_registry(registry)
+
     map_string = request.map_string or DEFAULT_MAP_STRING
     try:
         grid = build_grid_from_map_string(
-            map_string, ctx.registry, include_center=request.include_center
+            map_string, registry, include_center=request.include_center
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -538,24 +562,16 @@ async def post_new_game(
     try:
         resolved_players = resolve_players(
             request.players,
-            ctx.registry,
+            registry,
             available_colors=_available_colors(),
             max_players=len(AUTO_SLOT_ORDER),
-            valid_difficulties=ctx.registry.valid_difficulties(),
-            valid_personalities=ctx.registry.valid_personalities(),
+            valid_difficulties=registry.valid_difficulties(),
+            valid_personalities=registry.valid_personalities(),
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    try:
-        # Moduły wariantów gry (fanowskie talie, erraty) - core/variants.py, docs/WARIANTY.md.
-        variant_ids, agenda_variant = variants.resolve_new_game(
-            ctx.registry, request.variants, request.agenda_deck
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-    _place_locked_mallice(grid, ctx.registry)
+    _place_locked_mallice(grid, registry)
 
     new_state = GameState()
     new_state.decks.variants = variant_ids
@@ -564,7 +580,7 @@ async def post_new_game(
     taken_corners: set[str] = set()  # rogi off-board zajęte przez Ghost/Crimson
     taken_homes: set[str] = set()  # zajęte pozycje domowe (R14.4)
     for index, resolved in enumerate(resolved_players):
-        faction = ctx.registry.factions[resolved.faction_id]
+        faction = registry.factions[resolved.faction_id]
         # home_position opcjonalny (R14.3): podany → walidacja względem mapy (R14.4),
         # pominięty → auto ze slotu wg kolejności gracza (AUTO_SLOT_ORDER).
         slot_position = AUTO_SLOT_ORDER[index][0]
@@ -574,7 +590,7 @@ async def post_new_game(
         seating.append(resolved.player_id)
         # Połóż kafelki domowe (off-board dla Ghost/Crimson) i ustal gdzie flota.
         unit_position, unit_system_id = _setup_home_tiles(
-            grid, faction, home_position, ctx.registry, taken_corners
+            grid, faction, home_position, registry, taken_corners
         )
         new_state = _apply_resolved_player(
             new_state,
@@ -595,9 +611,9 @@ async def post_new_game(
     # po jednym tajnym celu na gracza, potasowana talia kart akcji.
     # Gracze, mówca i żeton Custodians kończą setup w UI (``/setup/*``); do tego czasu
     # karty strategii są zablokowane (RULES.md 45).
-    new_state = begin_setup(new_state, ctx.registry)
+    new_state = begin_setup(new_state, registry)
     # Żetony frontier na systemach bez planet (w tym bramy Creuss Gate / The Sorrow).
-    new_state = place_frontier_tokens(new_state, grid, ctx.registry)
+    new_state = place_frontier_tokens(new_state, grid, registry)
     if request.chess_clock is not None:
         # Zegar szachowy (RULES.md 58): rusza przy commicie, gdy pojawi się holder.
         new_state = game_clock.configure(

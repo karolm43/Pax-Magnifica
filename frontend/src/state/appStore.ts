@@ -72,7 +72,6 @@ const DEFAULT_SETTINGS: Settings = {
   showPlayerAreaNeighborship: true,
   adminFastMode: false,
   gameVariants: defaultVariantIds(),
-  blackSpectrumFirmamentPlots: false,
   freeUnitDrag: false,
   skipPhases: false,
   chessClockEnabled: false,
@@ -673,13 +672,6 @@ export type Settings = {
    * (`createNewGame` wysyła `variants`); zmiana nie wpływa na grę w toku.
    */
   gameVariants: string[];
-  /*
-   * Black Spectrum Firmament Plots zamiast standardowych Firmament Plots (fanowska
-   * zmiana). Podmienia karty Plot w wyborze frakcji (FactionSummary) i w szczegółach
-   * ploty w grze (Plot). Tylko WYŚWIETLANIE — efekty plotów nie są egzekwowane przez
-   * silnik (patrz README, „Plany").
-   */
-  blackSpectrumFirmamentPlots: boolean;
   /*
    * Swobodne przeciąganie jednostek (God-Mode). Wyłączone (domyślnie): drag na mapie
    * przenosi jednostki WYŁĄCZNIE do aktywnego systemu (walidowany ruch taktyczny).

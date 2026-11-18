@@ -28,13 +28,12 @@ type BackProps = {
    * odzwierciedla wtedy liczbę kart do przejrzenia, nie „0".
    */
   count?: number;
-  /** Moduły wariantów gry (`gameVariantIds(cardPool)`) - decydują o składzie talii. */
-  variants?: readonly string[];
 };
 
 /** Rewers talii agend; klik → pełna pula agend (prawa i dyrektywy). */
-export function AgendaDeckCardBack({ count, variants }: BackProps) {
-  const groups = useMemo(() => agendaPool(variants), [variants]);
+export function AgendaDeckCardBack({ count }: BackProps) {
+  // Moduły wariantów gry (talie, erraty) nakłada `entities/lookup/variantData`.
+  const groups = useMemo(() => agendaPool(), []);
   return (
     <CardbackModal
       imageSrc={assetUrl("/player_area/cardback_agenda.png")}
@@ -50,8 +49,8 @@ export function AgendaDeckCardBack({ count, variants }: BackProps) {
 }
 
 /** Rewers talii kart akcji; klik → pełna pula kart akcji. */
-export function ActionCardDeckCardBack({ count, variants }: BackProps) {
-  const groups = useMemo(() => actionCardPool(variants), [variants]);
+export function ActionCardDeckCardBack({ count }: BackProps) {
+  const groups = useMemo(() => actionCardPool(), []);
   return (
     <CardbackModal
       imageSrc={assetUrl("/player_area/cardback_action.jpg")}
@@ -72,8 +71,8 @@ type ObjectiveBackProps = BackProps & {
 };
 
 /** Rewers talii celów publicznych danego etapu; klik → pełna pula tego etapu. */
-export function PublicObjectiveDeckCardBack({ stage, count, variants }: ObjectiveBackProps) {
-  const groups = useMemo(() => publicObjectivePool(stage, variants), [stage, variants]);
+export function PublicObjectiveDeckCardBack({ stage, count }: ObjectiveBackProps) {
+  const groups = useMemo(() => publicObjectivePool(stage), [stage]);
   const image = stage === 1 ? "cardback_public1.png" : "cardback_public2.png";
   const title = stage === 1 ? "Stage I objectives" : "Stage II objectives";
   return (
@@ -91,8 +90,8 @@ export function PublicObjectiveDeckCardBack({ stage, count, variants }: Objectiv
 }
 
 /** Rewers talii celów sekretnych; klik → pełna pula sekretów (referencja). */
-export function SecretObjectiveDeckCardBack({ count, variants }: BackProps) {
-  const groups = useMemo(() => secretObjectivePool(variants), [variants]);
+export function SecretObjectiveDeckCardBack({ count }: BackProps) {
+  const groups = useMemo(() => secretObjectivePool(), []);
   return (
     <CardbackModal
       imageSrc={assetUrl("/player_area/cardback_secret.jpg")}
@@ -108,8 +107,8 @@ export function SecretObjectiveDeckCardBack({ count, variants }: BackProps) {
 }
 
 /** Rewers talii relikwii; klik → pełna pula relikwii. */
-export function RelicDeckCardBack({ count, variants }: BackProps) {
-  const groups = useMemo(() => relicPool(variants), [variants]);
+export function RelicDeckCardBack({ count }: BackProps) {
+  const groups = useMemo(() => relicPool(), []);
   return (
     <CardbackModal
       imageSrc={assetUrl("/player_area/cardback_relic.jpg")}

@@ -3,17 +3,17 @@
 Wygenerowano: `uv run python -m src.audit.hook_coverage --write`. Zasady: `RULES.md` 43.
 Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych (priorytetyzacja, nie decyzja).
 
-Zarejestrowanych hooków: **320** (lista: `pokrycie_hookow/hooki.md`).
+Zarejestrowanych hooków: **325** (lista: `pokrycie_hookow/hooki.md`).
 
 ## 2. Pokrycie per kategoria
 
 | Kategoria | Komponentów | Z hookiem | % |
 |---|---:|---:|---:|
 | action_cards | 143 | 143 | 100.0 |
-| agendas | 123 | 50 | 40.7 |
+| agendas | 63 | 50 | 79.4 |
 | explores | 80 | 4 | 5.0 |
 | relics | 24 | 23 | 95.8 |
-| promissory_notes | 41 | 15 | 36.6 |
+| promissory_notes | 40 | 15 | 37.5 |
 | galactic_events | 20 | 0 | 0.0 |
 | planets | 19 | 19 | 100.0 |
 | leaders | 102 | 30 | 29.4 |
@@ -41,29 +41,29 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 280 | 179 |
-| walka (combat.*, space_cannon, bombardment) | 247 | 118 |
-| produkcja (production.*) | 196 | 88 |
-| ekonomia i płatności (economy, payment) | 184 | 118 |
-| status i odświeżanie (status_phase) | 162 | 89 |
-| karty (card_draw, promissory) | 153 | 89 |
-| ruch (movement.*) | 149 | 92 |
-| żetony dowodzenia (command_tokens) | 117 | 67 |
-| agenda i głosowanie (agenda_phase) | 98 | 64 |
-| technologie (technology) | 80 | 49 |
-| cele i punkty (objectives) | 48 | 25 |
-| karty strategii i inicjatywa | 48 | 25 |
+| planety i eksploracja (control, exploration) | 252 | 151 |
+| walka (combat.*, space_cannon, bombardment) | 236 | 107 |
+| produkcja (production.*) | 177 | 69 |
+| ekonomia i płatności (economy, payment) | 159 | 93 |
+| status i odświeżanie (status_phase) | 148 | 75 |
+| ruch (movement.*) | 142 | 85 |
+| karty (card_draw, promissory) | 117 | 53 |
+| żetony dowodzenia (command_tokens) | 96 | 46 |
+| technologie (technology) | 68 | 37 |
+| agenda i głosowanie (agenda_phase) | 49 | 15 |
+| cele i punkty (objectives) | 36 | 13 |
+| karty strategii i inicjatywa | 28 | 5 |
 
 Szacowany typ hooka (RULES.md 43.1 pkt 4):
 
 | Typ | Komponentów |
 |---|---:|
-| — | 259 |
-| PERMIT (pozwolenie) | 197 |
+| — | 251 |
+| PERMIT (pozwolenie) | 172 |
 | TRIGGER (okno reakcji) | 156 |
-| MODIFY (liczba/rzut) | 129 |
-| FORBID (zakaz) | 60 |
-| REPLACE (instead of) | 47 |
+| MODIFY (liczba/rzut) | 115 |
+| FORBID (zakaz) | 54 |
+| REPLACE (instead of) | 39 |
 
 ## 6. Kolejka kart ACTION do zrobienia (0)
 
@@ -114,10 +114,10 @@ Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisa
 - [`pokrycie_hookow/hooki.md`](pokrycie_hookow/hooki.md) — sekcja 1: zarejestrowane hooki i punkty zaczepienia.
 - [`pokrycie_hookow/przypadki_szczegolne.md`](pokrycie_hookow/przypadki_szczegolne.md) — sekcja 5: komponenty bez dopasowania do obszaru.
 - [`pokrycie_hookow/szczegoly_action_cards.md`](pokrycie_hookow/szczegoly_action_cards.md) — sekcja 8: action_cards (143 / 143 z hookiem).
-- [`pokrycie_hookow/szczegoly_agendas.md`](pokrycie_hookow/szczegoly_agendas.md) — sekcja 8: agendas (50 / 123 z hookiem).
+- [`pokrycie_hookow/szczegoly_agendas.md`](pokrycie_hookow/szczegoly_agendas.md) — sekcja 8: agendas (50 / 63 z hookiem).
 - [`pokrycie_hookow/szczegoly_explores.md`](pokrycie_hookow/szczegoly_explores.md) — sekcja 8: explores (4 / 80 z hookiem).
 - [`pokrycie_hookow/szczegoly_relics.md`](pokrycie_hookow/szczegoly_relics.md) — sekcja 8: relics (23 / 24 z hookiem).
-- [`pokrycie_hookow/szczegoly_promissory_notes.md`](pokrycie_hookow/szczegoly_promissory_notes.md) — sekcja 8: promissory_notes (15 / 41 z hookiem).
+- [`pokrycie_hookow/szczegoly_promissory_notes.md`](pokrycie_hookow/szczegoly_promissory_notes.md) — sekcja 8: promissory_notes (15 / 40 z hookiem).
 - [`pokrycie_hookow/szczegoly_galactic_events.md`](pokrycie_hookow/szczegoly_galactic_events.md) — sekcja 8: galactic_events (0 / 20 z hookiem).
 - [`pokrycie_hookow/szczegoly_planets.md`](pokrycie_hookow/szczegoly_planets.md) — sekcja 8: planets (19 / 19 z hookiem).
 - [`pokrycie_hookow/szczegoly_leaders.md`](pokrycie_hookow/szczegoly_leaders.md) — sekcja 8: leaders (30 / 102 z hookiem).

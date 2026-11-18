@@ -1,11 +1,12 @@
 import { leaders } from "@/entities/data/leaders";
+import { withVariant } from "@/entities/lookup/variantData";
 import { indexBy } from "@/entities/lookup/indexBy";
 import type { Leader, LeaderData } from "@/entities/data/types";
 
 const leadersMap = indexBy(leaders, (leader) => leader.id);
 
 export function getLeaderById(leaderId: string): LeaderData | undefined {
-  return leadersMap.get(leaderId);
+  return withVariant("leaders", leaderId, leadersMap.get(leaderId));
 }
 
 function getFactionLeader(

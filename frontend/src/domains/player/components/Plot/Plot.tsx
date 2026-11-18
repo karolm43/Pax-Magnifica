@@ -7,8 +7,14 @@ import { Chip } from "@/shared/ui/primitives/Chip";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import type { PlotCard } from "@/entities/data/types";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
-import { useSettingsStore } from "@/state/appStore";
+import { variantEntry } from "@/entities/lookup/variantData";
 import { plotCardDescription } from "@/domains/setup/factionComponents";
+
+/** Tekst karty Plot: errata modułu wariantu gry (np. Black Spectrum) albo wersja oficjalna. */
+function plotText(alias: string): string | undefined {
+  const entry = variantEntry("genericcards", alias.toLowerCase());
+  return typeof entry?.text === "string" ? entry.text : plotCardDescription(alias, false);
+}
 
 type Props = {
   plotCard: PlotCard;
@@ -29,13 +35,9 @@ export function Plot({ plotCard, faction, compact = false }: Props) {
   const displayName = plotCard.plotAlias
     ? plotCard.plotAlias.charAt(0).toUpperCase() + plotCard.plotAlias.slice(1)
     : undefined;
-  // Tekst efektu ujawnionego plotu — zależny od wariantu (Ustawienia → Game variants).
-  const bspPlots = useSettingsStore(
-    (s) => s.settings.blackSpectrumFirmamentPlots,
-  );
-  const effectText = isRevealed
-    ? plotCardDescription(plotCard.plotAlias, bspPlots)
-    : undefined;
+  // Tekst efektu ujawnionego plotu — errata modułu wariantu gry albo wersja oficjalna.
+  const effectText =
+    isRevealed && plotCard.plotAlias ? plotText(plotCard.plotAlias) : undefined;
 
   const renderFactionSlots = (): ReactElement[] =>
     Array.from({ length: MAX_PLOT_SLOTS }, (_, i) =>

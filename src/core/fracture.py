@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.core import variants
 from src.core.board_edit import planet_position
 from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.expedition_state import IngressChoice
@@ -74,6 +75,25 @@ NEUTRAL_SETUP: dict[str, dict[str, dict[str, int]]] = {
         "phlegethon": {"infantry": 1},
     },
 }
+
+
+# Parametry setupu/reguł Fracture nadpisywalne przez moduły wariantów (``rules`` w
+# ``assets/config/variants.json``, core/variants.rule_value). Domyślnie wartości wyżej.
+RULE_ROLL_SUCCESS = "fracture.roll_success"
+RULE_INGRESS_SYNERGY = "fracture.ingress_per_synergy_color"
+RULE_INGRESS_NO_SYNERGY = "fracture.ingress_per_color_no_synergy"
+RULE_NEUTRAL_SETUP = "fracture.neutral_setup"
+
+
+def roll_success(registry: StaticDataRegistry) -> frozenset[int]:
+    """Wyniki d10 wprowadzające Fracture w grze (moduły mogą zmienić)."""
+    default = sorted(FRACTURE_ROLL_SUCCESS)
+    return frozenset(variants.rule_value(registry, RULE_ROLL_SUCCESS, default))
+
+
+def neutral_setup(registry: StaticDataRegistry) -> dict[str, dict[str, dict[str, int]]]:
+    """Jednostki neutralne z odwrotu kafli Fracture w grze (moduły mogą zmienić)."""
+    return variants.rule_value(registry, RULE_NEUTRAL_SETUP, NEUTRAL_SETUP)
 
 
 def is_fracture_position(position: str) -> bool:
@@ -204,11 +224,12 @@ def _synergy_colors(registry: StaticDataRegistry, breakthrough_id: str | None) -
     return colors if colors else None
 
 
-def _place_neutrals(state: GameState) -> None:
+def _place_neutrals(state: GameState, registry: StaticDataRegistry) -> None:
+    setup = neutral_setup(registry)
     for position, tile_id in zip(FRACTURE_POSITIONS, FRACTURE_TILE_IDS, strict=True):
         system = SystemState(position=position, system_id=tile_id)
         state.systems[position] = system
-        for zone, units in NEUTRAL_SETUP.get(tile_id, {}).items():
+        for zone, units in setup.get(tile_id, {}).items():
             for base_type, count in units.items():
                 place_units(
                     state, system, zone, NEUTRAL_PLAYER_ID, base_type, count, UnitCause.SETUP
@@ -235,7 +256,7 @@ def _enter(
     fracture.in_play = True
     fracture.entered_by = player_id
     fracture.breakthrough_id = breakthrough_id
-    _place_neutrals(state)
+    _place_neutrals(state, registry)
     _log(state, {"type": "enter", "playerId": player_id, "breakthroughId": breakthrough_id})
 
     # Dodatkowy ingress (po ingressach z kolorów — kolejność nie ma znaczenia dla wyniku, ale
@@ -248,11 +269,23 @@ def _enter(
     colors = _synergy_colors(registry, breakthrough_id)
     if colors is not None:
         fracture.pending = [
-            IngressChoice(color=c, remaining=INGRESS_PER_SYNERGY_COLOR) for c in colors
+            IngressChoice(
+                color=c,
+                remaining=variants.rule_value(
+                    registry, RULE_INGRESS_SYNERGY, INGRESS_PER_SYNERGY_COLOR
+                ),
+            )
+            for c in colors
         ]
     else:
         fracture.pending = [
-            IngressChoice(color=c, remaining=INGRESS_PER_COLOR_NO_SYNERGY) for c in COLORS
+            IngressChoice(
+                color=c,
+                remaining=variants.rule_value(
+                    registry, RULE_INGRESS_NO_SYNERGY, INGRESS_PER_COLOR_NO_SYNERGY
+                ),
+            )
+            for c in COLORS
         ]
     _settle_pending(state, registry, grid)
 
@@ -309,18 +342,21 @@ def roll_for_fracture(
     if state.fracture.in_play:
         return
     result = next_rng(state).randint(1, DIE_SIDES)
-    success = result in FRACTURE_ROLL_SUCCESS
+    hits = roll_success(registry)
+    success = result in hits
     record_table_roll(
         state,
         player_id,
         "fracture",
         "The Fracture",
         [result],
-        hit_values=sorted(FRACTURE_ROLL_SUCCESS),
+        hit_values=sorted(hits),
         summary=(
             "The Fracture enters play!"
             if success
-            else "The Fracture needs a 1 or a 10. Better luck next time."
+            else "The Fracture needs "
+            + " or ".join(f"a {v}" for v in sorted(hits))
+            + ". Better luck next time."
         ),
     )
     state.fracture.last_roll = {

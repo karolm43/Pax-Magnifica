@@ -14,7 +14,7 @@ pliku — nazwy plików w AsyncTI4 nie odpowiadają 1:1 identyfikatorom źróde�
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol, TypeVar, cast
@@ -24,7 +24,7 @@ from pydantic import BaseModel
 from src import config
 from src.core import rules_hooks, variants
 from src.core.component_loader import LoadReport, load_components
-from src.core.components import ComponentCatalog, build_timing_specs
+from src.core.components import ComponentCatalog, ComponentCategory, build_timing_specs
 from src.core.effects_registry import EffectRegistry
 from src.core.models import (
     AbilityDef,
@@ -111,7 +111,11 @@ class RegistryReport:
 class StaticDataRegistry:
     """Niemutowalny rejestr statycznych danych gry dla aktywnych źródeł."""
 
-    def __init__(self, enabled_sources: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        enabled_sources: list[str] | None = None,
+        variant_ids: Sequence[str] = (),
+    ) -> None:
         self._enabled: set[str] = set(
             enabled_sources
             if enabled_sources is not None
@@ -120,6 +124,25 @@ class StaticDataRegistry:
         # Nieznane identyfikatory źródeł to błąd konfiguracji — przerywamy przed _load().
         validate_enabled_sources(self._enabled, known_source_ids())
         self._skipped: dict[str, int] = {}
+
+        # Moduły wariantów gry (core/variants.py, docs/WARIANTY.md): erraty komponentów w
+        # miejscu, nowe komponenty, całe talie i parametry reguł. Rejestr jest budowany PER
+        # ZESTAW MODUŁÓW; bez modułów = czyste dane aktywnych źródeł.
+        known_modules = variants.modules()
+        self.variant_ids: tuple[str, ...] = tuple(variants.validate_selection(variant_ids))
+        self.variant_modules: list[variants.VariantModule] = [
+            known_modules[i] for i in self.variant_ids
+        ]
+        self.variant_plan: variants.VariantLoadPlan = variants.load_plan(self.variant_modules)
+        # "<kategoria>:<id oficjalne>" -> źródło erraty nałożonej w miejscu (rules_hooks
+        # wyłącza oficjalne hooki takich komponentów, front dostaje ich nowy tekst).
+        self.variant_replaced: dict[str, str] = {}
+        # Surowe wpisy zmienione/dodane przez moduły ("<kategoria>:<id>" -> wpis) - teksty i
+        # dane dla UI (front ma statyczne dane tylko oficjalnych komponentów).
+        self.variant_entries: dict[str, Mapping[str, object]] = {}
+        self.variant_rules: dict[str, object] = {}
+        for module in self.variant_modules:
+            self.variant_rules.update(module.rules)
 
         self.units: dict[str, UnitDef] = {}
         self.planets: dict[str, PlanetDef] = {}
@@ -161,6 +184,7 @@ class StaticDataRegistry:
         entries: Iterable[dict[str, object]],
         model_cls: type[TModel],
         label: str | None = None,
+        category: ComponentCategory | None = None,
     ) -> dict[str, TModel]:
         """Filtruje wpisy po aktywnym ``source`` i buduje słownik id -> model.
 
@@ -169,11 +193,25 @@ class StaticDataRegistry:
         """
         result: dict[str, TModel] = {}
         collided: set[str] = set()
+        allowed: set[str] = set(self._enabled)
+        if category is not None and self.variant_plan.sources_for(category):
+            # Moduły wariantów: erraty w miejscu + nowe komponenty pod własnymi id.
+            allowed |= self.variant_plan.own_sources_for(category)
+            entries = (
+                dict(entry)
+                for _, entry in self.variant_plan.overlay(
+                    category,
+                    ((None, e) for e in entries),
+                    self._enabled,
+                    self.variant_replaced,
+                    self.variant_entries,
+                )
+            )
         for entry in entries:
             source = entry.get("source")
             if not isinstance(source, str):
                 continue
-            if source not in self._enabled:
+            if source not in allowed:
                 self._skipped[source] = self._skipped.get(source, 0) + 1
                 continue
             model = model_cls.model_validate(entry)
@@ -187,34 +225,38 @@ class StaticDataRegistry:
 
     def _load(self) -> None:
         self.units = self._collect(
-            _iter_dir_entries(config.UNITS_DATA_DIR), UnitDef, "units"
+            _iter_dir_entries(config.UNITS_DATA_DIR), UnitDef, "units", ComponentCategory.UNIT
         )
         self.planets = self._collect(
-            _iter_dir_entries(config.PLANETS_DIR), PlanetDef, "planets"
+            _iter_dir_entries(config.PLANETS_DIR), PlanetDef, "planets",
+            ComponentCategory.PLANET,
         )
         self.systems = self._collect(
             _iter_dir_entries(config.SYSTEMS_DIR), SystemDef, "systems"
         )
         self.factions = self._collect(
-            _iter_dir_entries(config.FACTIONS_DATA_DIR), FactionDef, "factions"
+            _iter_dir_entries(config.FACTIONS_DATA_DIR), FactionDef, "factions",
+            ComponentCategory.FACTION,
         )
         self.strategy_cards = self._collect(
             _iter_dir_entries(config.STRATEGY_CARDS_DIR), StrategyCardDef,
-            "strategy_cards",
+            "strategy_cards", ComponentCategory.STRATEGY_CARD,
         )
         self.leaders = self._collect(
-            _iter_dir_entries(config.LEADERS_DATA_DIR), LeaderDef, "leaders"
+            _iter_dir_entries(config.LEADERS_DATA_DIR), LeaderDef, "leaders",
+            ComponentCategory.LEADER,
         )
         self.abilities = self._collect(
-            _iter_dir_entries(config.ABILITIES_DATA_DIR), AbilityDef, "abilities"
+            _iter_dir_entries(config.ABILITIES_DATA_DIR), AbilityDef, "abilities",
+            ComponentCategory.ABILITY,
         )
         self.technologies = self._collect(
             _iter_dir_entries(config.TECHNOLOGIES_DATA_DIR), TechnologyDef,
-            "technologies",
+            "technologies", ComponentCategory.TECHNOLOGY,
         )
         self.breakthroughs = self._collect(
             _iter_dir_entries(config.BREAKTHROUGHS_DATA_DIR), BreakthroughDef,
-            "breakthroughs",
+            "breakthroughs", ComponentCategory.BREAKTHROUGH,
         )
 
         self._apply_thunders_edge_breakthrough_techs()
@@ -224,8 +266,10 @@ class StaticDataRegistry:
         # deterministyczny wybór przy kolizji id — D9). Specyfikacje czasowe budujemy
         # z kart akcji, zdolności frakcji i liderów (R8.2).
         tables, self.load_report = load_components(
-            self._enabled, variant_plan=variants.load_plan()
+            self._enabled, variant_plan=self.variant_plan
         )
+        self.variant_replaced.update(self.load_report.variant_replaced)
+        self.variant_entries.update(self.load_report.variant_entries)
         timing_specs = build_timing_specs(
             tables, leaders=self.leaders, abilities=self.abilities
         )
@@ -269,7 +313,15 @@ class StaticDataRegistry:
         self.system_index = {sid: i for i, sid in enumerate(sorted(self.systems))}
 
         # Dane statyczne dla hooków (liderzy, przełom, rodzina frakcji): rules_hooks.bind_registry.
-        rules_hooks.bind_registry(self)
+        # Rejestr z modułami wariantów NIE wiąże się sam - wiąże go gra, która go używa
+        # (``AppContext.registry``, ``/game/new``), inaczej podmieniłby dane innym grom.
+        if not self.variant_ids:
+            rules_hooks.bind_registry(self)
+
+    @property
+    def enabled_sources(self) -> frozenset[str]:
+        """Aktywne źródła (manifest ``enabled_sources.json``) - bez źródeł modułów wariantów."""
+        return frozenset(self._enabled)
 
     # --- Rodzina frakcji i przełomy (Thunder's Edge) --------------------
 

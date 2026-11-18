@@ -17,7 +17,6 @@ komponentów — zero hardkodowania.
 from __future__ import annotations
 
 import random
-from collections.abc import Sequence
 
 from src.core import (
     objectives,
@@ -44,17 +43,12 @@ from src.core.registry import StaticDataRegistry
 _COLOR_PLACEHOLDER = "<color>"
 
 
-def common_promissory_note_ids(
-    registry: StaticDataRegistry,
-    color: str,
-    mods: Sequence[variants.VariantModule] = (),
-) -> list[str]:
+def common_promissory_note_ids(registry: StaticDataRegistry, color: str) -> list[str]:
     """Identyfikatory wspólnych promissory notes dla danego koloru (np. ``red_cf``).
 
     Szablony ``<color>_*`` z aktywnych (oficjalnych) źródeł katalogu; kolejność
-    deterministyczna (alias). Moduły wariantów z ``replaces: ["promissory_note"]`` podmieniają
-    oficjalny szablon w tym samym miejscu ręki (``<color>_ps`` -> ``absol_<color>_ps``,
-    Absol's Political Secret) - ``core/variants.promissory_replacements``.
+    deterministyczna (alias). Erraty modułów wariantów (np. Absol's Political Secret) są
+    nałożone w rejestrze gry pod oficjalnym id szablonu (``<color>_ps``).
     """
     notes = registry.catalog.all(ComponentCategory.PROMISSORY_NOTE)
     fan = variants.variant_sources()
@@ -63,11 +57,7 @@ def common_promissory_note_ids(
         for note_id, note in notes.items()
         if note_id.startswith(f"{_COLOR_PLACEHOLDER}_") and note.source not in fan
     )
-    replacements = variants.promissory_replacements(registry, mods)
-    return [
-        replacements.get(note_id, note_id).replace(_COLOR_PLACEHOLDER, color, 1)
-        for note_id in templates
-    ]
+    return [note_id.replace(_COLOR_PLACEHOLDER, color, 1) for note_id in templates]
 
 
 def deal_promissory_notes(state: GameState, registry: StaticDataRegistry) -> GameState:
@@ -77,13 +67,7 @@ def deal_promissory_notes(state: GameState, registry: StaticDataRegistry) -> Gam
         hand: list[str] = []
         if player.color is not None:
             hand.extend(
-                common_promissory_note_ids(
-                    registry,
-                    player.color,
-                    variants.game_modules(
-                        new_state.decks.variants, new_state.decks.agenda_variant
-                    ),
-                )
+                common_promissory_note_ids(registry, player.color)
             )
         faction = registry.factions.get(player.faction) if player.faction else None
         if faction is not None:

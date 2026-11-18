@@ -1,11 +1,12 @@
 import { techs } from "@/entities/data/tech";
+import { withVariant } from "@/entities/lookup/variantData";
 import { indexBy } from "@/entities/lookup/indexBy";
 import type { Tech } from "@/entities/data/types";
 
 const techsMap = indexBy(techs, (tech) => tech.alias);
 
 export const getTechData = (techId: string): Tech | undefined => {
-  return techsMap.get(techId);
+  return withVariant("technologies", techId, techsMap.get(techId));
 };
 
 export const getTechTier = (requirements?: string): number => {

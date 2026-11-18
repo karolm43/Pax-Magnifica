@@ -1,4 +1,4 @@
-# Pokrycie hooków: promissory_notes (41)
+# Pokrycie hooków: promissory_notes (40)
 
 Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_HOOKOW.md). Kolumna „Typ” to oszacowanie heurystyczne.
 
@@ -9,7 +9,6 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `<color>_ps` | Political Secret | — | — | FORBID (zakaz) | karty, agenda i głosowanie | ✔ | When an agenda is revealed: The <color> player cannot vote, play action cards, or use faction abilities until after that agenda has been re… |
 | `<color>_sftt` | Support for the Throne | — | — | MODIFY (liczba/rzut) | cele i punkty | ✔ | When you receive this card, if you are not the <color> player, you must place it faceup in your play area and gain 1 victory point. When yo… |
 | `<color>_ta` | Trade Agreement | — | — | — | ekonomia i płatności | ✔ | When the <color> player replenishes commodities: The <color> player gives you all of their commodities. Then, return this card to the <colo… |
-| `absol_<color>_ps` | Absol's Political Secret | — | — | PERMIT (pozwolenie) | planety i eksploracja, agenda i głosowanie, status i odświeżanie | — | When you cast votes: You may exhaust up to 3 of the <color> player's planets and cast votes as if you controlled the exhausted planets. The… |
 | `acq` | Acquiescence | winnu | — | — | ekonomia i płatności, żetony dowodzenia, karty strategii i inicjatywa | ✔ | When the Winnu player resolves a strategic action: You do not have to spend or place a command token to resolve the secondary ability of th… |
 | `ambuscade` | Strike Wing Ambuscade | argent | — | MODIFY (liczba/rzut) | walka | — | When 1 or more of your units make a roll for a unit ability: Choose 1 of those units to roll 1 additional die. Then, return this card to th… |
 | `antivirus` | Antivirus | nekro | — | FORBID (zakaz) | walka, technologie | — | At the start of a combat: Place this card faceup in your play area. While this card is in your play area, the Nekro player cannot use their… |

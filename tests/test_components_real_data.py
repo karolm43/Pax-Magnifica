@@ -17,7 +17,6 @@ from __future__ import annotations
 import pytest
 
 from src.audit.diffs import load_expected_gaps
-from src.core import variants as game_variants
 from src.core.components import CATEGORY_SPECS, ComponentCategory
 from src.core.registry import StaticDataRegistry
 
@@ -52,7 +51,7 @@ def test_wszystkie_source_naleza_do_aktywnych(registry: StaticDataRegistry) -> N
     enabled = set(registry.report().enabled_sources)
     # Wyjątek: moduły wariantów gry (assets/config/variants.json) - loader dociąga z ich
     # źródeł WYŁĄCZNIE to, co przewiduje plan ładowania (core/variants.load_plan).
-    plan = game_variants.load_plan()
+    plan = registry.variant_plan
     offending: dict[str, set[str]] = {}
     for category in CATEGORY_SPECS:
         for component in registry.catalog.all(category).values():

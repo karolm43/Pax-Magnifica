@@ -29,7 +29,6 @@ import {
 } from "@tabler/icons-react";
 import { AppModal } from "@/shared/ui/AppModal";
 import { useGameData } from "@/state/useGameContext";
-import { gameVariantIds } from "@/entities/data/officialSources";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import {
   useBoardEditor,
@@ -203,11 +202,10 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [player]);
 
-  const variants = useMemo(() => gameVariantIds(gameData?.cardPool), [gameData?.cardPool]);
-  const acOptions = useMemo(() => actionCardOptions(variants), [variants]);
-  const soOptions = useMemo(() => secretObjectiveOptions(variants), [variants]);
+  const acOptions = useMemo(() => actionCardOptions(), []);
+  const soOptions = useMemo(() => secretObjectiveOptions(), []);
   const pnOptions = useMemo(() => promissoryNoteOptions(), []);
-  const relicOpts = useMemo(() => relicOptions(variants), [variants]);
+  const relicOpts = useMemo(() => relicOptions(), []);
   const fragmentKinds = useMemo(() => relicFragmentKinds(), []);
 
   const apply = async (edit: PlayerEdit) => {

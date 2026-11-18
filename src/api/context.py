@@ -24,7 +24,7 @@ from src.api.saves import SaveManager
 from src.api.seats import SeatRegistry
 from src.api.serializers import build_map_view
 from src.api.state_service import StateService
-from src.core import board_graph, fracture, nexus
+from src.core import board_graph, fracture, nexus, rules_hooks, variants
 from src.core.event_store import EventStore
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -60,10 +60,42 @@ class AppContext:
         self._restore_grid = restore_grid
         self.save_name: str | None = None
         self.manager = manager
-        self.registry = registry
+        # Rejestr danych bez modułów wariantów + rejestry dla zestawów modułów (budowane
+        # leniwie, raz na zestaw). ``registry`` zwraca rejestr BIEŻĄCEJ gry.
+        self._base_registry = registry
+        self._variant_registries: dict[tuple[str, ...], StaticDataRegistry] = {
+            registry.variant_ids: registry
+        }
         self._grid = current_grid
         # Efekty kart akcji (core) patrzą na całą planszę, ale nie dostają siatki w parametrach.
         board_graph.bind_grid_provider(lambda: self.current_grid)
+
+    @property
+    def registry(self) -> StaticDataRegistry:
+        """Rejestr danych bieżącej gry: dane aktywnych źródeł + jej moduły wariantów.
+
+        Moduły (``GameState.decks.variants``) nakładają erraty i nowe komponenty
+        (``core/variants.py``). Hooki (``rules_hooks``) czytają ten sam rejestr - wiążemy go
+        przy zmianie.
+        """
+        state = self.service.current_state()
+        ids = variants.game_module_ids(state.decks.variants, state.decks.agenda_variant)
+        registry = self.registry_for(ids)
+        if rules_hooks.bound_registry() is not registry:
+            rules_hooks.bind_registry(registry)
+        return registry
+
+    def registry_for(self, variant_ids: tuple[str, ...] | list[str]) -> StaticDataRegistry:
+        """Rejestr dla zestawu modułów (cache). Raises: ``VariantConfigError``."""
+        key = tuple(variant_ids)
+        found = self._variant_registries.get(key)
+        if found is None:
+            found = StaticDataRegistry(
+                enabled_sources=sorted(self._base_registry.enabled_sources),
+                variant_ids=key,
+            )
+            self._variant_registries[key] = found
+        return found
 
     @property
     def current_grid(self) -> HexGrid:

@@ -1,4 +1,5 @@
 import { strategyCards } from "@/entities/data/strategyCards";
+import { withVariant } from "@/entities/lookup/variantData";
 import { indexBy } from "@/entities/lookup/indexBy";
 import type { StrategyCardDefinition } from "@/entities/data/types";
 
@@ -49,7 +50,7 @@ function withImageFallback(
 export function getStrategyCardById(
   id: string
 ): StrategyCardDefinition | undefined {
-  const card = strategyCardsById.get(id);
+  const card = withVariant("strategy_cards", id, strategyCardsById.get(id));
   return card ? withImageFallback(card) : undefined;
 }
 

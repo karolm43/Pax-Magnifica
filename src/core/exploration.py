@@ -138,14 +138,11 @@ def deck_card_ids(
 ) -> list[str]:
     """Wszystkie karty talii eksploracji (posortowane) wg typu karty w katalogu.
 
-    Ze ``state`` uwzględnia moduły wariantów gry (``core/variants.explore_deck_ids``).
+    Moduły wariantów gry są w rejestrze (``core/variants.explore_deck_ids``); ``state``
+    zostaje w sygnaturze dla czytelności wywołań (talia W GRZE).
     """
-    mods = (
-        variants.game_modules(state.decks.variants, state.decks.agenda_variant)
-        if state is not None
-        else []
-    )
-    return variants.explore_deck_ids(registry, deck, mods)
+    del state
+    return variants.explore_deck_ids(registry, deck)
 
 
 def seed_deck(state: GameState, registry: StaticDataRegistry, deck: str) -> None:

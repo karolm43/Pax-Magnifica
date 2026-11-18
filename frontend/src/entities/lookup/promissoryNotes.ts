@@ -1,4 +1,5 @@
 import { promissoryNotes } from "@/entities/data/promissoryNotes";
+import { withVariant } from "@/entities/lookup/variantData";
 import { indexBy } from "@/entities/lookup/indexBy";
 import type { PromissoryNote } from "@/entities/data/types";
 import type { FactionColorMap } from "@/entities/game/types";
@@ -22,7 +23,8 @@ const variantNotesMap = indexBy(
 );
 
 function getPromissoryNoteByAlias(alias: string): PromissoryNote | undefined {
-  return promissoryNotesMap.get(alias);
+  // Errata modułów wariantów gry (np. Absol's Political Secret pod `<color>_ps`).
+  return withVariant("promissory_notes", alias, promissoryNotesMap.get(alias));
 }
 
 /**

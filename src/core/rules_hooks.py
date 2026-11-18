@@ -320,6 +320,10 @@ class Hook:
     decide: bool = False
     # Kto podejmuje decyzję, jeśli to NIE właściciel źródła (np. ofiara Assault Cannon).
     decider: DeciderFn | None = None
+    # Moduł wariantu (źródło, np. "black_spectrum"): hook działa TYLKO w grze, w której ten
+    # moduł nałożył erratę na komponent ``covers``/źródła; ``None`` = wersja oficjalna
+    # (wyłączana, gdy komponent podmieniono). Patrz ``variant_active`` i core/variants.py.
+    variant: str | None = None
 
 
 # Opis wyborów gracza dla efektu (formularz UI): (stan, rejestr, gracz) -> lista wejść.
@@ -332,6 +336,11 @@ DeciderFn = Callable[[GameState, str, Mapping[str, Any]], str]
 _REGISTRY: list[Hook] = []
 _EFFECTS: dict[str, EffectFn] = {}
 _INPUTS: dict[str, InputsFn] = {}
+# Efekty/wejścia/zdolności WERSJI WARIANTU komponentu: (źródło modułu, klucz) -> funkcja.
+_VARIANT_EFFECTS: dict[tuple[str, str], EffectFn] = {}
+_VARIANT_INPUTS: dict[tuple[str, str], InputsFn] = {}
+_VARIANT_ABILITIES: dict[tuple[str, str], EffectFn] = {}
+_VARIANT_ABILITY_INPUTS: dict[tuple[str, str], InputsFn] = {}
 _DATA_DRIVEN: set[str] = set()
 # Zdolności technologii używane NIE jako akcja (np. Psychoarchaeology) - RULES.md 57.
 _ABILITIES: dict[str, EffectFn] = {}
@@ -340,17 +349,25 @@ _loaded = False
 
 
 def register(
-    point: str, source: HookSource, kind: HookKind, covers: str | None = None
+    point: str,
+    source: HookSource,
+    kind: HookKind,
+    covers: str | None = None,
+    *,
+    variant: str | None = None,
 ) -> Callable[[HookFn], HookFn]:
     """Dekorator rejestrujący funkcję jako hook na ``point`` dla ``source``.
 
     ``covers`` (``"<kategoria>:<id>"``, np. ``"technologies:amd"``) wskazuje komponent,
     którego efekt hook realizuje; na tej podstawie rejestr efektów oznacza go jako
     IMPLEMENTED i powstaje raport pokrycia (H3). Brak = hook bez przypisanego komponentu.
+    ``variant`` = źródło modułu wariantu, którego wersję komponentu hook realizuje.
     """
 
     def decorate(fn: HookFn) -> HookFn:
-        _REGISTRY.append(Hook(point, source, kind, fn, len(_REGISTRY), covers))
+        _REGISTRY.append(
+            Hook(point, source, kind, fn, len(_REGISTRY), covers, variant=variant)
+        )
         return fn
 
     return decorate
@@ -370,6 +387,7 @@ def on_event(
     inputs: OfferInputsFn | None = None,
     decide: bool = False,
     decider: DeciderFn | None = None,
+    variant: str | None = None,
 ) -> Callable[[HookFn], HookFn]:
     """Rejestruje hook ZDARZENIA: ``fn(state, player_id, ctx)`` odpalane przez ``triggers.fire``.
 
@@ -393,6 +411,7 @@ def on_event(
             Hook(
                 event_point(event, moment), source, kind, fn, len(_REGISTRY), covers,
                 optional, where_items, condition, label, inputs, decide, decider,
+                variant,
             )
         )
         return fn
@@ -400,13 +419,19 @@ def on_event(
     return decorate
 
 
-def register_effect(component_key: str) -> Callable[[EffectFn], EffectFn]:
+def register_effect(
+    component_key: str, *, variant: str | None = None
+) -> Callable[[EffectFn], EffectFn]:
     """Rejestruje efekt jednorazowy komponentu (``\"<kategoria>:<id>\"``), np. karty akcji.
 
     Komponent z efektem jest IMPLEMENTED (``covered_components``). Jeden efekt na komponent.
+    ``variant`` = efekt wersji z modułu wariantu (core/variants.py).
     """
 
     def decorate(fn: EffectFn) -> EffectFn:
+        if variant is not None:
+            _register_variant(_VARIANT_EFFECTS, variant, component_key, fn)
+            return fn
         if component_key in _EFFECTS:
             raise ValueError(f"Effect already registered for {component_key}.")
         _EFFECTS[component_key] = fn
@@ -415,10 +440,15 @@ def register_effect(component_key: str) -> Callable[[EffectFn], EffectFn]:
     return decorate
 
 
-def register_effect_inputs(component_key: str) -> Callable[[InputsFn], InputsFn]:
+def register_effect_inputs(
+    component_key: str, *, variant: str | None = None
+) -> Callable[[InputsFn], InputsFn]:
     """Rejestruje opis wyborów gracza dla efektu komponentu (patrz ``hooks/action_card_inputs``)."""
 
     def decorate(fn: InputsFn) -> InputsFn:
+        if variant is not None:
+            _register_variant(_VARIANT_INPUTS, variant, component_key, fn)
+            return fn
         if component_key in _INPUTS:
             raise ValueError(f"Inputs already registered for {component_key}.")
         _INPUTS[component_key] = fn
@@ -427,10 +457,15 @@ def register_effect_inputs(component_key: str) -> Callable[[InputsFn], InputsFn]
     return decorate
 
 
-def register_ability(tech_id: str) -> Callable[[EffectFn], EffectFn]:
+def register_ability(
+    tech_id: str, *, variant: str | None = None
+) -> Callable[[EffectFn], EffectFn]:
     """Rejestruje zdolność technologii używaną poza akcją (``technologies:<id>`` = pokryta)."""
 
     def decorate(fn: EffectFn) -> EffectFn:
+        if variant is not None:
+            _register_variant(_VARIANT_ABILITIES, variant, tech_id, fn)
+            return fn
         if tech_id in _ABILITIES:
             raise ValueError(f"Ability already registered for {tech_id}.")
         _ABILITIES[tech_id] = fn
@@ -440,10 +475,15 @@ def register_ability(tech_id: str) -> Callable[[EffectFn], EffectFn]:
     return decorate
 
 
-def register_ability_inputs(tech_id: str) -> Callable[[InputsFn], InputsFn]:
+def register_ability_inputs(
+    tech_id: str, *, variant: str | None = None
+) -> Callable[[InputsFn], InputsFn]:
     """Rejestruje opis wyborów zdolności technologii (formularz w UI)."""
 
     def decorate(fn: InputsFn) -> InputsFn:
+        if variant is not None:
+            _VARIANT_ABILITY_INPUTS[(variant, tech_id)] = fn
+            return fn
         _ABILITY_INPUTS[tech_id] = fn
         return fn
 
@@ -451,8 +491,12 @@ def register_ability_inputs(tech_id: str) -> Callable[[InputsFn], InputsFn]:
 
 
 def ability_for(tech_id: str) -> tuple[EffectFn, InputsFn | None] | None:
-    """Zdolność technologii używana poza akcją albo ``None``."""
+    """Zdolność technologii używana poza akcją albo ``None`` (wersja wariantu, gdy podmieniona)."""
     _ensure_loaded()
+    variant = replaced_by(f"technologies:{tech_id}")
+    if variant is not None:
+        fn = _VARIANT_ABILITIES.get((variant, tech_id))
+        return None if fn is None else (fn, _VARIANT_ABILITY_INPUTS.get((variant, tech_id)))
     fn = _ABILITIES.get(tech_id)
     return None if fn is None else (fn, _ABILITY_INPUTS.get(tech_id))
 
@@ -466,13 +510,70 @@ def all_abilities() -> list[str]:
 def inputs_for(component_key: str) -> InputsFn | None:
     """Opis wyborów efektu albo ``None`` (efekt bez parametrów lub brak efektu)."""
     _ensure_loaded()
+    variant = replaced_by(component_key)
+    if variant is not None:
+        return _VARIANT_INPUTS.get((variant, component_key))
     return _INPUTS.get(component_key)
 
 
 def effect_for(component_key: str) -> EffectFn | None:
-    """Efekt jednorazowy komponentu albo ``None`` (brak = MANUAL, rozstrzyga operator)."""
+    """Efekt jednorazowy komponentu albo ``None`` (brak = MANUAL, rozstrzyga operator).
+
+    Komponent podmieniony erratą modułu wariantu ma efekt tylko z ``register_effect(...,
+    variant=<źródło>)`` - oficjalny efekt nie pasuje już do jego tekstu.
+    """
     _ensure_loaded()
+    variant = replaced_by(component_key)
+    if variant is not None:
+        return _VARIANT_EFFECTS.get((variant, component_key))
     return _EFFECTS.get(component_key)
+
+
+def _register_variant(
+    table: dict[tuple[str, str], Any], variant: str, key: str, fn: Any
+) -> None:
+    if (variant, key) in table:
+        raise ValueError(f"Variant {variant!r} effect already registered for {key}.")
+    table[(variant, key)] = fn
+
+
+# Rodzaj źródła hooka -> kategoria komponentu (klucz ``"<kategoria>:<id>"`` errat wariantów).
+_SOURCE_CATEGORY: dict[str, str] = {
+    SOURCE_TECHNOLOGY: "technologies",
+    SOURCE_RELIC: "relics",
+    SOURCE_LEADER: "leaders",
+    SOURCE_BREAKTHROUGH: "breakthroughs",
+    SOURCE_PROMISSORY: "promissory_notes",
+    SOURCE_AGENDA: "agendas",
+    SOURCE_UNIT: "units",
+    SOURCE_PLANET: "planets",
+}
+
+
+def replaced_by(component_key: str) -> str | None:
+    """Źródło modułu, którego errata podmieniła komponent w bieżącej grze, albo ``None``."""
+    registry = _BOUND_REGISTRY
+    replaced = getattr(registry, "variant_replaced", None) if registry is not None else None
+    return replaced.get(component_key) if replaced else None
+
+
+def hook_component_key(hook: Hook) -> str | None:
+    """Komponent hooka: ``covers`` albo klucz z rodzaju i id źródła."""
+    if hook.covers is not None:
+        return hook.covers
+    category = _SOURCE_CATEGORY.get(hook.source.kind)
+    return f"{category}:{hook.source.component_id}" if category else None
+
+
+def variant_active(hook: Hook) -> bool:
+    """Czy hook obowiązuje w bieżącej grze: wersja hooka = wersja komponentu w grze.
+
+    Oficjalny hook (``variant=None``) działa, dopóki komponentu nie podmieniono; hook wariantu
+    działa tylko, gdy ten moduł podmienił komponent.
+    """
+    key = hook_component_key(hook)
+    current = replaced_by(key) if key is not None else None
+    return hook.variant == current
 
 
 def _ensure_loaded() -> None:
@@ -535,8 +636,19 @@ def declare_core_rule(*component_keys: str) -> None:
 def covered_components() -> frozenset[str]:
     """Klucze ``"<kategoria>:<id>"`` komponentów, które mają zarejestrowany hook."""
     _ensure_loaded()
-    covered = {h.covers for h in _REGISTRY if h.covers is not None}
+    covered = {h.covers for h in _REGISTRY if h.covers is not None and h.variant is None}
     return frozenset(covered | set(_EFFECTS) | _DATA_DRIVEN)
+
+
+def covered_variant_components() -> frozenset[tuple[str, str]]:
+    """(źródło modułu, ``"<kategoria>:<id>"``) wersji wariantów, które mają hook lub efekt."""
+    _ensure_loaded()
+    found = {
+        (h.variant, h.covers)
+        for h in _REGISTRY
+        if h.variant is not None and h.covers is not None
+    }
+    return frozenset(found | set(_VARIANT_EFFECTS) | set(_VARIANT_ABILITIES))
 
 
 # Podgląd skutku efektu (UI: „dotyczy: …"): (stan, rejestr, gracz) -> krótki tekst.
@@ -776,7 +888,9 @@ def hooks_at(point: str, state: GameState, player_id: str) -> list[Hook]:
     """Hooki punktu ``point`` należące do gracza, w deterministycznej kolejności."""
     _ensure_loaded()
     owned = owned_sources(state, player_id)
-    found = [h for h in _REGISTRY if h.point == point and h.source in owned]
+    found = [
+        h for h in _REGISTRY if h.point == point and h.source in owned and variant_active(h)
+    ]
     return sorted(found, key=lambda h: (h.kind.value, h.seq))
 
 

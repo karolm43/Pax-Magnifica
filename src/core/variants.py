@@ -1,34 +1,39 @@
-"""Moduły wariantów gry: fanowskie talie, erraty pojedynczych kart, własne komponenty.
+"""Moduły wariantów gry: fanowskie zestawy, erraty komponentów, własne komponenty, parametry reguł.
 
 Jedno miejsce prawdy to DANE: ``assets/config/variants.json`` (lista modułów). Kod nie zna
-żadnej konkretnej talii fanowskiej - dodanie wariantu = wpis w manifeście (+ ewentualnie
-hooki efektów nowych kart). Instrukcja krok po kroku: ``docs/WARIANTY.md``.
+żadnego konkretnego zestawu fanowskiego. Instrukcja krok po kroku: ``docs/WARIANTY.md``.
 
-Model:
+Model (moduł ma ``source`` = pole ``source`` wpisów w plikach ``assets/data/<kategoria>/``;
+źródło NIE musi być w ``enabled_sources.json``):
 
-- Moduł ma ``source`` (pole ``source`` kart w plikach ``assets/data/<kategoria>/``).
-  Źródło NIE musi być w ``enabled_sources.json``: loader dociąga z niego WYŁĄCZNIE to, czego moduł potrzebuje
-  (``load_plan``) - reszta danych źródła (jednostki, technologie…) pozostaje nieaktywna.
-- ``decks`` = {typ talii: alias talii}: cała talia tego typu w grze to talia wariantu.
-- ``replaces`` = [typ talii]: karty źródła z ``homebrewReplacesID`` podmieniają oficjalne
-  karty w talii gry (errata pojedynczej karty; jedna karta może zastąpić kilka kopii -
-  np. 3× Shard of the Throne Absol za 1× ``shard``). ``promissory_note`` = podmiana
-  wspólnych notek przy rozdawaniu (``game_setup.common_promissory_note_ids``).
-- Gra zapisuje wybrane moduły w ``GameState.decks.variants`` (``/game/new``). Starsze gry
-  mają tylko ``decks.agenda_variant`` (np. "absol") - ``game_modules`` mapuje je na moduł.
+- ``replaces`` = [kategoria]: ERRATA W MIEJSCU. Wpis źródła z ``homebrewReplacesID`` nadpisuje
+  treść oficjalnego komponentu (tekst, liczby, wymagania…), a komponent ZACHOWUJE oficjalne id.
+  Dzięki temu cały silnik (listy frakcji, talie, wymagania technologii, statystyki jednostek)
+  od razu widzi nową wersję. Odwołania wewnątrz danych wariantu (``bsp_inf2``) są
+  przemapowane na id oficjalne (``inf2``). Rejestr zapisuje podmienione komponenty
+  (``registry.variant_replaced``), a ``rules_hooks`` wyłącza ich OFICJALNE hooki i włącza hooki
+  zarejestrowane z ``variant=<źródło>`` (brak = ręczna ewidencja, jak każda nieoprogramowana
+  karta). Kategorie: wartości ``ComponentCategory`` (``technologies``, ``units``, ``leaders``,
+  ``factions``, ``abilities``, ``breakthroughs``, ``relics``, ``action_cards``, ``agendas``,
+  ``explores``, ``promissory_notes``, ``public_objectives``, ``secret_objectives``,
+  ``genericcards`` (np. ploty Firmament), ``strategy_cards``…) albo ``"all"``.
+- ``adds`` = [kategoria]: NOWE komponenty źródła (bez ``homebrewReplacesID``) pod własnymi id.
+- ``decks`` = {typ talii: alias}: CAŁA talia danego typu w grze to talia wariantu.
+- ``rules`` = {klucz: wartość}: parametry reguł/setupu nadpisywane w grze (``rule_value``),
+  np. ``fracture.roll_success``.
 
-Karta wariantu ma WŁASNE id (np. ``absol_obsidian``), więc jej efekt to osobny hook
-(``core/hooks/``, ``covers="relics:absol_obsidian"``); brak hooka = ręczna ewidencja.
+Rejestr danych jest budowany PER ZESTAW MODUŁÓW (``StaticDataRegistry(variant_ids=...)``);
+``AppContext.registry`` zwraca rejestr bieżącej gry (``GameState.decks.variants``).
 """
 
 from __future__ import annotations
 
 import json
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from src import config
 from src.core.components import ComponentCategory, DeckDef, ExplorationDef
@@ -37,12 +42,19 @@ from src.core.sources import AGENDA_STANDARD, source_rank
 if TYPE_CHECKING:
     from src.core.registry import StaticDataRegistry
 
-# Pole surowego wpisu: id oficjalnej karty, którą ta karta zastępuje (dane AsyncTI4).
+# Pole surowego wpisu: id oficjalnego komponentu, który ten wpis zastępuje (dane AsyncTI4).
 REPLACES_FIELD = "homebrewReplacesID"
-PROMISSORY_NOTE = "promissory_note"
+# Pola dopisywane do nadpisanego wpisu (ślad dla UI i raportów).
+VARIANT_SOURCE_FIELD = "variantSource"
+VARIANT_ID_FIELD = "variantId"
+# Pola tożsamości - nie są kopiowane z wpisu wariantu na komponent oficjalny.
+_IDENTITY_FIELDS = frozenset({"id", "alias", "source", REPLACES_FIELD})
+# Pola oficjalnego wpisu, które errata unieważnia (obrazek karty pokazywałby stary tekst).
+_STALE_FIELDS = frozenset({"imageURL", "image", "imageUrl"})
+ALL = "all"
 EXPLORE = "explore"
 
-# Typ talii (``DeckDef.deck_type`` / klucze manifestu) -> kategoria kart w katalogu.
+# Typ talii (``DeckDef.deck_type`` / klucze ``decks``) -> kategoria kart w katalogu.
 DECK_TYPE_CATEGORY: Mapping[str, ComponentCategory] = {
     "agenda": ComponentCategory.AGENDA,
     "action_card": ComponentCategory.ACTION_CARD,
@@ -51,7 +63,10 @@ DECK_TYPE_CATEGORY: Mapping[str, ComponentCategory] = {
     "secret_objective": ComponentCategory.SECRET_OBJECTIVE,
     "public_stage_1_objective": ComponentCategory.PUBLIC_OBJECTIVE,
     "public_stage_2_objective": ComponentCategory.PUBLIC_OBJECTIVE,
-    PROMISSORY_NOTE: ComponentCategory.PROMISSORY_NOTE,
+}
+# Kategorie, które moduł może podmieniać/dodawać (bez ``decks`` - talie to osobny klucz).
+VARIANT_CATEGORIES: frozenset[ComponentCategory] = frozenset(ComponentCategory) - {
+    ComponentCategory.DECK
 }
 
 
@@ -69,36 +84,61 @@ class VariantModule:
     description: str = ""
     badge: str | None = None
     decks: Mapping[str, str] = field(default_factory=dict)
-    replaces: frozenset[str] = frozenset()
+    replaces: frozenset[ComponentCategory] = frozenset()
+    adds: frozenset[ComponentCategory] = frozenset()
+    rules: Mapping[str, Any] = field(default_factory=dict)
     default: bool = False
 
     def deck_types(self) -> frozenset[str]:
-        """Typy talii, które moduł zmienia (całą talią albo podmianą kart)."""
-        return frozenset(self.decks) | self.replaces
+        """Typy talii zastępowanych w całości."""
+        return frozenset(self.decks)
+
+
+def _categories(module_id: str, key: str, raw: object) -> frozenset[ComponentCategory]:
+    """``replaces``/``adds``: lista kategorii (wartości ``ComponentCategory``) albo ``"all"``."""
+    if raw is None:
+        return frozenset()
+    if raw == ALL:
+        return VARIANT_CATEGORIES
+    if not isinstance(raw, list) or not all(isinstance(v, str) for v in raw):
+        raise VariantConfigError(f"Variant {module_id!r}: {key!r} must be a list or 'all'.")
+    found: set[ComponentCategory] = set()
+    for value in raw:
+        if value == ALL:
+            return VARIANT_CATEGORIES
+        try:
+            category = ComponentCategory(value)
+        except ValueError:
+            raise VariantConfigError(
+                f"Variant {module_id!r}: unknown category {value!r} in {key!r}."
+            ) from None
+        if category is ComponentCategory.DECK:
+            raise VariantConfigError(f"Variant {module_id!r}: use 'decks' for whole decks.")
+        found.add(category)
+    return frozenset(found)
 
 
 def _parse_module(raw: object, index: int) -> VariantModule:
     if not isinstance(raw, dict):
         raise VariantConfigError(f"Variant module #{index} must be an object.")
     module_id, name, source = raw.get("id"), raw.get("name"), raw.get("source")
-    if not all(isinstance(v, str) and v for v in (module_id, name, source)):
+    if not (
+        isinstance(module_id, str) and module_id
+        and isinstance(name, str) and name
+        and isinstance(source, str) and source
+    ):
         raise VariantConfigError(f"Variant module #{index} needs non-empty id, name and source.")
-    assert isinstance(module_id, str) and isinstance(name, str) and isinstance(source, str)
     decks = raw.get("decks") or {}
-    replaces = raw.get("replaces") or []
     if not isinstance(decks, dict) or not all(
         isinstance(k, str) and isinstance(v, str) for k, v in decks.items()
     ):
         raise VariantConfigError(f"Variant {module_id!r}: 'decks' must map deck type -> alias.")
-    if not isinstance(replaces, list) or not all(isinstance(t, str) for t in replaces):
-        raise VariantConfigError(f"Variant {module_id!r}: 'replaces' must be a list of types.")
-    unknown = sorted({*decks, *replaces} - set(DECK_TYPE_CATEGORY))
+    unknown = sorted(set(decks) - set(DECK_TYPE_CATEGORY))
     if unknown:
         raise VariantConfigError(f"Variant {module_id!r}: unknown deck types {unknown}.")
-    if PROMISSORY_NOTE in decks:
-        raise VariantConfigError(
-            f"Variant {module_id!r}: promissory notes can only be replaced ('replaces')."
-        )
+    rules = raw.get("rules") or {}
+    if not isinstance(rules, dict):
+        raise VariantConfigError(f"Variant {module_id!r}: 'rules' must be an object.")
     badge = raw.get("badge")
     return VariantModule(
         id=module_id,
@@ -107,7 +147,9 @@ def _parse_module(raw: object, index: int) -> VariantModule:
         description=str(raw.get("description") or ""),
         badge=badge if isinstance(badge, str) and badge else None,
         decks=dict(decks),
-        replaces=frozenset(replaces),
+        replaces=_categories(module_id, "replaces", raw.get("replaces")),
+        adds=_categories(module_id, "adds", raw.get("adds")),
+        rules=dict(rules),
         default=raw.get("default") is True,
     )
 
@@ -140,7 +182,7 @@ def modules() -> Mapping[str, VariantModule]:
 
 
 def variant_sources(mods: Iterable[VariantModule] | None = None) -> frozenset[str]:
-    """Źródła wszystkich modułów - ich talie nie biorą udziału w wyborze talii oficjalnej."""
+    """Źródła modułów - ich talie nie biorą udziału w wyborze talii oficjalnej."""
     return frozenset(m.source for m in (modules().values() if mods is None else mods))
 
 
@@ -149,32 +191,58 @@ def default_module_ids() -> list[str]:
     return [m.id for m in modules().values() if m.default]
 
 
-# --- Plan ładowania (dla component_loader) --------------------------------------------------
+# --- Plan ładowania i nakładanie wpisów (loader i rejestr) -----------------------------------
+
+E = TypeVar("E")
 
 
 @dataclass(frozen=True)
 class VariantLoadPlan:
-    """Co loader dociąga ze źródeł wariantów spoza ``enabled_sources.json``.
+    """Co rejestr bierze ze źródeł modułów gry (spoza ``enabled_sources.json``).
 
-    ``full``: kategoria -> źródła ładowane w całości (karty talii zastępowanej w całości);
-    ``replacements``: kategoria -> źródła, z których bierzemy tylko wpisy z
-    ``homebrewReplacesID``; ``decks``: źródło -> typy talii, których definicje ładujemy.
+    ``full``: kategoria -> źródła ładowane w całości (karty talii zastępowanych w całości);
+    ``adds``: kategoria -> źródła, których NOWE komponenty (bez ``homebrewReplacesID``)
+    wchodzą pod własnymi id; ``replacements``: kategoria -> źródła, których wpisy z
+    ``homebrewReplacesID`` nadpisują komponenty oficjalne; ``decks``: źródło -> typy talii.
     """
 
     full: Mapping[ComponentCategory, frozenset[str]] = field(default_factory=dict)
+    adds: Mapping[ComponentCategory, frozenset[str]] = field(default_factory=dict)
     replacements: Mapping[ComponentCategory, frozenset[str]] = field(default_factory=dict)
     decks: Mapping[str, frozenset[str]] = field(default_factory=dict)
+    # Odwołania w danych wariantu: id wpisu wariantu -> id oficjalne (``bsp_inf2`` -> ``inf2``).
+    id_map: Mapping[str, str] = field(default_factory=dict)
+    # Kolejność źródeł wg wyboru modułów: gdy dwa moduły poprawiają ten sam komponent,
+    # wygrywa moduł wybrany WCZEŚNIEJ.
+    source_order: tuple[str, ...] = ()
 
     def sources_for(self, category: ComponentCategory) -> frozenset[str]:
-        """Wszystkie źródła wariantów, które mają wpisy w danej kategorii."""
+        """Źródła modułów, które mają wpisy w danej kategorii."""
         if category is ComponentCategory.DECK:
             return frozenset(self.decks)
-        return self.full.get(category, frozenset()) | self.replacements.get(
-            category, frozenset()
+        return (
+            self.full.get(category, frozenset())
+            | self.adds.get(category, frozenset())
+            | self.replacements.get(category, frozenset())
+        )
+
+    def own_sources_for(self, category: ComponentCategory) -> frozenset[str]:
+        """Źródła, których wpisy wchodzą POD WŁASNYM id (całe talie i nowe komponenty)."""
+        if category is ComponentCategory.DECK:
+            return frozenset(self.decks)
+        return self.full.get(category, frozenset()) | self.adds.get(category, frozenset())
+
+    def is_replacement(self, category: ComponentCategory, entry: Mapping[str, object]) -> bool:
+        """Czy wpis to errata komponentu oficjalnego (nadpisanie w miejscu)."""
+        source = entry.get("source")
+        return (
+            isinstance(source, str)
+            and source in self.replacements.get(category, frozenset())
+            and isinstance(entry.get(REPLACES_FIELD), str)
         )
 
     def admits(self, category: ComponentCategory, entry: Mapping[str, object]) -> bool:
-        """Czy wpis źródła wariantu (spoza manifestu źródeł) ma zostać załadowany."""
+        """Czy wpis źródła modułu wchodzi do rejestru pod WŁASNYM id."""
         source = entry.get("source")
         if not isinstance(source, str):
             return False
@@ -182,26 +250,157 @@ class VariantLoadPlan:
             return entry.get("type") in self.decks.get(source, frozenset())
         if source in self.full.get(category, frozenset()):
             return True
-        return source in self.replacements.get(category, frozenset()) and isinstance(
+        return source in self.adds.get(category, frozenset()) and not isinstance(
             entry.get(REPLACES_FIELD), str
         )
 
+    def overlay(
+        self,
+        category: ComponentCategory,
+        entries: Iterable[tuple[E, Mapping[str, object]]],
+        enabled: Collection[str],
+        replaced: dict[str, str] | None = None,
+        emitted: dict[str, Mapping[str, object]] | None = None,
+    ) -> Iterator[tuple[E, Mapping[str, object]]]:
+        """Nakłada moduły na wpisy kategorii (czysto, bez plików).
 
-def load_plan(mods: Iterable[VariantModule] | None = None) -> VariantLoadPlan:
-    """Plan ładowania wyliczony z modułów (domyślnie: cały manifest)."""
+        Wpisy źródeł modułów spoza ``enabled``: erraty nadpisują wpis oficjalny o id/alias =
+        ``homebrewReplacesID`` (wpis zachowuje oficjalne id i źródło), wpisy ``admits``
+        przechodzą bez zmian, reszta odpada. ``replaced`` (opcjonalnie) dostaje
+        ``"<kategoria>:<id oficjalne>" -> źródło`` każdej nałożonej erraty, a ``emitted``
+        - surowe wpisy, które moduły zmieniły lub dodały (``"<kategoria>:<id>" -> wpis``, dla UI).
+        """
+        sources = self.sources_for(category)
+        items = list(entries)
+        if not sources:
+            yield from items
+            return
+        errata: dict[str, Mapping[str, object]] = {}
+        kept: list[tuple[E, Mapping[str, object]]] = []
+        for origin, entry in items:
+            source = entry.get("source")
+            if not isinstance(source, str) or source not in sources or source in enabled:
+                kept.append((origin, entry))
+            elif self.is_replacement(category, entry):
+                target = entry.get(REPLACES_FIELD)
+                assert isinstance(target, str)
+                known = errata.get(target)
+                if known is None or self._rank(entry) < self._rank(known):
+                    errata[target] = entry
+            elif self.admits(category, entry):
+                kept.append((origin, entry))
+        for origin, entry in kept:
+            source = entry.get("source")
+            official_id = _entry_id(entry)
+            patch = errata.get(official_id) if official_id is not None else None
+            own = isinstance(source, str) and source in sources and source not in enabled
+            if own:
+                entry = self._remapped(entry)
+                if emitted is not None and official_id is not None:
+                    emitted[f"{category.value}:{official_id}"] = entry
+                yield origin, entry
+                continue
+            if patch is None or source not in enabled:
+                yield origin, entry
+                continue
+            assert official_id is not None
+            merged = self.merge(entry, patch)
+            if replaced is not None:
+                replaced[f"{category.value}:{official_id}"] = str(patch.get("source"))
+            if emitted is not None:
+                emitted[f"{category.value}:{official_id}"] = merged
+            yield origin, merged
+
+    def _rank(self, entry: Mapping[str, object]) -> int:
+        source = entry.get("source")
+        order = self.source_order
+        return order.index(source) if source in order else len(order)
+
+    def merge(self, official: Mapping[str, object], patch: Mapping[str, object]) -> dict[str, Any]:
+        """Wpis oficjalny z treścią erraty (tożsamość oficjalna, odwołania przemapowane)."""
+        merged: dict[str, Any] = {
+            k: v for k, v in official.items() if k not in _STALE_FIELDS or k in patch
+        }
+        for key, value in patch.items():
+            if key not in _IDENTITY_FIELDS:
+                merged[key] = _remap(value, self.id_map)
+        merged[VARIANT_SOURCE_FIELD] = patch.get("source")
+        merged[VARIANT_ID_FIELD] = _entry_id(patch)
+        return merged
+
+    def _remapped(self, entry: Mapping[str, object]) -> Mapping[str, object]:
+        """Nowy komponent wariantu: jego odwołania do podmienionych wpisów -> id oficjalne."""
+        if not self.id_map:
+            return entry
+        return {
+            key: (value if key in _IDENTITY_FIELDS else _remap(value, self.id_map))
+            for key, value in entry.items()
+        }
+
+
+def _entry_id(entry: Mapping[str, object]) -> str | None:
+    for key in ("id", "alias"):
+        value = entry.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
+def _remap(value: Any, id_map: Mapping[str, str]) -> Any:
+    """Zamienia napisy równe id wariantu na id oficjalne (rekurencyjnie w listach/słownikach)."""
+    if isinstance(value, str):
+        return id_map.get(value, value)
+    if isinstance(value, list):
+        return [_remap(v, id_map) for v in value]
+    if isinstance(value, dict):
+        return {k: _remap(v, id_map) for k, v in value.items()}
+    return value
+
+
+def _scan_id_map(sources: Collection[str], data_dir: Path) -> dict[str, str]:
+    """Id wpisów-errat źródeł ``sources`` -> id oficjalne (ze wszystkich plików danych)."""
+    if not sources:
+        return {}
+    id_map: dict[str, str] = {}
+    for path in sorted(data_dir.rglob("*.json")):
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        for entry in raw if isinstance(raw, list) else [raw]:
+            if not isinstance(entry, dict) or entry.get("source") not in sources:
+                continue
+            target, own = entry.get(REPLACES_FIELD), _entry_id(entry)
+            if isinstance(target, str) and own is not None and own != target:
+                id_map.setdefault(own, target)
+    return id_map
+
+
+def load_plan(
+    mods: Iterable[VariantModule], data_dir: Path = config.DATA_DIR
+) -> VariantLoadPlan:
+    """Plan ładowania dla zestawu modułów gry."""
     full: dict[ComponentCategory, set[str]] = {}
+    adds: dict[ComponentCategory, set[str]] = {}
     replacements: dict[ComponentCategory, set[str]] = {}
     decks: dict[str, set[str]] = {}
-    for module in modules().values() if mods is None else mods:
+    mods = list(mods)
+    for module in mods:
         for deck_type in module.decks:
             full.setdefault(DECK_TYPE_CATEGORY[deck_type], set()).add(module.source)
             decks.setdefault(module.source, set()).add(deck_type)
-        for deck_type in module.replaces:
-            replacements.setdefault(DECK_TYPE_CATEGORY[deck_type], set()).add(module.source)
+        for category in module.adds:
+            adds.setdefault(category, set()).add(module.source)
+        for category in module.replaces:
+            replacements.setdefault(category, set()).add(module.source)
+    replacing = {s for found in replacements.values() for s in found}
     return VariantLoadPlan(
         full={k: frozenset(v) for k, v in full.items()},
+        adds={k: frozenset(v) for k, v in adds.items()},
         replacements={k: frozenset(v) for k, v in replacements.items()},
         decks={k: frozenset(v) for k, v in decks.items()},
+        id_map=_scan_id_map(replacing, data_dir),
+        source_order=tuple(dict.fromkeys(m.source for m in mods)),
     )
 
 
@@ -245,29 +444,74 @@ def module_for_agenda_variant(agenda_variant: str) -> VariantModule | None:
     raise VariantConfigError(f"Unknown agenda deck variant: {agenda_variant!r}.")
 
 
+def game_module_ids(
+    variant_ids: Iterable[str], agenda_variant: str = AGENDA_STANDARD
+) -> tuple[str, ...]:
+    """Id modułów gry: ``decks.variants`` + zgodność wstecz z ``decks.agenda_variant``.
+
+    Nieznane id (moduł usunięty z manifestu po zapisaniu gry) są pomijane.
+    """
+    known = modules()
+    result = [i for i in dict.fromkeys(variant_ids) if i in known]
+    try:
+        legacy = module_for_agenda_variant(agenda_variant)
+    except VariantConfigError:
+        legacy = None
+    if legacy is not None and legacy.id not in result:
+        result.append(legacy.id)
+    return tuple(result)
+
+
 def game_modules(
     variant_ids: Iterable[str], agenda_variant: str = AGENDA_STANDARD
 ) -> list[VariantModule]:
-    """Moduły gry: ``decks.variants`` + zgodność wstecz z ``decks.agenda_variant``.
-
-    Nieznane id (np. moduł usunięty z manifestu po zapisaniu gry) są pomijane.
-    """
+    """Moduły gry (patrz ``game_module_ids``)."""
     known = modules()
-    result = [known[i] for i in dict.fromkeys(variant_ids) if i in known]
-    legacy = module_for_agenda_variant(agenda_variant)
-    if legacy is not None and legacy not in result:
-        result.append(legacy)
-    return result
+    return [known[i] for i in game_module_ids(variant_ids, agenda_variant)]
+
+
+def resolve_new_game(
+    variant_ids: Iterable[str] | None, agenda_deck: str = AGENDA_STANDARD
+) -> tuple[list[str], str]:
+    """Wybór modułów nowej gry -> (``decks.variants``, ``decks.agenda_variant``).
+
+    ``variant_ids=None`` = moduły domyślne z manifestu. ``agenda_deck`` (stare pole API,
+    np. "absol") dokłada moduł talii agend tego źródła. Raises: ``VariantConfigError``.
+    """
+    ids = list(default_module_ids() if variant_ids is None else variant_ids)
+    legacy = module_for_agenda_variant(agenda_deck)
+    if legacy is not None:
+        ids.append(legacy.id)
+    chosen = validate_selection(ids)
+    known = modules()
+    agenda_owner = next((known[i] for i in chosen if "agenda" in known[i].decks), None)
+    return chosen, agenda_owner.source if agenda_owner is not None else AGENDA_STANDARD
+
+
+def check_decks(registry: StaticDataRegistry) -> None:
+    """Sprawdza, że talie modułów rejestru istnieją w katalogu. Raises: ``VariantConfigError``."""
+    for module in registry.variant_modules:
+        for deck_type in module.decks:
+            variant_deck_ids(registry, module, deck_type)
+
+
+def rule_value[T](registry: StaticDataRegistry, key: str, default: T) -> T:
+    """Parametr reguły/setupu: wartość z modułów gry (``rules``) albo ``default``.
+
+    Wartość z manifestu ma typ JSON; wołający podaje domyślną wartość tego samego kształtu.
+    """
+    if key not in registry.variant_rules:
+        return default
+    return cast("T", registry.variant_rules[key])
 
 
 # --- Skład talii --------------------------------------------------------------------------------
 
 
 def official_deck_ids(registry: StaticDataRegistry, deck_type: str) -> list[str]:
-    """Karty NAJWIĘKSZEJ talii danego typu z aktywnych źródeł (talie wariantów pominięte).
+    """Karty NAJWIĘKSZEJ talii danego typu z aktywnych źródeł (talie modułów pominięte).
 
-    Remis rozmiaru rozstrzyga priorytet źródła (RULES.md 14), potem alias - patrz
-    ``objectives.deck_card_ids``.
+    Remis rozmiaru rozstrzyga priorytet źródła (RULES.md 14), potem alias.
     """
     fan = variant_sources()
     best: DeckDef | None = None
@@ -289,7 +533,7 @@ def official_deck_ids(registry: StaticDataRegistry, deck_type: str) -> list[str]
 def variant_deck_ids(
     registry: StaticDataRegistry, module: VariantModule, deck_type: str
 ) -> list[str]:
-    """Karty talii wariantu (``decks[deck_type]``). Brak talii w katalogu -> ``ValueError``."""
+    """Karty talii modułu (``decks[deck_type]``). Brak talii w katalogu -> błąd."""
     alias = module.decks[deck_type]
     deck = registry.catalog.get(ComponentCategory.DECK, alias)
     if not isinstance(deck, DeckDef) or not deck.card_ids:
@@ -299,81 +543,37 @@ def variant_deck_ids(
     return list(deck.card_ids)
 
 
-def replacement_map(
-    registry: StaticDataRegistry, deck_type: str, mods: Iterable[VariantModule]
-) -> dict[str, list[str]]:
-    """{id oficjalnej karty: [zamienniki]} z modułów, które mają ``deck_type`` w ``replaces``."""
-    category = DECK_TYPE_CATEGORY[deck_type]
-    sources = {m.source for m in mods if deck_type in m.replaces}
-    mapping: dict[str, list[str]] = {}
-    if not sources:
-        return mapping
-    cards = registry.catalog.all(category)
-    for card_id in sorted(cards):
-        card = cards[card_id]
-        replaced = card.raw.get(REPLACES_FIELD)
-        if card.source in sources and isinstance(replaced, str) and replaced != card_id:
-            mapping.setdefault(replaced, []).append(card_id)
-    return mapping
+def game_deck_ids(registry: StaticDataRegistry, deck_type: str) -> list[str]:
+    """Skład talii ``deck_type`` w grze rejestru: talia modułu albo oficjalna.
 
-
-def apply_replacements(card_ids: Iterable[str], mapping: Mapping[str, list[str]]) -> list[str]:
-    """Podmienia karty wg ``replacement_map`` (jedna karta może dać kilka zamienników)."""
-    result: list[str] = []
-    for card_id in card_ids:
-        result.extend(mapping.get(card_id, [card_id]))
-    return result
-
-
-def game_deck_ids(
-    registry: StaticDataRegistry, deck_type: str, mods: Sequence[VariantModule]
-) -> list[str]:
-    """Skład talii ``deck_type`` w grze z modułami ``mods`` (cała talia / erraty / oficjalna)."""
-    override = next((m for m in mods if deck_type in m.decks), None)
-    ids = (
-        variant_deck_ids(registry, override, deck_type)
-        if override is not None
-        else official_deck_ids(registry, deck_type)
-    )
-    return apply_replacements(ids, replacement_map(registry, deck_type, mods))
-
-
-def explore_deck_ids(
-    registry: StaticDataRegistry, trait: str, mods: Sequence[VariantModule] = ()
-) -> list[str]:
-    """Karty talii eksploracji danej cechy (posortowane) w grze z modułami ``mods``.
-
-    Eksploracje nie mają jednej talii oficjalnej w katalogu - talia cechy to wszystkie karty
-    aktywnych źródeł o tym typie. Moduł z ``decks["explore"]`` zastępuje je kartami swojej
-    talii (filtrowanymi po cesze).
+    Erraty pojedynczych kart są już w rejestrze (te same id), więc nie zmieniają listy.
     """
+    override = next((m for m in registry.variant_modules if deck_type in m.decks), None)
+    if override is not None:
+        return variant_deck_ids(registry, override, deck_type)
+    return official_deck_ids(registry, deck_type)
+
+
+def explore_deck_ids(registry: StaticDataRegistry, trait: str) -> list[str]:
+    """Karty talii eksploracji danej cechy (posortowane) w grze rejestru."""
     cards = registry.catalog.all(ComponentCategory.EXPLORATION)
 
     def of_trait(card_id: str) -> bool:
         card = cards.get(card_id)
         return isinstance(card, ExplorationDef) and (card.type or "").lower() == trait
 
-    override = next((m for m in mods if EXPLORE in m.decks), None)
+    override = next((m for m in registry.variant_modules if EXPLORE in m.decks), None)
     if override is not None:
-        ids = [c for c in variant_deck_ids(registry, override, EXPLORE) if of_trait(c)]
-    else:
-        fan = variant_sources()
-        ids = sorted(c for c in cards if of_trait(c) and cards[c].source not in fan)
-    return sorted(apply_replacements(ids, replacement_map(registry, EXPLORE, mods)))
+        return sorted(c for c in variant_deck_ids(registry, override, EXPLORE) if of_trait(c))
+    fan = variant_sources()
+    return sorted(c for c in cards if of_trait(c) and cards[c].source not in fan)
 
 
-def promissory_replacements(
-    registry: StaticDataRegistry, mods: Iterable[VariantModule]
-) -> dict[str, str]:
-    """{szablon oficjalnej notki: zamiennik} (np. ``<color>_ps`` -> ``absol_<color>_ps``)."""
-    return {
-        official: found[0]
-        for official, found in replacement_map(registry, PROMISSORY_NOTE, mods).items()
-    }
+# --- Widok dla UI -------------------------------------------------------------------------------
 
 
 def source_badges(mods: Iterable[VariantModule] | None = None) -> dict[str, str]:
-    """{źródło: plakietka} dla kart wariantów (UI)."""
+    """{źródło: plakietka} dla komponentów modułów (UI)."""
     return {
         m.source: m.badge
         for m in (modules().values() if mods is None else mods)
@@ -381,8 +581,8 @@ def source_badges(mods: Iterable[VariantModule] | None = None) -> dict[str, str]
     }
 
 
-def describe(mods: Collection[VariantModule] | None = None) -> list[dict[str, object]]:
-    """Lista modułów do API/generatora frontu (id, nazwa, opis, źródło, plakietka, typy talii)."""
+def describe(mods: Sequence[VariantModule] | None = None) -> list[dict[str, object]]:
+    """Lista modułów do API/generatora frontu."""
     return [
         {
             "id": m.id,
@@ -391,31 +591,44 @@ def describe(mods: Collection[VariantModule] | None = None) -> list[dict[str, ob
             "source": m.source,
             "badge": m.badge,
             "deckTypes": sorted(m.deck_types()),
+            "replaces": sorted(c.value for c in m.replaces),
+            "adds": sorted(c.value for c in m.adds),
             "default": m.default,
         }
         for m in (modules().values() if mods is None else mods)
     ]
 
 
-def resolve_new_game(
-    registry: StaticDataRegistry,
-    variant_ids: Iterable[str] | None,
-    agenda_deck: str = AGENDA_STANDARD,
-) -> tuple[list[str], str]:
-    """Wybór modułów nowej gry -> (``decks.variants``, ``decks.agenda_variant``).
+# Typ talii -> klucz talii we froncie (``ActiveDeckKind`` + ``explore``).
+UI_DECK_KEYS: Mapping[str, str] = {
+    "agenda": "agenda",
+    "action_card": "actionCard",
+    "relic": "relic",
+    "secret_objective": "secretObjective",
+    "public_stage_1_objective": "stage1Objective",
+    "public_stage_2_objective": "stage2Objective",
+    EXPLORE: EXPLORE,
+}
 
-    ``variant_ids=None`` = moduły domyślne z manifestu. ``agenda_deck`` (stare pole API,
-    np. "absol") dokłada moduł talii agend tego źródła. Sprawdza, że każda talia modułów
-    istnieje w katalogu. Raises: ``VariantConfigError`` (-> HTTP 422).
+
+def ui_payload(registry: StaticDataRegistry) -> dict[str, object]:
+    """Dane dla UI gry z modułami: plakietki, wpisy zmienione/dodane i talie zastąpione w całości.
+
+    ``entries``: {kategoria: {id: surowy wpis}}; ``decks``: {klucz talii frontu: [id kart]}.
     """
-    ids = list(default_module_ids() if variant_ids is None else variant_ids)
-    legacy = module_for_agenda_variant(agenda_deck)
-    if legacy is not None:
-        ids.append(legacy.id)
-    chosen = validate_selection(ids)
-    known = modules()
-    for module_id in chosen:
-        for deck_type in known[module_id].decks:
-            variant_deck_ids(registry, known[module_id], deck_type)
-    agenda_owner = next((known[i] for i in chosen if "agenda" in known[i].decks), None)
-    return chosen, agenda_owner.source if agenda_owner is not None else AGENDA_STANDARD
+    entries: dict[str, dict[str, Mapping[str, object]]] = {}
+    for key, entry in sorted(registry.variant_entries.items()):
+        category, _, component_id = key.partition(":")
+        entries.setdefault(category, {})[component_id] = entry
+    decks: dict[str, list[str]] = {}
+    for module in registry.variant_modules:
+        for deck_type in module.decks:
+            decks[UI_DECK_KEYS[deck_type]] = sorted(
+                set(variant_deck_ids(registry, module, deck_type))
+            )
+    return {
+        "variants": list(registry.variant_ids),
+        "badges": source_badges(registry.variant_modules),
+        "entries": entries,
+        "decks": decks,
+    }

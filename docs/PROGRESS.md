@@ -985,3 +985,24 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   `enabled_sources.json`.
 - QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (entities, cards, search,
   settings, player, state, api) ✓. e2e pominięte (kreator bez zmian). Wymaga restartu backendu.
+
+## 2026-11-18 — Moduły wariantów dla wszystkich komponentów (errata w miejscu, mechanika, tekst)
+
+- Rejestr danych PER GRA: `StaticDataRegistry(variant_ids=...)`, `AppContext.registry` wg
+  `decks.variants` (cache per zestaw), `/game/new` buduje setup na rejestrze z modułami.
+- Errata w miejscu (`replaces`) dla każdej kategorii (technologie, jednostki, frakcje, zdolności,
+  liderzy, przełomy, planety, karty strategii, karty, notki, cele, ploty): komponent zachowuje
+  oficjalne id, dostaje treść wariantu; odwołania `bsp_*` przemapowane na id oficjalne. Nowe
+  komponenty (`adds`), całe talie (`decks`), parametry reguł (`rules`, `variants.rule_value`).
+- Mechanika: hooki z `variant=<źródło>` (`register`, `on_event`, `register_effect`,
+  `register_ability`…); oficjalny hook podmienionego komponentu się wyłącza
+  (`rules_hooks.variant_active`, `effect_for`). Bez hooka wariantu = ręczna ewidencja.
+- Tekst: `/api/public/game/{id}/variant-data` + front `entities/lookup/variantData.ts` (nakładanie
+  w lookupach i pulach kart, nowe karty spoza danych frontu).
+- Fracture: rzut wejścia, liczba ingressów i jednostki neutralne jako parametry `rules`.
+- Moduły: `absol_agendas`, `absol_relics`, `absol_tech`, `bsp_factions`, `bsp_firmament_plots`
+  (zastępuje przełącznik „Black Spectrum Firmament Plots”), `bsp_objectives`, `bsp_cards`,
+  `bsp_agendas`. Hooków wersji fanowskich jeszcze brak.
+- Absol's Political Secret to teraz errata `<color>_ps` (ręka ma `red_ps` z tekstem Absol).
+- Regenerowane: `OKNA_CZASOWE.md`, `POKRYCIE_HOOKOW.md` (agendy Absol już nie w rejestrze
+  domyślnym), baseline audytu. Instrukcja: `docs/WARIANTY.md`.
