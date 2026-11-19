@@ -21,6 +21,7 @@ import { usePlayerData } from "@/api/usePlayerData";
 import { useActivityFeed, useBoardEditor } from "@/api/useBoardEditor";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { humanHandOwners } from "@/domains/offers/handReactions";
+import { AgendaPassButtons } from "./AgendaPassButtons";
 import { TransactionModal } from "@/domains/game-shell/components/TurnControls/TransactionModal";
 import { useAppStore } from "@/state/appStore";
 import { useGameData } from "@/state/useGameContext";
@@ -1275,6 +1276,10 @@ function CouncilWindow({
           <h3>
             <IconScale size={15} aria-hidden="true" /> Ballot
           </h3>
+          {/* „No whens” / „No afters” zaraz po ujawnieniu agendy (RULES.md 54.12). */}
+          {trader && agenda.step === "VOTE" && agenda.card ? (
+            <AgendaPassButtons me={trader.me} />
+          ) : null}
           <Ballot
             agenda={agenda}
             lookOf={lookOf}

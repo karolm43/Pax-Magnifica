@@ -134,6 +134,15 @@ def _window(obs: Observation, ctx: EngineContext, pid: str) -> list[Action]:
     assert window is not None
     if window.window_type is WindowType.STRATEGY_SECONDARY:
         # Pas pierwszy; gracz „free” (Trade) nie może spasować - wtedy wykonanie bez wyborów.
+        options = (obs.strategy_prompt or {}).get("options", {})
+        if "tree" in options:
+            # Technology: secondary = zbadaj 1 technologię za 4 zasoby (warianty z zapłatą).
+            variants: list[Action] = [act.StrategySecondary(player_id=pid, execute=False)]
+            variants.extend(
+                act.StrategySecondary(player_id=pid, execute=True, payload=p)
+                for p in research_payloads(options)
+            )
+            return variants
         return [
             act.StrategySecondary(player_id=pid, execute=False),
             act.StrategySecondary(player_id=pid, execute=True),
@@ -192,6 +201,34 @@ def _minimal_params(inputs: list[dict[str, Any]]) -> dict[str, Any]:
                 )
             params[key] = {"tech": tech}
     return params
+
+
+def research_payloads(options: dict[str, Any]) -> list[dict[str, Any]]:
+    """Warianty badania z okna ``research_view``: każda dostępna technologia (bez pomijania
+    prerekwizytów) z zapłatą ``cost`` - planety od najcenniejszej, reszta TG. Pusto, gdy gracza
+    nie stać albo nie ma czego badać (⚠️ ZAŁOŻENIE bota losowego: bez specjalności i reliktów).
+    """
+    techs = [r["id"] for r in options.get("tree", []) if r.get("status") == "available"]
+    if not techs:
+        return []
+    cost = int(options.get("cost", 0) or 0)
+    planets: list[str] = []
+    paid = 0
+    values: dict[str, int] = options.get("planets", {}) or {}
+    for planet, value in sorted(values.items(), key=lambda kv: (-kv[1], kv[0])):
+        if paid >= cost:
+            break
+        if value > 0:
+            planets.append(planet)
+            paid += value
+    trade_goods = 0
+    if paid < cost:
+        tg_value = max(1, int(options.get("trade_good_value", 1) or 1))
+        trade_goods = -(-(cost - paid) // tg_value)
+        if trade_goods > int(options.get("trade_goods", 0) or 0):
+            return []
+    payment = {"planets": planets, "trade_goods": trade_goods} if cost > 0 else {}
+    return [{"tech": tech, **payment} for tech in techs]
 
 
 def _assign_hits(s: GameState, ctx: EngineContext, pid: str) -> list[Action]:
@@ -298,8 +335,8 @@ def _step_payloads(
         systems = list(options.get("systems", []))
         ordered = ([home] if home in systems else []) + [p for p in systems if p != home]
         return [{"system": p} for p in ordered[:1]]
-    if step in ("research", "research_paid"):  # Technology: „can research” - rezygnacja
-        return [{"tech": None}]
+    if step in ("research", "research_paid"):  # Technology: „can research” - wolno zrezygnować
+        return [{"tech": None}, *research_payloads(options)]
     if step == "score_and_draw":  # Imperial
         payload: dict[str, Any] = {"objective": None}
         if options.get("over_limit") and not options.get("mecatol"):

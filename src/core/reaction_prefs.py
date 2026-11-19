@@ -6,6 +6,8 @@ tyle samo (54.11), więc z zewnątrz nic nie widać - chyba że host włączył 
 
 Kategorie okien: ``all`` (każde), ``strategy`` (ogłoszona akcja strategiczna), ``agenda`` (ujawniona
 agenda), ``combat`` (wygrana walka, Sustain Damage), ``sabotage`` (karta akcji innego gracza).
+Agendę można też odpuścić połowicznie - ``agenda_when`` („No whens”) i ``agenda_after``
+(„No afters”): gracz pasuje tylko na karty z tym momentem, karty drugiego momentu dalej go pytają.
 Czas trwania deklaracji: ``turn``, ``round``, ``agenda`` (bieżąca agenda), ``always``.
 """
 
@@ -22,7 +24,14 @@ STRATEGY = "strategy"
 AGENDA = "agenda"
 COMBAT = "combat"
 SABOTAGE = "sabotage"
-CATEGORIES: tuple[str, ...] = (ALL, STRATEGY, AGENDA, COMBAT, SABOTAGE)
+AGENDA_WHEN = "agenda_when"
+AGENDA_AFTER = "agenda_after"
+CATEGORIES: tuple[str, ...] = (ALL, STRATEGY, AGENDA, COMBAT, SABOTAGE, AGENDA_WHEN, AGENDA_AFTER)
+
+# Deklaracje połowiczne: kategoria okna -> {kategoria deklaracji: moment pomijanych kart}.
+_MOMENT_DECLARATIONS: dict[str, dict[str, str]] = {
+    AGENDA: {AGENDA_WHEN: "when", AGENDA_AFTER: "after"},
+}
 
 UNTIL_TURN = "turn"
 UNTIL_ROUND = "round"
@@ -67,17 +76,31 @@ def is_live(state: GameState, declaration: PassDeclaration) -> bool:
     return stamp(state, declaration.until) == declaration.stamp
 
 
-def declares_pass(state: GameState, player_id: str, category: str | None) -> bool:
-    """Czy gracz zadeklarował pas obejmujący okno tej kategorii (``all`` lub sama kategoria)."""
+def _declared(state: GameState, player_id: str, key: str) -> bool:
     player = state.players.get(player_id)
     if player is None:
         return False
-    passes = player.private.reaction_prefs.passes
-    for key in (ALL, category):
-        declaration = passes.get(key) if key else None
-        if declaration is not None and is_live(state, declaration):
-            return True
-    return False
+    declaration = player.private.reaction_prefs.passes.get(key)
+    return declaration is not None and is_live(state, declaration)
+
+
+def skipped_moments(state: GameState, player_id: str, category: str | None) -> frozenset[str]:
+    """Momenty kart (``when``/``after``), na które gracz z góry spasował w oknie tej kategorii.
+
+    „No whens” / „No afters” przy agendzie: karta z pominiętym momentem nie liczy się jako
+    „ma kartę” (``reaction_window.has_playable_reaction``).
+    """
+    halves = _MOMENT_DECLARATIONS.get(category or "", {})
+    return frozenset(m for key, m in halves.items() if _declared(state, player_id, key))
+
+
+def declares_pass(state: GameState, player_id: str, category: str | None) -> bool:
+    """Czy gracz zadeklarował pas obejmujący CAŁE okno tej kategorii (``all``, sama kategoria
+    albo wszystkie jej połowy - „No whens” i „No afters” razem)."""
+    if _declared(state, player_id, ALL) or (category and _declared(state, player_id, category)):
+        return True
+    halves = _MOMENT_DECLARATIONS.get(category or "", {})
+    return bool(halves) and all(_declared(state, player_id, key) for key in halves)
 
 
 def prune(state: GameState) -> None:

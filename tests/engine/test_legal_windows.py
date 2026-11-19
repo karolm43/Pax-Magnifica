@@ -69,3 +69,46 @@ def test_research_offer_gain_mode_picks_available_tech() -> None:
 
     assert _minimal_params(gain) == {"research": {"tech": "gravity"}}
     assert _minimal_params(may) == {"research": {"tech": None}}
+
+
+def test_research_payloads_pay_with_planets_then_trade_goods() -> None:
+    """Bot bada technologię kartą Technology: zapłata planetami od najcenniejszej, reszta TG."""
+    from src.engine.legal import research_payloads
+
+    tree = [{"id": "nm", "status": "available"}, {"id": "gd", "status": "locked"}]
+    options = {"tree": tree, "cost": 4, "planets": {"a": 1, "b": 2}, "trade_goods": 2,
+               "trade_good_value": 1}
+    assert research_payloads(options) == [{"tech": "nm", "planets": ["b", "a"], "trade_goods": 1}]
+    assert research_payloads({**options, "trade_goods": 0}) == []  # nie stać
+    assert research_payloads({**options, "cost": 0}) == [{"tech": "nm"}]  # primary za darmo
+
+
+def test_technology_secondary_bot_researches(registry: StaticDataRegistry) -> None:
+    """Okno secondary Technology: bot ma pas i warianty badania; wariant faktycznie bada."""
+    from src.core.game_state import GameState, Phase, PlayerState, SystemState, TimingWindow
+    from src.core.strategy_cards import technology as technology_card
+
+    state = GameState(
+        phase=Phase.ACTION, active_player_id="p1", seating_order=["p1", "p2"],
+        players={
+            "p1": PlayerState(player_id="p1", color="red", faction="sol"),
+            "p2": PlayerState(player_id="p2", color="blue", faction="sol", trade_goods=8),
+        },
+        systems={"102": SystemState(position="102", system_id="19")},
+        rng_seed=7,
+    )
+    state.pending_window = TimingWindow(
+        window_type=WindowType.STRATEGY_SECONDARY, queue=["p2"],
+        context={"initiative": technology_card.INITIATIVE},
+    )
+    ctx = act.EngineContext(registry=registry, grid=_grid())
+
+    candidates = legal_actions(observe(state, ctx, "p2"), ctx)
+
+    assert candidates[0] == act.StrategySecondary(player_id="p2", execute=False)
+    research = [a for a in candidates[1:] if isinstance(a, act.StrategySecondary)]
+    assert research and all(a.execute and a.payload["trade_goods"] == 4 for a in research)
+    choice = research[0]
+    after = act.apply_action(state, ctx, choice)
+    assert choice.payload["tech"] in after.players["p2"].technologies
+    assert after.players["p2"].trade_goods == 4

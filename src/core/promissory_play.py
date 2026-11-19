@@ -195,6 +195,11 @@ def reaction_points(registry: StaticDataRegistry, template: str) -> list[tuple[A
     return [] if is_action(registry, template) else _points(registry, template)
 
 
+def reaction_moments(registry: StaticDataRegistry, template: str) -> set[str]:
+    """Momenty (``when``/``after``…) okien, w których gra się notkę-reakcję (puste dla ACTION)."""
+    return {moment.value for _event, moment in reaction_points(registry, template)}
+
+
 def _subject_ok(
     window_text: str, owner: str | None, player_id: str, window: reaction_cards.OpenWindow
 ) -> bool:

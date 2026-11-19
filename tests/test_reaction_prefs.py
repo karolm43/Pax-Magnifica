@@ -245,3 +245,57 @@ def test_api_prefs_i_quick(registry: StaticDataRegistry) -> None:
     assert activity.derive_activity("reaction-settings:prefs", current, current) is None
     entry = activity.derive_activity("reaction-settings:quick:1", current, current)
     assert entry is not None and entry.action == "reactions.quick" and entry.subject == "on"
+
+
+# --- „No whens” / „No afters” (połowiczne deklaracje agendy, 54.12) ---------------------------
+
+
+def _pause_passed(state: GameState, registry: StaticDataRegistry) -> list[str]:
+    reaction_pause.sync(state, registry, now=100.0)
+    assert state.reaction_pause is not None
+    return state.reaction_pause.passed
+
+
+def test_no_afters_pasuje_gracza_z_samym_riderem(registry: StaticDataRegistry) -> None:
+    state = reaction_prefs.update(
+        _agenda_with_rider(registry), "p1", declare={"agenda_after": "agenda"}
+    )
+    assert _pause_passed(state, registry) == ["p1"]
+
+
+def test_no_whens_nie_pasuje_gracza_z_riderem(registry: StaticDataRegistry) -> None:
+    state = reaction_prefs.update(
+        _agenda_with_rider(registry), "p1", declare={"agenda_when": "agenda"}
+    )
+    assert _pause_passed(state, registry) == []
+
+
+def test_no_whens_pasuje_gracza_z_samym_veto(registry: StaticDataRegistry) -> None:
+    base = _revealed(registry, [LAW, DIRECTIVE], {"p1": ["veto"], "p3": ["imp_rider"]})
+    whens = reaction_prefs.update(base, "p1", declare={"agenda_when": "agenda"})
+    assert _pause_passed(whens, registry) == ["p1"]
+    afters = reaction_prefs.update(base, "p1", declare={"agenda_after": "agenda"})
+    assert _pause_passed(afters, registry) == []
+
+
+def test_obie_polowy_to_pas_na_cala_agende(registry: StaticDataRegistry) -> None:
+    state = reaction_prefs.update(
+        _agenda_with_rider(registry), "p1",
+        declare={"agenda_when": "agenda", "agenda_after": "agenda"},
+    )
+    assert reaction_prefs.declares_pass(state, "p1", "agenda")
+    assert not reaction_prefs.declares_pass(state, "p1", "combat")
+    assert state.agenda is not None
+    state.agenda.agenda_number += 1  # kolejna agenda - deklaracje wygasły
+    assert not reaction_prefs.declares_pass(state, "p1", "agenda")
+
+
+def test_no_afters_w_trakcie_okna_pasuje_od_razu(registry: StaticDataRegistry) -> None:
+    state = _agenda_with_rider(registry)
+    reaction_pause.sync(state, registry, now=100.0)
+    assert state.reaction_pause is not None and state.reaction_pause.passed == []
+    after = reaction_prefs.update(state, "p1", declare={"agenda_after": "agenda"})
+    reaction_window.pass_open_windows(after, "p1")  # bez rejestru: połowa nie wystarcza
+    assert after.reaction_pause is not None and after.reaction_pause.passed == []
+    reaction_window.pass_open_windows(after, "p1", registry)
+    assert after.reaction_pause.passed == ["p1"]

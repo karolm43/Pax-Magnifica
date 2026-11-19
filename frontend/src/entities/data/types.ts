@@ -1384,7 +1384,15 @@ export type ActiveEffectData = {
 };
 
 /** Kategoria okien reakcji, w której można z góry zadeklarować pas (RULES.md 54.12). */
-export type ReactionCategory = "all" | "strategy" | "agenda" | "combat" | "sabotage";
+/** ``agenda_when`` / ``agenda_after`` = „No whens” / „No afters” (połowa agendy). */
+export type ReactionCategory =
+  | "all"
+  | "strategy"
+  | "agenda"
+  | "combat"
+  | "sabotage"
+  | "agenda_when"
+  | "agenda_after";
 /** Jak długo obowiązuje deklaracja pasu. */
 export type PassDuration = "turn" | "round" | "agenda" | "always";
 

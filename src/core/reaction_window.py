@@ -68,23 +68,48 @@ def expired(window: TimedWindow, now: float) -> bool:
     return now - window.opened_at >= window.seconds
 
 
-def has_playable_reaction(state: GameState, registry: StaticDataRegistry, player_id: str) -> bool:
+def has_playable_reaction(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    skip_moments: frozenset[str] = frozenset(),
+) -> bool:
     """Czy gracz może TERAZ zareagować (prywatne - tylko dla silnika): karta reakcji z ręki,
     notka-reakcja z ręki albo komponent frakcji z oknem użycia (Quash, Instinct Training -
-    RULES.md 62.9)."""
+    RULES.md 62.9).
+
+    ``skip_moments``: momenty, na które gracz z góry spasował („No whens” / „No afters”, 54.12) -
+    karta pasująca WYŁĄCZNIE do okien z tymi momentami się nie liczy.
+    """
     # lokalnie: moduły kart i komponentów importują moduły okien
-    from src.core import action_cards, promissory_play
+    from src.core import action_cards, promissory_play, reaction_cards
 
     prefs = state.players[player_id].private.reaction_prefs
+
+    def card_counts(card_id: str) -> bool:
+        if not skip_moments:
+            return True
+        windows = reaction_cards.matching_windows(state, registry, player_id, card_id)
+        return any(w.moment.value not in skip_moments for w in windows)
+
+    def note_counts(template: str) -> bool:
+        if not skip_moments:
+            return True
+        moments = promissory_play.reaction_moments(registry, template)
+        return any(m not in skip_moments for m in moments)
+
     # Wyciszone karty (54.12) nie liczą się jako „ma kartę” - auto-pas jak bez karty.
     if any(
         entry["reaction"] and entry["playable"]
         and not reaction_prefs.is_card_muted(
             prefs, card_name(registry, ComponentCategory.ACTION_CARD, entry["card_id"])
         )
+        and card_counts(entry["card_id"])
         for entry in action_cards.playability(state, registry, player_id)
     ):
         return True
+    # ⚠️ ZAŁOŻENIE (54.12 d): komponent frakcji z oknem użycia liczy się mimo połowicznej
+    # deklaracji (moment komponentu nie jest tu znany) - gracz zostanie zapytany.
     if window_component_users(state, registry, [player_id]):
         return True
     return any(
@@ -92,6 +117,7 @@ def has_playable_reaction(state: GameState, registry: StaticDataRegistry, player
         and not reaction_prefs.is_card_muted(
             prefs, card_name(registry, ComponentCategory.PROMISSORY_NOTE, row["template"])
         )
+        and note_counts(row["template"])
         for row in promissory_play.playability(state, registry, player_id)
     )
 
@@ -154,7 +180,9 @@ def auto_passers(
         pid
         for pid in eligible
         if skips_automatically(state, pid, category, concerned)
-        or not has_playable_reaction(state, registry, pid)
+        or not has_playable_reaction(
+            state, registry, pid, reaction_prefs.skipped_moments(state, pid, category)
+        )
     ]
 
 
@@ -205,16 +233,24 @@ def set_auto_pass(state: GameState, player_id: str, enabled: bool) -> GameState:
     return new_state
 
 
-def pass_open_windows(state: GameState, player_id: str) -> None:
+def pass_open_windows(
+    state: GameState, player_id: str, registry: StaticDataRegistry | None = None
+) -> None:
     """Po zmianie preferencji: pasuje za gracza w trwających oknach, które teraz pomija (MUTUJE).
 
-    Odwołanie nie cofa pasu (54.11). Zamknięcie okien w trybie „Quick windows” robi
-    :func:`settle_quick` (potrzebuje rejestru do rozstrzygnięcia karty).
+    Odwołanie nie cofa pasu (54.11). Z ``registry`` uwzględnia też deklaracje połowiczne
+    („No whens”, gdy gracz ma tylko karty „when” = pas). Zamknięcie okien w trybie
+    „Quick windows” robi :func:`settle_quick` (potrzebuje rejestru do rozstrzygnięcia karty).
     """
     pause = state.reaction_pause
     if pause is not None and player_id in pause.eligible and player_id not in pause.passed:
         category = reaction_prefs.category_of_event(pause.event)
-        if skips_automatically(state, player_id, category, pause.involved):
+        skip = reaction_prefs.skipped_moments(state, player_id, category)
+        if skips_automatically(state, player_id, category, pause.involved) or (
+            registry is not None
+            and bool(skip)
+            and not has_playable_reaction(state, registry, player_id, skip)
+        ):
             pause.passed = [*pause.passed, player_id]
     held = state.held_play
     if held is not None and player_id in held.eligible and player_id not in held.passed:

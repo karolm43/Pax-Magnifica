@@ -1274,3 +1274,17 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - QA (całość bloku 2026-11-19): pytest pełny ✓ (engine osobno), ruff ✓, mypy ✓, tsc ✓, eslint (zmienione) ✓,
   vitest offers/game-shell/settings/setup/shared/player/strategy/cards ✓, build ✓. e2e pominięte.
   Fuzzer: tylko 4 ziarna smoke (duża próba pominięta - za długa). Wymaga restartu backendu (nowe trasy i pola).
+
+## 2026-11-19 — „No whens” / „No afters” w oknie Rady; bot bada technologie
+
+- ✅ Połowiczne deklaracje agendy `agenda_when` / `agenda_after` (RULES.md 54.12): `reaction_prefs.skipped_moments`,
+  `reaction_window.has_playable_reaction(skip_moments=...)` - karta akcji/notka pasująca tylko do okien
+  z zadeklarowanym momentem nie liczy się; obie połowy = pas na całą agendę; zmiana w trakcie okna pasuje od
+  razu (`pass_open_windows(..., registry)`).
+- UI: `AgendaPassButtons` w oknie Rady (krok VOTE), deklaracja na bieżącą agendę; szersza deklaracja z panelu
+  Reactions wciska obie połowy.
+- ✅ Bot (RULES.md 65.8): primary i secondary karty Technology - warianty badania z zapłatą
+  (`engine/legal.research_payloads`), wcześniej bot zawsze rezygnował.
+- Scalanie okien before/after wokół jednego zdarzenia: poza agendą (już jedna pauza when+after) - nie ruszane.
+- QA: pytest engine + reakcje/agendy/jolnar ✓, ruff ✓, mypy ✓ (zmienione), tsc ✓, eslint ✓, vitest agenda +
+  ReactionSettings ✓. Duża próba fuzzera pominięta (puszcza użytkownik). Wymaga restartu backendu.

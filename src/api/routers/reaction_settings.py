@@ -86,7 +86,7 @@ async def post_prefs(
             mute_cards=request.mute_cards,
             mute_offers=request.mute_offers,
         )
-        reaction_window.pass_open_windows(new_state, player)
+        reaction_window.pass_open_windows(new_state, player, ctx.registry)
         new_state = reaction_window.settle_quick(new_state, ctx.registry)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
