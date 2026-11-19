@@ -29,6 +29,7 @@ from src.core import (
     active_effects,
     board_graph,
     combat_bombardment,
+    entropic_scar,
     invasion,
     rules_hooks,
     space_cannon,
@@ -379,14 +380,14 @@ def docks_for_experimental(
 ) -> list[tuple[str, str]]:
     """Doki gracza (``(pozycja, strefa)``) w aktywnym systemie albo w systemie sąsiednim."""
     active = state.active_system
-    if active is None:
-        return []
+    if active is None or entropic_scar.unit_abilities_blocked(state, active, registry):
+        return []  # Entropic Scar: SPACE CANNON nie strzela w statki w bliźnie (RULES.md 1.5)
     near = {active, *_adjacent(state, registry, active)}
     docks: list[tuple[str, str]] = []
     for position in sorted(near):
         system = state.systems.get(position)
-        if system is None:
-            continue
+        if system is None or entropic_scar.unit_abilities_blocked(state, position, registry):
+            continue  # dok w bliźnie nie używa SPACE CANNON
         if system.space_units.get(player_id, {}).get("spacedock", 0) > 0:
             docks.append((position, "space"))
         for planet, by_player in sorted(system.planet_units.items()):

@@ -315,6 +315,7 @@ def test_karty_z_reki_nie_sa_zrodlami() -> None:
     state.players["p1"].private.promissory_notes = ["alliance"]
     kinds = {s.kind for s in rules_hooks.owned_sources(state, "p1")}
     assert kinds <= {
+        rules_hooks.SOURCE_RULE,  # zasada ogólna (Entropic Scar) - nie karta z ręki
         rules_hooks.SOURCE_FACTION,
         rules_hooks.SOURCE_AGENDA,
         rules_hooks.SOURCE_LEADER,

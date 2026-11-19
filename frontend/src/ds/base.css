@@ -30,6 +30,26 @@ html {
   font: inherit;
 }
 
+/*
+ * Aplikacja to plansza gry, nie dokument: przeciąganie myszą (mapa, panele, karty) nie może
+ * zaznaczać tekstu ani kafelków (decyzja użytkownika). Pola edycji zostają zaznaczalne, a
+ * pojedynczy element może wrócić do zaznaczania klasą ``ds-selectable`` (albo własnym
+ * ``user-select``). Obrazków nie da się też „wyciągnąć” natywnym drag przeglądarki.
+ */
+body {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+:where(input, textarea, [contenteditable="true"], .ds-selectable) {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+:where(img) {
+  -webkit-user-drag: none;
+}
+
 :where(button) {
   color: inherit;
 }

@@ -4,7 +4,9 @@ import {
   IconAlertTriangle,
   IconCheck,
   IconChevronsRight,
+  IconHourglass,
   IconTrophy,
+  IconWand,
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { Tooltip } from "@/ds";
@@ -27,6 +29,8 @@ import { FleetPoolStatusMeter } from "@/domains/map/components/FleetPoolWarning"
 import { CommandPools } from "@/shared/ui/CommandPools/CommandPools";
 import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
+import { useCanActAs } from "@/domains/network/useNetworkMe";
+import { autoAlloc, type Alloc } from "./autoAlloc";
 import { ObjectiveSpendForm } from "./ObjectiveSpendForm";
 import styles from "./StatusPhasePanel.module.css";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
@@ -63,8 +67,6 @@ function currentStepNumber(step: StatusStepName): number {
   return 8;
 }
 
-type Alloc = { t: number; f: number; s: number };
-
 function allocOf(player: PlayerData): Alloc {
   return { t: player.tacticalCC, f: player.fleetCC, s: player.strategicCC };
 }
@@ -82,6 +84,8 @@ export function StatusPhasePanel() {
   const { data: webData } = usePlayerData(gameId);
   const { statusScore, statusFinishScoring, statusRedistribute } = useBoardEditor();
   const drag = useDraggablePanel("statusPanel.pos.v2");
+  // Gra sieciowa (RULES.md 44.3): każdy klient decyduje tylko za siebie; reszta = „czeka na”.
+  const canActAs = useCanActAs();
   const [busy, setBusy] = useState(false);
   const [allocs, setAllocs] = useState<Record<string, Alloc>>({});
 
@@ -109,6 +113,9 @@ export function StatusPhasePanel() {
   const current = currentStepNumber(status.step);
   const winner = gameState.winnerId ? byId.get(gameState.winnerId) : undefined;
   const scorer = players.find((p) => p.color === gameState.activeTurnPlayer);
+  const waitingTokens = players.filter((p) => !status.done.includes(p.discordId));
+  const myTokens = waitingTokens.filter((p) => canActAs(p.discordId));
+  const othersTokens = waitingTokens.filter((p) => !canActAs(p.discordId));
 
   return (
     <aside
@@ -174,7 +181,11 @@ export function StatusPhasePanel() {
           </p>
         )}
 
-        {!winner && status.step === "SCORE_OBJECTIVES" && scorer && (
+        {!winner && status.step === "SCORE_OBJECTIVES" && scorer && !canActAs(scorer.discordId) && (
+          <WaitingFor ids={[scorer.discordId]} nameOf={nameOf} what="to score objectives" />
+        )}
+
+        {!winner && status.step === "SCORE_OBJECTIVES" && scorer && canActAs(scorer.discordId) && (
           <ScoreStep
             scorer={scorer}
             status={status}
@@ -194,9 +205,7 @@ export function StatusPhasePanel() {
               tactic, fleet and strategy pools.
             </p>
             <div className={styles.cards}>
-              {players
-                .filter((p) => !status.done.includes(p.discordId))
-                .map((player) => {
+              {myTokens.map((player) => {
                   const unassigned = status.unassignedCc[player.discordId] ?? 0;
                   const base = allocOf(player);
                   const alloc = allocs[player.discordId] ?? base;
@@ -204,6 +213,7 @@ export function StatusPhasePanel() {
                   const left = total - (alloc.t + alloc.f + alloc.s);
                   const set = (next: Alloc) =>
                     setAllocs((prev) => ({ ...prev, [player.discordId]: next }));
+                  const ships = status.fleetShips?.[player.discordId] ?? {};
                   return (
                     <div key={player.discordId} className={styles.card}>
                       <div className={styles.cardHead}>
@@ -217,10 +227,17 @@ export function StatusPhasePanel() {
                       <ActiveTechs context="status" faction={player.faction} />
                       <CommandPools alloc={alloc} total={total} disabled={busy} onChange={set} />
                       {/* Fleet pool (RULES.md 42): podgląd floty względem planowanej puli. */}
-                      <FleetPoolStatusMeter
-                        pool={alloc.f}
-                        ships={status.fleetShips?.[player.discordId] ?? {}}
-                      />
+                      <FleetPoolStatusMeter pool={alloc.f} ships={ships} />
+                      <button
+                        type="button"
+                        className={styles.secondary}
+                        disabled={busy}
+                        onClick={() => set(autoAlloc(base, unassigned, ships))}
+                        title="New tokens fill the fleet pool up to your largest fleet, the rest go to the tactic pool"
+                      >
+                        <IconWand size={15} aria-hidden="true" />
+                        <span>Auto</span>
+                      </button>
                       <button
                         type="button"
                         className={styles.primary}
@@ -247,6 +264,13 @@ export function StatusPhasePanel() {
                   );
                 })}
             </div>
+            {othersTokens.length > 0 && (
+              <WaitingFor
+                ids={othersTokens.map((p) => p.discordId)}
+                nameOf={nameOf}
+                what="to place their command tokens"
+              />
+            )}
             <ExcessNotice status={status} nameOf={nameOf} />
           </div>
         )}
@@ -375,6 +399,28 @@ function StepTip({
       )}
       {state === "next" && <small className={styles.tipHint}>Not reached yet.</small>}
     </div>
+  );
+}
+
+/** Gracze, na których decyzję czeka ten klient (sieć: cudze decyzje nie są tu klikalne). */
+function WaitingFor({
+  ids,
+  nameOf,
+  what,
+}: {
+  ids: string[];
+  nameOf: (id: string) => string;
+  what: string;
+}) {
+  return (
+    <p className={styles.waiting} role="status">
+      <IconHourglass size={14} aria-hidden="true" />
+      <span>Waiting for</span>
+      {ids.map((id) => (
+        <PlayerTag key={id} playerId={id} size={14} fallback={nameOf(id)} />
+      ))}
+      <span>{what}</span>
+    </p>
   );
 }
 

@@ -291,6 +291,8 @@ class SystemDef(_StaticModel):
     is_asteroid_field: bool = Field(default=False, alias="isAsteroidField")
     is_supernova: bool = Field(default=False, alias="isSupernova")
     is_gravity_rift: bool = Field(default=False, alias="isGravityRift")
+    # Entropic Scar (Thunder's Edge, RULES.md 1.5): anomalia blokująca zdolności jednostek.
+    is_scar: bool = Field(default=False, alias="isScar")
 
     # The Fracture (Thunder's Edge, RULES.md 50): kafel należy do The Fracture; ``hasEgress``
     # — na kaflu jest wydrukowany egress (sąsiaduje z każdym żetonem ingress); ``hasIngress``
@@ -311,6 +313,8 @@ class SystemDef(_StaticModel):
             result.add("SUPERNOVA")
         if self.is_gravity_rift:
             result.add("GRAVITY_RIFT")
+        if self.is_scar:
+            result.add("ENTROPIC_SCAR")
         return result
 
 

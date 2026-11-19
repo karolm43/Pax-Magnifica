@@ -20,7 +20,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import extra_dice, invasion, rules_hooks, triggers
+from src.core import entropic_scar, extra_dice, invasion, rules_hooks, triggers
 from src.core.dice import DIE_SIDES, count_hits, next_rng
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import ActiveCombat, GameState
@@ -61,8 +61,8 @@ def groups(state: GameState, registry: StaticDataRegistry, player_id: str) -> li
     """Jednostki gracza z Bombardment w aktywnym systemie walki: statki + siły naziemne
     bombardujące „jak statek”, które nie walczą na planecie tej walki."""
     combat = ground_combat(state)
-    if combat is None:
-        return []
+    if combat is None or entropic_scar.unit_abilities_blocked(state, combat.position, registry):
+        return []  # Entropic Scar: brak BOMBARDMENT w bliźnie (RULES.md 1.5)
     system = state.systems[combat.position]
     units = {
         bt: n for bt, n in system.space_units.get(player_id, {}).items()

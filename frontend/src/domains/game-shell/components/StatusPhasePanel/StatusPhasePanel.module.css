@@ -342,6 +342,42 @@
   border-color: var(--ds-h14);
 }
 
+/* „Auto” obok „Confirm” - ten sam kształt, spokojniejsze tło (aktywny nigdy szary). */
+.secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  align-self: flex-end;
+  min-width: 170px;
+  padding: 8px 16px;
+  font-size: var(--text-body, 13px);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-stage1) / 0.1);
+  border: 1px solid rgb(var(--ds-sig-stage1) / 0.45);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.secondary:hover:not(:disabled) {
+  background: rgb(var(--ds-sig-stage1) / 0.25);
+}
+.secondary:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* „Waiting for …” - cudze decyzje w grze sieciowej. */
+.waiting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
 /* Command token step */
 .cards {
   display: grid;

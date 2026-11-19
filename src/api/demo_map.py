@@ -34,7 +34,8 @@ def _pick_demo_system_ids(registry: StaticDataRegistry) -> list[str]:
     all_ids = sorted(sid for sid in registry.systems if sid != _MECATOL_SYSTEM_ID)
 
     def has_anomaly(sid: str) -> bool:
-        return bool(registry.systems[sid].anomalies)
+        # Entropic Scar (RULES.md 1.5) bez wpływu na ruch - nie zmienia stałego układu mapy demo.
+        return bool(registry.systems[sid].anomalies - {"ENTROPIC_SCAR"})
 
     with_anomaly = [sid for sid in all_ids if has_anomaly(sid)]
     without_anomaly = [sid for sid in all_ids if not has_anomaly(sid)]

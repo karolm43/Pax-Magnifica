@@ -13,6 +13,7 @@ from src.core import (
     active_effects,
     battle,
     economy,
+    entropic_scar,
     faction_components,
     faction_units,
     leaders,
@@ -255,6 +256,8 @@ def arc_secundus_repair(state: GameState, player_id: str, ctx: Mapping[str, Any]
 def _deploy_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
     if ctx.get("kind") != "ground" or not _participant(state, player_id, ctx):
         return False
+    if entropic_scar.unit_abilities_blocked(state, str(ctx.get("position"))):
+        return False  # DEPLOY nie działa w bliźnie entropicznej (RULES.md 1.5)
     if faction_units.variant_of(state, _registry(), player_id, "mech") != MECH:
         return False
     system = state.systems.get(str(ctx.get("position")))

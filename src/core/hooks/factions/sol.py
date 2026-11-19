@@ -14,6 +14,7 @@ from src.core import (
     active_effects,
     command_tokens,
     economy,
+    entropic_scar,
     faction_components,
     faction_units,
     leaders,
@@ -158,6 +159,8 @@ def _funds(state: GameState, player_id: str) -> int:
 def _deploy_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
     if ctx.get("player") != player_id:
         return False
+    if entropic_scar.unit_abilities_blocked(state, str(ctx.get("position"))):
+        return False  # DEPLOY nie działa w bliźnie entropicznej (RULES.md 1.5)
     if faction_units.variant_of(state, _registry(), player_id, "mech") != MECH:
         return False
     left = reinforcements_left(state, player_id, "mech")

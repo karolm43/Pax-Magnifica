@@ -21,6 +21,7 @@ from src.core import (
     board_graph,
     board_reinforcements,
     economy,
+    entropic_scar,
     exploration,
     faction_components,
     floating_structures,
@@ -653,7 +654,16 @@ def _zeta_possible(state: GameState, player_id: str) -> bool:
 def _zeta_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
     """Bez wymogu TG w chwili oferty: Scavenge z tego samego przejęcia może opłacić DEPLOY
     (F_saar zeta 1) - zapłata sprawdzana przy przyjęciu oferty."""
-    return ctx.get("player") == player_id and _zeta_possible(state, player_id)
+    if ctx.get("player") != player_id:
+        return False
+    scar = any(
+        entropic_scar.unit_abilities_blocked(state, position)
+        for position, system in state.systems.items()
+        if ctx.get("planet") in system.planet_owners or ctx.get("planet") in system.planet_units
+    )
+    if scar:
+        return False  # DEPLOY nie działa w bliźnie entropicznej (RULES.md 1.5)
+    return _zeta_possible(state, player_id)
 
 
 def _mech_source_inputs(state: GameState, registry: Any, player_id: str

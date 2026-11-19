@@ -20,6 +20,7 @@ from src.core import (
     control,
     custodians,
     economy,
+    entropic_scar,
     exhaust,
     objectives,
     planet_stats,
@@ -871,6 +872,8 @@ def _nexus_against(state: GameState, _pid: str, _ctx: Mapping[str, Any]) -> None
     for position, system in state.systems.items():
         if not custodians.is_mecatol_position(state, position):
             continue
+        if not entropic_scar.accepts_wormhole_token(state, position):
+            continue  # R_entropic_scars: żeton wormhole w bliźnie wraca do puli
         if "GAMMA" not in system.wormhole_tokens:
             system.wormhole_tokens.append("GAMMA")
 
