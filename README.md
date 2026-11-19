@@ -124,8 +124,9 @@ uv sync --extra dev
 cd frontend && npm install && cd ..
 ```
 
-Dane gry i `assets/` są w repo, więc klon jest od razu grywalny. Gdyby brakowało grafik albo fontów (zaślepki
-zamiast obrazków), skopiuj brakujące pliki z lokalnej kopii AsyncTI4 według manifestu:
+Dane gry (JSON) są w repo, więc klon jest od razu grywalny. **Grafiki i fonty są poza repo** — bez nich w miejscu
+obrazków pojawią się zaślepki (gotowa paczka z Releases ma je w środku). Jeśli masz lokalną kopię grafik AsyncTI4,
+skopiuj brakujące pliki według manifestu:
 
 ```bash
 uv run python -m src.audit sync_assets --from <katalog-z-grafikami>
@@ -149,7 +150,7 @@ Partia zapisuje się w `saves/` i wznawia po restarcie serwera. `--save PLIK` wy
 
 - **Biała strona / „Update Needed”** — backend nie działa albo nie oddał `web-data`; sprawdź jego okno.
 - **Rejestr ładuje 0 jednostek** — brak `assets/data/`; sprawdź: `uv run python -m src.core.registry`.
-- **Brak obrazków** — brakujące assety uzupełnij przez `sync_assets` (wyżej).
+- **Brak obrazków** — grafiki są poza repo, patrz `sync_assets` wyżej (albo użyj paczki z Releases).
 - **Spójność danych** — `uv run python -m src.audit` (liczby wpisów, referencje, brakujące pliki).
 
 </details>

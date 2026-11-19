@@ -109,3 +109,20 @@ fuzz_reports/
 
 # ---- Paczka do rozesłania (packaging/build_release.py) ----
 release/
+
+# ---- Pliki sterujące AI (Claude Code, Kiro, Cursor) i narzędzia lokalne ----
+.claude/
+CLAUDE.md
+**/CLAUDE.md
+.kiro/
+.cursor/
+.cursorrules
+frontend/.cursor/
+frontend/.cursorrules
+AGENTS.md
+semantic-review/
+ti4_web_new-main/
+.hypothesis/
+.testmondata*
+*.rar
+*.zip
