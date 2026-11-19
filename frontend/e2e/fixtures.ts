@@ -38,6 +38,18 @@ export const test = base.extend<{ errors: string[] }>({
 export { expect };
 
 /*
+ * Włącza w ustawieniach (localStorage `ti4_settings`) opcję „Skip phases button (God-Mode)”,
+ * bez której ekran setupu nie pokazuje „Skip setup (random)”. Wołać PRZED `page.goto`.
+ */
+export async function enableSkipShortcuts(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const raw = localStorage.getItem("ti4_settings");
+    const current = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    localStorage.setItem("ti4_settings", JSON.stringify({ ...current, skipPhases: true }));
+  });
+}
+
+/*
  * Kreator „Play → Me vs. bots": gracz 1 (host) gra wskazaną frakcją, pozostali to boty.
  * Kończy na planszy po pominięciu intro (okno setupu z tajnymi celami jest otwarte).
  */

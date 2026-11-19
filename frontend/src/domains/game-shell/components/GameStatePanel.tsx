@@ -53,6 +53,7 @@ import {
   prettifyId,
   resolveSystemName,
 } from "./GameEventPanel/eventFormatting";
+import { CoachSection } from "@/domains/tutorial";
 import { AgendaRow } from "./GameStateAgenda";
 import { getPlayerDisplayName, playerNameForColor } from "./gameStatePlayers";
 import styles from "./GameStatePanel.module.css";
@@ -585,7 +586,10 @@ function PlateBody({
   const turnColor = gameState.activeTurnPlayer ?? activePlayer;
   const active = playerData.find((p) => p.color === turnColor);
   const isAgenda = phase.startsWith("agenda");
-  const showOrder = phase === "action" || phase === "strategy";
+  // Pływający panel fazy (info) jest ZWIĘZŁY (decyzja użytkownika): w fazie strategii
+  // kolejność wyboru i karty pokazuje stół kart strategii na środku ekranu
+  // (StrategyCardTable), więc panel ich nie dubluje. Pełny wariant (zakładka) bez zmian.
+  const showOrder = phase === "action" || (phase === "strategy" && !isInfo);
 
   // Status karty strategii aktywnego gracza (faza akcji): czy ma kartę i czy
   // już ją zagrał. Steruje bramką przycisku „Pass" (nie można pasować przed
@@ -621,12 +625,11 @@ function PlateBody({
       {showOrder && (
         <TurnOrder seats={seats} activeColor={activePlayer} phase={phase} />
       )}
-      {phase === "strategy" && (
+      {phase === "strategy" && !isInfo && (
         <StrategyCardPicker
           seats={seats}
           activeColor={activePlayer}
           pickCount={gameState.strategyPickCount ?? null}
-          variant={variant}
         />
       )}
       {/* Faza akcji = same klikalne akcje → tylko w trybie pełnym (osobne miejsce). */}
@@ -847,7 +850,6 @@ function StrategyCardPicker({
   seats,
   activeColor,
   pickCount,
-  variant = "full",
 }: {
   seats: Seat[];
   activeColor: string | null;
@@ -856,13 +858,10 @@ function StrategyCardPicker({
    * nieznana (liczba graczy spoza 3..8). Decyduje, kiedy wybór jest kompletny.
    */
   pickCount: number | null;
-  variant?: PanelVariant;
 }) {
   const { data: cards } = useStrategyCards();
   const { pickStrategyCard, setSpeaker } = useBoardEditor();
   const [busy, setBusy] = useState(false);
-
-  const isInfo = variant === "info";
 
   if (!cards || cards.length === 0) return null;
 
@@ -912,38 +911,6 @@ function StrategyCardPicker({
           const owner = seats.find(
             (s) => s.player.discordId === card.picked_by,
           );
-          // Tryb info: karty to PODGLĄD (kto co ma), nie klikalny wybór. Ten sam
-          // wygląd (``scCard``), ale jako nieinteraktywny ``div`` bez onClick.
-          if (isInfo) {
-            return (
-              <div
-                key={card.initiative}
-                className={styles.scCard}
-                data-picked={!!owner || undefined}
-                title={
-                  owner
-                    ? `Picked by: ${getPlayerDisplayName(owner.player, owner.player.color)}`
-                    : card.name
-                }
-              >
-                <span
-                  className={styles.disc}
-                  style={toneStyle({ "--scc": SC_TONE[card.initiative] })}
-                >
-                  {card.initiative}
-                </span>
-                <span className={styles.scName}>{card.name}</span>
-                {card.trade_goods > 0 && (
-                  <span className={styles.scTg} title="Trade Goods on the card">
-                    +{card.trade_goods} TG
-                  </span>
-                )}
-                <span className={styles.scActions}>
-                  {owner && <FactionMark player={owner.player} size={18} />}
-                </span>
-              </div>
-            );
-          }
           const canPick = !owner && !!picker;
           return (
             <button
@@ -986,29 +953,27 @@ function StrategyCardPicker({
         })}
       </div>
 
-      {/* Zmiana mówcy (kto zaczyna wybór) = klikalna akcja → tylko w trybie pełnym. */}
-      {!isInfo && (
-        <div className={styles.speakerRow}>
-          <span className={styles.label}>Speaker</span>
-          <div className={styles.speakerChips}>
-            {seats.map((seat) => (
-              <button
-                key={seat.player.discordId}
-                type="button"
-                className={styles.scPickBtn}
-                data-active={seat.player.isSpeaker || undefined}
-                disabled={busy}
-                onClick={() =>
-                  void run(() => setSpeaker(seat.player.discordId))
-                }
-                title={`Set Speaker: ${seat.name}`}
-              >
-                <FactionMark player={seat.player} size={16} />
-              </button>
-            ))}
-          </div>
+      {/* Zmiana mówcy (kto zaczyna wybór) - tylko w pełnym wariancie (zakładka gracza). */}
+      <div className={styles.speakerRow}>
+        <span className={styles.label}>Speaker</span>
+        <div className={styles.speakerChips}>
+          {seats.map((seat) => (
+            <button
+              key={seat.player.discordId}
+              type="button"
+              className={styles.scPickBtn}
+              data-active={seat.player.isSpeaker || undefined}
+              disabled={busy}
+              onClick={() =>
+                void run(() => setSpeaker(seat.player.discordId))
+              }
+              title={`Set Speaker: ${seat.name}`}
+            >
+              <FactionMark player={seat.player} size={16} />
+            </button>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -1877,6 +1842,9 @@ function GameStatePanelContent({
           variant="info"
         />
       </Collapse>
+      {/* „What now?” samouczka = część tego panelu (dawniej osobne okno w lewym dole,
+          nachodziło na panel i czat). Widoczna także przy zwiniętym panelu fazy. */}
+      <CoachSection />
     </section>
   );
 }

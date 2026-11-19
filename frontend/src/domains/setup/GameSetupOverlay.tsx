@@ -26,6 +26,7 @@ import { SecretObjectiveCard } from "@/domains/cards/components/SecretObjectiveC
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import type { GameSetup, GameSetupPlayer } from "@/entities/data/types";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
+import { useSettingsStore } from "@/state/appStore";
 import styles from "./GameSetupOverlay.module.css";
 
 /** Ile celów I etapu odkrywa mówca (zgodne z backendem: `REVEALED_AT_SETUP`). */
@@ -77,9 +78,13 @@ export function GameSetupOverlay() {
   // klikam za każdego jak dotąd).
   const { data: me } = useNetworkMe();
   const mySeat = me?.network ? (me.player_id ?? null) : null;
-  const canSkip = !me?.network || me.host;
+  // „Skip setup (random)” to skrót testowy: widoczny TYLKO z włączoną opcją
+  // „Skip phases button (God-Mode)” w Settings (decyzja użytkownika) — domyślnie ekran
+  // tajnych celów nie kusi losowaniem.
+  const skipEnabled = useSettingsStore((s) => s.settings.skipPhases);
+  const canSkip = skipEnabled && (!me?.network || me.host);
 
-  // Po zako?czeniu setupu okno ?yje jeszcze tylko jako pokaz odkrytych cel?w (`finished`).
+  // Po zakończeniu setupu okno żyje jeszcze tylko jako pokaz odkrytych celów (`finished`).
   const finished = !setup && revealedByUs;
   if (!setup && (dismissed || !revealedByUs)) return null;
 

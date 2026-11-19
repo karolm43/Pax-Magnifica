@@ -1,17 +1,15 @@
-import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
-import { IconBook2, IconMinus, IconCompass } from "@tabler/icons-react";
+import { IconBook2, IconChevronDown, IconCompass } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useStrategyCards } from "@/api/useBoardEditor";
 import { useGameData } from "@/state/useGameContext";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
-import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import type { PlayerData } from "@/entities/data/types";
 import { coachHint, type CoachContext } from "./coachHint";
 import { useTutorialStore } from "./tutorialStore";
-import styles from "./CoachPanel.module.css";
+import styles from "./CoachSection.module.css";
 
 function seated(players: PlayerData[]): PlayerData[] {
   return players.filter((p) => p.faction && p.faction !== "neutral" && p.discordId);
@@ -68,78 +66,59 @@ function useCoachContext(): CoachContext | null {
 }
 
 /**
- * Panel „What now?” samouczka (lewy dół, nad ikoną czatu): jedna krótka podpowiedź, co
- * zrobić w bieżącej fazie/kroku, i „Learn more” do właściwego rozdziału How to play.
- * Zwija się do ikony (wybór zapamiętany), przesuwany jak inne panele (`useDraggablePanel`).
+ * Sekcja „What now?” samouczka — część panelu fazy (GameStatePanel, lewa góra): jedna
+ * krótka podpowiedź, co zrobić w bieżącej fazie/kroku, i „Learn more” do właściwego
+ * rozdziału How to play. Dawniej osobne pływające okno w lewym dole — nachodziło na panel
+ * fazy i ikonę czatu, więc (decyzja użytkownika: mniej okien) żyje w jednym panelu z fazą.
+ * Nagłówek zwija sekcję do jednej linii (wybór zapamiętany w `tutorialStore`).
  */
-export function CoachPanel() {
+export function CoachSection() {
   const context = useCoachContext();
   const coachOpen = useTutorialStore((s) => s.coachOpen);
   const setCoachOpen = useTutorialStore((s) => s.setCoachOpen);
   const openGuide = useTutorialStore((s) => s.openGuide);
-  const drag = useDraggablePanel("panel:coach");
   if (!context) return null;
   const hint = coachHint(context);
+  const toggle = coachOpen ? "Hide hints" : "Show hints: what to do now";
 
-  if (!coachOpen) {
-    return createPortal(
-      <button
-        type="button"
-        className={styles.launcher}
-        data-act={hint.act || undefined}
-        onClick={() => setCoachOpen(true)}
-        aria-label="Show hints: what to do now"
-        title="What now?"
-      >
-        <IconCompass size={18} aria-hidden="true" />
-      </button>,
-      document.body,
-    );
-  }
-
-  return createPortal(
+  return (
     <section
-      className={styles.panel}
+      className={styles.section}
       aria-label="What now?"
       aria-live="polite"
       data-act={hint.act || undefined}
-      ref={drag.ref}
-      style={drag.style}
-      data-draggable-panel
-      data-dragging={drag.isDragging || undefined}
     >
-      <header
+      <button
+        type="button"
         className={styles.head}
-        data-grab
-        onPointerDown={drag.onHandlePointerDown}
-        onDoubleClick={drag.reset}
-        title="Drag to move · double-click resets position"
+        aria-expanded={coachOpen}
+        aria-label={toggle}
+        title={toggle}
+        onClick={() => setCoachOpen(!coachOpen)}
       >
-        <IconCompass size={15} aria-hidden="true" />
+        <IconCompass size={14} aria-hidden="true" className={styles.compass} />
         <span className={styles.kicker}>What now?</span>
-        <button
-          type="button"
-          className={styles.close}
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => setCoachOpen(false)}
-          aria-label="Hide hints"
-          title="Hide hints"
-        >
-          <IconMinus size={15} aria-hidden="true" />
-        </button>
-      </header>
-      <div className={styles.body}>
-        <b className={styles.title}>{hint.title}</b>
-        <ul className={styles.lines}>
-          {hint.lines.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-        <button type="button" className={styles.more} onClick={() => openGuide(hint.chapter)}>
-          <IconBook2 size={14} aria-hidden="true" /> Learn more
-        </button>
-      </div>
-    </section>,
-    document.body,
+        {!coachOpen && <span className={styles.peek}>{hint.title}</span>}
+        <IconChevronDown
+          size={13}
+          aria-hidden="true"
+          className={styles.chevron}
+          data-open={coachOpen || undefined}
+        />
+      </button>
+      {coachOpen && (
+        <div className={styles.body}>
+          <b className={styles.title}>{hint.title}</b>
+          <ul className={styles.lines}>
+            {hint.lines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <button type="button" className={styles.more} onClick={() => openGuide(hint.chapter)}>
+            <IconBook2 size={14} aria-hidden="true" /> Learn more
+          </button>
+        </div>
+      )}
+    </section>
   );
 }

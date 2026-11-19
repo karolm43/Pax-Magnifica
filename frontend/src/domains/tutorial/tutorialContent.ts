@@ -38,7 +38,7 @@ export const CHAPTERS: Chapter[] = [
       "To score them you expand, build fleets, research technology, trade, negotiate and fight.",
       "Every faction plays differently — open your player area to read your faction abilities, leaders and starting technology.",
     ],
-    hint: "The “What now?” panel (bottom left, above the chat icon) always tells you what to do next. Click “Learn more” in it to jump to the right chapter here.",
+    hint: "The “What now?” section of the phase panel (top left) always tells you what to do next. Click “Learn more” in it to jump to the right chapter here.",
   },
   {
     id: "screen",
@@ -51,7 +51,7 @@ export const CHAPTERS: Chapter[] = [
       "Map toolbar: lenses (planet traits, tech skips, Space Cannon range), Event log, How to play and settings.",
       "Number keys 1–8 open each player's area; G shows objectives and points; ? lists all shortcuts.",
       "Chat (bottom left) talks to everyone or whispers to one player.",
-      "“What now?” (bottom left) tells you what to do at every moment; hide it to a small compass icon.",
+      "“What now?” (in the phase panel, top left) tells you what to do at every moment; click its header to fold it to one line.",
     ],
     hint: "Choices about places — a planet, a system — are always made by clicking the highlighted targets on the map.",
   },

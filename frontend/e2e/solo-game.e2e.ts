@@ -3,7 +3,7 @@
  * Backend E2E żyje przez cały przebieg, ale każdy scenariusz zaczyna NOWĄ grę z menu,
  * więc stan poprzedniego testu nie przeszkadza.
  */
-import { expect, startSoloGame, test } from "./fixtures";
+import { enableSkipShortcuts, expect, startSoloGame, test } from "./fixtures";
 
 test("menu startowe ładuje się bez błędów", async ({ page }) => {
   await page.goto("/");
@@ -40,7 +40,15 @@ test("setup przeklikany ręcznie: tajny cel → Custodians → cele publiczne �
   await expect(page.getByRole("heading", { name: "Strategy Phase" })).toBeVisible();
 });
 
-test("Skip setup (random) też kończy w fazie strategii", async ({ page }) => {
+test("bez opcji w Settings ekran tajnych celów nie ma „Skip setup (random)”", async ({ page }) => {
+  await startSoloGame(page);
+  const setup = page.getByRole("dialog", { name: "Game setup" });
+  await expect(setup.getByRole("heading", { name: "Secret objectives" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Skip setup (random)" })).toHaveCount(0);
+});
+
+test("Skip setup (random) (opcja w Settings) też kończy w fazie strategii", async ({ page }) => {
+  await enableSkipShortcuts(page);
   await startSoloGame(page);
   await page.getByRole("button", { name: "Skip setup (random)" }).click();
   await expect(page.getByRole("dialog", { name: "Game setup" })).toBeHidden();

@@ -16,6 +16,7 @@ import { useBoardEditor } from "@/api/useBoardEditor";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { PlayerEditorModal } from "@/domains/player/components/PlayerEditorModal";
 import { BugReportButton } from "@/domains/bug-report/BugReportButton";
+import { InvitesButton } from "@/domains/network/NetworkPanel";
 import hud from "./hudChrome.module.css";
 import styles from "./HeaderGameControls.module.css";
 
@@ -35,6 +36,8 @@ export function HeaderGameControls() {
   return (
     <Group gap={6} wrap="nowrap" visibleFrom="sm">
       {isHost && <GodModeMenu />}
+      {/* Gra sieciowa: linki zaproszeń hosta (dawniej pływający przycisk na planszy). */}
+      <InvitesButton className={hud.hudButton} labelClassName={hud.hudLabel} />
       {/* Przeglądarka Zasad TI4; `from=game` daje w niej powrót „Wróć do gry". */}
       <Button
         variant="default"

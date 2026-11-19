@@ -1,9 +1,12 @@
-/* Czat przy stole (RULES.md 47.6). Nad oknem Rady (2700), pod oknami modalnymi (3000). */
+/* Czat przy stole (RULES.md 47.6). Nad oknem Rady (2700), pod oknami modalnymi (3000).
+   Lewy dolny róg należy do czatu: ręka (BottomHandDock) stoi na środku z bocznym odstępem
+   ≥ 312 px, więc czat NIE liczy się z jej wysokością (--hand-dock-clear) - dawniej
+   rozwinięta ręka wypychała ikonę w górę, pod panel fazy. */
 
 .launcher {
   position: fixed;
   left: 16px;
-  bottom: calc(var(--hand-dock-clear, 54px) + 12px);
+  bottom: 16px;
   z-index: 2750;
   display: grid;
   place-items: center;
@@ -67,7 +70,7 @@
 .panel {
   position: fixed;
   left: 16px;
-  bottom: calc(var(--hand-dock-clear, 54px) + 12px);
+  bottom: 16px;
   z-index: 2750;
   display: flex;
   flex-direction: column;

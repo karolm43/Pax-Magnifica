@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { NetworkPanel } from "@/domains/network/NetworkPanel";
-import { CoachPanel, HowToPlayModal } from "@/domains/tutorial";
+import { HowToPlayModal } from "@/domains/tutorial";
 import { useDeckSearchStore } from "@/domains/search/deckSearchStore";
 import { useParams } from "react-router-dom";
 import { AppShell, Box, Tabs } from "@/ds";
@@ -333,8 +333,7 @@ function GameMapContent() {
           Pojawia się natychmiast, gdy backend ustawi `winnerId` (próg VP / koniec rund). */}
       <VictoryScreen />
 
-      {/* Samouczek: podpowiedź „What now?” (lewy dolny róg) i okno How to play. */}
-      <CoachPanel />
+      {/* Samouczek: okno How to play (podpowiedź „What now?” żyje w panelu fazy). */}
       <HowToPlayModal />
 
       <KeyboardShortcutsModal

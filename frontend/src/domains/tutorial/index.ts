@@ -1,3 +1,3 @@
-export { CoachPanel } from "./CoachPanel";
+export { CoachSection } from "./CoachSection";
 export { HowToPlayModal } from "./HowToPlayModal";
 export { useTutorialStore } from "./tutorialStore";

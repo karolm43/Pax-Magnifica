@@ -27,7 +27,8 @@
   width: max-content;
   min-width: 260px;
   max-width: min(420px, calc(100vw - 32px));
-  max-height: calc(100% - 32px);
+  /* Kończy się nad ikoną czatu (lewy dolny róg) - nigdy jej nie zasłania. */
+  max-height: calc(100% - 88px);
   overflow-y: auto;
   overscroll-behavior: contain;
   z-index: var(--z-game-state-overlay);

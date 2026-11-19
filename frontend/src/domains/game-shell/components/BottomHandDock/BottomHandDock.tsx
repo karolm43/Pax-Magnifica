@@ -401,7 +401,15 @@ export function BottomHandDock() {
       {/* Rozwinięta część ma STAŁĄ wysokość (CSS ``.body``) - nie skacze zależnie od zakładki
           i liczby kart; nadmiar przewija się w środku. */}
       {open && (
-      <div className={styles.body}>
+      <div
+        className={styles.body}
+        // Pusta zakładka (np. brak kart akcji na starcie) nie trzyma 176 px pustej tacy
+        // nad planszą - ręka kurczy się do jednej linii komunikatu.
+        data-empty={
+          (tab !== "techs" && tab !== "relics" && ids.length === 0 && peekLines.length === 0) ||
+          undefined
+        }
+      >
       {peekLines.length > 0 && (
         <ul className={styles.peek} aria-label="Cards you were shown">
           {peekLines.map((line) => (

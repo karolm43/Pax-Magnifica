@@ -169,7 +169,7 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
             />
             <SwitchRow
               label="Skip phases button (God-Mode)"
-              description="Show a Skip phase button in the turn panel. It jumps to the next phase ignoring passes, open windows and strategy card picks (missing cards are auto-picked). Normal Next phase is unchanged."
+              description="Show a Skip phase button in the turn panel and a Skip setup (random) button on the game setup screen. Skip phase jumps to the next phase ignoring passes, open windows and strategy card picks (missing cards are auto-picked); Skip setup picks random secret objectives and finishes the setup. Normal Next phase is unchanged."
               checked={settings.skipPhases}
               onToggle={(checked) =>
                 handlers.updateSettings({ skipPhases: checked })

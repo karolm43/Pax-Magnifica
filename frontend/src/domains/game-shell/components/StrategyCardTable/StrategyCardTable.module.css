@@ -149,7 +149,9 @@
   text-align: center;
   gap: 6px;
   width: max-content;
-  max-width: min(92vw, 1100px);
+  /* Baner mieści się MIĘDZY panelem fazy (lewa góra, ~320 px) a centrum decyzji (prawa
+     góra, 420 px) - nie wchodzi pod nie. Na wąskim ekranie podłoga 560 px. */
+  max-width: min(92vw, 1100px, max(560px, calc(100vw - 2 * 460px)));
   margin-bottom: var(--ds-space-md);
   /* Prawy zapas większy — rezerwuje miejsce na przycisk collapse na banerze,
      żeby nie nachodził na tytuł/meta. */
@@ -692,6 +694,13 @@
   font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
+}
+
+/* Mówca (zaczyna wybór) - korona na jego chipie zamiast osobnego wiersza „Speaker:”. */
+.pickSeatSpeaker {
+  flex: none;
+  color: var(--ti-gold-hi);
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.8));
 }
 
 .pickSeatNow {

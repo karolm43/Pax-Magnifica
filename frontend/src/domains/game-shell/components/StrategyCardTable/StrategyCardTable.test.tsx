@@ -68,5 +68,10 @@ describe("StrategyCardTable - kto wybrał jaką kartę", () => {
       expect.stringContaining("picking"),
     ]);
     expect(seats[1]).toHaveAttribute("data-now");
+
+    // Mówca = korona na jego chipie (bez osobnego wiersza „Now picking / Speaker”).
+    expect(within(seats[0]).getByRole("img", { name: "Speaker" })).toBeInTheDocument();
+    expect(within(seats[1]).queryByRole("img", { name: "Speaker" })).toBeNull();
+    expect(screen.queryByText("Now picking:")).toBeNull();
   });
 });

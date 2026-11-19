@@ -12,6 +12,7 @@
  * Push stanu (WebSocket) włącza się tu, bo tylko gra sieciowa go potrzebuje.
  */
 import { useEffect, useState } from "react";
+import { IconUserPlus } from "@tabler/icons-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Group, Modal, Paper, Select, Stack, Text } from "@/ds";
 import { FORBIDDEN_EVENT } from "@/api/actorIdentity";
@@ -220,9 +221,40 @@ function InvitesModal({ opened, onClose }: { opened: boolean; onClose: () => voi
   );
 }
 
+/**
+ * Przycisk „Invites" hosta gry sieciowej — w NAGŁÓWKU gry (HeaderGameControls), obok
+ * Rules/Bug. Dawniej pływał w lewym dolnym rogu planszy, na czacie. Poza grą sieciową
+ * i dla nie-hosta nic nie renderuje.
+ */
+export function InvitesButton({
+  className,
+  labelClassName,
+}: {
+  className?: string;
+  labelClassName?: string;
+}) {
+  const { data: me } = useNetworkMe();
+  const [open, setOpen] = useState(false);
+  if (!me?.network || !me.authenticated || !me.host) return null;
+  return (
+    <>
+      <Button
+        variant="default"
+        size="xs"
+        className={className}
+        leftSection={<IconUserPlus size={14} />}
+        onClick={() => setOpen(true)}
+        title="Seat invite links for the other players"
+      >
+        <span className={labelClassName}>Invites</span>
+      </Button>
+      <InvitesModal opened={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
 export function NetworkPanel() {
   const me = useNetworkMe();
-  const [open, setOpen] = useState(false);
   const network = me.data?.network === true;
   useBackendPush(network && me.data?.authenticated === true);
 
@@ -262,15 +294,7 @@ export function NetworkPanel() {
   return (
     <>
       <ForbiddenNotices />
-      {/* „Kim gram" jest w nagłówku (WhoAmIBadge); tu tylko zaproszenia hosta. */}
-      {me.data.host && (
-        <div style={{ position: "fixed", left: 12, bottom: 12, zIndex: 900 }}>
-          <Button size="compact-sm" onClick={() => setOpen(true)}>
-            Invites
-          </Button>
-        </div>
-      )}
-      {me.data.host && <InvitesModal opened={open} onClose={() => setOpen(false)} />}
+      {/* „Kim gram" (WhoAmIBadge) i zaproszenia hosta (InvitesButton) są w nagłówku. */}
     </>
   );
 }

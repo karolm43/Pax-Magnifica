@@ -9,14 +9,15 @@
 .dock {
   position: fixed;
   left: 20px;
-  bottom: 20px;
+  /* Nad ikoną czatu (lewy dolny róg, ChatPanel: bottom 16 + 40 px). */
+  bottom: 68px;
   z-index: 200;
   display: flex;
   flex-direction: column;
   width: 340px;
   height: clamp(280px, 56vh, 560px);
   max-width: calc(100vw - 40px);
-  max-height: calc(100vh - 40px);
+  max-height: calc(100vh - 88px);
   box-sizing: border-box;
   padding: 12px 12px 10px;
   background: color-mix(in oklab, var(--ds-ground) 92%, transparent);
@@ -30,7 +31,7 @@
 /* Slot „lewy dół" (hooks/useHudMetric.ts): w domyślnym miejscu dok kończy się POD panelem
    stanu gry (lewa góra, --hud-gsp-bottom), zamiast na nim leżeć. Przesunięty - bez limitu. */
 .dock[data-slotted] {
-  max-height: calc(100vh - var(--hud-gsp-bottom, 0px) - 32px);
+  max-height: calc(100vh - var(--hud-gsp-bottom, 0px) - 80px);
 }
 
 /* UWAGA: nie ustawiamy tu `animation: none` — przełączenie none → dockRise po upuszczeniu

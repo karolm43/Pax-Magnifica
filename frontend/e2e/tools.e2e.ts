@@ -2,13 +2,14 @@
  * Narzędzia stołu: zoom mapy (Ctrl + kółko, klawisze), skróty nawigacji po polach graczy oraz zgłoszenie błędu („Report bug")
  * ze zrzutem ekranu, zapisywane przez backend w katalogu raportów hosta.
  */
-import { expect, startSoloGame, test } from "./fixtures";
+import { enableSkipShortcuts, expect, startSoloGame, test } from "./fixtures";
 
 test.beforeEach(async ({ page }) => {
   // Diagnostyka: odrzucone żądania backendu trafiają do logu testu (łatwiej znaleźć źródło).
   page.on("response", (r) => {
     if (r.status() >= 400) console.log("HTTP", r.status(), r.request().method(), r.url());
   });
+  await enableSkipShortcuts(page);
   await startSoloGame(page);
   await page.getByRole("button", { name: "Skip setup (random)" }).click();
   await expect(page.getByRole("heading", { name: "Strategy Phase" })).toBeVisible();
@@ -18,7 +19,9 @@ test("Ctrl + kółko i klawisze +/-/0 zmieniają zoom mapy", async ({ page }) =>
   const label = page.getByText(/^\d+%$/).first();
   const before = Number((await label.innerText()).replace("%", ""));
 
-  // Kursor nad planszą, poza panelami i wachlarzem kart strategii.
+  // Kursor nad planszą, poza panelami; wachlarz kart strategii zwinięty (z opcją Skip phase
+  // baner jest wyższy i karty sięgają niżej).
+  await page.getByRole("button", { name: "Collapse strategy cards" }).click();
   await page.mouse.move(1300, 700);
   await page.keyboard.down("Control");
   await page.mouse.wheel(0, -100);

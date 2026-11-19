@@ -6,6 +6,7 @@ import {
   type ReactElement,
 } from "react";
 import cx from "clsx";
+import { IconCrown } from "@tabler/icons-react";
 import { useParams } from "react-router-dom";
 import { useGameState } from "@/api/useGameState";
 import { useSettingsStore } from "@/state/appStore";
@@ -283,21 +284,11 @@ export function StrategyCardTable(): ReactElement | null {
     : undefined;
   const pickerId = pickerPlayer?.discordId ?? null;
 
-  // Mówca: ``gameState.speaker`` to KOLOR — mapujemy na gracza i jego PEŁNĄ nazwę
-  // frakcji (R1.4). ``speakerPlayer`` daje też ikonę frakcji w nagłówku.
+  // Mówca: ``gameState.speaker`` to KOLOR — mapujemy na gracza (korona na jego chipie
+  // w kolejce wyboru, R1.4).
   const speakerPlayer = gameState.speaker
     ? players.find((p) => p.color === gameState.speaker)
     : undefined;
-  const speakerName = speakerPlayer
-    ? getPlayerFactionDisplayName(speakerPlayer)
-    : null;
-
-  // Picker w podnagłówku (R1.5) — PEŁNA nazwa frakcji gracza + ikona (``pickerPlayer``
-  // policzony wyżej). Gdy picker nieznany, pokazujemy komunikat zależny od tego, czy
-  // wybór jest już kompletny (patrz ``allPicked``).
-  const pickerName = pickerPlayer
-    ? getPlayerFactionDisplayName(pickerPlayer)
-    : null;
 
   // WYBÓR KOMPLETNY — ten sam warunek, co w ``StrategyCardPicker`` (GameStatePanel):
   // każdy gracz ma już ``pickCount`` kart (druga runda przy 3–4 graczach). Gdy
@@ -335,11 +326,8 @@ export function StrategyCardTable(): ReactElement | null {
         }}
       >
       {/*
-       * Nagłówek w stylu AsyncTI4: WYŚRODKOWany tytuł fazy, a pod nim wiersz
-       * (zawijalny) z aktualnym pickerem i mówcą — każdy z IKONĄ frakcji
-       * (``FactionMark``) i PEŁNĄ nazwą frakcji (Requirement 1). Komunikaty braku
-       * zostają bez ikony: brak pickera → „brak gracza do wskazania" (R1.5), brak
-       * mówcy → „no Speaker set" (R1.4).
+       * Nagłówek: WYŚRODKOWany tytuł fazy i pod nim kolejka wyboru — chipy z IKONĄ
+       * i PEŁNĄ nazwą frakcji, wybrane karty, „picking…” u wybierającego, korona mówcy.
        */}
       <div
         className={styles.header}
@@ -365,62 +353,41 @@ export function StrategyCardTable(): ReactElement | null {
           {minimized ? "▢" : "–"}
         </button>
         <h2 className={styles.heading}>Strategy Phase</h2>
-        <div className={styles.meta}>
-          {/*
-           * Stan wyboru:
-           * - jest picker → „Teraz wybiera" + ikona/nazwa frakcji;
-           * - wszyscy wybrali (``allPicked``) → komunikat końca wyboru + przycisk
-           *   „Następna faza" (zamiast bezsensownego „brak gracza do wskazania");
-           * - stan pośredni bez pickera (rzadki) → neutralny komunikat.
-           */}
-          {pickerName ? (
-            <span className={styles.metaItem}>
-              <span className={styles.metaLabel}>Now picking:</span>
-              <FactionMark player={pickerPlayer} size={22} />
-              <b className={styles.metaName}>{pickerName}</b>
-            </span>
-          ) : allPicked ? (
-            <span className={styles.metaItem}>
-              <b className={styles.metaName}>Everyone has picked a card</b>
+        {/*
+         * Kto teraz wybiera i kto jest mówcą pokazują CHIPY kolejki poniżej (chip
+         * wybierającego świeci + „picking…”, mówca ma koronę) — bez osobnego wiersza
+         * „Now picking / Speaker”, który to dublował (decyzja użytkownika: mniej tłoku).
+         * Wiersz meta zostaje tylko na koniec wyboru („Next phase”) i przeskok God-Mode.
+         */}
+        {(allPicked || skipPhasesEnabled) && (
+          <div className={styles.meta}>
+            {allPicked && (
+              <span className={styles.metaItem}>
+                <b className={styles.metaName}>Everyone has picked a card</b>
+                <button
+                  type="button"
+                  className={styles.nextPhaseBtn}
+                  disabled={busy}
+                  onClick={() => void run(nextPhase)}
+                >
+                  Next phase
+                </button>
+              </span>
+            )}
+            {/* God-Mode (testy): przeskok fazy — auto-wybiera brakujące karty. */}
+            {skipPhasesEnabled && !allPicked && (
               <button
                 type="button"
                 className={styles.nextPhaseBtn}
                 disabled={busy}
-                onClick={() => void run(nextPhase)}
+                onClick={() => void run(skipPhase)}
+                title="God-Mode: auto-pick the remaining cards and skip to the action phase"
               >
-                Next phase
+                Skip phase
               </button>
-            </span>
-          ) : (
-            <span className={styles.metaItem}>
-              <span className={styles.metaName}>Strategy Card selection</span>
-            </span>
-          )}
-          {/* God-Mode (testy): przeskok fazy — auto-wybiera brakujące karty. */}
-          {skipPhasesEnabled && !allPicked && (
-            <button
-              type="button"
-              className={styles.nextPhaseBtn}
-              disabled={busy}
-              onClick={() => void run(skipPhase)}
-              title="God-Mode: auto-pick the remaining cards and skip to the action phase"
-            >
-              Skip phase
-            </button>
-          )}
-          {/* Mówca — ikona + pełna nazwa frakcji mówcy (lub komunikat braku). */}
-          <span className={styles.metaItem}>
-            <span className={styles.metaLabel}>Speaker:</span>
-            {speakerName ? (
-              <>
-                <FactionMark player={speakerPlayer} size={22} />
-                <b className={styles.metaName}>{speakerName}</b>
-              </>
-            ) : (
-              <span className={styles.metaName}>no Speaker set</span>
             )}
-          </span>
-        </div>
+          </div>
+        )}
         <ol className={styles.pickOrder} aria-label="Pick order">
           {orderPlayers.map((p) => {
             const mine = cards.filter((c) => c.picked_by === p.discordId);
@@ -433,10 +400,18 @@ export function StrategyCardTable(): ReactElement | null {
                 data-now={now || undefined}
                 data-done={mine.length > 0 || undefined}
                 style={{ ["--owner-rgb" as string]: ownerRgb(p) }}
-                title={`${getPlayerFactionDisplayName(p)}${names ? ` - ${names}` : now ? " - picking now" : ""}`}
+                title={`${getPlayerFactionDisplayName(p)}${speakerPlayer?.discordId === p.discordId ? " (Speaker)" : ""}${names ? ` - ${names}` : now ? " - picking now" : ""}`}
               >
                 <FactionMark player={p} size={24} />
                 <span className={styles.pickSeatName}>{getPlayerFactionDisplayName(p)}</span>
+                {speakerPlayer?.discordId === p.discordId && (
+                  <IconCrown
+                    size={14}
+                    className={styles.pickSeatSpeaker}
+                    role="img"
+                    aria-label="Speaker"
+                  />
+                )}
                 {mine.map((c) => (
                   <b
                     key={c.initiative}

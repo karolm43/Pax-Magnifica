@@ -216,6 +216,15 @@
   scrollbar-width: thin;
 }
 
+/* Pusta zakładka: sama linia komunikatu zamiast stałej wysokości tacy. */
+.body[data-empty] {
+  height: auto;
+}
+
+.body[data-empty] .empty {
+  padding: 8px;
+}
+
 /* Niski ekran (laptop 768-900 px): niższa rozwinięta ręka z mniejszymi kafelkami kart
    (kafelek .card niżej) - plansza zyskuje ~40 px. */
 @media (max-height: 900px) {

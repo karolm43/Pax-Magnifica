@@ -1,0 +1,113 @@
+/* Sekcja „What now?” w panelu fazy (GameStatePanel). Spokojny ton płyty HUD; gdy gracz
+   ma coś do zrobienia (data-act) - akcent na lewej krawędzi, jak dawny panel. */
+
+.section {
+  border-top: 1px solid var(--ds-h14);
+  border-left: 3px solid transparent;
+  font-family: var(--ds-font-text);
+  font-size: 13px;
+  color: var(--ds-ink);
+}
+
+.section[data-act] {
+  border-left-color: var(--ds-accent);
+  background: color-mix(in oklab, var(--ds-accent) 6%, transparent);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 10px 6px 9px;
+  border: 0;
+  background: transparent;
+  color: var(--ds-ink-lo);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.head:hover {
+  color: var(--ds-ink-hi);
+}
+
+.head:focus-visible,
+.more:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: -2px;
+}
+
+.section[data-act] .compass {
+  color: var(--ds-accent);
+}
+
+.kicker {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Zwinięta sekcja: sam tytuł podpowiedzi w jednej linii. */
+.peek {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-ink-hi);
+  font-size: 12px;
+}
+
+.chevron {
+  flex: none;
+  margin-left: auto;
+  transition: transform 160ms ease;
+}
+
+.chevron[data-open] {
+  transform: rotate(180deg);
+}
+
+.body {
+  display: grid;
+  gap: 6px;
+  padding: 0 12px 10px 12px;
+}
+
+.title {
+  color: var(--ds-ink-hi);
+  font-size: 14px;
+}
+
+.lines {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 16px;
+  line-height: 1.45;
+}
+
+.more {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 3px 8px;
+  border: 1px solid var(--ds-h22);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ds-ink-hi);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.more:hover {
+  border-color: var(--ds-h35);
+  background: var(--ds-h10);
+}

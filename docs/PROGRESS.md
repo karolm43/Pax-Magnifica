@@ -245,3 +245,20 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
 - Testy: `monkeypatch` kości przerzutu celuje teraz w `battle_rerolls`. Opis warstw: `ARCHITEKTURA_KODU.md`.
 - QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (battle, api, game-shell) ✓, build ✓.
   e2e pominięte. Wymaga restartu backendu (nowe moduły).
+
+## 2026-11-19 — Porządek ekranu gry (mniej okien, nic się nie nakłada)
+
+- Setup: „Skip setup (random)” widoczny TYLKO z opcją Settings → „Skip phases button (God-Mode)”
+  (`GameSetupOverlay.tsx`); e2e włączają ją przez `enableSkipShortcuts` (`e2e/fixtures.ts`) + nowy test „bez opcji brak przycisku”.
+- Panel fazy (`GameStatePanel`, wariant info): bez listy kart strategii i bez kolejności wyboru w fazie strategii
+  (pokazuje to stół kart); martwa gałąź info w `StrategyCardPicker` usunięta.
+- „What now?” = sekcja panelu fazy (`tutorial/CoachSection.tsx`, dawniej osobne okno `CoachPanel` w lewym dole,
+  nachodziło na panel fazy i czat); zwija się nagłówkiem do jednej linii.
+- Czat przypięty do lewego dolnego rogu (`bottom: 16px`, nie `--hand-dock-clear` — rozwinięta ręka wypychała go
+  pod panel fazy); dok akcji taktycznej i panel fazy kończą się nad ikoną czatu.
+- Invites hosta: przycisk w nagłówku (`InvitesButton` w `HeaderGameControls`) zamiast pływającego na planszy.
+- Stół kart strategii: bez wiersza „Now picking / Speaker” (chipy kolejki: „picking…”, korona mówcy); baner mieści
+  się między panelem fazy a centrum decyzji.
+- Ręka: pusta zakładka kurczy się do linii komunikatu (zamiast 176 px pustej tacy).
+- QA: tsc ✓ (poza niezacommitowanym `useBoardEditor.ts` równoległej sesji), eslint ✓, vitest (game-shell, tutorial,
+  network, setup, chat) ✓, build ✓, e2e 8/8 (tools.e2e: zoom zwija stół kart przed kółkiem). Backend bez zmian.
