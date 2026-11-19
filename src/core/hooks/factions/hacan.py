@@ -12,7 +12,7 @@ from typing import Any
 
 from src.core import (
     active_effects,
-    battle,
+    battle_rerolls,
     command_tokens,
     economy,
     exhaust,
@@ -462,7 +462,7 @@ def wrath_of_kenara(state: GameState, player_id: str, ctx: Mapping[str, Any]) ->
     if not chosen:
         raise ValueError("Choose at least one die.")
     economy.spend_trade_goods(state, player_id, len(chosen))
-    battle.boost_combat_dice(state, player_id, chosen, FLAGSHIP)
+    battle_rerolls.boost_combat_dice(state, player_id, chosen, FLAGSHIP)
 
 
 # ------------------------------------------------------------- Pride of Kenara (mech)

@@ -57,9 +57,9 @@ Trzy warstwy, ściśle rozdzielone. **Zależności idą tylko w jedną stronę:*
 | Setup / mapa | `core/faction_setup.py`, `core/map_string.py`, `core/hex_grid.py` | |
 | Historia / Undo | `core/event_store.py` | |
 | **Audytor_Danych / lokalność** | `src/audit/` | `locality.py`, `assets_manifest.py`, `frontend_data.py`, `diffs.py`, `report.py`, `sync_assets.py` (CLI `python -m src.audit`) |
-| Serializacja do UI | `api/web_data.py` | `build_web_data` (kontrakt z frontem) |
+| Serializacja do UI | `api/web_data.py` | `build_web_data` (kontrakt z frontem); części: `web_game` (stan rundy) → `web_tiles` (kafelki) → `web_player_units` → `web_players` (+ `web_agenda`, `web_objectives`, `web_points`, `web_setup`) |
 | Endpointy HTTP/WS | `api/routers/<temat>.py` | (po refaktorze — patrz §4) |
-| DTO żądań/odpowiedzi | `api/schemas.py`, `api/schemas_components.py` | |
+| DTO żądań/odpowiedzi | pakiet `api/schemas/` (`common`, `setup`, `tactical`, `combat`, `cards`; import zawsze `src.api.schemas`), `api/schemas_components.py` | |
 | Mutacja + broadcast | `api/state_service.py` | jedyne miejsce commitujące stan |
 | Decyzje bota | `src/engine/` (plan: `docs/bot/PLAN.md`) | strategiczna → operacyjna → taktyczna |
 
@@ -187,9 +187,15 @@ async def handler(request: XRequest, ctx: AppContext = Depends(get_ctx)) -> ...:
     return ctx.service.envelope()
 ```
 
-**Pozostały dług (niski priorytet):** `web_data.py` (~885) — jeden temat (serializacja),
-rośnie liniowo. Podzielić na podmoduły (`web_data/players.py`, `.../tiles.py`, `.../strategy.py`)
-gdy przekroczy ~1000 linii. Przy E3 dodajemy `core/tactical.py` + `api/routers/tactical.py`.
+**Podział dużych modułów (2026-11-19):** warstwy zależą tylko w dół, a moduł bazowy eksportuje
+nazwy dalej (`from x import n as n`, mypy strict), więc wywołania `battle.side_units` itp. się nie zmieniają.
+`core/battle_units.py` → `battle.py` → `battle_rerolls.py` (przerzuty/zmiany kości po rzucie);
+`core/invasion_common.py` → `invasion_bombard.py` / `invasion_defense.py` → `invasion.py`;
+`core/movement_paths.py` → `movement.py`. Front: `api/boardQueries.ts` (zapytania tylko do odczytu,
+eksportowane dalej przez `useBoardEditor.ts`), `battle/BattleVolley.tsx` i `BattleAssaultCannon.tsx`
+(warstwy animacji `BattleOverlay`). Testy podmieniające funkcję (`monkeypatch.setattr(mod, ...)`)
+muszą celować w moduł, który ją WYWOŁUJE.
+Przy E3 dodajemy `core/tactical.py` + `api/routers/tactical.py`.
 
 ---
 

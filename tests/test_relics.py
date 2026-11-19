@@ -17,6 +17,7 @@ from src.api.app import create_app
 from src.api.demo_map import build_demo_grid
 from src.core import (
     battle,
+    battle_rerolls,
     board_graph,
     control,
     economy,
@@ -473,17 +474,17 @@ def test_adjust_die_with_heart_of_ixth(
 ) -> None:
     grid = build_demo_grid(registry)
     state = _rolled(registry, ["heartofixth"], monkeypatch)
-    assert {"player": "p1", "tool": "adjust"} in battle.dice_relic_tools(state)
+    assert {"player": "p1", "tool": "adjust"} in battle_rerolls.dice_relic_tools(state)
     before = state.active_combat.rolls["p2"][0]["dice"][0]  # type: ignore[union-attr]
     delta = -1 if before > 1 else 1
-    new_state = battle.adjust_die_with_relic(
+    new_state = battle_rerolls.adjust_die_with_relic(
         state, grid, registry, "p1", target="p2", entry_index=0, die_index=0, delta=delta
     )
     assert new_state.active_combat.rolls["p2"][0]["dice"][0] == before + delta  # type: ignore[union-attr]
     assert new_state.players["p1"].exhausted_relics == ["heartofixth"]
     # Wyczerpany relikt nie pozwala na kolejną zmianę.
     with pytest.raises(ValueError):
-        battle.adjust_die_with_relic(
+        battle_rerolls.adjust_die_with_relic(
             new_state, grid, registry, "p1", target="p2", entry_index=0, die_index=0, delta=delta
         )
 
@@ -493,8 +494,9 @@ def test_thalnos_reroll_destroys_units_without_hits(
 ) -> None:
     grid = build_demo_grid(registry)
     state = _rolled(registry, ["thalnos"], monkeypatch)
-    monkeypatch.setattr(battle, "roll_dice", _fixed_dice(2))  # przerzut: 2 + 1 = 3, bez trafień
-    new_state = battle.reroll_with_relic(state, grid, registry, "p1", {0: [0, 1]})
+    # przerzut: 2 + 1 = 3, bez trafień
+    monkeypatch.setattr(battle_rerolls, "roll_dice", _fixed_dice(2))
+    new_state = battle_rerolls.reroll_with_relic(state, grid, registry, "p1", {0: [0, 1]})
     entry = new_state.active_combat.rolls["p1"][0]  # type: ignore[union-attr]
     assert entry["bonus"] == [1, 1] and entry["rerolled"] == [0, 1]
     survivors = new_state.systems["101"].space_units.get("p1", {}).get("carrier", 0)
@@ -505,7 +507,7 @@ def test_thalnos_reroll_destroys_units_without_hits(
     # Bez Crown of Thalnos przerzut jest zabroniony.
     plain = _rolled(registry, [], monkeypatch)
     with pytest.raises(ValueError):
-        battle.reroll_with_relic(plain, grid, registry, "p1", {0: [0]})
+        battle_rerolls.reroll_with_relic(plain, grid, registry, "p1", {0: [0]})
 
 
 def test_void_shielding_grants_at_most_one_sustain(registry: StaticDataRegistry) -> None:

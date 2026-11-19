@@ -27,6 +27,7 @@ from typing import Any
 from src.core import (
     active_effects,
     battle,
+    battle_rerolls,
     board_graph,
     capacity,
     damage,
@@ -1082,7 +1083,8 @@ def fire_team(
     """Fire Team: Reroll any number of your dice.
 
     Modyfikatory z pierwotnego rzutu obowiązują przy przerzucie (C_action_cards). Trafienia
-    przeciwnika są liczone od nowa (``battle.reroll_combat_dice``: z premiami kości i trafieniem
+    przeciwnika są liczone od nowa (``battle_rerolls.reroll_combat_dice``: z premiami kości
+    i trafieniem
     Valkyrie Particle Weave); gdy nie był w kolejce przypisania, a ma teraz trafienia, dołącza.
     """
     combat = _combat(state)
@@ -1100,7 +1102,7 @@ def fire_team(
         if not (0 <= index < len(rolls)) or not (0 <= die < len(rolls[index]["dice"])):
             raise ValueError(f"Unknown die: {token}")
         chosen.add((index, die))
-    battle.reroll_combat_dice(state, player_id, chosen, "fire_team", "Fire Team")
+    battle_rerolls.reroll_combat_dice(state, player_id, chosen, "fire_team", "Fire Team")
 
 
 @register_effect_inputs("action_cards:fire_team")

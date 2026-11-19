@@ -16,6 +16,7 @@ import pytest
 from src.core import (
     active_effects,
     battle,
+    battle_rerolls,
     board_graph,
     economy,
     leaders,
@@ -119,7 +120,7 @@ def test_ambush_bez_modyfikatorow_i_przerzutow(registry: StaticDataRegistry) -> 
     assert sum(len(r["dice"]) for r in entry["rolls"]["p1"]) == 2  # „up to 2”
     state.active_combat.step = CombatStep.ASSIGN
     with pytest.raises(ValueError, match="only after the roll"):
-        battle._require_dice_window(state)
+        battle_rerolls._require_dice_window(state)
     with pytest.raises(ValueError, match="1 or 2"):
         mentak.ambush(state.clone(), "p1", {"params": {"ships": ["cruiser:0", "cruiser:1",
                                                                   "destroyer:0"]}})

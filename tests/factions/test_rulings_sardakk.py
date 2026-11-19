@@ -17,6 +17,7 @@ from src.api.demo_map import build_demo_grid
 from src.core import (
     active_effects,
     battle,
+    battle_rerolls,
     capacity,
     faction_components,
     invasion,
@@ -146,7 +147,9 @@ def test_vpw_nie_przepada_przy_przerzucie(
     (wcześniej przepadało)."""
     state = _ground_rolled(registry, monkeypatch, [10], [1, 1], defender_units={"infantry": 2})
     work = state.clone()
-    total = battle.reroll_combat_dice(work, "p1", {(0, 0), (0, 1)}, "fire_team", "Fire Team")
+    total = battle_rerolls.reroll_combat_dice(
+        work, "p1", {(0, 0), (0, 1)}, "fire_team", "Fire Team"
+    )
     combat = work.active_combat
     assert combat is not None
     dice_hits = combat.rolls["p1"][0]["hits"]
@@ -163,7 +166,7 @@ def test_vpw_gdy_przeciwnik_trafia_po_zmianie_kosci(
     state = _ground_rolled(registry, monkeypatch, [1], [10], defender_units={"infantry": 1})
     combat = state.active_combat
     assert combat is not None and combat.pending_hits == {"p2": 1, "p1": 0}
-    battle.boost_combat_dice(state, "p2", {(0, 0)}, "test", amount=9)
+    battle_rerolls.boost_combat_dice(state, "p2", {(0, 0)}, "test", amount=9)
     assert combat.pending_hits == {"p2": 2, "p1": 1}
     assert state.pending_window is not None and "p1" in state.pending_window.queue
 

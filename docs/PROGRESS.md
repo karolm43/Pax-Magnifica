@@ -229,3 +229,19 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
   (`network/inviteOrigin.ts` + test); przy kilku sieciach (dom + ZeroTier) wybór „Friends connect through”.
 - `build_release.py`: nie nadpisuje `release/PaxMagnifica`, gdy gra z niego działa albo ma zapisy w `saves/`
   (PyInstaller czyści katalog razem z zapisami); `--out KATALOG` buduje obok.
+
+## 2026-11-19 — Podział dużych plików (mniej tokenów na odczyt)
+
+- Backend (warstwy tylko w dół; moduł bazowy eksportuje nazwy dalej `n as n`, wywołania `battle.x` bez zmian):
+  `battle.py` 2134 → 1593 + `battle_units.py` (jednostki, trafienia, Sustain) + `battle_rerolls.py`
+  (przerzuty/zmiany kości po rzucie: relikty, Fire Team, War Funding); `invasion.py` 1536 → 779 +
+  `invasion_common.py` / `invasion_bombard.py` / `invasion_defense.py`; `movement.py` 1426 → 987 +
+  `movement_paths.py`; `web_data.py` 1922 → 297 + `web_game` / `web_tiles` / `web_player_units` /
+  `web_players`; `schemas.py` 1833 → pakiet `api/schemas/` (`common`, `setup`, `tactical`, `combat`, `cards`).
+- Front: `useBoardEditor.ts` 1853 → 1180 + `api/boardQueries.ts` (zapytania tylko do odczytu, `export *`);
+  `BattleOverlay.tsx` 1509 → 763 + `BattleVolley.tsx` + `BattleAssaultCannon.tsx`.
+- Pominięte: `GameStatePanel.tsx` (równoległa sesja ma w nim niezacommitowane zmiany), rdzeń maszyny stanów
+  `battle.py` i jeden hook `useBoardEditor` (wzajemna rekurencja / jeden hook — podział zmieniłby API).
+- Testy: `monkeypatch` kości przerzutu celuje teraz w `battle_rerolls`. Opis warstw: `ARCHITEKTURA_KODU.md`.
+- QA: pytest (pełny) ✓, ruff ✓, mypy ✓, tsc ✓, eslint ✓, vitest (battle, api, game-shell) ✓, build ✓.
+  e2e pominięte. Wymaga restartu backendu (nowe moduły).

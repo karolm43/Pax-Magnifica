@@ -353,7 +353,7 @@ def test_api_web_data_pokazuje_held_a_pas_nie_skraca(registry: StaticDataRegistr
     _own(state, planets)
     client = _client(state, [NOW])
     client.post("/action-card/play", json={"actor_id": "p1", "player_id": "p1", "card_id": card})
-    from src.api.web_data import _held_play
+    from src.api.web_game import _held_play
 
     held = _held_play(client.app.state.ctx.service.current_state(), registry)  # type: ignore[attr-defined]
     assert held is not None

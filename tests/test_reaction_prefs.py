@@ -223,7 +223,7 @@ def test_quick_karta_bez_sabotage_u_innych_od_razu(registry: StaticDataRegistry)
 
 
 def test_api_prefs_i_quick(registry: StaticDataRegistry) -> None:
-    from src.api.web_data import _reaction_prefs
+    from src.api.web_game import _reaction_prefs
 
     card, _ = _industrial(registry)
     app = create_app(store=EventStore(), initial_state=_state([card], ["sabo1"]), now=lambda: NOW)

@@ -110,8 +110,8 @@ Pax Magnifica/
 │       ├── app.py                #     fabryka FastAPI (montaż routerów) + WebSocket
 │       ├── routers/              #     cienkie endpointy tematyczne (game, board, components, ...)
 │       │   └── components.py     #       /components, /components/{kat}/{id}, /timing-specs, bundle frakcji
-│       ├── web_data.py           #     build_web_data: GameState -> dokument dla frontu (KONTRAKT UI)
-│       ├── schemas.py            #     DTO żądań/odpowiedzi (Pydantic)
+│       ├── web_data.py           #     build_web_data: GameState -> dokument dla frontu (KONTRAKT UI); części web_*.py
+│       ├── schemas/              #     DTO żądań/odpowiedzi (Pydantic), pakiet tematyczny
 │       ├── seats.py, actor.py    #     gra sieciowa: lobby, tokeny miejsc, tożsamość (RULES.md 44)
 │       ├── saves.py              #     zapis partii w pliku (saves/*.db), wznowienie po restarcie
 │       └── state_service.py      #     jedyne miejsce mutujące stan (commit + broadcast)

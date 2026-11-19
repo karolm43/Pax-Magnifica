@@ -13,6 +13,7 @@ from src.api.demo_map import build_demo_grid
 from src.core import (
     agenda_phase,
     battle,
+    battle_rerolls,
     card_draw,
     command_tokens,
     control,
@@ -215,7 +216,7 @@ def test_thalnos_rerolls_only_combat_rolls(registry: StaticDataRegistry) -> None
     state = _combat_state(registry, ["thalnos"])
     state.active_combat.step = CombatStep.AFB  # type: ignore[union-attr]
     with pytest.raises(ValueError, match="only after the roll"):
-        battle.reroll_with_relic(state, grid, registry, "p1", {0: [0]})
+        battle_rerolls.reroll_with_relic(state, grid, registry, "p1", {0: [0]})
 
 
 @ruling(
@@ -237,12 +238,14 @@ def test_thalnos_destroys_only_units_without_any_hit_before_assignment(
     warsun = next(i for i, e in enumerate(entries) if e["baseType"] == "flagship")
     dice = len(entries[warsun]["dice"])
     assert dice > 1  # War Sun rzuca kilkoma kośćmi - przerzut per jednostka (2.1)
-    monkeypatch.setattr(battle, "roll_dice", _fixed_dice(1))  # przerzut: 1 + 1 = 2, chybia
-    after = battle.reroll_with_relic(state, grid, registry, "p1", {warsun: list(range(1, dice))})
+    monkeypatch.setattr(battle_rerolls, "roll_dice", _fixed_dice(1))  # przerzut: 1 + 1 = 2, chybia
+    after = battle_rerolls.reroll_with_relic(
+        state, grid, registry, "p1", {warsun: list(range(1, dice))}
+    )
     # War Sun zachował trafienie z NIEprzerzuconej kości: nie ginie (2).
     assert after.systems["101"].space_units["p1"].get("flagship", 0) == 1
     carrier = next(i for i, e in enumerate(entries) if e["baseType"] == "carrier")
-    after = battle.reroll_with_relic(after, grid, registry, "p1", {carrier: [0]})
+    after = battle_rerolls.reroll_with_relic(after, grid, registry, "p1", {carrier: [0]})
     # Lotniskowiec bez trafienia ginie od razu - mimo Sustain Damage War Suna obok (5), jeszcze
     # w oknie rzutów, zanim ktokolwiek przypisze straty (4).
     assert after.systems["101"].space_units["p1"].get("carrier", 0) == 0
@@ -260,8 +263,8 @@ def test_thalnos_destroys_a_unit_with_sustain_damage(
     state.systems["101"].space_units["p1"] = {"dreadnought": 1}
     state = battle.roll_round(state, grid, registry)
     state.players["p1"].relics = ["thalnos"]
-    monkeypatch.setattr(battle, "roll_dice", _fixed_dice(1))
-    after = battle.reroll_with_relic(state, grid, registry, "p1", {0: [0]})
+    monkeypatch.setattr(battle_rerolls, "roll_dice", _fixed_dice(1))
+    after = battle_rerolls.reroll_with_relic(state, grid, registry, "p1", {0: [0]})
     assert after.systems["101"].space_units.get("p1", {}).get("dreadnought", 0) == 0
 
 
@@ -273,7 +276,7 @@ def test_other_rerolls_do_not_destroy_units(
     przerzuty (np. Heart of Ixth zmienia wynik, rzut bez trafień) nie usuwają jednostek."""
     grid = build_demo_grid(registry)
     state = _rolled(registry, ["heartofixth"], monkeypatch)
-    after = battle.adjust_die_with_relic(
+    after = battle_rerolls.adjust_die_with_relic(
         state, grid, registry, "p1", target="p1", entry_index=0, die_index=0, delta=-1
     )
     assert after.systems["101"].space_units["p1"]["carrier"] == 2
@@ -303,16 +306,16 @@ def test_d10_zero_is_ten_and_heart_turns_ten_into_nine_and_back(
 ) -> None:
     grid = build_demo_grid(registry)
     state = _rolled(registry, ["heartofixth"], monkeypatch, value=10)
-    down = battle.adjust_die_with_relic(
+    down = battle_rerolls.adjust_die_with_relic(
         state, grid, registry, "p1", target="p2", entry_index=0, die_index=0, delta=-1
     )
     assert down.active_combat.rolls["p2"][0]["dice"][0] == 9  # type: ignore[union-attr]
     with pytest.raises(ValueError, match="between 1 and 10"):
-        battle.adjust_die_with_relic(
+        battle_rerolls.adjust_die_with_relic(
             state, grid, registry, "p1", target="p2", entry_index=0, die_index=0, delta=1
         )
     state = _rolled(registry, ["heartofixth"], monkeypatch, value=9)
-    up = battle.adjust_die_with_relic(
+    up = battle_rerolls.adjust_die_with_relic(
         state, grid, registry, "p1", target="p2", entry_index=0, die_index=0, delta=1
     )
     assert up.active_combat.rolls["p2"][0]["dice"][0] == 10  # type: ignore[union-attr]

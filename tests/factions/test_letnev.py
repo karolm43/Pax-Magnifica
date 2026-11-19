@@ -10,6 +10,7 @@ import pytest
 from src.api.demo_map import build_demo_grid
 from src.core import (
     battle,
+    battle_rerolls,
     board_graph,
     damage,
     faction_components,
@@ -195,7 +196,7 @@ def test_przerzut_centralny_dolacza_przeciwnika_do_kolejki(registry: StaticDataR
     combat = _rolled(state)
     combat.rolls["p1"][0]["dice"] = [1]
     combat.rolls["p1"][0]["hitsOn"] = 1  # każdy wynik trafia
-    battle.reroll_combat_dice(state, "p1", {(0, 0)}, "test", "Test")
+    battle_rerolls.reroll_combat_dice(state, "p1", {(0, 0)}, "test", "Test")
     assert combat.pending_hits["p2"] == 1
     assert state.pending_window is not None and "p2" in state.pending_window.queue
 

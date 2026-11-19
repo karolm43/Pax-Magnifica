@@ -16,6 +16,7 @@ from src.api.demo_map import build_demo_grid
 from src.core import (
     active_effects,
     battle,
+    battle_rerolls,
     command_tokens,
     damage,
     fleet_pool,
@@ -220,13 +221,13 @@ def test_war_funding_przerzut_obu_stron_i_zwrot(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[tuple[str, set[tuple[int, int]]]] = []
-    original = battle.reroll_combat_dice
+    original = battle_rerolls.reroll_combat_dice
 
     def spy(state: GameState, owner: str, chosen: set[tuple[int, int]], *a: Any, **kw: Any) -> int:
         calls.append((owner, set(chosen)))
         return original(state, owner, chosen, *a, **kw)
 
-    monkeypatch.setattr(battle, "reroll_combat_dice", spy)
+    monkeypatch.setattr(battle_rerolls, "reroll_combat_dice", spy)
     state = _state()
     _rolled(state)
     state.players["p2"].private.promissory_notes = [letnev.WAR_FUNDING]

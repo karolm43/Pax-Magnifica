@@ -40,7 +40,7 @@ from src.api.schemas import (
 )
 from src.api.web_data import entity_key_map
 from src.core import actor as actor_rules
-from src.core import battle, board_edit, faction_components, ion_storm
+from src.core import battle, battle_rerolls, board_edit, faction_components, ion_storm
 from src.core.game_state import CombatStep, GameState, WindowType
 from src.core.movement import CargoPickup
 from src.core.retreat import retreat_destinations
@@ -237,7 +237,7 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
         retreat_options=retreat_options,
         relic_tools=[
             BattleRelicToolView(faction=key(t["player"]), tool=t["tool"])
-            for t in battle.dice_relic_tools(state)
+            for t in battle_rerolls.dice_relic_tools(state)
         ],
         ability_tools=[
             BattleAbilityToolView(
@@ -386,7 +386,7 @@ async def post_battle_relic_reroll(
     state = ctx.service.current_state()
     try:
         player_id = board_edit.resolve_player_id(request.faction, state)
-        new_state = battle.reroll_with_relic(
+        new_state = battle_rerolls.reroll_with_relic(
             state, ctx.current_grid, ctx.registry, player_id,
             {pick.entry: pick.dice for pick in request.picks},
         )
@@ -408,7 +408,7 @@ async def post_battle_relic_adjust(
     try:
         player_id = board_edit.resolve_player_id(request.faction, state)
         target_id = board_edit.resolve_player_id(request.target, state)
-        new_state = battle.adjust_die_with_relic(
+        new_state = battle_rerolls.adjust_die_with_relic(
             state, ctx.current_grid, ctx.registry, player_id,
             target=target_id, entry_index=request.entry, die_index=request.die,
             delta=request.delta,

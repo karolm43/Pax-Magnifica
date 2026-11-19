@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { groupSampleFiles, pickVariant, soundOfFile } from "./battleSound";
 import { allowSound, groundKindOf, GROUND_DEATH_TIMING } from "./GroundDeathFx";
-import { groundWeapon } from "./BattleOverlay";
+import { groundWeapon } from "./BattleVolley";
 
 describe("próbki dźwięku walki", () => {
   it("nazwa zdarzenia z pliku wariantu", () => {

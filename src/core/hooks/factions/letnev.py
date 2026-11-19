@@ -11,7 +11,7 @@ from typing import Any
 
 from src.core import (
     active_effects,
-    battle,
+    battle_rerolls,
     economy,
     entropic_scar,
     faction_components,
@@ -193,7 +193,7 @@ def munitions_inputs(
 def munitions_reroll(
     state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
 ) -> None:
-    battle.reroll_combat_dice(
+    battle_rerolls.reroll_combat_dice(
         state, player_id, _chosen(params.get("dice")), "munitions", "Munitions Reserves"
     )
     active_effects.remove_by_key(state, MUNITIONS_PAID, owner=player_id)  # raz na rundę
@@ -364,12 +364,12 @@ def war_funding(
             for die in range(len(entry["dice"]))
         }
         if everything:
-            battle.reroll_combat_dice(
+            battle_rerolls.reroll_combat_dice(
                 state, opponent, everything, "war_funding", "War Funding", roller=player_id
             )
     own = _chosen(params.get("dice"))
     if own:
-        battle.reroll_combat_dice(state, player_id, own, "war_funding", "War Funding")
+        battle_rerolls.reroll_combat_dice(state, player_id, own, "war_funding", "War Funding")
     active_effects.add_effect(state, WAR_FUNDING_PLAYED, Duration.COMBAT_ROUND)
 
 

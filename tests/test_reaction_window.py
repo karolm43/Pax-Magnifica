@@ -187,7 +187,7 @@ def test_api_ustawienia_i_feed(registry: StaticDataRegistry) -> None:
 
 
 def test_web_data_pasy_tylko_patrzacego(registry: StaticDataRegistry) -> None:
-    from src.api.web_data import _reaction_pause
+    from src.api.web_game import _reaction_pause
 
     state = reaction_pause.ask_for_time(_agenda(registry, ["salvage"]), "p1")
     payload = _reaction_pause(visibility.project_strict(state, "p3"))

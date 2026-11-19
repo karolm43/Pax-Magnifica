@@ -254,7 +254,7 @@ def test_imperial_secondary_draws_with_token_and_limit(registry: StaticDataRegis
 
 
 def test_politics_draws_at_speaker_step_and_hides_cards(registry: StaticDataRegistry) -> None:
-    from src.api.web_data import _pending_strategy
+    from src.api.web_game import _pending_strategy
 
     state = _politics_ready(registry)
     hand = state.players["p1"].private.action_cards

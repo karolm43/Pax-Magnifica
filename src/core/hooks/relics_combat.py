@@ -130,7 +130,7 @@ def crown_of_thalnos(_state: GameState, _player_id: str, _ctx: Mapping[str, Any]
     their dice, applying +1 to the results, any units that reroll dice but do not produce at
     least 1 hit are destroyed.
 
-    Przerzut wykonuje ``battle.reroll_with_relic`` (po rzucie, przed przypisaniem strat).
+    Przerzut wykonuje ``battle_rerolls.reroll_with_relic`` (po rzucie, przed przypisaniem strat).
     """
     return True
 
@@ -139,7 +139,8 @@ register(POINT_DIE_ADJUST, _src("heartofixth"), HookKind.FORBID, covers="relics:
     _ready_ids("heartofixth")
 )
 # Heart of Ixth: After any die is rolled, you may exhaust this card to add or subtract 1 from its
-# result. Kości walki: ``battle.adjust_die_with_relic`` (własne i przeciwnika, przed stratami).
+# result. Kości walki: ``battle_rerolls.adjust_die_with_relic`` (własne i przeciwnika,
+# przed stratami).
 
 
 # --- Scepter of Emelpar ----------------------------------------------------------------------
