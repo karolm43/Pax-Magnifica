@@ -74,8 +74,7 @@ def _banner(port: int) -> None:
     print("  Your game is saved automatically in the 'saves' folder.")
     addresses = _lan_addresses()
     if addresses:
-        print("  Network game: friends join with your invite link, but with")
-        print("  'localhost' replaced by one of your addresses:")
+        print("  Network game: copy invite links in the game (they use these addresses):")
         for address in addresses:
             print(f"     http://{address}:{port}/")
     print(line)

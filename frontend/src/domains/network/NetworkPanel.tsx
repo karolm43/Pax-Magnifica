@@ -18,6 +18,8 @@ import { FORBIDDEN_EVENT } from "@/api/actorIdentity";
 import { useAppStore } from "@/state/appStore";
 import { useBackendPush } from "./useBackendPush";
 import { NETWORK_ME_KEY, useNetworkMe } from "./useNetworkMe";
+import { useLobby } from "./useLobby";
+import { inviteOrigins } from "./inviteOrigin";
 
 type SeatInvite = {
   player_id: string;
@@ -117,6 +119,11 @@ function InvitesModal({ opened, onClose }: { opened: boolean; onClose: () => voi
     queryFn: () => call<SeatsResponse>("/network/seats"),
     enabled: opened,
   });
+  // Adres w linkach: zamiast „localhost” adres tego komputera w sieci (LAN / ZeroTier).
+  const lobby = useLobby(opened);
+  const origins = inviteOrigins(lobby.data?.addresses ?? [], window.location);
+  const [picked, setPicked] = useState<string | null>(null);
+  const origin = picked && origins.includes(picked) ? picked : origins[0];
   const update = (data: SeatsResponse) => {
     queryClient.setQueryData(SEATS_KEY, data);
     void queryClient.invalidateQueries({ queryKey: NETWORK_ME_KEY });
@@ -139,10 +146,10 @@ function InvitesModal({ opened, onClose }: { opened: boolean; onClose: () => voi
 
   const copy = async (seat: SeatInvite) => {
     try {
-      await navigator.clipboard.writeText(inviteLink(seat.token));
+      await navigator.clipboard.writeText(inviteLink(seat.token, origin));
       setCopied(seat.player_id);
     } catch {
-      window.prompt("Copy this invite link:", inviteLink(seat.token));
+      window.prompt("Copy this invite link:", inviteLink(seat.token, origin));
     }
   };
 
@@ -154,6 +161,15 @@ function InvitesModal({ opened, onClose }: { opened: boolean; onClose: () => voi
           Send each player their own link. Whoever opens a link plays that seat, and the server
           shows them only their own cards. Do not share your host link.
         </Text>
+        {origins.length > 1 && (
+          <Select
+            label="Friends connect through"
+            description="Same home network: the 192.168… address. Over the internet: your ZeroTier / VPN address."
+            data={origins.map((o) => ({ value: o, label: o.replace(/^https?:\/\//, "") }))}
+            value={origin}
+            onChange={(v) => v && setPicked(v)}
+          />
+        )}
         {seats.isLoading && <Text size="sm">Loading seats…</Text>}
         {seats.error && <Text size="sm">Could not load seats: {String(seats.error)}</Text>}
         {data && data.seats.length === 0 && (

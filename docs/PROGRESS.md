@@ -1386,3 +1386,7 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   Logika: czysta `coachHint.ts` + testy; `HowToPlayModal.test.tsx`.
 - E2E: lokatory `Play` z `exact: true` (nowy przycisk „How to play”). `tools.e2e.ts` „zoom mapy” pada też bez
   tych zmian — kursor testu (1300, 700) trafia w wachlarz kart strategii; do poprawy w teście.
+- ✅ Zaproszenia w grze (okno Invites): link z adresem hosta w sieci zamiast `localhost`, ten sam port co strona
+  (`network/inviteOrigin.ts` + test); przy kilku sieciach (dom + ZeroTier) wybór „Friends connect through”.
+- `build_release.py`: nie nadpisuje `release/PaxMagnifica`, gdy gra z niego działa albo ma zapisy w `saves/`
+  (PyInstaller czyści katalog razem z zapisami); `--out KATALOG` buduje obok.

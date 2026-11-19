@@ -17,8 +17,8 @@ pokazują, co robić w każdej fazie. Pełne zasady: przycisk Rules w grze.
 
 Gra sieciowa (z kolegami):
 - Host uruchamia grę u siebie i otwiera lobby z menu.
-- Linki zaproszeń zaczynają się od „localhost” — przed wysłaniem zamień „localhost”
-  na adres hosta wypisany w czarnym oknie (np. http://192.168.1.20:8000/...).
+- Linki zaproszeń kopiuje się w grze — mają już adres hosta w sieci. Gdy host ma kilka
+  sieci (dom + ZeroTier), w oknie zaproszeń wybiera, przez którą łączą się znajomi.
 - Gracze spoza domowej sieci potrzebują wspólnej sieci VPN (np. ZeroTier).
 
 Błąd? Przycisk „Report bug” w grze zapisuje zgłoszenie w folderze „bug_reports”.

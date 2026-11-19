@@ -1,7 +1,8 @@
 """Buduje paczkę do rozesłania: ``release/PaxMagnifica/`` + ``release/PaxMagnifica-<data>.zip``.
 
 Użycie (w korzeniu repo):  ``uv run python packaging/build_release.py``
-Opcje: ``--skip-frontend`` (użyj istniejącego ``frontend/dist``), ``--no-zip``.
+Opcje: ``--skip-frontend`` (użyj istniejącego ``frontend/dist``), ``--no-zip``, ``--out KATALOG``
+(inny katalog wyjścia — np. gdy z ``release/`` działa właśnie uruchomiona gra).
 
 Kroki:
 1. ``npm run build`` → ``frontend/dist``.
@@ -49,7 +50,27 @@ def build_frontend() -> None:
     _run(["npm", "run", "build"], ROOT / "frontend")
 
 
+def _running_from(folder: Path) -> bool:
+    """Czy z ``folder`` działa ``PaxMagnifica.exe`` (Windows) — wtedy nie wolno go nadpisać."""
+    exe = folder / f"{APP_NAME}.exe"
+    if sys.platform != "win32" or not exe.exists():
+        return False
+    try:
+        with exe.open("r+b"):  # uruchomiony .exe jest zablokowany do zapisu
+            pass
+    except OSError:
+        return True
+    return False
+
+
 def build_exe() -> Path:
+    saves = RELEASE / APP_NAME / "saves"
+    if saves.is_dir() and any(saves.iterdir()):
+        raise SystemExit(f"{saves} holds saved games - move them out or use --out <folder>.")
+    if _running_from(RELEASE / APP_NAME):
+        raise SystemExit(
+            f"{RELEASE / APP_NAME} is running - close the game or use --out <folder>."
+        )
     _run(
         [
             sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean",
@@ -97,7 +118,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-frontend", action="store_true")
     parser.add_argument("--no-zip", action="store_true")
+    parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
+    if args.out is not None:
+        global RELEASE
+        RELEASE = args.out.resolve()
     if not args.skip_frontend:
         build_frontend()
     folder = build_exe()
