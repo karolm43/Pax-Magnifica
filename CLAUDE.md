@@ -8,7 +8,7 @@ hot-seat NIE jest wspierany. Nie czytaj `.kiro/` ani `~/.kiro/` (decyzja użytko
 
 - Start: `docs/README.md` (indeks). NIGDY w całości: `docs/PROGRESS_ARCHIWUM.md`, `docs/OKNA_CZASOWE.md`,
   `docs/rules_tirules/tirules.json`, `docs/RULES.md` — tylko grep/offset.
-- `docs/PROGRESS.md` (~35 KB) punktowo po temacie. `docs/RULES.md` to INDEKS; sekcja N = `docs/rules/R<NN>.md`.
+- `docs/PROGRESS.md` (~20 KB; gdy urośnie >40 KB, przenieś starsze bloki do archiwum) punktowo po temacie. `docs/RULES.md` to INDEKS; sekcja N = `docs/rules/R<NN>.md`.
 - `docs/POKRYCIE_HOOKOW.md` (~10 KB) można czytać; szczegóły w `docs/pokrycie_hookow/*.md` punktowo.
 - `docs/rules_tirules/` — małe pliki tematyczne, indeks `INDEX.md`.
 - Kod `src/` i testy `tests/` są nadrzędnym źródłem prawdy. Zadanie frontendowe: nie ruszaj dokumentów reguł.
