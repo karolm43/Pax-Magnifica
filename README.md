@@ -202,3 +202,19 @@ a frontend planszy wyrósł z jego viewera `ti4_web`. Reguły: [tirules2.com](ht
 
 Licencja kodu: do ustalenia. *Twilight Imperium* jest znakiem towarowym Fantasy Flight Games; to nieoficjalny projekt
 fanowski. Dane i grafiki AsyncTI4 podlegają warunkom tamtego projektu.
+
+## ⚖️ Informacja prawna
+
+- **Projekt nieoficjalny, fanowski i niekomercyjny.** Nie jest powiązany z Fantasy Flight Games, Asmodee ani
+  żadnym wydawcą. *Twilight Imperium*, jego nazwy, frakcje, karty, teksty i grafiki są własnością ich właścicieli
+  (Fantasy Flight Games / Asmodee) i są użyte wyłącznie w celach fanowskich. Projekt nie zastępuje wersji pudełkowej.
+- **AsyncTI4.** Dane gry (JSON/properties) oraz grafiki, fonty i muzyka w paczce pochodzą z projektu
+  [AsyncTI4](https://github.com/AsyncTI4/TI4_map_generator_bot) i jego społeczności. Kod AsyncTI4 jest na
+  licencji Unlicense (domena publiczna), ale **licencja ta nie obejmuje grafik** („NOT art assets”) — one
+  pozostają własnością swoich autorów. Nie rościmy do nich żadnych praw.
+- **Kod Custodian Engine** (`src/`, `frontend/`, `tests/`): licencja nie została jeszcze wybrana — do czasu jej
+  dodania obowiązują domyślne prawa autora.
+- **Bez gwarancji.** Oprogramowanie dostarczane „tak jak jest”, bez żadnej gwarancji; autor nie odpowiada za
+  szkody wynikające z jego użycia.
+- **Usunięcie na prośbę.** Jeśli jesteś właścicielem praw do któregoś elementu i chcesz go usunąć z repozytorium
+  lub paczki, napisz w zakładce Issues — zostanie niezwłocznie usunięty.
