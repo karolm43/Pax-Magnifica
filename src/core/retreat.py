@@ -21,7 +21,7 @@ from src.core import (
     rules_hooks,
     unit_ops,
 )
-from src.core.combat import resolve_unit_variant
+from src.core.combat import player_variant, resolve_unit_variant
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.movement import (
@@ -272,7 +272,10 @@ def retreat_in_place(
     for base_type, count in sorted(src0.space_units.get(player_id, {}).items()):
         if count <= 0:
             continue
-        unit = resolve_unit_variant(registry, faction, techs, base_type)
+        unit = (
+            player_variant(registry, player, base_type) if player is not None
+            else resolve_unit_variant(registry, faction, techs, base_type)
+        )
         # Struktura pływająca wycofuje się jak statek (Floating Factory, RULES.md 62.14).
         mover = floating_structures.moves_as_ship(state, player_id, base_type)
         if mover and unit is not None and (unit.move_value or 0) > 0:

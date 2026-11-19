@@ -842,7 +842,8 @@ def _direct_hit_immune(state: GameState, player_id: str, base_type: str) -> bool
     if registry is None or player is None:
         return False
     unit = resolve_unit_variant(
-        registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked
+        registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked,
+        player.breakthrough_flipped,
     )
     return unit is not None and _DIRECT_HIT_IMMUNE in (unit.ability or "").lower()
 

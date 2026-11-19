@@ -247,6 +247,7 @@ export const PlayerDeckRow = memo(function PlayerDeckRow({
               exhausted={playerData.breakthrough?.exhausted}
               tradeGoodsStored={playerData.breakthrough?.tradeGoodsStored}
               unlocked={playerData.breakthrough?.unlocked ?? false}
+              flipped={playerData.breakthrough?.flipped ?? false}
             />
           ) : null}
         </RailCell>

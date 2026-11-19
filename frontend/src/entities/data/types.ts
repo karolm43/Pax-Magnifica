@@ -958,6 +958,8 @@ export type BreakthroughData = {
   unlocked: boolean;
   exhausted: boolean;
   tradeGoodsStored: number;
+  /** Card flipped onto the unit card (Absolute Synergy: Eidolon Maximum). */
+  flipped?: boolean;
 };
 
 export type PlotCard = {

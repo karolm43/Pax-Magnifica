@@ -564,6 +564,9 @@ class PlayerState(BaseModel):
     breakthrough_unlocked: bool = False
     breakthrough_exhausted: bool = False
     breakthrough_tg: int = 0
+    # Karta przełomu odwrócona (Absolute Synergy Naaz-Rokha: Eidolon Maximum na karcie mecha,
+    # RULES.md 62.15). Zmiana tylko przez ``core/breakthrough.py`` (flip / flip_back).
+    breakthrough_flipped: bool = False
 
     # Promissory notes POŁOŻONE w strefie gracza (play area) — identyfikatory kart
     # zagranych i leżących odkryte, np. Support for the Throne, Alliance (RULES.md 2d,
@@ -838,6 +841,9 @@ class ExploreCurrent(BaseModel):
     planet: str
     deck: str  # "cultural" / "hazardous" / "industrial"
     card_id: str
+    # Distant Suns (RULES.md 62.15): dobrane karty, z których gracz wybiera JEDNĄ do rozstrzygnięcia
+    # (reszta na stos odrzuconych). Niepuste = wybór trwa, ``card_id`` jeszcze nie obowiązuje.
+    candidates: list[str] = Field(default_factory=list)
 
 
 class ExplorationState(BaseModel):
@@ -855,6 +861,9 @@ class ExplorationState(BaseModel):
     queue: list[str] = Field(default_factory=list)
     current: ExploreCurrent | None = None
     log: list[dict[str, Any]] = Field(default_factory=list)
+    # Zdarzenia „po eksploracji planety” czekające na koniec produkcji z karty (Freelancers):
+    # eksploracja kończy się dopiero po tej produkcji (F_naaz_rokha pre-fab-arcologies 1).
+    deferred_explored: list[dict[str, str]] = Field(default_factory=list)
 
 
 class GameChronicle(BaseModel):

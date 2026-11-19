@@ -26,6 +26,7 @@ from src.core import (
     action_adjacency,
     battle,
     capacity,
+    entropic_scar,
     exhaust,
     extra_dice,
     legendary_planets,
@@ -140,6 +141,8 @@ def _system_shooters(
 
     shooters: list[SpaceCannonShooter] = []
     pds_off: bool | None = None  # liczone leniwie: tylko gdy gracz w ogóle ma PDS
+    if entropic_scar.unit_abilities_blocked(state, position, registry):
+        groups = []  # Entropic Scar: jednostki w bliźnie nie używają SPACE CANNON (RULES.md 1.5)
     for zone, by_type in groups:
         for base_type in sorted(by_type):
             count = by_type[base_type]
@@ -155,7 +158,7 @@ def _system_shooters(
                 player.faction,
                 player.technologies,
                 base_type,
-                player.breakthrough_unlocked,
+                player.breakthrough_unlocked, player.breakthrough_flipped,
             )
             if unit is None:
                 continue
@@ -232,7 +235,8 @@ def offense_shooters(
     w systemach sąsiednich (``remote=True``). Pusta lista, gdy brak aktywnego systemu.
     """
     active = state.active_system
-    if active is None:
+    if active is None or entropic_scar.unit_abilities_blocked(state, active, registry):
+        # Entropic Scar: SPACE CANNON nie strzela w jednostki w bliźnie (RULES.md 1.5).
         return []
     result = _system_shooters(state, registry, player_id, active)
     # Sąsiedztwo z akcji taktycznej (SCC, Lazax Gate Folding) działa też dla Deep Space Cannon.
@@ -263,6 +267,8 @@ def coverage(
 
     result: dict[str, dict[str, tuple[int, float]]] = {}
     for position in sorted(grid.positions):
+        if entropic_scar.unit_abilities_blocked(state, position, registry):
+            continue  # Entropic Scar: nikt nie strzela w jednostki w bliźnie (RULES.md 1.5)
         neighbors = grid.neighbors(position)
         for player_id, positions in by_player_pos.items():
             covering = list(positions.get(position, []))
@@ -679,7 +685,7 @@ def combat_view(
     units = battle.combat_units(
         state, None, reg, kind="space", position=active, planet=None, player_id=target_id
     )
-    return {u.base_type: u for u in units}
+    return {u.base_type: u for u in battle.ability_hit_targets(state, target_id, units)}
 
 
 def required_hits(

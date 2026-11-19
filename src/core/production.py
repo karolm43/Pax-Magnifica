@@ -17,6 +17,7 @@ from dataclasses import dataclass, replace
 from src.core import (
     control,
     economy,
+    entropic_scar,
     exhaust,
     legendary_planets,
     rules_hooks,
@@ -343,7 +344,11 @@ def producers(
     fresh = state.production_placed if position == production_system(state) else {}
 
     result: list[Producer] = []
-    for base_type, total in system.space_units.get(player_id, {}).items():
+    # Entropic Scar (RULES.md 1.5): jednostki w bliźnie nie mają PRODUCTION - także tekst doku II
+    # definiujący X przestaje działać (R_entropic_scars 2.2). Zdolności planet/systemu (Aerie
+    # Hololattice, Magmus Reactor, Custodian's Favour) to zdolności tekstowe - zostają.
+    scar = entropic_scar.unit_abilities_blocked(state, position, registry)
+    for base_type, total in ({} if scar else system.space_units.get(player_id, {})).items():
         count = total - fresh.get("space", {}).get(base_type, 0)
         pv = _hooked_production_value(
             state, player_id, base_type, "space",
@@ -357,7 +362,7 @@ def producers(
                 )
             )
     for planet_id, by_player in system.planet_units.items():
-        for base_type, total in by_player.get(player_id, {}).items():
+        for base_type, total in ({} if scar else by_player.get(player_id, {})).items():
             count = total - fresh.get(planet_id, {}).get(base_type, 0)
             pv = _hooked_production_value(
                 state, player_id, base_type, planet_id,
@@ -654,7 +659,7 @@ def free_cargo_units(
             continue
         unit = resolve_unit_variant(
             registry, player.faction, player.technologies, o.base_type,
-            player.breakthrough_unlocked,
+            player.breakthrough_unlocked, player.breakthrough_flipped,
         )
         if unit is not None and is_space_unit(o.base_type) and unit.capacity_value:
             capacity += int(unit.capacity_value) * o.count
@@ -1034,6 +1039,7 @@ def produce(
         # Jednorazowa produkcja z karty nie zużywa limitu PRODUCTION kroku — tylko znika
         # (albo przechodzi do kolejnego systemu z kolejki).
         new_state.production_grant = next_grant(state.production_grant)
+        _grant_finished(new_state)
     else:
         new_state.production_used = (
             state.production_used
@@ -1077,7 +1083,16 @@ def skip_grant(state: GameState) -> GameState:
         raise ValueError("There is no card-granted production to skip.")
     new_state = state.clone()
     new_state.production_grant = next_grant(state.production_grant)
+    _grant_finished(new_state)
     return new_state
+
+
+def _grant_finished(state: GameState) -> None:
+    """Grant z karty eksploracji (Freelancers) się skończył: eksploracja planety dobiega końca."""
+    if state.production_grant is None and state.exploration is not None:
+        from src.core import exploration  # lokalnie: exploration importuje ten moduł
+
+        exploration.after_grant(state)
 
 
 def foreign_grant_reason(state: GameState, player_id: str) -> str | None:

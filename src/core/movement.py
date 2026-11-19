@@ -19,7 +19,7 @@ from itertools import combinations as _combinations
 from typing import Any
 
 from src.core import floating_structures, ion_storm, rules_hooks, timing, triggers, unit_ops
-from src.core.combat import resolve_unit_variant
+from src.core.combat import player_variant, resolve_unit_variant
 from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState
@@ -617,9 +617,7 @@ def _effective_move_value(
     (Nav Suite to znosi). Potem hook MODIFY (technologie, zdolności, premie ``boost``).
     """
     player = state.players.get(player_id)
-    faction_id = player.faction if player is not None else None
-    technologies = player.technologies if player is not None else []
-    unit = resolve_unit_variant(registry, faction_id, technologies, base_type)
+    unit = player_variant(registry, player, base_type) if player is not None else None
     move_value = unit.move_value if unit is not None else None
     if not move_value or move_value <= 0:
         return None

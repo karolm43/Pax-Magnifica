@@ -1,4 +1,13 @@
 {
+  "F_naaz_rokha/eidolon-zgrav-eidolon/2.1": {
+    "gap": "Brak okna „po flipie Eidolon inni gracze mogą użyć jednej zdolności przed kolejną” - hooki startu walki rozstrzygają się po kolei (jak C_technology/assault-cannon/3.1)."
+  },
+  "F_naaz_rokha/eidolon-maximum/1": {
+    "gap": "Eidolon Maximum w przestrzeni liczy się zawsze do puli floty (statek), nigdy do pojemności - wariant „albo pojemność” niedostępny (test: test_eidolon_maximum_rusza_sie_i_liczy_do_puli)."
+  },
+  "F_naaz_rokha/eidolon-maximum/6.1": {
+    "gap": "Direct Hit na Eidolon Maximum działa w walce kosmicznej (ślad Sustain Damage), ale nie w walce naziemnej - Direct Hit w silniku obsługuje tylko walkę kosmiczną i Space Cannon."
+  },
   "_opis": "Rulingi/zdania kart BEZ testu, z jawnym powodem (tests/rulings.py, strażnik tests/test_ruling_coverage.py). 'na' = nie dotyczy (powód). 'requires' = wymaga niezaimplementowanych elementów (faction:<moduł>, <kategoria>:<id> jak w rules_hooks.covered_components) - gdy wszystkie będą gotowe, strażnik wymusi test. Klucz zakończony '/*' = cała sekcja.",
   "F_xxcha/xxekir-grom-political-data-nexus/*": {
     "na": "Nieaktywny wariant bohatera: grę gra Xxekir Grom z Thunder's Edge (xxchahero-te), decyzja użytkownika 2026-11-16."
@@ -33,14 +42,6 @@
   },
   "F_yin/dannel-of-the-tenth-spinner-overdrive/*": {
     "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Dannel of the Tenth Ω - Quantum Dissemination); ta sekcja opisuje starą kartę z PoK."
-  },
-  "F_yin/brother-milor-omega/8": {
-    "requires": ["faction:naazrokha"],
-    "reason": "Jednostka jednocześnie statkiem i siłą naziemną w aktywnych assetach to tylko naaz_voltron (przełom Naaz-Rokha, TE); frakcja niezaimplementowana."
-  },
-  "F_yin/brother-milor-omega/8.1": {
-    "requires": ["faction:naazrokha"],
-    "reason": "Jednostka jednocześnie statkiem i siłą naziemną w aktywnych assetach to tylko naaz_voltron (przełom Naaz-Rokha, TE); frakcja niezaimplementowana."
   },
   "F_argent/raid-formation/4.3": {
     "requires": ["faction:empyrean"],
@@ -151,7 +152,7 @@
   "C_technology/assault-cannon/3.2": {
     "requires": [
       "faction:nekro",
-      "faction:naazrokha"
+      "faction:naaz"
     ],
     "reason": "Przykłady dokładania statków na starcie walki: The Alastor (Nekro), Eidolon (Naaz-Rokha), Sleeper Cell + Ambush (Mentak, bohater)."
   },
@@ -166,10 +167,6 @@
   },
   "F_muaat/magmus-reactor/2": {
     "na": "Ruling dotyczy starej wersji Magmus Reactor (TG za war suna przy produkcji). Assety mają tekst Ω: „Your ships can move into supernovas. Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability...” (RULES.md 62.13)."
-  },
-  "F_saar/scavenge/2.2": {
-    "requires": ["faction:naaz"],
-    "reason": "Alliance Naaz-Rokha (Dart and Tai: eksploracja planety przejętej od gracza) - kolejność TG i eksploracji po implementacji Naaz-Rokha."
   },
   "F_saar/floating-factory/8.1": {
     "requires": ["faction:nekro"],

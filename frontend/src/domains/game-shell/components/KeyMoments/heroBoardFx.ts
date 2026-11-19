@@ -72,6 +72,9 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   // Armageddon Relay: sygnał z doków Saar — fala przechodzi przez systemy z ich jednostkami
   // (cel to system sąsiedni do doku; piechota i myśliwce innych graczy giną).
   saarhero: { dim: 0.45, target: "units", mark: "ripple", tone: "200 150 70", ms: 4200 },
+  // Perfect Synthesis: relikt i dwie karty strategii naraz — skan archeologów i pieczęcie nad
+  // systemami z jednostkami Naaz-Rokha.
+  naazhero: { dim: 0.35, sweep: "scan", target: "units", mark: "seal", tone: "110 220 160", ms: 4400 },
   // Nova Seed: gwiazda systemu puchnie, korona zapada się w punkt, wybuch supernowej (błysk,
   // promienie dyfrakcyjne, rozszerzająca się powłoka gazu, ejekta), potem pulsująca mgławica.
   // Stary kafel znika pod błyskiem (revealAt); dźwięk niski: pomruk, wsysanie, głuchy huk.

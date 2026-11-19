@@ -133,7 +133,8 @@ def ambush_inputs(
     options: list[dict[str, Any]] = []
     for base_type, count in _ambush_ships(state, player_id).items():
         unit = resolve_unit_variant(
-            registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked
+            registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked,
+        player.breakthrough_flipped,
         )
         hits_on = unit.combat_hits_on if unit is not None else None
         name = unit_name(state, registry, player_id, base_type)
@@ -177,7 +178,8 @@ def ambush(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     total = 0
     for base_type, count in sorted(chosen.items()):
         unit = resolve_unit_variant(
-            registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked
+            registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked,
+        player.breakthrough_flipped,
         )
         if unit is None or unit.combat_hits_on is None:
             continue
@@ -391,7 +393,8 @@ def salvage_types(state: GameState, player_id: str) -> list[str]:
     types: list[str] = []
     for base_type in sorted({str(e.get("base_type")) for e in combat.destroyed_all}):
         unit = resolve_unit_variant(
-            registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked
+            registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked,
+        player.breakthrough_flipped,
         )
         if unit is None or unit.cost is None or not is_space_unit(base_type):
             continue  # np. War Sun bez technologii (F_mentak)
@@ -587,7 +590,8 @@ def _sleeper_type_ok(state: GameState, player_id: str, base_type: str) -> bool:
     technologią) i jest statkiem - nie siła naziemna/struktura „jako statek" (F_mentak)."""
     player = state.players[player_id]
     unit = resolve_unit_variant(
-        _registry(), player.faction, player.technologies, base_type, player.breakthrough_unlocked
+        _registry(), player.faction, player.technologies, base_type, player.breakthrough_unlocked,
+        player.breakthrough_flipped,
     )
     return unit is not None and unit.cost is not None and is_space_unit(base_type)
 

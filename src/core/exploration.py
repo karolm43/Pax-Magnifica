@@ -20,8 +20,10 @@ from src.core import (
     board_reinforcements,
     command_tokens,
     economy,
+    entropic_scar,
     exhaust,
     relic_fragments,
+    rules_hooks,
     triggers,
     unit_ops,
     variants,
@@ -636,6 +638,13 @@ def _apply_token(
     system = _system(state, ex)
     if card.attachment_id == "gamma":
         state.decks.purged.append(cur.card_id)
+        if not entropic_scar.accepts_wormhole_token(state, ex.position, registry):
+            # R_entropic_scars: żeton wormhole w bliźnie wraca do puli (karta i tak do purge).
+            return (
+                "The Gamma wormhole token returns to the supply - the system is an entropic "
+                "scar; the card is purged.",
+                "purged",
+            )
         if "GAMMA" not in system.wormhole_tokens:
             system.wormhole_tokens.append("GAMMA")
         return "Gamma wormhole token placed in the system; the card is purged.", "purged"
@@ -675,7 +684,7 @@ def options_for(
     """Opcje rozstrzygnięcia ujawnionej karty (puste, gdy żadnej nie odkryto)."""
     ex = _exp(state)
     cur = ex.current
-    if cur is None:
+    if cur is None or cur.candidates:
         return []
     card = _card_def(registry, cur.card_id)
     kind = (card.resolution or "").lower()
@@ -713,12 +722,21 @@ def options_for(
 # ------------------------------------------------------------------------------- przepływ
 
 
+def extra_draw_allowed(state: GameState, player_id: str, planet: str) -> bool:
+    """Czy gracz może dobrać 1 dodatkową kartę przy eksploracji planety (Distant Suns - hook
+    ``exploration.extra_draw``; decyzja PRZED ujawnieniem pierwszej karty, F_naaz_rokha 2)."""
+    return player_id in state.players and rules_hooks.permits(
+        rules_hooks.POINT_EXPLORATION_EXTRA_DRAW, state, player_id, {"planet": planet}
+    )
+
+
 def _auto(state: GameState, registry: StaticDataRegistry) -> None:
-    """Dobiera kartę sama, gdy nie ma żadnego wyboru (jedna planeta, jedna cecha)."""
+    """Dobiera kartę sama, gdy nie ma żadnego wyboru (jedna planeta, jedna cecha, bez Distant
+    Suns - dodatkowa karta to decyzja gracza przed ujawnieniem)."""
     ex = _exp(state)
     if ex.current is None and len(ex.queue) == 1:
         traits = planet_traits(registry, ex.queue[0])
-        if len(traits) == 1:
+        if len(traits) == 1 and not extra_draw_allowed(state, ex.player_id, ex.queue[0]):
             _draw_for(state, registry, ex.queue[0], traits[0])
 
 
@@ -729,11 +747,21 @@ def _require_no_grant(state: GameState) -> None:
         raise ValueError(f"Finish the {source} production first (or skip it).")
 
 
-def _draw_for(state: GameState, registry: StaticDataRegistry, planet: str, deck: str) -> None:
+def _draw_for(
+    state: GameState, registry: StaticDataRegistry, planet: str, deck: str, extra: bool = False
+) -> None:
     ex = _exp(state)
     card_id = _draw_card(state, registry, deck)
+    candidates: list[str] = []
+    if extra:
+        # Distant Suns: druga karta z TEJ SAMEJ talii (planeta z kilkoma cechami - 1.3); jedna
+        # dodatkowa niezależnie od liczby mechów (1.1). Pusta talia = brak drugiej karty.
+        try:
+            candidates = [card_id, _draw_card(state, registry, deck)]
+        except ValueError:
+            candidates = []
     ex.queue = [p for p in ex.queue if p != planet]
-    ex.current = ExploreCurrent(planet=planet, deck=deck, card_id=card_id)
+    ex.current = ExploreCurrent(planet=planet, deck=deck, card_id=card_id, candidates=candidates)
 
 
 def begin_exploration(
@@ -772,10 +800,20 @@ def start_exploration(
 
 
 def draw(
-    state: GameState, registry: StaticDataRegistry, planet: str, deck: str | None = None
+    state: GameState,
+    registry: StaticDataRegistry,
+    planet: str,
+    deck: str | None = None,
+    *,
+    extra: bool = False,
 ) -> GameState:
-    """Gracz wybiera planetę (kolejność) i — przy kilku cechach — talię; ujawnia kartę."""
+    """Gracz wybiera planetę (kolejność) i — przy kilku cechach — talię; ujawnia kartę.
+
+    ``extra=True`` (Distant Suns): dobiera 1 dodatkową kartę; gracz wybiera jedną (``choose``).
+    """
     ex = _exp(state)
+    if extra and not extra_draw_allowed(state, ex.player_id, planet):
+        raise ValueError("You cannot draw an additional exploration card for this planet.")
     _require_no_grant(state)
     if ex.current is not None:
         raise ValueError("Resolve the revealed exploration card first, then draw the next one.")
@@ -794,7 +832,24 @@ def draw(
             f"This planet has no {deck} trait, so you cannot draw from the {deck} exploration deck."
         )
     new_state = state.clone()
-    _draw_for(new_state, registry, planet, deck)
+    _draw_for(new_state, registry, planet, deck, extra)
+    return new_state
+
+
+def choose(state: GameState, card_id: str) -> GameState:
+    """Distant Suns: gracz wybiera 1 z dobranych kart do rozstrzygnięcia, resztę odrzuca."""
+    ex = _exp(state)
+    cur = ex.current
+    if cur is None or not cur.candidates:
+        raise ValueError("There is no choice between exploration cards right now.")
+    if card_id not in cur.candidates:
+        raise ValueError("Choose 1 of the drawn exploration cards.")
+    new_state = state.clone()
+    new_cur = _exp(new_state).current
+    assert new_cur is not None
+    discard_cards(new_state, new_cur.deck, [c for c in new_cur.candidates if c != card_id])
+    new_cur.card_id = card_id
+    new_cur.candidates = []
     return new_state
 
 
@@ -806,6 +861,8 @@ def resolve(
     cur = ex.current
     if cur is None:
         raise ValueError("No exploration card has been revealed.")
+    if cur.candidates:
+        raise ValueError("Choose which of the drawn exploration cards to resolve first.")
     chosen = next((o for o in options_for(state, registry) if o.id == option_id), None)
     if chosen is None:
         raise ValueError(
@@ -859,11 +916,14 @@ def resolve(
     new_ex.current = None
     if new_cur.planet:
         # „Po zbadaniu planety” (hooki frakcji/kart); frontier nie ma planety, więc nie emituje.
-        triggers.fire(
-            new_state, GameEvent.PLANET_EXPLORED, Moment.AFTER, subject=new_ex.player_id,
-            ctx={"player": new_ex.player_id, "planet": new_cur.planet, "deck": new_cur.deck,
-                 "card": new_cur.card_id},
-        )
+        explored = {"player": new_ex.player_id, "planet": new_cur.planet, "deck": new_cur.deck,
+                    "card": new_cur.card_id}
+        if new_state.production_grant is not None and state.production_grant is None:
+            # Karta otworzyła produkcję (Freelancers): eksploracja trwa do jej końca (F_naaz_rokha
+            # pre-fab-arcologies 1) - zdarzenie po ``after_grant``.
+            new_ex.deferred_explored = [*new_ex.deferred_explored, explored]
+        else:
+            _fire_explored(new_state, explored)
     _auto(new_state, registry)
     if kind == "attach" and card.attachment_id == "dmz" and new_ex.position in new_state.systems:
         # C_exploration_cards: siły zawrócone na orbitę bez miejsca -> usunięcie nadwyżki.
@@ -871,6 +931,25 @@ def resolve(
 
         new_state = capacity.open_capacity_check(new_state, registry, new_ex.position)
     return new_state
+
+
+def _fire_explored(state: GameState, explored: dict[str, str]) -> None:
+    triggers.fire(
+        state, GameEvent.PLANET_EXPLORED, Moment.AFTER, subject=explored["player"], ctx=explored
+    )
+
+
+def after_grant(state: GameState) -> None:
+    """Koniec produkcji z karty eksploracji: odroczone „po eksploracji planety” (MUTUJE ``state``).
+
+    Woła ``production`` (produkcja z grantu albo rezygnacja), gdy grant zniknął."""
+    ex = state.exploration
+    if ex is None or not ex.deferred_explored or state.production_grant is not None:
+        return
+    waiting = list(ex.deferred_explored)
+    ex.deferred_explored = []
+    for explored in waiting:
+        _fire_explored(state, explored)
 
 
 def finish(state: GameState) -> GameState:

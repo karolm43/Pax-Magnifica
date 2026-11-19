@@ -77,6 +77,7 @@ def _ship_names(
             player.technologies if player is not None else [],
             base_type,
             player.breakthrough_unlocked if player is not None else False,
+        player.breakthrough_flipped if player is not None else False,
         )
         result.append(
             SpaceCannonShipHelp(

@@ -38,8 +38,12 @@ class ExploreCardView(BaseModel):
 class ExploreQueueItem(BaseModel):
     """Planeta czekająca na eksplorację (gracz wybiera kolejność i — przy kilku cechach — talię)."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     planet: str
     traits: list[str]
+    # Distant Suns: gracz może dobrać 1 dodatkową kartę (decyzja przed ujawnieniem).
+    extra_draw: bool = Field(default=False, serialization_alias="extraDraw")
 
 
 class ExploreCurrentView(BaseModel):
@@ -48,6 +52,8 @@ class ExploreCurrentView(BaseModel):
     planet: str
     card: ExploreCardView
     options: list[ExploreOptionView]
+    # Distant Suns: dobrane karty do wyboru (niepuste = gracz wybiera jedną, ``card`` to pierwsza).
+    candidates: list[ExploreCardView] = Field(default_factory=list)
 
 
 class ExploreLogItem(BaseModel):
@@ -82,6 +88,14 @@ class ExplorationDrawRequest(BaseModel):
 
     planet: str
     deck: str | None = None
+    # Distant Suns: dobierz 1 dodatkową kartę (wybór jednej z nich - ``/exploration/choose``).
+    extra: bool = False
+
+
+class ExplorationChooseRequest(BaseModel):
+    """Karta wybrana do rozstrzygnięcia spośród dobranych (Distant Suns)."""
+
+    card: str
 
 
 class ExplorationResolveRequest(BaseModel):

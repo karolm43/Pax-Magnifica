@@ -43,6 +43,7 @@ NOT_YET_COVERED: dict[str, str] = {
     "battle_roll": _B5_FUZZ_ONLY,
     "battle_start": _B5_FUZZ_ONLY,
     "capacity_resolve": _B5_FUZZ_ONLY,
+    "exploration_choose": _B5_FUZZ_ONLY,
     "exploration_draw": _B5_FUZZ_ONLY,
     "exploration_finish": _B5_FUZZ_ONLY,
     "exploration_resolve": _B5_FUZZ_ONLY,

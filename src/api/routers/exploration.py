@@ -12,6 +12,7 @@ from src.api.actor import ActorId
 from src.api.context import AppContext, get_ctx
 from src.api.schemas import StateEnvelope
 from src.api.schemas_exploration import (
+    ExplorationChooseRequest,
     ExplorationDrawRequest,
     ExplorationResolveRequest,
     ExplorationResponse,
@@ -73,13 +74,21 @@ def _build(ctx: AppContext, state: GameState) -> ExplorationResponse:
                 )
                 for o in exploration.options_for(state, registry)
             ],
+            candidates=[
+                _card_view(registry, card_id, ex.current.deck)
+                for card_id in ex.current.candidates
+            ],
         )
     return ExplorationResponse(
         active=True,
         player=keys.get(ex.player_id, ex.player_id),
         position=ex.position,
         queue=[
-            ExploreQueueItem(planet=p, traits=exploration.planet_traits(registry, p))
+            ExploreQueueItem(
+                planet=p,
+                traits=exploration.planet_traits(registry, p),
+                extra_draw=exploration.extra_draw_allowed(state, ex.player_id, p),
+            )
             for p in ex.queue
         ],
         current=current,
@@ -114,11 +123,29 @@ async def post_exploration_draw(
     )
     try:
         new_state = exploration.draw(
-            ctx.service.current_state(), ctx.registry, request.planet, request.deck
+            ctx.service.current_state(), ctx.registry, request.planet, request.deck,
+            extra=request.extra,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(ctx, new_state, f"exploration:draw:{request.planet}")
+
+
+@router.post("/exploration/choose", response_model=StateEnvelope)
+async def post_exploration_choose(
+    actor: ActorId,
+    request: ExplorationChooseRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Distant Suns: wybiera 1 z dobranych kart do rozstrzygnięcia (reszta odrzucona)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.exploring_player,
+        "Choose exploration card",
+    )
+    try:
+        new_state = exploration.choose(ctx.service.current_state(), request.card)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, f"exploration:choose:{request.card}")
 
 
 @router.post("/exploration/resolve", response_model=StateEnvelope)

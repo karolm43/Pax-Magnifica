@@ -21,6 +21,7 @@ from src.core import (
     chronicle,
     control,
     custodians,
+    entropic_scar,
     exhaust,
     exploration,
     extra_dice,
@@ -148,8 +149,8 @@ def system_planets(
 def unit_variant(
     state: GameState, registry: StaticDataRegistry, player_id: str, base_type: str
 ) -> UnitDef | None:
-    faction, techs, breakthrough = variant_key(state, registry, player_id)  # + neutralni (50.3)
-    return resolve_unit_variant(registry, faction, techs, base_type, breakthrough)
+    faction, techs, breakthrough, flipped = variant_key(state, registry, player_id)  # 50.3
+    return resolve_unit_variant(registry, faction, techs, base_type, breakthrough, flipped)
 
 
 def _defenders(
@@ -224,6 +225,8 @@ def planet_shield(
             if unit is None or not unit.planetary_shield:
                 continue
             present = True
+            if entropic_scar.unit_abilities_blocked(state, position, registry):
+                continue  # Entropic Scar: PLANETARY SHIELD nie działa w bliźnie (RULES.md 1.5)
             if bt == "pds" and space_cannon.pds_disabled(state, pid):
                 continue  # Disable: PDS przeciwnika traci Planetary Shield na czas inwazji
             if _shield_stripped(state, position, pid):
@@ -395,6 +398,8 @@ def bombard_groups(state: GameState, registry: StaticDataRegistry) -> list[Bomba
     system = _system(state)
     if not bombard_targets(state, registry):
         return []
+    if entropic_scar.unit_abilities_blocked(state, invasion.position, registry):
+        return []  # Entropic Scar: BOMBARDMENT ani przez, ani w jednostki w bliźnie (RULES.md 1.5)
     groups: list[BombardGroup] = []
     granted = granted_bombard_hits_on(state)
     units = dict(system.space_units.get(invasion.attacker, {}))
@@ -630,18 +635,12 @@ def _ground_units(
 ) -> dict[str, battle.CombatUnit]:
     """Jednostki walczące gracza na planecie (jak w walce naziemnej: wariant, uszkodzenia)."""
     inv = _inv(state)
-    return {
-        u.base_type: u
-        for u in battle.combat_units(
-            state,
-            grid,
-            registry,
-            kind="ground",
-            position=inv.position,
-            planet=planet,
-            player_id=player_id,
-        )
-    }
+    units = battle.combat_units(
+        state, grid, registry, kind="ground", position=inv.position, planet=planet,
+        player_id=player_id,
+    )
+    # Trafienia bombardowania i Space Cannon Defense to zdolności jednostek (Eidolon Maximum).
+    return {u.base_type: u for u in battle.ability_hit_targets(state, player_id, units)}
 
 
 def required_bombard_hits(

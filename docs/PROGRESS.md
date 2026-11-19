@@ -1288,3 +1288,56 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Scalanie okien before/after wokół jednego zdarzenia: poza agendą (już jedna pauza when+after) - nie ruszane.
 - QA: pytest engine + reakcje/agendy/jolnar ✓, ruff ✓, mypy ✓ (zmienione), tsc ✓, eslint ✓, vitest agenda +
   ReactionSettings ✓. Duża próba fuzzera pominięta (puszcza użytkownik). Wymaga restartu backendu.
+
+## 2026-11-19 — B11: The Naaz-Rokha Alliance (RULES.md 62.15)
+
+- ✅ `core/hooks/factions/naaz.py`: Distant Suns, Fabrication, Black Market Forgery, Pre-Fab Arcologies,
+  Supercharge, Visz El Vir, Eidolon / Z-Grav Eidolon, Garv and Gunn, Dart and Tai, Hesh and Prit (Perfect
+  Synthesis), Absolute Synergy + Eidolon Maximum.
+- Rdzeń (punkty ogólne, bez nazw frakcji):
+  - Eksploracja: PERMIT `exploration.extra_draw` - `draw(extra=True)` dobiera 2 karty z tej samej talii,
+    `POST /exploration/choose` wybiera jedną (reszta na stos odrzuconych); auto-dobór czeka na decyzję.
+    „Po eksploracji planety” z kartą otwierającą produkcję (Freelancers) dopiero po tej produkcji
+    (`ExplorationState.deferred_explored`, `exploration.after_grant` z `production`). Bot: `ExplorationChoose`.
+  - `core/ship_roles` + FORBID `combat.space_ground_variant`: siły naziemne walczące jak statki z wartościami
+    wariantu (Z-Grav tylko w trwającej walce kosmicznej w aktywnym systemie, Eidolon Maximum zawsze w
+    przestrzeni); Assault Cannon i Demonstrate Your Power liczą je przez `space_ships`.
+  - Rewersy kart (`combat.FLIP_SIDE_UNIT_IDS`) nigdy nie są wariantem bazowym; Eidolon Maximum wymaga
+    `PlayerState.breakthrough_flipped` (`breakthrough.flip`/`flip_back`, `combat.player_variant`).
+    Błąd danych AsyncTI4: `absol_naaz_mech_space` ma `source: pok` - wykluczony jawnie.
+  - PERMIT `units.ground_moves_as_ship` (ruch/odwrót, pula floty, nie ładunek), FORBID
+    `combat.ability_hit_immune` (Space Cannon, bombardowanie), FORBID `units.place_forbidden`
+    (`unit_ops.place_units`, `board_reinforcements.can_place`), nowe zdarzenie `UNIT_REMOVED/AFTER`.
+  - `strategic_action.begin_strategize_secondary(then=..., from_reinforcements=...)`: łańcuch okien secondary,
+    żeton z rezerwy (bez `STRATEGY_TOKEN_SPENT`), pusta rezerwa = pula arkusza (`token_pool`).
+  - Brother Milor Ω (Yin) za jednostkę statek+siła naziemna: wybór właściciela (F_yin 8, 8.1).
+- UI: okno eksploracji („Draw 2 (Distant Suns)”, wybór 1 z 2 kart), okno secondary (koszt z rezerwy, wybór
+  puli arkusza), chip przełomu „flipped” (`breakthrough.flipped` w web-data).
+- Rulingi `F_naaz_rokha` z testami (`tests/factions/test_naaz.py`, scenariusze `test_flows_naaz.py`);
+  domknięte odroczone: F_saar scavenge 2.2, F_yin milor Ω 8/8.1. Luki (`gap`): okno między flipem Eidolon a
+  innymi zdolnościami startu walki (eidolon 2.1), Eidolon Maximum „albo pojemność” (eidolon-maximum 1),
+  Direct Hit na Eidolon Maximum w walce naziemnej (6.1).
+- ⚠️ Założenia do potwierdzenia: Garv and Gunn - planetę wybiera eksplorujący gracz (może zrezygnować);
+  notatka AsyncTI4 „Eidolon Maximum na planecie walczy w walce kosmicznej” - NIE zaimplementowana (brak w tirules).
+
+## 2026-11-19 — Entropic Scar (RULES.md 1.5), „Auto” żetonów w statusie, bez zaznaczania tekstu
+
+- ✅ Anomalia Entropic Scar (Thunder's Edge, kafle `114` i `116` Lemox) - wcześniej flaga `isScar` w ogóle
+  nie była czytana. `SystemDef.is_scar` -> anomalia `ENTROPIC_SCAR`; `core/entropic_scar.py` = jedno pytanie
+  „czy blizna”. Blokady zdolności jednostek (przez i przeciw jednostkom w bliźnie): Sustain Damage
+  (`battle.sustain_denied`), AFB (także nadany komponentem), Space Cannon (z blizny, w bliznę, Experimental
+  Battlestation), Planetary Shield, Bombardment (inwazja i walka naziemna), Production jednostek, DEPLOY
+  (Letani Behemoth, Dunlain Reaper, Scavenger Zeta, ZS Thunderbolt M2). Żeton Gamma w bliźnie wraca do puli.
+- ✅ Start fazy statusu: statki w bliźnie -> oferta „may” (okno drzewa technologii, tryb GAIN, tylko
+  nieposiadane technologie frakcyjne) za żeton z puli strategii; druga blizna = druga oferta. Nowe źródło
+  hooków `SOURCE_RULE` (`rules_hooks.declare_rule_source`) - zasada ogólna posiadana przez każdego gracza.
+- Rulingi `R_entropic_scars` z testami (`tests/rulings_general/test_rulings_entropic_scar.py`); zdjęte z długu.
+- ⚠️ Założenia do potwierdzenia: DEPLOY nie stawia jednostki W bliźnie; Ion Storm to nie „wormhole token”.
+- Przegląd anomalii: asteroidy, mgławica, supernowa, szczelina, blizna - obsłużone na kaflach. Żetony anomalii
+  (`tokens/other.json`: nebula/asteroids/rift/entropicscar) nie mają dziś źródła w grze (włączone dodatki ich
+  nie kładą) - silnik ich nie czyta.
+- UI fazy statusu, krok 5: przycisk „Auto” (nowe żetony dopełniają pulę floty do największej floty, reszta do
+  taktycznej; gracz zatwierdza). W grze sieciowej każdy widzi tylko SWOJĄ kartę rozdziału / punktowania,
+  pozostali jako „Waiting for …” (`useCanActAs`).
+- UI: globalnie wyłączone zaznaczanie tekstu i natywne przeciąganie obrazków (`ds/base.css`); pola edycji
+  zostają zaznaczalne, wyjątek klasą `ds-selectable`.

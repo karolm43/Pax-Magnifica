@@ -51,7 +51,7 @@ def army_strength_by_player(
             player.faction,
             player.technologies,
             base_type,
-            player.breakthrough_unlocked,
+            player.breakthrough_unlocked, player.breakthrough_flipped,
         )
         if unit is None or unit.is_structure:
             return

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from src.core import timing, unit_ops
+from src.core import floating_structures, timing, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import CombatStep, GameState, WindowType
 from src.core.neutral import NEUTRAL_PLAYER_ID
@@ -108,6 +108,8 @@ def capacity_report(
         if count <= 0:
             continue
         capacity, used, cost, name = _variant_value(registry, faction, techs, base_type)
+        if floating_structures.ground_moves_as_ship(state, player_id, base_type):
+            continue  # Eidolon Maximum: statek - liczy się do puli floty (RULES.md 62.15)
         if base_type in CARGO_TYPES:
             report.cargo[base_type] = count
             report.cost[base_type] = used

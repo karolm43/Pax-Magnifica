@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import exhaust, floating_structures, rules_hooks, unit_ops
+from src.core import exhaust, floating_structures, rules_hooks, ship_roles, unit_ops
 from src.core import offer_inputs as oi
 from src.core.combat import resolve_unit_variant
 from src.core.damage import damaged_count, set_damaged
@@ -30,7 +30,6 @@ from src.core.rules_hooks import (
     on_event,
     register,
 )
-from src.core.unit_catalog import is_space_unit
 from src.core.unit_ops import UnitCause
 
 # Aliasy z danych (technologies/pok.json; nie z pamięci). Weryfikowane testem względem rejestru.
@@ -73,6 +72,7 @@ def _unit_cost(state: GameState, player_id: str, base_type: str) -> float:
         player.technologies if player is not None else [],
         base_type,
         player.breakthrough_unlocked if player is not None else False,
+        player.breakthrough_flipped if player is not None else False,
     )
     return float(unit.cost or 0.0) if unit is not None else 0.0
 
@@ -88,6 +88,7 @@ def _has_sustain(state: GameState, player_id: str, base_type: str) -> bool:
         player.technologies if player is not None else [],
         base_type,
         player.breakthrough_unlocked if player is not None else False,
+        player.breakthrough_flipped if player is not None else False,
     )
     return bool(unit is not None and unit.sustain_damage)
 
@@ -203,9 +204,12 @@ def _assault_cannon_ready(state: GameState, player_id: str, ctx: Mapping[str, An
     w chwili rozstrzygania, więc straty z wcześniejszego hooka mogą go odebrać)."""
     if ctx.get("kind") != "space" or not _participant(state, player_id, ctx):
         return False
-    system = state.systems.get(str(ctx["position"]))
-    ships = system.space_units.get(player_id, {}) if system is not None else {}
-    return sum(n for bt, n in ships.items() if bt != _FIGHTER and is_space_unit(bt)) >= 3
+    registry = rules_hooks.bound_registry()
+    if registry is None:
+        return False
+    # Z-Grav Eidolon (siła naziemna, która jest statkiem) też się liczy - F_naaz_rokha eidolon 2.2.
+    ships = ship_roles.space_ships(state, registry, player_id, str(ctx["position"]))
+    return sum(n for bt, n in ships.items() if bt != _FIGHTER) >= 3
 
 
 def _assault_cannon_victim(_state: GameState, player_id: str, ctx: Mapping[str, Any]) -> str:
@@ -217,13 +221,13 @@ def assault_cannon_inputs(
     state: GameState, _registry: Any, decider: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
     """Statki niemyśliwskie ofiary w systemie (neutralni - wg reguły: najtańszy)."""
-    system = state.systems.get(str(ctx["position"]))
-    space = system.space_units.get(decider, {}) if system else {}
-    ships = [
-        bt
-        for bt, n in sorted(space.items())
-        if n > 0 and bt != _FIGHTER and is_space_unit(bt)
-    ]
+    registry = rules_hooks.bound_registry()
+    # Z-Grav Eidolon może być celem jak każdy statek niemyśliwski (F_naaz_rokha eidolon 3).
+    space = (
+        ship_roles.space_ships(state, registry, decider, str(ctx["position"]))
+        if registry is not None else {}
+    )
+    ships = [bt for bt, n in sorted(space.items()) if n > 0 and bt != _FIGHTER]
     if decider not in state.players and ships:  # jednostki neutralne nie podejmują decyzji
         ships = [min(ships, key=lambda bt: (_unit_cost(state, decider, bt), bt))]
     return [

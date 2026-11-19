@@ -36,6 +36,15 @@ def counts_toward_pool(base_type: str) -> bool:
     return base_type != _FIGHTER and PLACEMENT_BY_BASE_TYPE.get(base_type) is Placement.SPACE
 
 
+def _pool_unit(state: GameState, player_id: str, base_type: str) -> bool:
+    """Statek niemyśliwski albo siła naziemna, która jest statkiem (Eidolon Maximum)."""
+    from src.core import floating_structures  # lokalnie: unika cyklu importów
+
+    return counts_toward_pool(base_type) or floating_structures.ground_moves_as_ship(
+        state, player_id, base_type
+    )
+
+
 @dataclass
 class FleetReport:
     """Stan fleet pool gracza w jednym systemie."""
@@ -112,7 +121,7 @@ def fleet_report(
     if system is None:
         return report
     for base_type, count in system.space_units.get(player_id, {}).items():
-        if count > 0 and counts_toward_pool(base_type):
+        if count > 0 and _pool_unit(state, player_id, base_type):
             report.ships[base_type] = count
     overflow = _overflow_fighters(state, registry, position, player_id)
     if overflow > 0:
@@ -153,7 +162,7 @@ def ships_by_system(state: GameState, player_id: str) -> dict[str, int]:
         n = sum(
             c
             for bt, c in system.space_units.get(player_id, {}).items()
-            if c > 0 and counts_toward_pool(bt)
+            if c > 0 and _pool_unit(state, player_id, bt)
         ) + _overflow_fighters(state, None, position, player_id)
         if n > 0:
             result[position] = n

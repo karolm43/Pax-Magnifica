@@ -18,7 +18,8 @@ def variant_of(
     """Id wariantu jednostki ``base_type``, którego używa gracz (``None``, gdy brak)."""
     player = state.players[player_id]
     unit = resolve_unit_variant(
-        registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked
+        registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked,
+        player.breakthrough_flipped,
     )
     return unit.id if unit is not None else None
 

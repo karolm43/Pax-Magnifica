@@ -17,16 +17,19 @@ from typing import Any
 
 from src.core import (
     ability_notes,
+    active_effects,
     battle,
     board_graph,
     custodians,
     economy,
     faction_components,
+    floating_structures,
     invasion,
     leaders,
     payment,
     promissory_play,
     rules_hooks,
+    ship_roles,
     unit_ops,
 )
 from src.core import offer_inputs as oi
@@ -43,6 +46,7 @@ from src.core.rules_hooks import (
     POINT_TECHNOLOGY_INFANTRY_SKIP,
     POINT_TECHNOLOGY_VIRTUAL_PREREQUISITES,
     SOURCE_BREAKTHROUGH,
+    SOURCE_EFFECT,
     SOURCE_FACTION,
     SOURCE_LEADER,
     SOURCE_TECHNOLOGY,
@@ -78,6 +82,9 @@ _SACRIFICE = ("cruiser", "destroyer")  # Devotion / Impulse Core: „cruisers or
 _DAMAGED_SUFFIX = ":damaged"  # wartość opcji celu Devotion: uszkodzony egzemplarz
 _SPINNER_MAX = 2  # „up to 2 infantry”
 _MILOR_UNITS = 2  # „place 2 fighters … or 2 infantry”
+_DUAL = "dual"  # zniszczona jednostka jest i statkiem, i siłą naziemną (F_yin milor Ω 8)
+MILOR_DUAL = f"leaders:{AGENT}:dual"  # efekt właściciela takiej jednostki: wybór typu
+MILOR_DUAL_ABILITY = "milor_dual"
 _HERO_INFANTRY = 3  # „Commit up to 3 infantry”
 _GREEN = "BIOTIC"  # „satisfies a green technology prerequisite”
 _NONE = "none"
@@ -532,9 +539,26 @@ def _destroyed_in_combat(state: GameState, ctx: Mapping[str, Any]) -> bool:
     return state.tactical_step is TacticalStep.SPACE_CANNON and state.active_system == position
 
 
-def _milor_unit(ctx: Mapping[str, Any]) -> str | None:
-    """Co postawić: myśliwce za statek, piechota za siłę naziemną na planecie."""
+def _is_dual(state: GameState, ctx: Mapping[str, Any]) -> bool:
+    """Zniszczona siła naziemna, która była też statkiem (Z-Grav Eidolon w walce kosmicznej,
+    Eidolon Maximum - RULES.md 62.15; ``core/ship_roles``)."""
+    owner, base_type = str(ctx.get("player") or ""), str(ctx.get("base_type") or "")
+    if owner not in state.players or base_type not in _GROUND_FORCES:
+        return False
+    position, zone = str(ctx.get("position") or ""), str(ctx.get("zone") or "")
+    if zone == _SPACE and base_type in ship_roles.space_ground_variants(
+        state, _registry(), owner, position, finished_combat=True
+    ):
+        return True
+    return floating_structures.ground_moves_as_ship(state, owner, base_type)
+
+
+def _milor_unit(state: GameState, ctx: Mapping[str, Any]) -> str | None:
+    """Co postawić: myśliwce za statek, piechota za siłę naziemną na planecie, a za jednostkę
+    będącą jednym i drugim - wybór jej właściciela (``_DUAL``, F_yin milor Ω 8)."""
     base_type, zone = str(ctx.get("base_type") or ""), str(ctx.get("zone") or "")
+    if _is_dual(state, ctx):
+        return _DUAL
     if zone == _SPACE and is_space_unit(base_type):
         return "fighter"
     if zone != _SPACE and base_type in _GROUND_FORCES:
@@ -542,14 +566,20 @@ def _milor_unit(ctx: Mapping[str, Any]) -> str | None:
     return None
 
 
+def _milor_left(state: GameState, owner: str, unit: str) -> int:
+    if unit == _DUAL:
+        return max(_left(state, owner, "fighter"), _left(state, owner, "infantry"))
+    return _left(state, owner, unit)
+
+
 def _milor_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
     owner = str(ctx.get("player") or "")
-    unit = _milor_unit(ctx)
+    unit = _milor_unit(state, ctx)
     return (
         state.phase is Phase.ACTION
         and owner in state.players
         and unit is not None
-        and _left(state, owner, unit) > 0
+        and _milor_left(state, owner, unit) > 0
         and _destroyed_in_combat(state, ctx)
         and leaders.is_ready(state, _registry(), player_id, AGENT)
     )
@@ -568,16 +598,67 @@ def brother_milor(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> N
     Tylko w fazie akcji (F_yin Ω). Jednostki z rezerwy właściciela (ile jest, do 2); walka trwa,
     jeśli strona odzyskała jednostki (F_yin).
     """
-    owner, unit = str(ctx.get("player") or ""), _milor_unit(ctx)
+    owner, unit = str(ctx.get("player") or ""), _milor_unit(state, ctx)
     if owner not in state.players or unit is None or not _destroyed_in_combat(state, ctx):
         raise ValueError("Brother Milor is used after a unit is destroyed during combat.")
-    count = min(_MILOR_UNITS, _left(state, owner, unit))
-    if count <= 0:
+    if _milor_left(state, owner, unit) <= 0:
         raise ValueError("That player has no such units in reinforcements.")
     faction_components.pay_cost(state, _registry(), player_id, "leader", AGENT, {"target": owner})
+    if unit == _DUAL:
+        # Właściciel wybiera 2 myśliwce albo 2 piechotę (F_yin milor Ω 8).
+        active_effects.add_effect(
+            state, MILOR_DUAL, Duration.TURN, owner=owner,
+            data={"position": str(ctx.get("position")), "zone": str(ctx.get("zone"))},
+        )
+        faction_components.ability_used(state, player_id, MILOR_DUAL_ABILITY, owner)
+        return
+    count = min(_MILOR_UNITS, _left(state, owner, unit))
     zone = _SPACE if unit == "fighter" else str(ctx.get("zone"))
     place_from_reinforcements(
         state, state.systems[str(ctx.get("position"))], zone, owner, unit, count
+    )
+
+
+def _milor_dual_effect(state: GameState, owner: str) -> Any:
+    return next(
+        (e for e in state.active_effects if e.key == MILOR_DUAL and e.owner == owner), None
+    )
+
+
+def _milor_dual_mine(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
+    return ctx.get("target") == player_id and _milor_dual_effect(state, player_id) is not None
+
+
+def milor_dual_inputs(
+    state: GameState, _registry_: Any, player_id: str, _ctx: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    options = [
+        oi.option(unit, label)
+        for unit, label in (("fighter", "2 fighters"), ("infantry", "2 infantry"))
+        if _left(state, player_id, unit) > 0
+    ]
+    return [oi.choice("unit", "Brother Milor: place", options, always=True)]
+
+
+@on_event(
+    GameEvent.FACTION_ABILITY_USED, Moment.AFTER, HookSource(SOURCE_EFFECT, MILOR_DUAL),
+    where={"ability": MILOR_DUAL_ABILITY}, optional=True, condition=_milor_dual_mine,
+    inputs=milor_dual_inputs, label="Brother Milor: place 2 fighters or 2 infantry",
+)
+def milor_dual(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
+    """Właściciel zniszczonej jednostki-statku-i-siły-naziemnej stawia 2 myśliwce albo 2 piechotę.
+
+    Myśliwce w przestrzeni systemu, piechota w strefie zniszczonej jednostki - w walce kosmicznej
+    piechota w przestrzeni nie walczy, w naziemnej myśliwce nie walczą (F_yin milor Ω 8.1)."""
+    effect = _milor_dual_effect(state, player_id)
+    unit = str((ctx.get("params") or {}).get("unit") or "")
+    if effect is None or unit not in ("fighter", "infantry") or _left(state, player_id, unit) <= 0:
+        raise ValueError("Choose 2 fighters or 2 infantry from your reinforcements.")
+    active_effects.remove_effect(state, effect.id)
+    zone = _SPACE if unit == "fighter" else str(effect.data["zone"])
+    count = min(_MILOR_UNITS, _left(state, player_id, unit))
+    place_from_reinforcements(
+        state, state.systems[str(effect.data["position"])], zone, player_id, unit, count
     )
 
 

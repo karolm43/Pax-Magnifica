@@ -51,7 +51,11 @@ from src.core import chronicle as chronicle_core
 from src.core import epilogue as epilogue_core
 from src.core import invasion as invasion_core
 from src.core.army_strength import ArmyStrength, army_strength_by_player
-from src.core.combat import BREAKTHROUGH_UNIT_IDS
+from src.core.combat import (
+    BREAKTHROUGH_UNIT_IDS,
+    FLIP_SIDE_UNIT_IDS,
+    FLIPPED_BREAKTHROUGH_UNIT_IDS,
+)
 from src.core.components import ActionCardDef, ComponentCategory
 from src.core.expedition_state import EXPEDITION_SLICES
 from src.core.fracture import is_fracture_position
@@ -974,6 +978,7 @@ def _units_owned_for_faction(
     technologies: list[str],
     registry: StaticDataRegistry,
     breakthrough_unlocked: bool = False,
+    breakthrough_flipped: bool = False,
 ) -> list[str]:
     """Lista ID jednostek posiadanych przez gracza (baza/ulepszenie, generyczne/frakcyjne).
 
@@ -1033,6 +1038,10 @@ def _units_owned_for_faction(
             continue
         if unit.id in BREAKTHROUGH_UNIT_IDS and not breakthrough_unlocked:
             continue  # Corsair/Eidolon Maximum dopiero po odblokowaniu przełomu
+        if unit.id in FLIP_SIDE_UNIT_IDS or (
+            unit.id in FLIPPED_BREAKTHROUGH_UNIT_IDS and not breakthrough_flipped
+        ):
+            continue  # rewers karty (Z-Grav) / Eidolon Maximum przed odwróceniem przełomu
         is_upgrade = unit.upgrades_from_unit_id is not None
         if not has_tech(unit):
             continue  # jednostka/ulepszenie za technologią, której gracz nie ma
@@ -1040,7 +1049,9 @@ def _units_owned_for_faction(
         belongs = is_faction_unit(unit)
         if is_faction and not belongs:
             continue  # cudzy wariant frakcyjny — pomijamy
-        if unit.id in BREAKTHROUGH_UNIT_IDS and is_upgrade:
+        if unit.id in FLIPPED_BREAKTHROUGH_UNIT_IDS:
+            faction_upgraded[unit.async_id] = unit.id  # leży NA karcie mecha (RULES.md 62.15)
+        elif unit.id in BREAKTHROUGH_UNIT_IDS and is_upgrade:
             # Corsair leży NA Cruiser II (RULES.md 62.8): tylko z jego technologią, wtedy wygrywa
             # (jak ``combat.resolve_unit_variant``).
             below = registry.units.get(unit.upgrades_from_unit_id or "")
@@ -1287,6 +1298,8 @@ def _player_breakthrough(
         "unlocked": player.breakthrough_unlocked,
         "exhausted": player.breakthrough_exhausted,
         "tradeGoodsStored": player.breakthrough_tg,
+        # Karta odwrócona na karcie jednostki (Absolute Synergy, RULES.md 62.15).
+        "flipped": player.breakthrough_flipped,
     }
 
 
@@ -1468,6 +1481,7 @@ def _build_player_data(
             player.technologies,
             registry,
             player.breakthrough_unlocked,
+            player.breakthrough_flipped,
         )
         unit_counts = _unit_counts(deployed_by_player.get(player_id, {}))
         army = army_by_player.get(player_id) or ArmyStrength()

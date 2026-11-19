@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from src.core import floating_structures, triggers
+from src.core import floating_structures, rules_hooks, triggers
 from src.core.damage import damaged_count, move_damage, set_damaged
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState
@@ -74,6 +74,8 @@ def place_units(
     """Dokłada ``count`` jednostek gracza do strefy (tworzy wpisy, gdy ich brak)."""
     if count < 0:
         raise ValueError("The number of units cannot be negative.")
+    if cause is UnitCause.PLACED and count > 0 and place_forbidden(state, player_id, base_type):
+        raise ValueError("Game effects cannot place these units of that player.")
     # Struktura pływająca (Floating Factory) staje w przestrzeni, nie na planecie (RULES.md 62.14).
     zone = floating_structures.landing_zone(state, player_id, base_type, zone)
     if zone == "space":
@@ -87,6 +89,13 @@ def place_units(
             ctx={"player": player_id, "base_type": base_type, "zone": zone,
                  "position": system.position, "count": count},
         )
+
+
+def place_forbidden(state: GameState, player_id: str, base_type: str) -> bool:
+    """Czy efekty gry nie mogą stawiać jednostek ``base_type`` gracza (Eidolon Maximum)."""
+    return player_id in state.players and base_type in rules_hooks.forbidden(
+        rules_hooks.POINT_UNIT_PLACE_FORBIDDEN, state, player_id
+    )
 
 
 def replace_zone_units(
@@ -175,6 +184,12 @@ def remove_units(
         from src.core import objective_events  # lokalnie: unika cyklu importów
 
         objective_events.on_unit_destroyed(state, system.position, zone, player_id, base_type)
+    elif cause is UnitCause.REMOVED and min(count, before) > 0:
+        triggers.fire(
+            state, GameEvent.UNIT_REMOVED, Moment.AFTER, subject=player_id,
+            ctx={"player": player_id, "base_type": base_type, "zone": zone,
+                 "position": system.position, "count": min(count, before)},
+        )
     return before
 
 

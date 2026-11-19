@@ -307,6 +307,24 @@ POINT_TACTICAL_ACTIVATION_BLOCKED = "tactical.activation_blocked"
 POINT_MOVEMENT_SINGLE_SHIP_VALUE = "movement.single_ship_value"
 # PERMIT -> gracz zdobywa cele bez kontroli planet swojego systemu domowego (Nomadic).
 POINT_OBJECTIVES_IGNORE_HOME_CONTROL = "objectives.ignore_home_control"
+# --- Naaz-Rokha Alliance (RULES.md 62.15) ---
+# PERMIT -> gracz eksplorujący planetę ``ctx["planet"]`` może dobrać 1 dodatkową kartę i wybrać
+# jedną do rozstrzygnięcia (Distant Suns) - ``exploration.extra_draw_allowed``.
+POINT_EXPLORATION_EXTRA_DRAW = "exploration.extra_draw"
+# FORBID (zbiór id wariantów) -> siły naziemne gracza w PRZESTRZENI systemu ``ctx["position"]``,
+# które teraz walczą w walce kosmicznej jak statki, z wartościami podanego wariantu (Z-Grav
+# Eidolon, Eidolon Maximum) - ``ship_roles`` (walka kosmiczna, Assault Cannon, cele).
+POINT_COMBAT_SPACE_GROUND_VARIANT = "combat.space_ground_variant"
+# PERMIT -> siła naziemna gracza (``ctx["base_type"]``) w przestrzeni rusza się i wycofuje jak
+# statek ze swoją wartością ruchu (Eidolon Maximum) - ``floating_structures.moves_as_ship``.
+POINT_UNIT_GROUND_MOVES_AS_SHIP = "units.ground_moves_as_ship"
+# FORBID (typy jednostek) -> efekty gry nie mogą STAWIAĆ tych jednostek gracza (Eidolon Maximum:
+# „Game effects cannot place or produce your mechs”) - ``unit_ops.place_units``,
+# ``board_reinforcements.can_place``.
+POINT_UNIT_PLACE_FORBIDDEN = "units.place_forbidden"
+# FORBID (typy jednostek) -> jednostki gracza, którym NIE wolno przypisać trafień ze zdolności
+# jednostek (Space Cannon, bombardowanie; Eidolon Maximum) - ``battle.ability_hit_targets``.
+POINT_COMBAT_ABILITY_HIT_IMMUNE = "combat.ability_hit_immune"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"
@@ -322,6 +340,16 @@ SOURCE_PLANET = "planet"
 # Jednostka frakcyjna z polem ``ability`` (flagowiec, mech, ulepszenie frakcyjne) — id WARIANTU,
 # którego gracz używa (RULES.md 61.3). Hook sam sprawdza, czy jednostka jest w danym systemie.
 SOURCE_UNIT = "unit"
+# Zasada ogólna z elementu planszy (Entropic Scar - RULES.md 1.5): źródło posiada KAŻDY gracz,
+# a hook sam sprawdza warunek (np. statki w bliźnie). Rejestracja: ``declare_rule_source``.
+SOURCE_RULE = "rule"
+_RULE_SOURCES: set[str] = set()
+
+
+def declare_rule_source(rule_id: str) -> HookSource:
+    """Zgłasza zasadę ogólną jako źródło hooków posiadane przez każdego gracza."""
+    _RULE_SOURCES.add(rule_id)
+    return HookSource(SOURCE_RULE, rule_id)
 
 
 class HookKind(Enum):
@@ -820,13 +848,14 @@ def _unit_sources(player: Any) -> frozenset[HookSource]:
     if _BOUND_REGISTRY is None or player.faction is None:
         return frozenset()
     return _unit_sources_cached(
-        player.faction, tuple(sorted(player.technologies)), bool(player.breakthrough_unlocked)
+        player.faction, tuple(sorted(player.technologies)), bool(player.breakthrough_unlocked),
+        bool(player.breakthrough_flipped),
     )
 
 
 @functools.lru_cache(maxsize=512)
 def _unit_sources_cached(
-    faction_id: str, technologies: tuple[str, ...], breakthrough: bool
+    faction_id: str, technologies: tuple[str, ...], breakthrough: bool, flipped: bool = False
 ) -> frozenset[HookSource]:
     from src.core.combat import resolve_unit_variant  # lokalnie: combat importuje rules_hooks
 
@@ -837,7 +866,7 @@ def _unit_sources_cached(
     found: set[HookSource] = set()
     for base_type in base_types:
         unit = resolve_unit_variant(
-            registry, faction_id, list(technologies), base_type, breakthrough
+            registry, faction_id, list(technologies), base_type, breakthrough, flipped
         )
         if unit is not None and unit.faction and unit.ability:
             found.add(HookSource(SOURCE_UNIT, unit.id))
@@ -935,6 +964,7 @@ def owned_sources(state: GameState, player_id: str) -> frozenset[HookSource]:
     if player.faction is not None:
         sources.add(HookSource(SOURCE_FACTION, player.faction))
     sources.update(_registry_sources(player))
+    sources.update(HookSource(SOURCE_RULE, rule) for rule in _RULE_SOURCES)
     return frozenset(sources)
 
 

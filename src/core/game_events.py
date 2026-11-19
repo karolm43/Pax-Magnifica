@@ -93,6 +93,7 @@ class GameEvent(StrEnum):
     HITS_ASSIGNED = "combat.hits_assigned"
     UNIT_SUSTAIN_DAMAGE = "unit.sustain_damage"
     UNIT_DESTROYED = "unit.destroyed"
+    UNIT_REMOVED = "unit.removed"  # usunięta bez zniszczenia (nadwyżka, zwrot do rezerwy)
     COMBAT_WON = "combat.won"
     RETREAT_DECLARED = "combat.retreat"
     INVASION = "invasion"
@@ -250,6 +251,10 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
     ),
     GameEvent.UNIT_DESTROYED: EventInfo(
         "Jednostka zniszczona.", ("player", "base_type", "cause"), "unit_ops.remove_units"
+    ),
+    GameEvent.UNIT_REMOVED: EventInfo(
+        "Jednostka usunięta bez zniszczenia (nadwyżka, zwrot do rezerwy).",
+        ("player", "base_type", "zone", "position"), "unit_ops.remove_units",
     ),
     GameEvent.COMBAT_WON: EventInfo(
         "Gracz wygrał walkę.", ("player", "kind"), "battle._after_losses"

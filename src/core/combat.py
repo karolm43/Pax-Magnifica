@@ -16,6 +16,7 @@ Funkcje są czyste i nie mutują stanu.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from src.core.game_state import GameState
 from src.core.models import UnitDef
@@ -24,6 +25,14 @@ from src.core.unit_catalog import is_space_unit
 
 # Jednostki przyznawane przez przełom (breakthrough) frakcji — Thunder's Edge.
 BREAKTHROUGH_UNIT_IDS: frozenset[str] = frozenset({"mentak_cruiser3", "naaz_voltron"})
+# Jednostki z przełomu, które działają dopiero po ODWRÓCENIU karty przełomu (Absolute Synergy:
+# „flip this card and place it on top of your mech card” - RULES.md 62.15).
+FLIPPED_BREAKTHROUGH_UNIT_IDS: frozenset[str] = frozenset({"naaz_voltron"})
+# Rewersy kart jednostek (Z-Grav Eidolon): nigdy nie są wariantem bazowym - obowiązują tylko
+# tam, gdzie mówi o tym zdolność awersu (hook ``combat.space_ground_variant``, RULES.md 62.15).
+# ``absol_naaz_mech_space``: błąd danych AsyncTI4 - wpis modułu Absol (``homebrewReplacesID``) z
+# polem ``source: pok``, więc ładuje się jak oficjalny; jako rewers też nie jest wariantem.
+FLIP_SIDE_UNIT_IDS: frozenset[str] = frozenset({"naaz_mech_space", "absol_naaz_mech_space"})
 
 
 @dataclass(frozen=True)
@@ -56,12 +65,15 @@ def resolve_unit_variant(
     technologies: list[str],
     base_type: str,
     breakthrough_unlocked: bool = False,
+    breakthrough_flipped: bool = False,
 ) -> UnitDef | None:
     """Wybiera wariant jednostki gracza dla danego ``base_type`` (RULES.md 20).
 
     Jednostki z przełomu Thunder's Edge (``BREAKTHROUGH_UNIT_IDS``: Corsair Mentaka,
     Eidolon Maximum Naaz-Rokha) wchodzą w grę dopiero przy ``breakthrough_unlocked``
-    — nie są częścią startowej floty/zestawu frakcji.
+    — nie są częścią startowej floty/zestawu frakcji. Eidolon Maximum wymaga też odwróconej
+    karty przełomu (``breakthrough_flipped``, ``FLIPPED_BREAKTHROUGH_UNIT_IDS``). Rewersy kart
+    (``FLIP_SIDE_UNIT_IDS``) nie są wybierane nigdy.
 
     Priorytet (jak w ``web_data._units_owned_for_faction``): frakcyjny-ulepszony >
     generyczny-ulepszony > frakcyjny-bazowy > generyczny-bazowy. Ulepszenie liczy się
@@ -88,11 +100,13 @@ def resolve_unit_variant(
     for unit in registry.units.values():
         if unit.base_type != base_type:
             continue
-        if not has_tech(unit):
+        if not has_tech(unit) or unit.id in FLIP_SIDE_UNIT_IDS:
             continue
         if unit.id in BREAKTHROUGH_UNIT_IDS:
             if not breakthrough_unlocked:
                 continue  # jednostka z przełomu — dopiero po jego odblokowaniu
+            if unit.id in FLIPPED_BREAKTHROUGH_UNIT_IDS and not breakthrough_flipped:
+                continue  # karta przełomu leży awersem - mech zostaje zwykłym mechem
             # Corsair kładzie się NA Cruiser II (The Table's Grace, RULES.md 62.8): wymaga też
             # technologii jednostki, którą ulepsza (``upgradesFromUnitId``).
             below = registry.units.get(unit.upgrades_from_unit_id or "")
@@ -112,13 +126,25 @@ def resolve_unit_variant(
         # placeholderem bez statystyk (``nowarsun``) o tym samym ranku.
         if unit.required_tech_id is not None:
             rank += 1
-        # Jednostka z przełomu położona NA ulepszeniu (Corsair na Cruiser II) wygrywa z nim.
-        if unit.id in BREAKTHROUGH_UNIT_IDS and unit.upgrades_from_unit_id is not None:
+        # Jednostka z przełomu położona NA karcie jednostki (Corsair na Cruiser II, Eidolon
+        # Maximum na karcie mecha) wygrywa z nią.
+        if unit.id in BREAKTHROUGH_UNIT_IDS:
             rank += 2
         if rank > best_rank:
             best_rank = rank
             best = unit
     return best
+
+
+def player_variant(
+    registry: StaticDataRegistry, player: Any, base_type: str
+) -> UnitDef | None:
+    """Wariant jednostki ``base_type`` gracza ze WSZYSTKIMI jego przełącznikami (technologie,
+    przełom odblokowany i odwrócony) - jedno miejsce dla kodu, który ma ``PlayerState``."""
+    return resolve_unit_variant(
+        registry, player.faction, list(player.technologies), base_type,
+        bool(player.breakthrough_unlocked), bool(getattr(player, "breakthrough_flipped", False)),
+    )
 
 
 def _unit_combat(

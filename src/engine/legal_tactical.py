@@ -446,6 +446,10 @@ def exploration_step(obs: Observation, ctx: EngineContext) -> list[Action]:
     assert ex is not None
     if ex.player_id != pid:
         return []
+    if ex.current is not None and ex.current.candidates:
+        return [
+            tac.ExplorationChoose(player_id=pid, card=card) for card in ex.current.candidates
+        ]
     if ex.current is not None:
         result: list[Action] = []
         for option in exploration.options_for(s, ctx.registry):
@@ -464,10 +468,12 @@ def exploration_step(obs: Observation, ctx: EngineContext) -> list[Action]:
     draws: list[Action] = []
     for planet in ex.queue:
         traits = exploration.planet_traits(ctx.registry, planet)
-        if len(traits) == 1:
-            draws.append(tac.ExplorationDraw(player_id=pid, planet=planet))
-        else:
-            draws.extend(tac.ExplorationDraw(player_id=pid, planet=planet, deck=t) for t in traits)
+        decks: list[str | None] = [None] if len(traits) == 1 else list(traits)
+        extras = [False, True] if exploration.extra_draw_allowed(s, pid, planet) else [False]
+        draws.extend(
+            tac.ExplorationDraw(player_id=pid, planet=planet, deck=d, extra=e)
+            for d in decks for e in extras
+        )
     return draws
 
 

@@ -54,6 +54,14 @@ def _spec(initiative: int) -> CardSpec:
 # strategiczną gracza - Acquiescence nie działa (F_winnu/mathis-mathinus-imperial-seal/3).
 HERO_KEY = "hero"
 
+# Perfect Synthesis (bohater Naaz-Rokha, RULES.md 62.15): kolejne karty łańcucha secondary
+# („5,3”) i żeton „z rezerwy zamiast z puli strategicznej”.
+CHAIN_KEY = "then"
+TOKEN_FROM_KEY = "token_from"
+FROM_REINFORCEMENTS = "reinforcements"
+# Pule arkusza, z których gracz bierze żeton, gdy rezerwa jest pusta (F_naaz_rokha hesh 5).
+SHEET_POOLS: tuple[str, ...] = ("tactical", "fleet", "strategic")
+
 NO_COST_KEY = "no_cost"  # gracze, którzy dostali darmowe (nieobowiązkowe) secondary w oknie
 # Źródło darmowego secondary: "p1=abilities:master_of_trade;p2=promissory_notes:acq".
 NO_COST_WHY_KEY = "no_cost_why"
@@ -410,25 +418,49 @@ def begin_overrule_primary(
     )
 
 
-def begin_strategize_secondary(state: GameState, player_id: str, initiative: int) -> None:
+def begin_strategize_secondary(
+    state: GameState,
+    player_id: str,
+    initiative: int,
+    *,
+    then: list[int] | None = None,
+    from_reinforcements: bool = False,
+) -> None:
     """Strategize: gracz wykonuje SECONDARY karty ``initiative`` (jego własna odpowiedź).
 
     Mutuje ``state`` (klon roboczy). Otwiera okno ``STRATEGY_SECONDARY`` z kolejką z jednym
     respondentem - zagrywającym; dalej idzie zwykły ``resolve_secondary`` (koszt żetonu
     ze strategy pool poza Leadership, payload wyborów, produkcja Warfare).
+
+    ``then`` = kolejne karty łańcucha (Perfect Synthesis: wybrane z góry, każda po zamknięciu
+    poprzedniego okna); ``from_reinforcements`` = żeton z rezerwy zamiast z puli strategicznej.
     """
     spec = _spec(initiative)
-    opened = timing.open_window(
-        state,
-        WindowType.STRATEGY_SECONDARY,
-        [player_id],
-        context={
-            "initiative": initiative,
-            _FREE_KEY: "",
-            "cost": 1 if spec.secondary_costs_token else 0,
-        },
-    )
+    context: dict[str, str | int] = {
+        "initiative": initiative,
+        _FREE_KEY: "",
+        "cost": 1 if spec.secondary_costs_token else 0,
+    }
+    if then:
+        context[CHAIN_KEY] = ",".join(str(i) for i in then)
+    if from_reinforcements:
+        context[TOKEN_FROM_KEY] = FROM_REINFORCEMENTS
+    opened = timing.open_window(state, WindowType.STRATEGY_SECONDARY, [player_id], context=context)
     state.pending_window = opened.pending_window
+
+
+def _spend_reinforcement_token(state: GameState, player_id: str, pool: object) -> None:
+    """Żeton „z rezerwy zamiast z puli strategicznej” (Perfect Synthesis): wydany żeton wraca do
+    rezerwy - liczniki bez zmian, bez zdarzenia „wydano żeton z puli strategicznej” (Alliance
+    Muaat nie daje TG - F_naaz_rokha hesh 6). Pusta rezerwa: żeton z wybranej puli arkusza (5)."""
+    if state.players[player_id].cc_reinf >= 1:
+        return
+    if pool not in SHEET_POOLS:
+        raise ValueError(
+            "You have no command token in your reinforcements - choose a pool on your command "
+            "sheet to spend a token from."
+        )
+    command_tokens.spend_to_reinforcements(state, player_id, str(pool))
 
 
 def resolve_secondary(
@@ -470,7 +502,12 @@ def resolve_secondary(
 
     new_state = state.clone()
     if execute:
-        if spec.secondary_costs_token and not is_free and not no_cost:
+        if (
+            spec.secondary_costs_token and not is_free and not no_cost
+            and window.context.get(TOKEN_FROM_KEY) == FROM_REINFORCEMENTS
+        ):
+            _spend_reinforcement_token(new_state, player_id, (payload or {}).get("token_pool"))
+        elif spec.secondary_costs_token and not is_free and not no_cost:
             # Scepter of Emelpar (C_relics): gracz MOŻE wyczerpać relikt i wydać żeton z rezerwy.
             scepter = bool((payload or {}).get("scepter"))
             # STRATEGY_TOKEN_SPENT emituje sam ``spend_strategy_token`` (punkt centralny).
@@ -509,10 +546,21 @@ def resolve_secondary(
 
 
 def _advance_window(state: GameState, player_id: str) -> GameState:
-    """Przesuwa kolejkę okna secondary (waliduje respondenta) i zamyka je po dopełnieniu."""
+    """Przesuwa kolejkę okna secondary (waliduje respondenta) i zamyka je po dopełnieniu.
+
+    Łańcuch Perfect Synthesis (``CHAIN_KEY``): po zamknięciu okna otwiera się secondary następnej
+    karty dla tego samego gracza."""
+    window = state.pending_window
+    context = dict(window.context) if window is not None else {}
     new_state = timing.respond_current(state, player_id)
     if timing.is_window_complete(new_state):
         new_state = timing.close_window(new_state)
+        chain = [int(i) for i in str(context.get(CHAIN_KEY, "")).split(",") if i]
+        if chain and new_state.pending_window is None:
+            begin_strategize_secondary(
+                new_state, player_id, chain[0], then=chain[1:],
+                from_reinforcements=context.get(TOKEN_FROM_KEY) == FROM_REINFORCEMENTS,
+            )
     return new_state
 
 

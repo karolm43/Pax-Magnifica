@@ -542,7 +542,8 @@ def _upgraded_ships(state: GameState, registry: StaticDataRegistry, pid: str) ->
     result: list[str] = []
     for base_type in ships:
         variant = resolve_unit_variant(
-            registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked
+            registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked,
+        player.breakthrough_flipped,
         )
         required = variant.required_tech_id if variant is not None else None
         if required is not None and required.lower() in owned:

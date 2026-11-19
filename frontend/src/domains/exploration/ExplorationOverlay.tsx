@@ -151,31 +151,60 @@ function ExplorationWindow({ view }: { view: ExplorationView }) {
                     {q.traits.map((t) => DECK_LABEL[t] ?? t).join(" / ")}
                   </span>
                   {!current &&
-                    q.traits.map((trait) => (
-                      <button
-                        key={trait}
-                        type="button"
-                        className={styles.primaryBtn}
-                        disabled={busy}
-                        onClick={() =>
-                          void run(() =>
-                            actions.draw(
-                              q.planet,
-                              q.traits.length > 1 ? trait : undefined,
-                            ),
-                          )
-                        }
-                      >
-                        Draw{q.traits.length > 1 ? ` ${DECK_LABEL[trait]}` : ""}
-                      </button>
-                    ))}
+                    q.traits.flatMap((trait) =>
+                      (q.extraDraw ? [false, true] : [false]).map((extra) => (
+                        <button
+                          key={`${trait}-${extra}`}
+                          type="button"
+                          className={extra ? styles.ghostBtn : styles.primaryBtn}
+                          disabled={busy}
+                          title={
+                            extra
+                              ? "Distant Suns: draw 1 additional card, then choose 1 to resolve"
+                              : undefined
+                          }
+                          onClick={() =>
+                            void run(() =>
+                              actions.draw(
+                                q.planet,
+                                q.traits.length > 1 ? trait : undefined,
+                                extra,
+                              ),
+                            )
+                          }
+                        >
+                          {extra ? "Draw 2" : "Draw"}
+                          {q.traits.length > 1 ? ` ${DECK_LABEL[trait]}` : ""}
+                          {extra ? " (Distant Suns)" : ""}
+                        </button>
+                      )),
+                    )}
                 </li>
               ))}
             </ol>
           </section>
         )}
 
-        {current && (
+        {current && (current.candidates?.length ?? 0) > 0 && (
+          <section className={styles.stage} aria-label="Distant Suns">
+            <h4>Distant Suns: choose 1 card to resolve, discard the rest</h4>
+            {current.candidates?.map((card) => (
+              <div key={card.cardId} className={styles.optionRow}>
+                <CardFace card={card} planet={current.planet} />
+                <button
+                  type="button"
+                  className={styles.primaryBtn}
+                  disabled={busy}
+                  onClick={() => void run(() => actions.choose(card.cardId))}
+                >
+                  Resolve {card.name}
+                </button>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {current && !(current.candidates?.length ?? 0) && (
           <section className={styles.stage}>
             <CardFace card={current.card} planet={current.planet} />
             <div className={styles.options}>

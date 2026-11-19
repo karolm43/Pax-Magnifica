@@ -17,10 +17,12 @@ from src.core import (
     ability_notes,
     capacity,
     chronicle,
+    entropic_scar,
     exhaust,
     extra_dice,
     objective_events,
     rules_hooks,
+    ship_roles,
     timing,
     triggers,
     unit_ops,
@@ -120,7 +122,7 @@ def combat_units(
     """
     system = state.systems.get(position)
     # Wariant gracza albo neutralnych (ulepszone jednostki - RULES.md 50.3).
-    faction, techs, breakthrough = variant_key(state, registry, player_id)
+    faction, techs, breakthrough, flipped = variant_key(state, registry, player_id)
     zone = _zone(kind, planet)
     terrain_modifier = (
         1
@@ -129,11 +131,24 @@ def combat_units(
         else 0
     )
     no_sustain = sustain_denied(state, player_id, position, zone)
+    # Entropic Scar (RULES.md 1.5): w bliźnie żadna zdolność jednostek (tu AFB) nie działa.
+    scar = entropic_scar.unit_abilities_blocked(state, position, registry)
+    as_ships = (
+        ship_roles.space_ground_variants(state, registry, player_id, position)
+        if kind == "space" else {}
+    )
     units: list[CombatUnit] = []
     for base_type, count in sorted(_units_map(system, zone, player_id).items()):
-        if count <= 0 or is_space_unit(base_type) != (kind == "space"):
+        if count <= 0:
             continue
-        unit = resolve_unit_variant(registry, faction, techs, base_type, breakthrough)
+        if base_type in as_ships:
+            unit = registry.units.get(as_ships[base_type])
+        elif is_space_unit(base_type) != (kind == "space"):
+            continue
+        else:
+            unit = resolve_unit_variant(
+                registry, faction, techs, base_type, breakthrough, flipped
+            )
         if unit is None or unit.combat_hits_on is None:
             continue
         # Hooki MODIFY: +N do wyniku rzutu i dodatkowe kości (zdolności, technologie) obok
@@ -169,7 +184,7 @@ def combat_units(
                 sustain=unit.sustain_damage and not no_sustain and base_type not in (
                     rules_hooks.forbidden(rules_hooks.POINT_UNIT_SUSTAIN_LOST, state, player_id)
                 ),
-                afb_hits_on=unit.afb_hits_on if kind == "space" else None,
+                afb_hits_on=unit.afb_hits_on if kind == "space" and not scar else None,
                 afb_dice=unit.afb_die_count or 1,
                 granted=(
                     min(1, count - damaged_count(system, zone, player_id, base_type))
@@ -189,6 +204,16 @@ def combat_units(
     return units
 
 
+def ability_hit_targets(
+    state: GameState, player_id: str, units: list[CombatUnit]
+) -> list[CombatUnit]:
+    """Jednostki, którym wolno przypisać trafienia ze ZDOLNOŚCI jednostek (Space Cannon,
+    bombardowanie). Odporne (Eidolon Maximum) odpadają: trafienia idą na inne jednostki grupy,
+    a bez nich przepadają (F_naaz_rokha eidolon-maximum 2)."""
+    immune = rules_hooks.forbidden(rules_hooks.POINT_COMBAT_ABILITY_HIT_IMMUNE, state, player_id)
+    return [u for u in units if u.base_type not in immune] if immune else units
+
+
 def sustain_denied(state: GameState, player_id: str, position: str, zone: str) -> bool:
     """Czy jednostki gracza w strefie systemu tracą SUSTAIN DAMAGE (hook innego gracza).
 
@@ -196,6 +221,8 @@ def sustain_denied(state: GameState, player_id: str, position: str, zone: str) -
     systemie, Moll Terminus: siły naziemne na planecie — RULES.md 62.8). Jedno miejsce dla walki,
     Space Cannon i inwazji (wszystkie biorą jednostki z ``combat_units``).
     """
+    if entropic_scar.unit_abilities_blocked(state, position):
+        return True  # Entropic Scar: SUSTAIN DAMAGE to zdolność jednostki (RULES.md 1.5)
     ctx = {"victim": player_id, "position": position, "zone": zone}
     return any(
         rules_hooks.permits(rules_hooks.POINT_COMBAT_SUSTAIN_DENIED, state, other, ctx)
@@ -345,7 +372,10 @@ def _after_start(state: GameState, grid: HexGrid, registry: StaticDataRegistry) 
         return _after_losses(state, grid, registry)
     if any(n > 0 for n in combat.start_hits.values()):
         return _open_start_assign(state, grid, registry)
-    has_afb = combat.kind == "space" and (
+    # Entropic Scar: AFB (także nadany komponentem) nie działa przeciw jednostkom w bliźnie.
+    has_afb = combat.kind == "space" and not entropic_scar.unit_abilities_blocked(
+        state, combat.position, registry
+    ) and (
         bool(combat.afb_extra)
         or any(
             u.afb_hits_on is not None
@@ -597,7 +627,7 @@ def note_destroyed(
     combat: ActiveCombat, player_id: str, base_type: str, count: int, hits_on: int
 ) -> None:
     """Zapisuje w walce ślad zniszczonych statków (karta Courageous to the End, RULES.md 53.5.c)."""
-    if combat.kind != "space" or not is_space_unit(base_type):
+    if combat.kind != "space":  # w walce kosmicznej walczą tylko statki (także Z-Grav)
         return
     combat.destroyed_ships = [
         *combat.destroyed_ships,
@@ -1316,7 +1346,7 @@ def assign_combat_hits(
     for base_type, lost in losses_of(units, plan).items():
         note_destroyed(combat, player_id, base_type, lost, units[base_type].base_hits_on)
     for base_type, used in sustained_of(plan, sustain).items():
-        if used > 0 and combat.kind == "space" and is_space_unit(base_type):
+        if used > 0 and combat.kind == "space":  # w walce kosmicznej walczą tylko statki
             combat.sustained_ships = [
                 *combat.sustained_ships,
                 {"player": player_id, "base_type": base_type, "count": used},
@@ -1355,9 +1385,7 @@ def _hold_for_sustain(
     from src.core import reaction_pause  # lokalnie: reaction_pause -> reaction_cards -> hooki
 
     combat = _combat(state)
-    if combat.kind != "space" or not any(
-        n > 0 and is_space_unit(bt) for bt, n in used.items()
-    ):
+    if combat.kind != "space" or not any(n > 0 for n in used.values()):
         return False
     combat.sustain_hold = True
     if reaction_pause.would_open(state, registry):

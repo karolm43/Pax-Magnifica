@@ -48,6 +48,7 @@ export function PlayerCardAbilitiesFactionTechsMobile({
             exhausted={breakthrough.exhausted}
             tradeGoodsStored={breakthrough.tradeGoodsStored}
             unlocked={breakthrough.unlocked ?? false}
+            flipped={breakthrough.flipped ?? false}
             strong={false}
           />
         </div>

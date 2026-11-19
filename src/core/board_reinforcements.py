@@ -55,6 +55,8 @@ def can_place(
     state: GameState, player_id: str, base_type: str, *, exclude: str | None = None
 ) -> bool:
     """Czy gracz w ogóle może postawić 1 jednostkę (z rezerwy albo zdjętą z planszy)."""
+    if unit_ops.place_forbidden(state, player_id, base_type):
+        return False
     return not needs_board_source(state, player_id, base_type) or bool(
         board_sources(state, player_id, base_type, exclude=exclude)
     )

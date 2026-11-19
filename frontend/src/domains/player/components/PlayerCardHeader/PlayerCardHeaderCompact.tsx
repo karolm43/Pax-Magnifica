@@ -264,6 +264,7 @@ export function PlayerCardHeaderMobile({
             exhausted={breakthrough.exhausted}
             tradeGoodsStored={breakthrough.tradeGoodsStored}
             unlocked={breakthrough.unlocked ?? false}
+            flipped={breakthrough.flipped ?? false}
             strong={false}
             chipClassName={breakthroughStyles.headerChip}
           />

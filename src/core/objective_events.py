@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from src.core import rules_hooks
+from src.core import rules_hooks, ship_roles
 from src.core.components import ComponentCategory, PromissoryNoteDef
 from src.core.game_state import (
     AgendaStep,
@@ -196,6 +196,16 @@ def _non_fighter_ships(state: GameState, position: str, player_id: str) -> int:
     )
 
 
+def _dyp_ships(state: GameState, position: str, player_id: str) -> int:
+    """Statki niemyśliwskie na koniec walki - z siłami naziemnymi, które w niej walczyły jako
+    statki (Z-Grav Eidolon liczy się do Demonstrate Your Power - F_naaz_rokha eidolon 5)."""
+    registry = rules_hooks.bound_registry()
+    if registry is None:
+        return _non_fighter_ships(state, position, player_id)
+    ships = ship_roles.space_ships(state, registry, player_id, position, finished_combat=True)
+    return sum(n for bt, n in ships.items() if bt != _FIGHTER)
+
+
 def on_combat_end(
     state: GameState, grid: HexGrid | None, combat: ActiveCombat, winner: str | None
 ) -> None:
@@ -203,7 +213,7 @@ def on_combat_end(
     sides = [combat.attacker, combat.defender]
     if combat.kind == "space":
         for pid in sides:
-            if _non_fighter_ships(state, combat.position, pid) >= _DYP_SHIPS:
+            if _dyp_ships(state, combat.position, pid) >= _DYP_SHIPS:
                 score_secret_if_held(state, pid, "dyp", combat)  # nie trzeba wygrywać
     if winner is None:
         return

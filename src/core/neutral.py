@@ -41,12 +41,13 @@ def neutral_technologies(registry: StaticDataRegistry) -> list[str]:
 
 def variant_key(
     state: GameState, registry: StaticDataRegistry, player_id: str
-) -> tuple[str | None, list[str], bool]:
-    """``(frakcja, technologie, przełom)`` do ``combat.resolve_unit_variant`` - gracz albo
-    neutralni (ulepszone jednostki, ``neutral_technologies``)."""
+) -> tuple[str | None, list[str], bool, bool]:
+    """``(frakcja, technologie, przełom, przełom odwrócony)`` do ``combat.resolve_unit_variant`` -
+    gracz albo neutralni (ulepszone jednostki, ``neutral_technologies``)."""
     player = state.players.get(player_id)
     if player is not None:
-        return player.faction, list(player.technologies), player.breakthrough_unlocked
+        return (player.faction, list(player.technologies), player.breakthrough_unlocked,
+                player.breakthrough_flipped)
     if player_id == NEUTRAL_PLAYER_ID:
-        return NEUTRAL_FACTION_ID, neutral_technologies(registry), False
-    return None, [], False
+        return NEUTRAL_FACTION_ID, neutral_technologies(registry), False, False
+    return None, [], False, False

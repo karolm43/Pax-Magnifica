@@ -14,6 +14,7 @@ from typing import Any
 from src.core import (
     board_graph,
     command_tokens,
+    entropic_scar,
     faction_components,
     faction_units,
     leaders,
@@ -134,6 +135,8 @@ def mitosis_inputs(
     if _has_mech_option(state, player_id):
         for position, system in sorted(state.systems.items()):
             # „replace 1 of your infantry” - każda piechota: na planecie albo w przestrzeni.
+            if entropic_scar.unit_abilities_blocked(state, position, registry):
+                continue  # DEPLOY nie działa w bliźnie entropicznej (RULES.md 1.5)
             for zone in [_SPACE, *sorted(system.planet_units)]:
                 if unit_ops.count_in_zone(system, zone, player_id, "infantry") <= 0:
                     continue
@@ -162,6 +165,8 @@ def mitosis(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     if system is None or not planet:
         raise ValueError("Choose where Mitosis places the unit.")
     if kind == "mech":
+        if entropic_scar.unit_abilities_blocked(state, position):
+            raise ValueError("DEPLOY cannot be used in an entropic scar.")
         if unit_ops.count_in_zone(system, planet, player_id, "infantry") <= 0:
             raise ValueError("Choose your infantry (on a planet or in a space area).")
         unit_ops.remove_units(state, system, planet, player_id, "infantry", 1, UnitCause.REMOVED)
@@ -252,7 +257,8 @@ def bioplasmosis(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> No
 def _ship_cost(state: GameState, registry: Any, player_id: str, base_type: str) -> float | None:
     player = state.players[player_id]
     unit = resolve_unit_variant(
-        registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked
+        registry, player.faction, player.technologies, base_type, player.breakthrough_unlocked,
+        player.breakthrough_flipped,
     )
     return unit.cost if unit is not None else None
 

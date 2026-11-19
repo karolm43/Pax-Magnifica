@@ -42,3 +42,24 @@ def unlock_breakthrough(
         ctx={"player": player_id, "component": f"breakthroughs:{breakthrough.id}"},
     )
     return breakthrough
+
+
+def flip(state: GameState, player_id: str) -> None:
+    """Odwraca kartę przełomu (Absolute Synergy: kładzie ją na karcie mecha). MUTUJE ``state``.
+
+    Raises:
+        ValueError: Gracz nie ma przełomu albo karta już jest odwrócona.
+    """
+    player = state.players.get(player_id)
+    if player is None or not player.breakthrough_unlocked:
+        raise ValueError("You do not have your breakthrough.")
+    if player.breakthrough_flipped:
+        raise ValueError("Your breakthrough is already flipped.")
+    player.breakthrough_flipped = True
+
+
+def flip_back(state: GameState, player_id: str) -> None:
+    """Odwraca kartę przełomu z powrotem do strefy gracza (idempotentne). MUTUJE ``state``."""
+    player = state.players.get(player_id)
+    if player is not None:
+        player.breakthrough_flipped = False

@@ -44,9 +44,18 @@ export type ExplorationView = {
   /** Klucz tożsamości eksplorującego gracza. */
   player: string | null;
   position: string | null;
-  /** Planety czekające na eksplorację — gracz wybiera kolejność (i talię przy kilku cechach). */
-  queue: { planet: string; traits: ExploreDeck[] }[];
-  current: { planet: string; card: ExploreCard; options: ExploreOption[] } | null;
+  /**
+   * Planety czekające na eksplorację — gracz wybiera kolejność (i talię przy kilku cechach).
+   * `extraDraw` = Distant Suns: można dobrać 1 dodatkową kartę (decyzja przed ujawnieniem).
+   */
+  queue: { planet: string; traits: ExploreDeck[]; extraDraw?: boolean }[];
+  current: {
+    planet: string;
+    card: ExploreCard;
+    options: ExploreOption[];
+    /** Distant Suns: dobrane karty do wyboru (niepuste = gracz wybiera jedną). */
+    candidates?: ExploreCard[];
+  } | null;
   log: ExploreLogItem[];
   /** Wszystko rozstrzygnięte — zostaje zamknąć okno. */
   done: boolean;
@@ -99,8 +108,16 @@ export function useExplorationActions() {
   }, [queryClient]);
 
   const draw = useCallback(
-    async (planet: string, deck?: ExploreDeck) => {
-      await post("/exploration/draw", { planet, deck: deck ?? null });
+    async (planet: string, deck?: ExploreDeck, extra = false) => {
+      await post("/exploration/draw", { planet, deck: deck ?? null, extra });
+      refresh();
+    },
+    [refresh],
+  );
+
+  const choose = useCallback(
+    async (card: string) => {
+      await post("/exploration/choose", { card });
       refresh();
     },
     [refresh],
@@ -119,5 +136,5 @@ export function useExplorationActions() {
     refresh();
   }, [refresh]);
 
-  return { draw, resolve, finish };
+  return { draw, choose, resolve, finish };
 }

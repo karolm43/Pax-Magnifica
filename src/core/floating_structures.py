@@ -20,6 +20,7 @@ from src.core.unit_catalog import is_space_unit
 
 SPACE = "space"
 _STRUCTURES = ("pds", "spacedock")
+_GROUND = ("infantry", "mech")
 
 
 def floats(state: GameState, player_id: str, base_type: str) -> bool:
@@ -31,9 +32,24 @@ def floats(state: GameState, player_id: str, base_type: str) -> bool:
     )
 
 
+def ground_moves_as_ship(state: GameState, player_id: str, base_type: str) -> bool:
+    """Siła naziemna, która jest też statkiem (Eidolon Maximum, RULES.md 62.15): w przestrzeni
+    rusza się sama ze swoją wartością ruchu, liczy się do puli floty, nie do pojemności."""
+    if base_type not in _GROUND or player_id not in state.players:
+        return False
+    return rules_hooks.permits(
+        rules_hooks.POINT_UNIT_GROUND_MOVES_AS_SHIP, state, player_id, {"base_type": base_type}
+    )
+
+
 def moves_as_ship(state: GameState, player_id: str, base_type: str) -> bool:
-    """Statek albo struktura pływająca (ruch i odwrót „as if it were a ship”)."""
-    return is_space_unit(base_type) or floats(state, player_id, base_type)
+    """Statek, struktura pływająca albo siła naziemna-statek (ruch i odwrót „as if it were a
+    ship”)."""
+    return (
+        is_space_unit(base_type)
+        or floats(state, player_id, base_type)
+        or ground_moves_as_ship(state, player_id, base_type)
+    )
 
 
 def landing_zone(state: GameState, player_id: str, base_type: str, zone: str) -> str:

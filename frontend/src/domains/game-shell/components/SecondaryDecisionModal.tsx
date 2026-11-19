@@ -103,6 +103,8 @@ export function SecondaryDecisionModal() {
   const [drawn, setDrawn] = useState<{ name: string; cards: string[] } | null>(null);
   // Scepter of Emelpar: wydaj żeton z rezerwy zamiast z puli strategicznej (decyzja gracza).
   const [useScepter, setUseScepter] = useState(false);
+  // Perfect Synthesis (Naaz-Rokha): przy pustej rezerwie żeton z wybranej puli arkusza.
+  const [tokenPool, setTokenPool] = useState<string | null>(null);
 
   const window = gameState?.pendingWindow ?? null;
   const canActAs = useCanActAs();
@@ -163,6 +165,7 @@ export function SecondaryDecisionModal() {
     const id = window?.currentResponderId;
     if (!id || busy) return;
     if (execute && useScepter && needsToken) payload = { ...payload, scepter: true };
+    if (execute && sheetNeeded && tokenPool) payload = { ...payload, token_pool: tokenPool };
     setBusy(true);
     // Karty dobierające karty akcji (Politics): pokaż respondentowi, co dobrał - różnica
     // ręki przed/po (ręka jest prywatna, więc pytamy tylko o jego własną).
@@ -220,14 +223,22 @@ export function SecondaryDecisionModal() {
     ? noCostSourceName(window?.context?.no_cost_why, window?.currentResponderId)
     : null;
   const poolTokens = (responder as { strategicCC?: number } | undefined)?.strategicCC;
+  // Perfect Synthesis (RULES.md 62.15): żeton z rezerwy zamiast z puli strategicznej; pusta
+  // rezerwa = żeton z wybranej puli arkusza.
+  const fromReinforcements = window?.context?.token_from === "reinforcements";
+  const reinforcementTokens = (responder as { ccReinf?: number } | undefined)?.ccReinf;
+  const sheetNeeded = needsToken && fromReinforcements && (reinforcementTokens ?? 1) < 1;
   // Scepter of Emelpar: gotowy relikt pozwala wydać żeton z rezerwy zamiast z puli.
   const scepterReady =
     needsToken &&
+    !fromReinforcements &&
     ((responder as { relics?: string[] } | undefined)?.relics ?? []).includes("emelpar") &&
     !((responder as { exhaustedRelics?: string[] } | undefined)?.exhaustedRelics ?? []).includes(
       "emelpar",
     );
-  const cannotAfford = needsToken && (poolTokens ?? 1) < 1 && !(scepterReady && useScepter);
+  const cannotAfford = fromReinforcements
+    ? sheetNeeded && !tokenPool
+    : needsToken && (poolTokens ?? 1) < 1 && !(scepterReady && useScepter);
 
   // Wybór na mapie (Construction): widok wyborów w nieblokującym doku zamiast modala.
   const secondaryMode = initiative != null ? SECONDARY_MODE[initiative] : undefined;
@@ -358,15 +369,41 @@ export function SecondaryDecisionModal() {
         <Text size="xs" c="dimmed">
           {isFree
             ? "The active player chose you: you must resolve this ability and it costs no command token. "
-            : needsToken
-              ? `Following costs 1 command token from your strategy pool${
-                  poolTokens != null ? ` (you have ${poolTokens})` : ""
-                }. `
-              : "Following is optional. "}
+            : needsToken && fromReinforcements
+              ? `Perfect Synthesis: following costs 1 command token from your reinforcements${
+                  reinforcementTokens != null ? ` (you have ${reinforcementTokens})` : ""
+                }${sheetNeeded ? " - none left, so spend one from your command sheet" : ""}. `
+              : needsToken
+                ? `Following costs 1 command token from your strategy pool${
+                    poolTokens != null ? ` (you have ${poolTokens})` : ""
+                  }. `
+                : "Following is optional. "}
           Players respond in turn order — the player to the left of the active
           player first, then clockwise.
           {window ? ` Remaining after you: ${Math.max(window.remaining - 1, 0)}.` : ""}
         </Text>
+
+        {sheetNeeded && (
+          <Group gap="xs" role="group" aria-label="Command sheet pool">
+            {(
+              [
+                ["tactical", "Tactic pool"],
+                ["fleet", "Fleet pool"],
+                ["strategic", "Strategy pool"],
+              ] as const
+            ).map(([pool, label]) => (
+              <Button
+                key={pool}
+                size="xs"
+                variant={tokenPool === pool ? "filled" : "default"}
+                aria-pressed={tokenPool === pool}
+                onClick={() => setTokenPool(pool)}
+              >
+                {label}
+              </Button>
+            ))}
+          </Group>
+        )}
 
         {scepterReady && (
           <Switch
@@ -391,7 +428,13 @@ export function SecondaryDecisionModal() {
             onClick={() =>
               needsInput ? setComposingCursor(window?.cursor ?? 0) : decide(true)
             }
-            title={cannotAfford ? "No command token in your strategy pool" : undefined}
+            title={
+              cannotAfford
+                ? sheetNeeded
+                  ? "Choose the pool to spend a command token from"
+                  : "No command token in your strategy pool"
+                : undefined
+            }
           >
             Follow
           </Button>

@@ -194,6 +194,14 @@ class ExplorationDraw(ActionBase):
     kind: Literal["exploration_draw"] = "exploration_draw"
     planet: str
     deck: str | None = None
+    extra: bool = False  # Distant Suns: dodatkowa karta
+
+
+class ExplorationChoose(ActionBase):
+    """Distant Suns: karta wybrana do rozstrzygnięcia spośród dobranych."""
+
+    kind: Literal["exploration_choose"] = "exploration_choose"
+    card: str
 
 
 class ExplorationResolve(ActionBase):
@@ -240,6 +248,7 @@ TacticalAction = Annotated[
     | InvasionDefenseAssign
     | InvasionNext
     | ExplorationDraw
+    | ExplorationChoose
     | ExplorationResolve
     | ExplorationFinish
     | ActionCardPlay,
@@ -393,7 +402,11 @@ HANDLERS: dict[str, tuple[Guard | None, Apply]] = {
     ),
     "exploration_draw": (
         checked(_EXPLORER, "Explore"),
-        lambda s, c, a: exploration.draw(s, c.registry, a.planet, a.deck),
+        lambda s, c, a: exploration.draw(s, c.registry, a.planet, a.deck, extra=a.extra),
+    ),
+    "exploration_choose": (
+        checked(_EXPLORER, "Choose exploration card"),
+        lambda s, c, a: exploration.choose(s, a.card),
     ),
     "exploration_resolve": (
         checked(_EXPLORER, "Resolve exploration"),

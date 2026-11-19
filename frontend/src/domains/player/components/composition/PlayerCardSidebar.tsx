@@ -107,6 +107,7 @@ export default function PlayerCardSidebar(props: Props) {
                 exhausted={breakthrough.exhausted}
                 tradeGoodsStored={breakthrough.tradeGoodsStored}
                 unlocked={breakthrough.unlocked ?? false}
+                flipped={breakthrough.flipped ?? false}
               />
             )}
             {showLoadout &&

@@ -16,6 +16,8 @@ type Props = {
   exhausted?: boolean;
   tradeGoodsStored?: number;
   unlocked?: boolean;
+  /** Flipped onto the unit card (Absolute Synergy: Eidolon Maximum). */
+  flipped?: boolean;
   /** Accepted for API parity; the capsule has one weight. */
   strong?: boolean;
   className?: string;
@@ -64,6 +66,7 @@ export function Breakthrough({
   exhausted = false,
   tradeGoodsStored,
   unlocked = true,
+  flipped = false,
   className,
   chipClassName,
 }: Props) {
@@ -81,6 +84,7 @@ export function Breakthrough({
     `${s1} / ${s2} synergy`,
     !unlocked && "locked",
     exhausted && "exhausted",
+    flipped && "flipped onto the unit card",
   ]
     .filter(Boolean)
     .join(" · ");

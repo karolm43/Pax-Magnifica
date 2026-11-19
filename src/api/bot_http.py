@@ -194,8 +194,9 @@ HTTP: dict[str, tuple[str, Callable[[Any], Body]]] = {
     ),
     "invasion_next": ("/tactical/invasion/next", lambda a: None),
     "exploration_draw": (
-        "/exploration/draw", lambda a: {"planet": a.planet, "deck": a.deck}
+        "/exploration/draw", lambda a: {"planet": a.planet, "deck": a.deck, "extra": a.extra}
     ),
+    "exploration_choose": ("/exploration/choose", lambda a: {"card": a.card}),
     "exploration_resolve": (
         "/exploration/resolve", lambda a: {"option": a.option, "param": a.param}
     ),
