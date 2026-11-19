@@ -168,3 +168,12 @@ describe("resolveRandomFactions", () => {
     expect(out[1].factionId).toBe("sol");
   });
 });
+describe("losowa mapa (RANDOM_MAP)", () => {
+  it("jest poprawna w walidacji i mapuje się na random_map", async () => {
+    const { RANDOM_MAP, validateMapString, toNewGameRequest } = await import("./useSetupStore");
+    expect(validateMapString(RANDOM_MAP)).toBeNull();
+    const req = toNewGameRequest([], RANDOM_MAP, new Map());
+    expect(req.random_map).toBe(true);
+    expect(req.map_string).toBeUndefined();
+  });
+});

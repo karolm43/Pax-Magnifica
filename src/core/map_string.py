@@ -9,11 +9,12 @@ występuje w stringu.
 
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
 from pathlib import Path
 
 from src.core.hex_grid import HexGrid
-from src.core.home_slots import home_slot_color
+from src.core.home_slots import HOME_SLOT_COLORS_6P, home_slot_color
 from src.core.positions import load_positions, ordered_positions
 from src.core.registry import StaticDataRegistry
 
@@ -154,3 +155,29 @@ def build_grid_from_map_string(
 
     grid.build_edges()
     return grid
+
+
+def random_map_string(registry: StaticDataRegistry, rng: random.Random) -> str:
+    """Losowy map string 6-osobowy: 30 kafelków (blue+red) na pierścieniach 1–3.
+
+    Home sloty (rogi pierścienia 3) zachowują ``"0"`` — frakcje wchodzą tam samy przy setupie.
+    Kafelki Fracture i Mecatol Rex są wykluczone z puli losowania.
+    """
+    usable = sorted(
+        sid
+        for sid, s in registry.systems.items()
+        if s.tile_back in ("blue", "red") and sid != MECATOL_SYSTEM_ID and not s.is_fracture
+    )
+    # Pierścienie 1–3 = pierwsze 36 pozycji; home sloty to rogi pierścienia 3.
+    positions_6p = ordered_positions()[:36]
+    non_home = [p for p in positions_6p if p not in HOME_SLOT_COLORS_6P]
+    tiles = rng.sample(usable, min(len(non_home), len(usable)))
+    rng.shuffle(tiles)
+    tile_iter = iter(tiles)
+    tokens = []
+    for pos in positions_6p:
+        if pos in HOME_SLOT_COLORS_6P:
+            tokens.append(_EMPTY_TOKEN)
+        else:
+            tokens.append(next(tile_iter, _EMPTY_TOKEN))
+    return " ".join(tokens)

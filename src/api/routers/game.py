@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 from collections.abc import Sequence
 from typing import cast
 
@@ -41,7 +42,7 @@ from src.core.faction_setup import (
 from src.core.game_setup import begin_setup, place_frontier_tokens
 from src.core.game_state import GameState, Phase
 from src.core.hex_grid import Hex, HexGrid
-from src.core.map_string import build_grid_from_map_string
+from src.core.map_string import build_grid_from_map_string, random_map_string
 from src.core.models import FactionDef
 from src.core.player_colors import all_color_aliases, canonical_color
 from src.core.registry import StaticDataRegistry
@@ -552,6 +553,8 @@ async def post_new_game(
     rules_hooks.bind_registry(registry)
 
     map_string = request.map_string or DEFAULT_MAP_STRING
+    if request.random_map:
+        map_string = random_map_string(registry, random.Random())
     try:
         grid = build_grid_from_map_string(
             map_string, registry, include_center=request.include_center

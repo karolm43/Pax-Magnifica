@@ -378,6 +378,8 @@ class NewGameRequest(BaseModel):
 
     players: list[NewGamePlayer] = Field(default_factory=list)
     map_string: str | None = None
+    # Losowa mapa 6-osobowa (``core.map_string.random_map_string``); wygrywa z ``map_string``.
+    random_map: bool = False
     include_center: bool = True
     # Moduły wariantów gry (id z ``assets/config/variants.json``); None = moduły domyślne.
     variants: list[str] | None = None

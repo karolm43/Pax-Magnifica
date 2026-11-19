@@ -73,6 +73,8 @@ export type NewGamePlayer = {
 export type NewGameRequest = {
   players: NewGamePlayer[];
   map_string?: string;
+  // Losowa mapa generowana przez backend (ma pierwszeństwo przed map_string).
+  random_map?: boolean;
   include_center?: boolean;
   // Talia agend: "standard" (PoK/TE) albo fanowska ("absol", "black_spectrum").
   agenda_deck?: string;

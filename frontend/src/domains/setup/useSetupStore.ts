@@ -203,6 +203,12 @@ export function resolveRandomFactions(
   });
 }
 
+/**
+ * Wartość `mapString` oznaczająca „losowa mapa" (generuje backend przy starcie gry).
+ * Trzymana w `mapString`, bo to pole jest już synchronizowane w lobby sieciowym.
+ */
+export const RANDOM_MAP = "random";
+
 export interface SetupStore {
   /** Liczba graczy (slotów); zmiana przeskalowuje `slots`, zachowując dane. */
   playerCount: number;
@@ -509,7 +515,7 @@ function validateControl(_slots: SetupSlot[]): string | null {
  */
 export function validateMapString(mapString: string): string | null {
   const trimmed = mapString.trim();
-  if (trimmed.length === 0) return null;
+  if (trimmed.length === 0 || trimmed === RANDOM_MAP) return null;
   const bad = trimmed.split(/\s+/).find((token) => !/^\d+$/.test(token));
   return bad === undefined
     ? null
@@ -585,7 +591,7 @@ export function toNewGameRequest(
   mapString: string,
   factionById: Map<string, FactionInfo>,
   seatPositions?: readonly string[],
-): { players: NewGamePlayer[]; map_string?: string } {
+): { players: NewGamePlayer[]; map_string?: string; random_map?: boolean } {
   const players: NewGamePlayer[] = slots.map((slot) => {
     const name = slot.name.trim();
     const isRandom = slot.factionId === RANDOM_FACTION;
@@ -612,6 +618,7 @@ export function toNewGameRequest(
     return player;
   });
 
+  if (mapString.trim() === RANDOM_MAP) return { players, random_map: true };
   return {
     players,
     map_string: mapString.trim() || undefined,

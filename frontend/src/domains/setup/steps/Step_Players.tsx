@@ -25,6 +25,7 @@ import {
   MAX_NAME_LENGTH,
   MAX_PLAYERS,
   MIN_PLAYERS,
+  RANDOM_MAP,
   type ControlType,
   type SetupSlot,
   useSetupStore,
@@ -237,8 +238,8 @@ export default function Step_Players({ stage }: SetupStepProps) {
 
   // Tryb mapy to wybór UI: „default" = mapa domyślna backendu (pusty map string),
   // „custom" = własny map string. Start zgodny z tym, co już jest w store'ie.
-  const [mapMode, setMapMode] = useState<"default" | "custom">(
-    mapString.trim() ? "custom" : "default",
+  const [mapMode, setMapMode] = useState<"default" | "random" | "custom">(
+    mapString.trim() === RANDOM_MAP ? "random" : mapString.trim() ? "custom" : "default",
   );
 
   // Opcje bota pobieramy RAZ dla całego kroku (nie per karta).
@@ -253,10 +254,13 @@ export default function Step_Players({ stage }: SetupStepProps) {
   const botCount = slots.filter((s) => s.controlType === "BOT").length;
   const humanCount = slots.length - botCount;
 
-  const chooseMapMode = (mode: "default" | "custom") => {
+  const chooseMapMode = (mode: "default" | "random" | "custom") => {
     setMapMode(mode);
     // Powrót do mapy domyślnej czyści własny map string (backend użyje mapy testowej).
     if (mode === "default") setMapString("");
+    // Losowa mapa: backend losuje kafelki przy starcie gry (nowa mapa przy każdej grze).
+    if (mode === "random") setMapString(RANDOM_MAP);
+    if (mode === "custom" && mapString.trim() === RANDOM_MAP) setMapString("");
   };
 
   return (
@@ -368,6 +372,20 @@ export default function Step_Players({ stage }: SetupStepProps) {
                 <span className={styles.optionTitle}>Default map</span>
                 <span className={styles.optionText}>
                   The built-in 6-player test layout.
+                </span>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={mapMode === "random"}
+                className={`${styles.option} ${
+                  mapMode === "random" ? styles.optionOn : ""
+                }`}
+                onClick={() => chooseMapMode("random")}
+              >
+                <span className={styles.optionTitle}>Random map</span>
+                <span className={styles.optionText}>
+                  Random systems on every ring, new layout each game.
                 </span>
               </button>
               <button
