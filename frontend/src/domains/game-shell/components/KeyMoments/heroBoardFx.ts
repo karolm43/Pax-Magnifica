@@ -161,6 +161,9 @@ type HeroFxStore = {
   run: HeroFxRun | null;
   /** Pozycja -> kafel sprzed wymiany: `MapTile` rysuje go, póki efekt go nie odsłoni. */
   covers: Record<string, string>;
+  /** Kolejka momentów (scena bohatera itd.) niepusta - inne sceny (relikt) czekają na koniec. */
+  stageBusy: boolean;
+  setStageBusy: (busy: boolean) => void;
   play: (run: Omit<HeroFxRun, "id">) => void;
   stop: () => void;
   setCovers: (covers: Record<string, string>) => void;
@@ -171,6 +174,8 @@ type HeroFxStore = {
 export const useHeroFx = create<HeroFxStore>((set) => ({
   run: null,
   covers: {},
+  stageBusy: false,
+  setStageBusy: (stageBusy) => set((s) => (s.stageBusy === stageBusy ? s : { stageBusy })),
   play: (run) => set({ run: { ...run, id: Date.now() } }),
   stop: () => set({ run: null }),
   setCovers: (covers) => set({ covers }),

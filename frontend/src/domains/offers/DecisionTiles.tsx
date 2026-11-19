@@ -184,7 +184,11 @@ export function Tile({
       ) : kind?.kind === "player" ? (
         <PlayerOptionBody option={option} playerId={kind.target} />
       ) : described ? (
-        <DescribedOptionBody option={option} hint={described.hint} />
+        <DescribedOptionBody
+          option={option}
+          hint={described.hint}
+          brief={described.ref.kind === "strategy"}
+        />
       ) : (
         <OptionBody option={option} />
       )}

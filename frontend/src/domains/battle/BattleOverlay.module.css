@@ -498,6 +498,13 @@
   transform: rotate(var(--ws-heading-right, 0deg));
 }
 
+/* Jednostki naziemne walczące w przestrzeni (np. Z-Grav Eidolon Naaz-Rokha) to stojące
+   postacie, nie okręty z dziobem — stoją prosto, tak jak w walce naziemnej. */
+.overlay[data-kind="space"] .ship[data-base="mf"] .shipSprite,
+.overlay[data-kind="space"] .ship[data-base="gf"] .shipSprite {
+  transform: none;
+}
+
 .emerge {
   display: grid;
   place-items: center;

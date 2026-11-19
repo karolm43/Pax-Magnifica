@@ -123,7 +123,7 @@ def test_perfect_synthesis_przez_api(registry: StaticDataRegistry) -> None:
     before = _me(flow)
     row = flow.playable()["naazhero"]
     assert row["playable"], row["reason"]
-    flow.use("leader", "naazhero", {"first": 5, "second": 1})
+    flow.use("leader", "naazhero", {"cards": [5, 1]})
     me = _me(flow)
     assert len(me["relics"]) == len(before["relics"]) + 1
     assert me["leader_states"]["naazhero"] == "purged"

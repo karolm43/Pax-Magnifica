@@ -1353,3 +1353,14 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   po usunięciu wraku.
 - Test: `frontend/src/domains/battle/battleFormation.test.ts`. Naprawiony błąd typów w
   `AgendaPassButtons.test.tsx` (blokował `tsc`).
+
+## 2026-11-19 — Hesh and Prit (bohater Naaz-Rokha), kafelki kart strategii, mechy w kosmosie, kolejność reliktu
+
+- ✅ Perfect Synthesis: jedno pole wyboru 0–2 kart strategii (`oi.multi`, kolejność kliknięć = kolejność
+  rozstrzygania, F_naaz_rokha hesh 2–3) zamiast dwóch pól „First/Second” z opcją „None”; podpowiedź mówi
+  o reliktcie i żetonach z rezerwy. Parametr `{"cards": [..]}`. Test okna w `tests/factions/test_naaz.py`.
+- ✅ Kafelki kart strategii w oknach decyzji (Naaz, Hacan, Winnu, karty akcji): sama nazwa + „initiative N”,
+  bez drobnego tekstu primary/secondary — ten jest pod ⓘ i w podpowiedzi (`DescribedOptionBody brief`).
+- ✅ Walka w kosmosie: mechy (Z-Grav Eidolon) i piechota stoją prosto, bez obrotu okrętu (`BattleOverlay.module.css`).
+- ✅ Scena odsłonięcia reliktu czeka na koniec sceny kluczowego momentu (`useHeroFx.stageBusy`, karencja
+  1,2 s na feed) — najpierw animacja bohatera, potem relikt.

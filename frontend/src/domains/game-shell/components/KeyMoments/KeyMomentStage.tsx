@@ -204,6 +204,12 @@ export function KeyMomentStage() {
     setCovers(coversForQueue(queue));
   }, [queue, setCovers]);
   useEffect(() => () => setCovers({}), [setCovers]);
+  // Scena reliktu (RelicRevealWatcher) czeka, aż kolejka momentów się opróżni.
+  const setStageBusy = useHeroFx((s) => s.setStageBusy);
+  useEffect(() => {
+    setStageBusy(queue.length > 0);
+  }, [queue, setStageBusy]);
+  useEffect(() => () => setStageBusy(false), [setStageBusy]);
 
   // Start sceny: najpierw niech wyląduje kość (rzut d10 na Fracture), potem scena.
   useEffect(() => {

@@ -95,7 +95,6 @@ _SYNERGY_RETURN = 3  # „return 3 of those mechs to your reinforcements”
 _FORGE_FRAGMENTS = 2  # „purge 2 of your relic fragments of the same type to gain 1 relic”
 _TOKEN_FRAGMENTS = 1  # „purge 1 of your relic fragments to gain 1 command token”
 _RELIC = "relic"
-_NONE = 0
 _POOLS = (("tactical", "tactic pool"), ("fleet", "fleet pool"), ("strategic", "strategy pool"))
 
 
@@ -540,13 +539,15 @@ def _card_options(state: GameState, registry: StaticDataRegistry) -> list[dict[s
 def hero_inputs(
     state: GameState, registry: StaticDataRegistry, _player_id: str
 ) -> list[dict[str, Any]]:
-    """Obie karty wybrane z góry (F_naaz_rokha hesh 2), w kolejności rozstrzygania (3)."""
-    cards = _card_options(state, registry)
-    skip = oi.option(_NONE, "None", "none")
-    return [
-        oi.choice("first", "First secondary ability", [*cards, skip], always=True),
-        oi.choice("second", "Second secondary ability", [*cards, skip], always=True),
-    ]
+    """Jeden wybór 0-2 RÓŻNYCH kart z góry (F_naaz_rokha hesh 1, 1.1, 2); kolejność kliknięć =
+    kolejność rozstrzygania (3)."""
+    return [oi.multi(
+        "cards", "Strategy cards whose secondary ability you perform",
+        _card_options(state, registry), 0, 2,
+        hint="Up to 2 readied or unchosen strategy cards, resolved in the order you pick them. "
+             "You gain 1 relic first; command tokens for these secondary abilities come from "
+             "your reinforcements.",
+    )]
 
 
 @register_effect(f"leaders:{HERO}")
@@ -560,11 +561,12 @@ def perfect_synthesis(
 
     0-2 różne karty (1, 1.1), wybrane przed rozstrzyganiem (2); okna secondary po kolei (3)."""
     reach = set(strategy_cards_in_reach(state, registry))
+    picked = params.get("cards") or []
+    if not isinstance(picked, list) or len(picked) > 2:
+        raise ValueError("Choose up to 2 strategy cards.")
     chosen: list[int] = []
-    for key in ("first", "second"):
-        value = int(params.get(key) or _NONE)
-        if value == _NONE:
-            continue
+    for raw in picked:
+        value = int(raw)
         if value not in reach or value not in CARDS:
             raise ValueError("Choose readied or unchosen strategy cards.")
         if value in chosen:

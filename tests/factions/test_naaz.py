@@ -478,7 +478,7 @@ def _hero_state() -> GameState:
         "F_naaz_rokha/hesh-and-prit-perfect-synthesis/3.1")
 def test_perfect_synthesis_relikt_i_lancuch(registry: StaticDataRegistry) -> None:
     state = _hero_state()
-    after = _play(state, registry, "leader", "naazhero", {"first": 6, "second": 1})
+    after = _play(state, registry, "leader", "naazhero", {"cards": [6, 1]})
     assert len(after.players["p1"].relics) == 1
     assert after.players["p1"].leader_states["naazhero"] == "purged"
     window = after.pending_window
@@ -496,10 +496,21 @@ def test_perfect_synthesis_relikt_i_lancuch(registry: StaticDataRegistry) -> Non
         "F_naaz_rokha/hesh-and-prit-perfect-synthesis/1.1")
 def test_perfect_synthesis_zero_albo_rozne_karty(registry: StaticDataRegistry) -> None:
     state = _hero_state()
-    after = _play(state, registry, "leader", "naazhero", {"first": 0, "second": 0})
+    after = _play(state, registry, "leader", "naazhero", {"cards": []})
     assert len(after.players["p1"].relics) == 1 and after.pending_window is None
     with pytest.raises(ValueError, match="same strategy card"):
-        _play(_hero_state(), registry, "leader", "naazhero", {"first": 6, "second": 6})
+        _play(_hero_state(), registry, "leader", "naazhero", {"cards": [6, 6]})
+
+
+@ruling("F_naaz_rokha/hesh-and-prit-perfect-synthesis/2")
+def test_perfect_synthesis_jeden_wybor_do_2_kart(registry: StaticDataRegistry) -> None:
+    """Okno bohatera: JEDEN wybór 0-2 kart (kolejność kliknięć), bez opcji „None”."""
+    inputs = naaz.hero_inputs(_hero_state(), registry, "p1")
+    assert len(inputs) == 1
+    field = inputs[0]
+    assert field["kind"] == "multi" and field["min"] == 0 and field["max"] == 2
+    values = [o["value"] for o in field["options"]]
+    assert 0 not in values and 5 in values  # 5: wybrana przez p2, ale gotowa (readied)
 
 
 @ruling("F_naaz_rokha/hesh-and-prit-perfect-synthesis/4")
@@ -519,7 +530,7 @@ def test_perfect_synthesis_karta_wyeliminowanego_niewybrana(registry: StaticData
 def test_perfect_synthesis_zeton_z_rezerwy(registry: StaticDataRegistry,
                                            monkeypatch: pytest.MonkeyPatch) -> None:
     state = _hero_state()
-    after = _play(state, registry, "leader", "naazhero", {"first": 5, "second": 0})
+    after = _play(state, registry, "leader", "naazhero", {"cards": [5]})
     spent: list[Any] = []
     real_fire = triggers.fire
 

@@ -123,10 +123,19 @@ export function describeOption(
 
 /**
  * Treść kafelka komponentu gry (karta strategii, cel, agenda, relikt, karta akcji…): nazwa,
- * rodzaj i CAŁY tekst zasady (każdy akapit, np. primary i secondary), pełny opis po najechaniu,
- * a pełna karta pod przyciskiem ⓘ kafelka - nigdy sama nazwa.
+ * rodzaj i CAŁY tekst zasady (każdy akapit), pełny opis po najechaniu, a pełna karta pod
+ * przyciskiem ⓘ kafelka. ``brief`` (karty strategii - decyzja użytkownika): sama nazwa i
+ * podpis, bez drobnego tekstu primary/secondary - ten jest w okienku ⓘ i w podpowiedzi.
  */
-export function DescribedOptionBody({ option, hint }: { option: ActionCardOption; hint: Hint }) {
+export function DescribedOptionBody({
+  option,
+  hint,
+  brief = false,
+}: {
+  option: ActionCardOption;
+  hint: Hint;
+  brief?: boolean;
+}) {
   const at = option.label.indexOf(" - ");
   const caption = at >= 0 ? option.label.slice(at + 3) : hint.meta;
   return (
@@ -141,7 +150,7 @@ export function DescribedOptionBody({ option, hint }: { option: ActionCardOption
       <span className={styles.optText}>
         <b>{hint.name || option.label}</b>
         {caption && <small>{caption}</small>}
-        {hint.lines.map((line, index) => (
+        {!brief && hint.lines.map((line, index) => (
           <span key={index} className={styles.descr}>
             {line}
           </span>

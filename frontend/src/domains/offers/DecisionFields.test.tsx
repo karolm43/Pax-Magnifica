@@ -141,7 +141,7 @@ describe("DecisionFields", () => {
     expect(screen.getByText(/1 VP/)).toBeInTheDocument();
   });
 
-  it("karta strategii z odnośnikiem: primary + secondary na kafelku, pełna karta po kliknięciu ⓘ", () => {
+  it("karta strategii z odnośnikiem: na kafelku sama nazwa, pełna karta po kliknięciu ⓘ", () => {
     render(
       <Harness
         inputs={[
@@ -169,8 +169,9 @@ describe("DecisionFields", () => {
         ]}
       />,
     );
-    // Nie sama nazwa: tekst obu zdolności widać od razu na kafelku.
-    expect(screen.getAllByText(/^Secondary:/).length).toBeGreaterThanOrEqual(2);
+    // Decyzja użytkownika: bez drobnego tekstu primary/secondary na kafelku - jest pod ⓘ.
+    expect(screen.queryAllByText(/^Secondary:/)).toHaveLength(0);
+    expect(screen.getByText("initiative 1")).toBeInTheDocument();
     // Klik w ⓘ nie wybiera opcji, tylko otwiera pełną kartę.
     fireEvent.click(screen.getByRole("button", { name: "About Leadership" }));
     expect(values()).toEqual({});
