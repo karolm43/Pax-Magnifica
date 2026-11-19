@@ -43,7 +43,7 @@ export { expect };
  */
 export async function startSoloGame(page: Page, faction = "The Federation of Sol"): Promise<void> {
   await page.goto("/");
-  await page.getByRole("button", { name: "Play" }).click();
+  await page.getByRole("button", { name: "Play", exact: true }).click();
   await page.getByRole("button", { name: "Me vs. bots" }).click();
   await page.getByRole("button", { name: "Choose factions" }).click();
   // Kliknięcie w listę to tylko podgląd frakcji — wybór zatwierdza osobny przycisk.

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import {
   IconCards,
   IconHash,
+  IconHelpCircle,
   IconHistory,
   IconKeyboard,
   IconLinkPlus,
@@ -17,6 +18,7 @@ import { assetUrl } from "@/shared/assets/resolveAsset";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import { ThemeSwatches } from "./ThemeSwatches";
 import { BoardSearch } from "@/domains/search/BoardSearch";
+import { useTutorialStore } from "@/domains/tutorial";
 import classes from "./TabsControls.module.css";
 
 const LENS_ICON_SIZE = 16;
@@ -86,6 +88,7 @@ function LensToolbar({
   const game = useGameData();
   const settings = useSettingsStore((state) => state.settings);
   const handlers = useSettingsStore((state) => state.handlers);
+  const openGuide = useTutorialStore((state) => state.openGuide);
   const showPds = !!game?.tilesWithPds?.size;
 
   return (
@@ -184,6 +187,9 @@ function LensToolbar({
             <IconSticker size={LENS_ICON_SIZE} />
           </Lens>
         )}
+        <Lens label="How to play" onClick={() => openGuide()}>
+          <IconHelpCircle size={LENS_ICON_SIZE} />
+        </Lens>
         {showKeyboardButton && (
           <Lens
             label="Keyboard shortcuts"

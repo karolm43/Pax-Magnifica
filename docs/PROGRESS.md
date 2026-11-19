@@ -1364,3 +1364,25 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - ✅ Walka w kosmosie: mechy (Z-Grav Eidolon) i piechota stoją prosto, bez obrotu okrętu (`BattleOverlay.module.css`).
 - ✅ Scena odsłonięcia reliktu czeka na koniec sceny kluczowego momentu (`useHeroFx.stageBusy`, karencja
   1,2 s na feed) — najpierw animacja bohatera, potem relikt.
+
+## 2026-11-19 — Paczka do rozesłania (PaxMagnifica.exe + zip) i samouczek w grze
+
+- ✅ Paczka: `uv run python packaging/build_release.py` → `release/PaxMagnifica/` + `release/PaxMagnifica-<data>.zip`
+  (~1,4 GB). Odbiorca rozpakowuje i klika `PaxMagnifica.exe` — bez Pythona, Node i dwóch okien.
+  PyInstaller onedir (`packaging/pax_magnifica.spec`, cały pakiet `src` bo hooki frakcji są wykrywane `pkgutil`),
+  obok `.exe`: `assets/` bez nieużywanych katalogów (`music_originals` 1,2 GB, `quick_reference`, `stickers`,
+  `server_icons`), `docs/rules_tirules`, `frontend/dist`, `JAK_GRAC.txt`.
+- ✅ `src/api/bundle.py` (`BundleApp`): jeden serwer na :8000 robi to, co w devie proxy Vite — `/bot/*` → API
+  (z WebSocketem i lifespan), `/static` → assety, reszta → `dist` z fallbackiem SPA. USUWA `X-Forwarded-For`
+  (bez proxy gość podałby `127.0.0.1` i udawał hosta, RULES.md 44.6); launcher uruchamia uvicorn z
+  `proxy_headers=False`. Test: `tests/test_bundle.py` (prefiks, nagłówek, SPA, path traversal, WS, lifespan).
+- ✅ `packaging/launcher.py`: `CUSTODIAN_ROOT` (nowe w `src/config.py`) = katalog `.exe`, `saves/` i
+  `bug_reports/` obok `.exe`, pierwszy wolny port od 8000 (nie ubija cudzych procesów), adresy LAN w konsoli,
+  `freeze_support` dla procesów roboczych bota. `src/api/__main__.py`: wydzielone `build_parser`/`build_server_app`.
+- ✅ Samouczek (`frontend/src/domains/tutorial/`): okno „How to play” (13 rozdziałów: cel, ekran, runda, fazy,
+  akcja taktyczna, walka, ekonomia, karty, gra sieciowa) — z toolbara mapy, z menu głównego i z panelu podpowiedzi.
+  Panel „What now?” (lewy dół, nad czatem; zwija się do kompasu, przesuwany) mówi, co zrobić teraz: wybór karty,
+  akcje tury, krok akcji taktycznej, walka, decyzja w oknie, cudza tura/bot, „Next phase” u mówcy, status, agenda.
+  Logika: czysta `coachHint.ts` + testy; `HowToPlayModal.test.tsx`.
+- E2E: lokatory `Play` z `exact: true` (nowy przycisk „How to play”). `tools.e2e.ts` „zoom mapy” pada też bez
+  tych zmian — kursor testu (1300, 700) trafia w wachlarz kart strategii; do poprawy w teście.

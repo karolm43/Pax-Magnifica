@@ -142,8 +142,8 @@ def _pause_clock_after_restart(server_app: FastAPI) -> None:
     print("[save] Chess clock paused after restart - resume it in the game.")
 
 
-def main() -> None:
-    """Startuje serwer deweloperski Uvicorn (po zwolnieniu portu); ``--network`` = gra sieciowa."""
+def build_parser() -> argparse.ArgumentParser:
+    """Argumenty serwera — wspólne dla ``python -m src.api`` i launchera paczki (``packaging/``)."""
     parser = argparse.ArgumentParser(prog="python -m src.api")
     parser.add_argument("--network", action="store_true", help="od razu otwórz lobby sieciowe")
     parser.add_argument(
@@ -153,7 +153,11 @@ def main() -> None:
     parser.add_argument(
         "--no-bots", action="store_true", help="boty nie grają same (sterowanie ręczne/God-Mode)"
     )
-    args = parser.parse_args()
+    return parser
+
+
+def build_server_app(args: argparse.Namespace) -> FastAPI:
+    """Aplikacja API z plikiem partii (wznowienie ostatniego zapisu z ``saves/``)."""
     saves = SaveManager(SAVES_DIR)
     path = args.save or (None if args.fresh else saves.latest()) or saves.new_path()
     store = _open_store(path, fresh=bool(args.save and args.fresh))
@@ -170,6 +174,12 @@ def main() -> None:
     print(f"[save] {'Resumed game from' if resumed else 'New save file'} {path}")
     if resumed:
         _pause_clock_after_restart(server_app)
+    return server_app
+
+
+def main() -> None:
+    """Startuje serwer deweloperski Uvicorn (po zwolnieniu portu); ``--network`` = gra sieciowa."""
+    server_app = build_server_app(build_parser().parse_args())
     print("[network] Open http://localhost:5173 - host or join a network game from the menu.")
     _ensure_port_free(HOST, PORT)
     uvicorn.run(server_app, host=HOST, port=PORT)

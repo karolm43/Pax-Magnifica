@@ -106,3 +106,6 @@ bug_reports/
 
 # Raporty fuzzera partii botów (tests/engine/fuzz.py)
 fuzz_reports/
+
+# ---- Paczka do rozesłania (packaging/build_release.py) ----
+release/

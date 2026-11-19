@@ -7,8 +7,8 @@ import { expect, startSoloGame, test } from "./fixtures";
 
 test("menu startowe ładuje się bez błędów", async ({ page }) => {
   await page.goto("/");
-  for (const name of ["Play", "Load game", "Settings", "Rules"]) {
-    await expect(page.getByRole("button", { name })).toBeVisible();
+  for (const name of ["Play", "Load game", "Settings", "How to play", "Rules"]) {
+    await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
   }
 });
 

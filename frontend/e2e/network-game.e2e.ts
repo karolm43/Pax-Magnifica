@@ -10,7 +10,7 @@ import { expect, test, watchErrors } from "./fixtures";
 
 async function hostLobbyFor2(page: Page): Promise<string | null> {
   await page.goto("/");
-  await page.getByRole("button", { name: "Play" }).click();
+  await page.getByRole("button", { name: "Play", exact: true }).click();
   await page.getByRole("radio", { name: "2", exact: true }).click();
   const links = page.locator("code");
   if ((await links.count()) === 0) return null;

@@ -54,5 +54,6 @@ files = ["src", "tests"]
 
 [dependency-groups]
 dev = [
+    "pyinstaller>=6.22.3",
     "types-networkx>=3.6.1.20261018",
 ]

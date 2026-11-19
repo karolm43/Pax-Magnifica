@@ -1,0 +1,112 @@
+/* Okno How to play: spis rozdziałów po lewej, treść po prawej (jak okno skrótów: AppModal). */
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 420px;
+  max-height: min(70vh, 620px);
+}
+
+.toc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 8px;
+  border-right: 1px solid var(--ds-h14);
+  overflow-y: auto;
+}
+
+.tocItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ds-ink);
+  font: inherit;
+  font-size: var(--text-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tocItem:hover {
+  background: var(--ds-h10);
+  color: var(--ds-ink-hi);
+}
+
+.tocItem[aria-current="page"] {
+  background: var(--ds-h14);
+  color: var(--ds-ink-hi);
+  box-shadow: inset 2px 0 0 var(--ds-accent);
+}
+
+.tocItem:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: -2px;
+}
+
+.tocNum {
+  min-width: 18px;
+  color: var(--ds-ink-lo);
+  font-family: var(--ds-font-data);
+  font-size: var(--text-meta);
+}
+
+.body {
+  padding: 18px 24px 20px;
+  overflow-y: auto;
+  color: var(--ds-ink-hi);
+}
+
+.heading {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.intro {
+  margin: 0 0 12px;
+  line-height: 1.55;
+}
+
+.points {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding-left: 20px;
+  line-height: 1.5;
+  color: var(--ds-ink);
+}
+
+.hint {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-h22);
+  border-left: 3px solid var(--ds-accent);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.25);
+  line-height: 1.5;
+}
+
+.hint svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--ds-accent);
+}
+
+@media (max-width: 40em) {
+  .layout {
+    grid-template-columns: 1fr;
+    max-height: none;
+  }
+
+  .toc {
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: 0;
+    border-bottom: 1px solid var(--ds-h14);
+  }
+}

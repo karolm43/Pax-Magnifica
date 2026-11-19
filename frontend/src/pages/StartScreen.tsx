@@ -11,6 +11,7 @@ import { useSetupStore } from "@/domains/setup/useSetupStore";
 import { useLobbyActions } from "@/domains/network/useLobby";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { MenuMusic } from "@/shared/audio/MenuMusic";
+import { HowToPlayModal, useTutorialStore } from "@/domains/tutorial";
 
 /**
  * Pełnoekranowy ekran rozruchu — pokazywany, dopóki ładujemy dane gry (frakcje)
@@ -86,6 +87,7 @@ function BootScreen({
 export default function StartScreen() {
   const themeClassName = usePageThemeClass();
   const navigate = useNavigate();
+  const openGuide = useTutorialStore((s) => s.openGuide);
   // Ładowanie frakcji trzymamy TUTAJ, by pokazać ekran rozruchu, zanim wejdziemy
   // w menu/kreator. `SetupWizard` korzysta z tego samego zapytania (react-query
   // cache), więc nie ma podwójnego pobrania.
@@ -228,6 +230,15 @@ export default function StartScreen() {
               fullWidth
               variant="default"
               className={styles.menuButton}
+              onClick={() => openGuide()}
+            >
+              How to play
+            </Button>
+            <Button
+              size="xl"
+              fullWidth
+              variant="default"
+              className={styles.menuButton}
               onClick={() => navigate("/rules")}
             >
               Rules
@@ -256,6 +267,7 @@ export default function StartScreen() {
           administratora (szybkie testy) dało się włączyć JESZCZE przed startem gry,
           zanim pojawi się intro. Stan jest współdzielony przez `useSettingsStore`. */}
       <LoadGameModal opened={loadOpen} onClose={() => setLoadOpen(false)} />
+      <HowToPlayModal />
       <SettingsModal
         opened={settingsOpen}
         onClose={() => setSettingsOpen(false)}

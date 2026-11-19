@@ -1,0 +1,31 @@
+PAX MAGNIFICA — jak uruchomić
+==============================
+
+1. Rozpakuj cały folder PaxMagnifica (nie uruchamiaj gry z wnętrza zipa).
+2. Kliknij dwukrotnie PaxMagnifica.exe.
+   - Otworzy się czarne okno (serwer gry) i po chwili przeglądarka z grą.
+   - Jeśli przeglądarka się nie otworzy, wejdź ręcznie na adres podany w oknie
+     (zwykle http://localhost:8000/).
+   - Windows może zapytać o zaporę sieciową — zezwól, jeśli chcesz grać przez sieć.
+   - Windows SmartScreen („System Windows ochronił ten komputer”): kliknij
+     „Więcej informacji” → „Uruchom mimo to” (plik nie jest podpisany cyfrowo).
+3. Graj w przeglądarce. NIE zamykaj czarnego okna — jego zamknięcie kończy grę.
+4. Partia zapisuje się sama w folderze „saves” i wraca po ponownym uruchomieniu.
+
+Jak grać: w grze kliknij przycisk „?” (How to play) — samouczek i podpowiedzi
+pokazują, co robić w każdej fazie. Pełne zasady: przycisk Rules w grze.
+
+Gra sieciowa (z kolegami):
+- Host uruchamia grę u siebie i otwiera lobby z menu.
+- Linki zaproszeń zaczynają się od „localhost” — przed wysłaniem zamień „localhost”
+  na adres hosta wypisany w czarnym oknie (np. http://192.168.1.20:8000/...).
+- Gracze spoza domowej sieci potrzebują wspólnej sieci VPN (np. ZeroTier).
+
+Błąd? Przycisk „Report bug” w grze zapisuje zgłoszenie w folderze „bug_reports”.
+
+------------------------------------------------------------------------------
+PAX MAGNIFICA — how to run (EN)
+1. Unzip the whole PaxMagnifica folder.  2. Double-click PaxMagnifica.exe.
+3. Play in the browser that opens (http://localhost:8000/). Keep the black
+   window open — closing it quits the game. Saves are automatic ("saves" folder).
+In game, press "?" (How to play) for the tutorial and phase-by-phase hints.

@@ -8,11 +8,16 @@ Wszystkie ścieżki do plików danych są zdefiniowane tutaj, a lista aktywnych
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 # --- Korzeń projektu i katalogi assetów ---------------------------------
 
-PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
+# ``CUSTODIAN_ROOT`` ustawia launcher paczki (``packaging/launcher.py``): w zamrożonym ``.exe``
+# kod leży w ``_internal/``, a assety/reguły/frontend obok pliku wykonywalnego.
+PROJECT_ROOT: Path = Path(
+    os.environ.get("CUSTODIAN_ROOT") or Path(__file__).resolve().parent.parent
+)
 ASSETS_DIR: Path = PROJECT_ROOT / "assets"
 
 # Offline'owy zrzut reguł TI4 (tirules2.com) — źródło treści przeglądarki Zasad.
