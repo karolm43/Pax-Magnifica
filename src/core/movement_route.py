@@ -13,11 +13,10 @@ from dataclasses import dataclass, field
 from itertools import combinations
 from typing import TypedDict
 
-from src.core import ion_storm, movement, rules_hooks
+from src.core import floating_structures, ion_storm, movement, rules_hooks
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
-from src.core.unit_catalog import is_space_unit
 
 # Ile skoków ponad najkrótszą trasę pokazujemy jako alternatywy (bez wpływu na legalność).
 _EXTRA_HOPS = 2
@@ -117,7 +116,10 @@ def route_report(
     by_type = own.space_units.get(player_id, {}) if own is not None else {}
     # Przejezdność zależy od typu statku (Corsair: przelot przez obce statki, RULES.md 62.8).
     # Najpierw trasa dla całej floty (""), potem trasy poszczególnych typów ze źródła.
-    kinds = ["", *sorted(bt for bt, n in by_type.items() if n > 0 and is_space_unit(bt))]
+    kinds = ["", *sorted(
+        bt for bt, n in by_type.items()
+        if n > 0 and floating_structures.moves_as_ship(state, player_id, bt)
+    )]
 
     def first_route(waypoints: list[str]) -> list[str] | None:
         for kind in kinds:
@@ -139,7 +141,7 @@ def route_report(
     # alternatywy ma sens pokazywać.
     reach = 0
     for base_type, count in by_type.items():
-        if count <= 0 or not is_space_unit(base_type):
+        if count <= 0 or not floating_structures.moves_as_ship(state, player_id, base_type):
             continue
         move_value = movement._effective_move_value(
             state, grid, registry, from_pos, base_type, player_id,
@@ -200,7 +202,7 @@ def available_bonuses(
     own = state.systems.get(from_pos)
     types = [
         bt for bt, n in (own.space_units.get(player_id, {}) if own else {}).items()
-        if n > 0 and is_space_unit(bt)
+        if n > 0 and floating_structures.moves_as_ship(state, player_id, bt)
     ]
 
     def lifts(bonus: str) -> bool:
@@ -244,7 +246,7 @@ def _ships(
     # Statki startujące razem z tego systemu (Gravleash Maneuvers wyrównuje ich ruch).
     together = [bt for bt, n in own.space_units.get(player_id, {}).items() if n > 0]
     for base_type, count in sorted(own.space_units.get(player_id, {}).items()):
-        if count <= 0 or not is_space_unit(base_type):
+        if count <= 0 or not floating_structures.moves_as_ship(state, player_id, base_type):
             continue
         # Nie ruszają się same (np. bazowy myśliwiec, struktury): pomijamy na liście statków.
         if movement._effective_move_value(

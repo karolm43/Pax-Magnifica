@@ -11,6 +11,7 @@ from __future__ import annotations
 from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_by_player, neighbors_of
+from tests.rulings import ruling
 
 
 def _ring_grid() -> HexGrid:
@@ -146,3 +147,24 @@ def test_neighbors_by_player_is_symmetric() -> None:
     )
     result = neighbors_by_player(state, grid)
     assert result == {"p1": {"p2"}, "p2": {"p1"}}
+
+
+@ruling("R_neutral_units/notes/8")
+def test_neutral_units_are_nobodys_neighbor() -> None:
+    """R_neutral_units: „there is no neutral player” - neutralne statki obok gracza (Pirate
+    Contract) nie robią z „neutral” sąsiada (wcześniej KeyError w postępie Push Boundaries)."""
+    grid = _ring_grid()
+    state = GameState(
+        players=_two_players(),
+        systems={
+            "000": SystemState(
+                position="000", system_id="18", space_units={"p1": {"carrier": 1}}
+            ),
+            "101": SystemState(
+                position="101", system_id="20", space_units={"neutral": {"destroyer": 1}}
+            ),
+        },
+    )
+
+    assert neighbors_of("p1", state, grid) == set()
+    assert neighbors_by_player(state, grid) == {"p1": set(), "p2": set()}

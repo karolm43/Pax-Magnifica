@@ -159,4 +159,12 @@ describe("resolveRandomFactions", () => {
     expect(out[0].factionId).toBe("keleresm");
     expect(out[1].factionId).toBe(RANDOM_FACTION);
   });
+
+  it("najpierw losuje frakcje zrobione w silniku, potem resztę", () => {
+    const factions = [f("sol"), f("hacan", { implemented: true }), f("winnu")];
+    const slots = [slot(RANDOM_FACTION, "red"), slot(RANDOM_FACTION, "blu")];
+    const out = resolveRandomFactions(slots, factions, () => 0);
+    expect(out[0].factionId).toBe("hacan");
+    expect(out[1].factionId).toBe("sol");
+  });
 });

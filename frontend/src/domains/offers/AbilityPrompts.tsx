@@ -26,6 +26,7 @@ import { OfferCard, useDecisionOffers } from "./OffersModal";
 import { isResearchOffer } from "./ResearchOfferOverlay";
 import { TimingWindowChips } from "./TimingWindowChips";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
+import { DraggablePill } from "@/shared/ui/DraggablePill";
 import { useAfterDice } from "@/domains/dice/diceGate";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import styles from "./AbilityPrompts.module.css";
@@ -137,19 +138,17 @@ export function DecisionCenter() {
     <>
       {/* Decyzja badania = pełne okno badania (poza kolumną). */}
       {offer.first && research && offerReady && <OfferCard offer={offer.first} queued={offer.queued} />}
-      {minimized && !using && !playing &&
-        createPortal(
-          <button
-            type="button"
-            className={styles.pill}
-            onClick={() => setMinimized(false)}
-            title="Show decisions"
-          >
-            <IconChevronUp size={15} aria-hidden="true" />
-            <span>Decisions</span>
-          </button>,
-          document.body,
-        )}
+      {minimized && !using && !playing && (
+        <DraggablePill
+          storageKey="decisionCenter.pill.v1"
+          className={styles.pill}
+          title="Show decisions"
+          onRestore={() => setMinimized(false)}
+        >
+          <IconChevronUp size={15} aria-hidden="true" />
+          <span>Decisions</span>
+        </DraggablePill>
+      )}
       {/* Kolumna chowa się na czas formularza, który z niej otwarto (nie zasłania wyborów). */}
       {!using && !playing && !minimized &&
         createPortal(

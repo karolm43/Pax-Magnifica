@@ -40,6 +40,7 @@ from src.core import (
     legendary_planets,
     planet_abilities,
     production,
+    reaction_prefs,
     rules_hooks,
     space_cannon,
     strategy_phase,
@@ -229,6 +230,30 @@ def _pending_strategy(state: GameState) -> dict[str, Any] | None:
         # Klucze z prefiksem „_" są PRYWATNE (np. dobrane karty akcji w Politics) - nie
         # trafiają do publicznego dokumentu; właściciel dostaje je przez /strategy/options.
         "draft": {k: v for k, v in pending.draft.items() if not k.startswith("_")},
+    }
+
+
+def _reaction_prefs(
+    state: GameState, player: PlayerState, registry: StaticDataRegistry
+) -> dict[str, Any]:
+    """Preferencje reakcji gracza dla UI: obowiązujące deklaracje (kategoria -> czas), wyciszenia
+    z nazwami komponentów z assetów (RULES.md 54.12)."""
+    prefs = player.private.reaction_prefs
+    passes = {
+        category: declaration.until
+        for category, declaration in prefs.passes.items()
+        if reaction_prefs.is_live(state, declaration)
+    }
+    if player.private.auto_pass_reactions:
+        passes[reaction_prefs.ALL] = reaction_prefs.UNTIL_ALWAYS
+    return {
+        "passes": passes,
+        "onlyInvolved": prefs.only_involved,
+        "mutedCards": list(prefs.muted_cards),
+        "mutedOffers": [
+            {"key": key, "name": component_text.describe_component(registry, key)[0] or key}
+            for key in prefs.muted_offers
+        ],
     }
 
 
@@ -472,6 +497,8 @@ def _build_game_state(
         "reactionPause": _reaction_pause(state),
         # Długość okien reakcji ustawiona przez hosta (RULES.md 54.11).
         "reactionWindowSeconds": state.reaction_window_seconds,
+        # „Quick windows” hosta (RULES.md 54.12): okno kończy się, gdy wszyscy spasowali.
+        "quickReactionWindows": state.quick_reaction_windows,
         # Stoły transakcji (RULES.md 47.1b): JAWNE tylko pary i Ready; zawartość daje
         # ``GET /transactions/state`` samym stronom.
         "transactionTables": [
@@ -1597,6 +1624,8 @@ def _build_player_data(
                 "acCount": _hand_count(player, "action_cards"),
                 # „Skip all reactions” (RULES.md 54.11) - prywatne: u innych projekcja daje False.
                 "autoPassReactions": player.private.auto_pass_reactions,
+                # Deklaracje pasu / wyciszenia (RULES.md 54.12) - prywatne jak wyżej.
+                "reactionPrefs": _reaction_prefs(state, player, registry),
                 # Limit kart akcji (Executive Sanctions itd.); None = bez limitu (panel dowódcy).
                 "actionCardLimit": hand_limit.action_card_limit(state, player_id),
                 "unitCounts": unit_counts,

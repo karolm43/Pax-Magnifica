@@ -12,6 +12,7 @@ Reguły tożsamości/kontroli planet (opcja A, jedno źródło prawdy) opisano w
 
 from __future__ import annotations
 
+from src.core import floating_structures
 from src.core.components import ComponentCategory, ExplorationDef
 from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
@@ -272,14 +273,20 @@ def move_units(
         raise ValueError("count must be > 0")
     # Reguła umiejscowienia (RULES.md 26): statek nigdy na planetę; jednostka
     # naziemna/struktura nigdy do przestrzeni. Egzekwowane w core — chroni UI i bota.
-    if not placement_allows_zone(base_type, to_zone):
+    new_state = state.clone()
+    player_id = resolve_player_id(faction_key, new_state)
+    # Struktura pływająca (Floating Factory, RULES.md 62.14) stoi tylko w przestrzeni.
+    allowed = (
+        zone_is_space(to_zone)
+        if floating_structures.floats(new_state, player_id, base_type)
+        else placement_allows_zone(base_type, to_zone)
+    )
+    if not allowed:
         where = "space" if zone_is_space(to_zone) else f"planet {to_zone!r}"
         raise ValueError(
             f"Unit {async_id!r} ({base_type}) cannot be placed in {where} "
             f"- ships only in space, ground forces/structures only on a planet."
         )
-    new_state = state.clone()
-    player_id = resolve_player_id(faction_key, new_state)
 
     src = _get_or_make_system(new_state, from_position, grid)
     src_bucket = _zone_bucket(src, from_zone, player_id)

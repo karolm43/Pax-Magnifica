@@ -130,18 +130,6 @@
   "R_attach/rules-reference/2.1": {
     "na": "Żadna karta attach w aktywnych assetach nie ma stanu wyczerpania - silnik trzyma attachmenty jako listę kart przy planecie (planet_attachments), stan planety jest osobny."
   },
-  "C_technology/dark-energy-tap/5": {
-    "requires": [
-      "faction:saar"
-    ],
-    "reason": "Floating Factory (Saar) nie bada żetonu frontier; statek wyprodukowany w kroku Production - tak."
-  },
-  "C_technology/magen-defense-grid-omega-omega/6.1": {
-    "requires": [
-      "faction:saar"
-    ],
-    "reason": "Magen ΩΩ u Saar: piechota przy Floating Factory trafia do przestrzeni (struktura w kosmosie niemodelowana)."
-  },
   "C_technology/sling-relay/2": {
     "gap": "Grant produkcji Sling Relay można zamknąć bez jednostki (production.skip_grant „Finish”) - karta zostaje wyczerpana, a akcja wykonana bez wyprodukowania statku. Ruling: Sling Relay nie może być użyty bez produkcji."
   },
@@ -178,6 +166,14 @@
   },
   "F_muaat/magmus-reactor/2": {
     "na": "Ruling dotyczy starej wersji Magmus Reactor (TG za war suna przy produkcji). Assety mają tekst Ω: „Your ships can move into supernovas. Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability...” (RULES.md 62.13)."
+  },
+  "F_saar/scavenge/2.2": {
+    "requires": ["faction:naaz"],
+    "reason": "Alliance Naaz-Rokha (Dart and Tai: eksploracja planety przejętej od gracza) - kolejność TG i eksploracji po implementacji Naaz-Rokha."
+  },
+  "F_saar/floating-factory/8.1": {
+    "requires": ["faction:nekro"],
+    "reason": "Alastor (Nekro): siły naziemne walczące jak statki blokują dok - po implementacji Nekro (blokada liczy dziś statki w przestrzeni)."
   },
   "F_muaat/umbat/4": {
     "requires": ["faction:naalu"],

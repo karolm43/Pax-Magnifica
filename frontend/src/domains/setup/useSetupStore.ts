@@ -159,7 +159,8 @@ export function assignPreferredColors(
  * żeby od razu znać ich preferowane kolory.
  *
  * Pula = frakcje nie zajęte jawnie przez innych (rodzina wariantów, np. Keleres, liczy
- * się jako jedna frakcja — losujemy z niej jeden wariant). Wylosowanej frakcji z wyborem
+ * się jako jedna frakcja — losujemy z niej jeden wariant); najpierw frakcje zrobione w
+ * silniku (`implemented`), dopiero gdy ich zabraknie — pozostałe. Wylosowanej frakcji z wyborem
  * technologii startowych losujemy też technologie (frakcje z odroczonym wyborem
  * pomijamy), żeby slot był od razu kompletny i przechodził walidację. Gdy pula jest
  * pusta, slot zostaje losowy. Czysta funkcja — `rng` wstrzykiwany dla testów.
@@ -173,16 +174,23 @@ export function resolveRandomFactions(
   const taken = new Set(
     slots.filter((s) => s.factionId !== RANDOM_FACTION).map((s) => keyOf(s.factionId)),
   );
-  const pool = factions.filter((f) => !taken.has(keyOf(f.id)));
+  const free = factions.filter((f) => !taken.has(keyOf(f.id)));
+  // Najpierw frakcje zrobione w silniku (decyzja użytkownika 2026-11-18); gdy ich zabraknie
+  // — pozostałe grywalne.
+  const ready = free.filter((f) => f.implemented);
+  const rest = free.filter((f) => !f.implemented);
   const pickIndex = (length: number) => Math.min(length - 1, Math.floor(rng() * length));
 
   return slots.map((slot) => {
+    const pool = ready.length > 0 ? ready : rest;
     if (slot.factionId !== RANDOM_FACTION || pool.length === 0) return slot;
     const [faction] = pool.splice(pickIndex(pool.length), 1);
     // Reszta wariantów tej samej rodziny wypada z puli (jedna frakcja na grę).
     const key = keyOf(faction.id);
-    for (let i = pool.length - 1; i >= 0; i--) {
-      if (keyOf(pool[i].id) === key) pool.splice(i, 1);
+    for (const list of [ready, rest]) {
+      for (let i = list.length - 1; i >= 0; i--) {
+        if (keyOf(list[i].id) === key) list.splice(i, 1);
+      }
     }
     const startingTech: string[] = [];
     if (!hasDeferredStartingTech(faction.id) && faction.starting_tech_amount > 0) {

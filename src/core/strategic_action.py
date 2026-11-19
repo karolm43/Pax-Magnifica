@@ -550,6 +550,19 @@ def after_standalone_production(state: GameState) -> GameState:
     return state
 
 
+def resume_after_limit_window(state: GameState) -> GameState:
+    """Po zamknięciu okna limitu (FLEET_POOL / CAPACITY) wznawia secondary czekające na produkcję.
+
+    Okno limitu otwiera się NAD oknem secondary (``suspended_window``, RULES.md 42.1), więc
+    „Finish production” w trakcie usuwania nadwyżki nie widzi okna secondary. Po powrocie okna
+    secondary z ``await_production`` i bez grantu respondent kończy odpowiedź (inaczej gra staje).
+    """
+    window = state.pending_window
+    if window is None or window.window_type is not WindowType.STRATEGY_SECONDARY:
+        return state
+    return after_standalone_production(state)
+
+
 def step_options(
     state: GameState,
     registry: StaticDataRegistry,

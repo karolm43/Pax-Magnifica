@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { DraggablePill } from "@/shared/ui/DraggablePill";
 import { IconArrowsMaximize, IconMinus } from "@tabler/icons-react";
 import modalStyles from "@/shared/ui/AppModal.module.css";
 import styles from "./StrategyPrompt.module.css";
@@ -12,17 +12,16 @@ import styles from "./StrategyPrompt.module.css";
 export function PromptDock({ label, children }: { label: string; children: ReactNode }) {
   const [minimized, setMinimized] = useState(false);
   if (minimized) {
-    return createPortal(
-      <button
-        type="button"
+    return (
+      <DraggablePill
+        storageKey="minimizedPill.pos.v1"
         className={modalStyles.pill}
-        onClick={() => setMinimized(false)}
         title="Restore the window"
+        onRestore={() => setMinimized(false)}
       >
         <IconArrowsMaximize size={15} aria-hidden="true" />
         <span>{label}</span>
-      </button>,
-      document.body,
+      </DraggablePill>
     );
   }
   return (

@@ -273,4 +273,7 @@ def resolve_fleet_pool(
             from src.core import status_phase  # lokalnie: status_phase importuje fleet_pool
 
             new_state = status_phase.advance_fleet_check(new_state, registry)
+        from src.core import strategic_action  # lokalnie: unikamy cyklu importów
+
+        new_state = strategic_action.resume_after_limit_window(new_state)
     return new_state

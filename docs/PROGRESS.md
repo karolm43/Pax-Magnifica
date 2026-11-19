@@ -1228,3 +1228,49 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
 - Żeton Custodians (`custodian`, `custodianvp`) ma z-index 2 — przykrywa go wszystko na kafelku.
 - QA: pytest `-k "production or muaat"` ✓, ruff ✓, mypy ✓ (zmienione pliki), tsc ✓, eslint ✓,
   vitest production/map/utils ✓. Pełny pytest, build i e2e pominięte. Wymaga restartu backendu (nowe pola).
+
+## 2026-11-19 — Okna reakcji: deklaracje pasu, wyciszenia, szybkie okna (RULES.md 54.12)
+
+- ✅ `core/reaction_prefs.py`: prywatne deklaracje pasu per kategoria okna (`all`, `strategy`, `agenda`,
+  `combat`, `sabotage`) z czasem trwania (`turn`/`round`/`agenda`/`combat`/`always`), „Ask me only when it
+  concerns me” (`involved` liczone z informacji jawnej), wyciszone karty reakcji (po nazwie) i oferty
+  „you may” (klucz `covers`; obowiązkowych nie da się wyciszyć). Wygasłe deklaracje czyści `step_settle`.
+- „Quick windows” hosta (`GameState.quick_reaction_windows`, `POST /reaction-settings/quick`): okno kończy
+  się, gdy wszyscy spasowali (`reaction_window.settle_quick`). Domyślna długość okna 4 → 5 s.
+- UI: panel „Reactions” w `TurnControls` (`ReactionSettings`, zastępuje `ReactionAutoPassToggle`),
+  „Never ask” w ofertach i prośbach o reakcję z ręki, ustawienie hosta w Ustawieniach;
+  zminimalizowane okna jako przesuwalna pigułka `DraggablePill`.
+- Testy: `tests/test_reaction_prefs.py`, `test_reaction_window.py`, `test_reaction_pause.py`, vitest
+  `ReactionSettings`, `OfferNeverAsk`, `DraggablePill`.
+
+## 2026-11-19 — B5: bot prowadzi akcję taktyczną + bot losowy (RULES.md 65.8)
+
+- ✅ Katalog akcji podzielony: `engine/action_base.py` (kontekst, baza, kontrola aktora),
+  `engine/actions_tactical.py` (aktywacja, ruch, produkcja, walka, odwrót, Space Cannon, inwazja,
+  eksploracja, pojemność, karty akcji ACTION) + mapowanie HTTP w `api/bot_http.py`;
+  generator wariantów `engine/legal_tactical.py` (pierwszy kandydat = ruch bezpieczny).
+- `engine_config.json`: wszystkie poziomy trudności na `random` (do testów, decyzja użytkownika).
+- Losowa frakcja (setup, kreator, fuzzer) najpierw z frakcji zrobionych (`core/faction_support`);
+  znacznik „Ready” w kreatorze (tymczasowy). Wybór technologii startowych w kreatorze = karty `TechCard`.
+- ✅ Błąd znaleziony fuzzerem (ziarno 11, gra stawała): „Finish production” z secondary Warfare w trakcie
+  okna FLEET_POOL nie widziało okna secondary; po zamknięciu okna limitu (FLEET_POOL / CAPACITY)
+  `strategic_action.resume_after_limit_window` kończy odpowiedź respondenta. Test w `tests/test_fleet_pool.py`.
+- Strażnik `test_actions_parity`: rodzaje B5 jawnie w `NOT_YET_COVERED` („tylko fuzzer”) — celowane
+  scenariusze zgodności HTTP do dopisania. Smoke fuzzera w pytest skrócony do 2 rund.
+- Bot nie używa zdolności „may” wewnątrz kroków ani kart reakcji (okna reakcji botów pasuje silnik).
+
+## 2026-11-19 — B11: The Clan of Saar (RULES.md 62.14)
+
+- ✅ `core/hooks/factions/saar.py`: Scavenge, Nomadic, Floating Factory I/II (punkt centralny struktury
+  pływającej `core/floating_structures.py`: dok w przestrzeni, ruch/odwrót jak statek, zniszczenie przy
+  blokadzie), Chaos Mapping, Captain Mendosa, Rowl Sarrig, Gurno Aggero, Scavenger Zeta, Ragh's Call,
+  Deorbit Barrage. Zmiany punktowe w `unit_ops`, `movement`, `retreat`, `tactical`, `objectives`,
+  `board_edit`, `visibility`, `neighbors`.
+- Setup: planety domowe przez `control.assign_home_planet` — bez zdarzenia `PLANET_CONTROL_GAINED`
+  (Scavenge nie daje TG za dom), punkt centralny kontroli zachowany (z lustrem `controlled_planets`).
+- Armageddon Relay: efekt na planszy (`heroBoardFx.ts`, fala z systemów z jednostkami Saar).
+- Rulingi `F_saar` z testami (`tests/factions/test_saar.py`, scenariusze `test_flows_saar.py`); odroczone:
+  scavenge 2.2 (Naaz-Rokha), floating-factory 8.1 (Nekro) w `tests/rulings_status.json`.
+- QA (całość bloku 2026-11-19): pytest pełny ✓ (engine osobno), ruff ✓, mypy ✓, tsc ✓, eslint (zmienione) ✓,
+  vitest offers/game-shell/settings/setup/shared/player/strategy/cards ✓, build ✓. e2e pominięte.
+  Fuzzer: tylko 4 ziarna smoke (duża próba pominięta - za długa). Wymaga restartu backendu (nowe trasy i pola).

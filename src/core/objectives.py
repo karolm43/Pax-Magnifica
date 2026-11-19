@@ -16,7 +16,7 @@ from __future__ import annotations
 import random
 from collections.abc import Sequence
 
-from src.core import card_draw, secret_objectives, triggers, variants
+from src.core import card_draw, rules_hooks, secret_objectives, triggers, variants
 from src.core.components import ComponentCategory, DeckDef, ObjectiveDef
 from src.core.dice import next_rng
 from src.core.game_events import GameEvent, Moment
@@ -297,9 +297,13 @@ def controls_home_planets(
 
     Brak frakcji albo planet domowych w danych → brak wymagań (``True``). Stacje kosmiczne
     nie są planetami dla celów (R_space_stations), więc nie występują w ``home_planets``.
+    Hook PERMIT ``objectives.ignore_home_control`` (Nomadic, RULES.md 62.14) znosi wymóg -
+    funkcja odpowiada więc na pytanie „czy wymóg planet domowych jest spełniony”.
     """
     player = state.players.get(player_id)
     if player is None or player.faction is None:
+        return True
+    if rules_hooks.permits(rules_hooks.POINT_OBJECTIVES_IGNORE_HOME_CONTROL, state, player_id):
         return True
     faction = registry.factions.get(player.faction)
     if faction is None or not faction.home_planets:

@@ -27,7 +27,14 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from src.core import ability_notes, active_effects, offer_inputs, rules_hooks, timing
+from src.core import (
+    ability_notes,
+    active_effects,
+    offer_inputs,
+    reaction_prefs,
+    rules_hooks,
+    timing,
+)
 from src.core.game_events import Duration, GameEvent, Moment, event_point
 from src.core.game_state import (
     GameState,
@@ -145,7 +152,11 @@ def fire(
                         _decide(state, pid, hook, event, moment, context, result)
                         continue
                     if hook.optional:
-                        result.offers.append(_new_offer(state, pid, hook, event, moment, context))
+                        # Wyciszona oferta (RULES.md 54.12) = z góry podjęta decyzja „nie”.
+                        if not reaction_prefs.is_offer_muted(state, pid, hook.covers):
+                            result.offers.append(
+                                _new_offer(state, pid, hook, event, moment, context)
+                            )
                         continue
                     outcome = _run_visible(state, pid, hook, context)
                     result.ran.append(_label(hook))

@@ -195,6 +195,24 @@
   background: var(--ds-accent, #2563eb);
 }
 
+/* „Never ask” (RULES.md 54.12): cichy przycisk tekstowy obok „Skip”. */
+.never {
+  margin-right: auto;
+  padding: 6px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ds-ink-lo);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.never:hover {
+  color: var(--ds-ink-hi);
+}
+
+.never:disabled,
 .skip:disabled,
 .use:disabled {
   opacity: 0.45;

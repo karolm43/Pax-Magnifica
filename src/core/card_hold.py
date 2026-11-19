@@ -20,7 +20,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import action_budget, card_draw, reaction_window, rules_hooks
+from src.core import action_budget, card_draw, reaction_prefs, reaction_window, rules_hooks
 from src.core.game_state import GameState, HeldCounter, HeldPlay
 from src.core.registry import StaticDataRegistry
 
@@ -123,9 +123,29 @@ def begin(
         is_action=is_action,
         window=dict(window) if window is not None else None,
         seconds=float(reaction_window.window_seconds(new_state)),
+        involved=_involved(new_state, player_id, params, eligible),
     )
-    new_state.held_play.passed = reaction_window.auto_passers(new_state, registry, eligible)
-    return new_state
+    _auto_pass(new_state, registry)
+    # „Quick windows” (54.12): wszyscy spasowali już przy otwarciu - karta rozstrzyga się od razu.
+    return reaction_window.settle_quick(new_state, registry)
+
+
+def _involved(
+    state: GameState, player_id: str, params: Mapping[str, Any], eligible: list[str]
+) -> list[str]:
+    """Komu zagrana karta „dotyczy” (cel w parametrach, system z jego jednostkami; 54.12)."""
+    return reaction_prefs.involved_players(
+        state, eligible, subject=player_id, ctx=params, category=reaction_prefs.SABOTAGE
+    )
+
+
+def _auto_pass(state: GameState, registry: StaticDataRegistry) -> None:
+    """Auto-pas silnika w oknie Sabotage (54.11-54.12; MUTUJE ``state.held_play``)."""
+    held = state.held_play
+    assert held is not None
+    held.passed = reaction_window.auto_passers(
+        state, registry, held.eligible, category=reaction_prefs.SABOTAGE, involved=held.involved
+    )
 
 
 def begin_counter(
@@ -166,8 +186,9 @@ def begin_counter(
     current.eligible = list(eligible)
     current.passed = []
     current.extended_by = []
-    current.passed = reaction_window.auto_passers(new_state, registry, eligible)
-    return new_state
+    current.involved = _involved(new_state, player_id, params, list(eligible))
+    _auto_pass(new_state, registry)
+    return reaction_window.settle_quick(new_state, registry)
 
 
 def target_of(held: HeldPlay) -> tuple[str, str]:
@@ -234,7 +255,7 @@ def pass_hold(state: GameState, registry: StaticDataRegistry, actor_id: str) -> 
     new_state = state.clone()
     assert new_state.held_play is not None
     new_state.held_play.passed = [*held.passed, actor_id]
-    return new_state
+    return reaction_window.settle_quick(new_state, registry)
 
 
 def ask_for_time(state: GameState, actor_id: str) -> GameState:

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Button } from "@/ds";
+import { Button, Switch } from "@/ds";
 import { useGameState } from "@/api/useGameState";
-import { postReactionWindowSeconds } from "@/api/useActionCard";
+import { postQuickReactionWindows, postReactionWindowSeconds } from "@/api/useActionCard";
 
 /**
  * Długość okien reakcji W TRWAJĄCEJ grze (Ustawienia → Reaction windows, RULES.md 54.11): pokazuje
@@ -40,6 +40,39 @@ export function CurrentGameReactionWindow({
       >
         Apply {seconds} s
       </Button>
+      {error && (
+        <span role="alert" style={{ fontSize: "var(--text-meta)", color: "rgb(var(--gd-red))" }}>
+          {error}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** „Quick windows” W TRWAJĄCEJ grze (RULES.md 54.12): tylko host; inny gracz dostaje błąd. */
+export function CurrentGameQuickWindows({ gameId }: { gameId: string }) {
+  const { data: gameState } = useGameState(gameId);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const current = gameState?.quickReactionWindows;
+
+  const change = (enabled: boolean) => {
+    setBusy(true);
+    setError(null);
+    postQuickReactionWindows(enabled)
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setBusy(false));
+  };
+
+  return (
+    <span style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <Switch
+        checked={current === true}
+        disabled={busy || current === undefined}
+        onChange={(event) => change(event.currentTarget.checked)}
+        aria-label="Quick windows"
+        size="sm"
+      />
       {error && (
         <span role="alert" style={{ fontSize: "var(--text-meta)", color: "rgb(var(--gd-red))" }}>
           {error}

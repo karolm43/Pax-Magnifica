@@ -14,6 +14,8 @@ import { assetUrl } from "@/shared/assets/resolveAsset";
 
 type Props = {
   techId: string;
+  /** Szerokość kontenera zamiast stałych 340 px (karta w liście wyboru). */
+  fluid?: boolean;
 };
 
 const TECH_TYPE_LABEL: Record<string, string> = {
@@ -67,7 +69,7 @@ function Prerequisites({ requirements }: { requirements?: string }) {
   );
 }
 
-export function TechCard({ techId }: Props) {
+export function TechCard({ techId, fluid = false }: Props) {
   const techData = getTechData(techId);
 
   if (!techData) return null;
@@ -76,7 +78,7 @@ export function TechCard({ techId }: Props) {
   const color = TECH_TYPE_COLOR[techType];
 
   return (
-    <DetailsCard width={340} color={color ?? "none"}>
+    <DetailsCard width={fluid ? undefined : 340} color={color ?? "none"}>
       <DetailsCard.Title
         title={techData.name}
         type={TECH_TYPE_LABEL[techType] ?? techType}

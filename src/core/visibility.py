@@ -30,7 +30,8 @@ from .player_fields import PRIVATE_FIELDS
 _PRIVATE_LIST_FIELDS: tuple[str, ...] = tuple(
     name
     for name, info in PlayerPrivateState.model_fields.items()
-    if info.default_factory is not None  # kolekcje; flagi (np. auto-pas) redakcja zeruje i tak
+    # kolekcje (listy/słowniki); flagi i podmodele (auto-pas, prefs) redakcja zeruje i tak
+    if info.default_factory in (list, dict)
 )
 
 # Nazwa pola prywatnego w ``PlayerState`` (jedno źródło klasyfikacji, R2.4).

@@ -383,6 +383,34 @@ class DecksState(BaseModel):
     relic_deck_seeded: bool = False
 
 
+class PassDeclaration(BaseModel):
+    """Zadeklarowany z góry pas w kategorii okien reakcji (RULES.md 54.12; ``core/reaction_prefs``).
+
+    ``until`` = jak długo obowiązuje (``turn``/``round``/``agenda``/``always``), ``stamp``
+    = znacznik chwili deklaracji dla tego czasu (deklaracja wygasa, gdy znacznik się zmieni).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    until: str = "always"
+    stamp: str = ""
+
+
+class ReactionPrefs(BaseModel):
+    """Prywatne preferencje okien reakcji gracza (RULES.md 54.12) - nic z nich nie jest jawne."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    # Kategoria okna (``all``, ``strategy``, ``agenda``, ``combat``, ``sabotage``) -> deklaracja.
+    passes: dict[str, PassDeclaration] = Field(default_factory=dict)
+    # „Ask me only when it concerns me”: pas w oknach, które gracza nie dotyczą (z info jawnej).
+    only_involved: bool = False
+    # Nazwy kart reakcji z ręki (akcji/notek), o które silnik ma nie pytać (wszystkie kopie).
+    muted_cards: list[str] = Field(default_factory=list)
+    # Klucze ``covers`` komponentów, których oferty „you may” mają nie powstawać (z góry „nie”).
+    muted_offers: list[str] = Field(default_factory=list)
+
+
 class PlayerPrivateState(BaseModel):
     """Prywatne (tajne) komponenty gracza — widoczne tylko właścicielowi (R2.3).
 
@@ -413,6 +441,8 @@ class PlayerPrivateState(BaseModel):
     # „Skip all reactions” (RULES.md 54.11): silnik pasuje za gracza w każdym oknie reakcji, także
     # gdy ma kartę do zagrania. Ustawienie TAJNE (okno trwa tyle samo, z zewnątrz nic nie widać).
     auto_pass_reactions: bool = False
+    # Deklaracje pasu, „tylko gdy dotyczy mnie”, wyciszenia (RULES.md 54.12) - TAJNE.
+    reaction_prefs: ReactionPrefs = Field(default_factory=ReactionPrefs)
 
 
 class SetupStage(StrEnum):
@@ -987,9 +1017,11 @@ class HeldPlay(BaseModel):
     # Okno, na które reaguje karta reakcji (``OpenWindow.as_dict()``); None dla kart ACTION.
     window: dict[str, Any] | None = None
     # Stała długość okna w s (RULES.md 54.11): ustawienie hosta w chwili otwarcia + „More time”.
-    seconds: float = 4.0
+    seconds: float = 5.0
     # Kto poprosił o więcej czasu (prywatne - projekcja zostawia tylko patrzącego).
     extended_by: list[str] = Field(default_factory=list)
+    # Uprawnieni, których okno DOTYCZY wg informacji jawnej (RULES.md 54.12, „only when involved”).
+    involved: list[str] = Field(default_factory=list)
     # Sabotage na tę kartę czekające na ewentualne Instinct Training (``None`` = brak).
     counter: HeldCounter | None = None
 
@@ -1016,8 +1048,10 @@ class ReactionPause(BaseModel):
     # zostawia tylko patrzącego, bo lista zdradzałaby, kto ma kartę.
     passed: list[str] = Field(default_factory=list)
     # Stała długość okna w s (RULES.md 54.11): ustawienie hosta w chwili otwarcia + „More time”.
-    seconds: float = 4.0
+    seconds: float = 5.0
     extended_by: list[str] = Field(default_factory=list)
+    # Uprawnieni, których okno DOTYCZY wg informacji jawnej (RULES.md 54.12, „only when involved”).
+    involved: list[str] = Field(default_factory=list)
 
 
 class BonusTurn(BaseModel):
@@ -1166,7 +1200,9 @@ class GameState(BaseModel):
     reaction_pause: ReactionPause | None = None
     reaction_pause_seen: list[str] = Field(default_factory=list)
     # Stała długość okien reakcji w s (pauza ochronna, okno Sabotage); ustawia host (RULES 54.11).
-    reaction_window_seconds: int = 4
+    reaction_window_seconds: int = 5
+    # „Quick windows” hosta (RULES.md 54.12): okno kończy się, gdy wszyscy uprawnieni spasowali.
+    quick_reaction_windows: bool = False
     # Ślad Sustain Damage poza walką (Space Cannon Offense): ``{player, base_type, count, by,
     # position}`` - okno Direct Hit trwa do następnego kroku Space Cannon (RULES.md 53.5.c).
     sustain_trace: list[dict[str, Any]] = Field(default_factory=list)

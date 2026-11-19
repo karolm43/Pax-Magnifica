@@ -41,7 +41,7 @@ def test_ujawniona_agenda_otwiera_pauze_i_blokuje_glos(registry: StaticDataRegis
     with pytest.raises(ValueError, match="not asked"):
         reaction_pause.pass_pause(state, "p2")  # bez kart akcji - nie jest pytany
     assert state.reaction_pause is not None  # pasy nie skracają pauzy
-    state = reaction_pause.release(state, now=104.0)
+    state = reaction_pause.release(state, now=105.0)
     assert state.reaction_pause is None
     reaction_pause.sync(state, registry, now=105.0)
     assert state.reaction_pause is None  # to samo okno drugi raz nie pauzuje

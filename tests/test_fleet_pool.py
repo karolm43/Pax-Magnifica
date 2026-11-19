@@ -222,6 +222,33 @@ def test_pula_floty_przerywa_inne_okno_i_je_przywraca(registry: StaticDataRegist
     assert limits.enforce_limits(done, registry) == done
 
 
+def test_secondary_czekajace_na_produkcje_rusza_po_oknie_puli_floty(
+    registry: StaticDataRegistry,
+) -> None:
+    """Warfare (secondary z produkcją): „Finish production” w trakcie okna FLEET_POOL nie widzi
+    okna secondary - po usunięciu nadwyżki kolejka secondary idzie dalej (fuzzer, ziarno 11)."""
+    from src.core import limits, timing
+
+    state = _state({"cruiser": 3, "destroyer": 2}, pool=3)
+    state.players["p2"] = PlayerState(player_id="p2", color="p2")
+    state.seating_order = ["p1", "p2"]
+    state = timing.open_window(
+        state, WindowType.STRATEGY_SECONDARY, ["p1", "p2"],
+        context={"initiative": 6, "await_production": "p1"},
+    )
+    interrupted = limits.enforce_limits(state, registry)
+    assert interrupted.pending_window is not None
+    assert interrupted.pending_window.window_type is WindowType.FLEET_POOL
+    assert interrupted.production_grant is None  # produkcja już zakończona („Finish production”)
+
+    done = fleet_pool.resolve_fleet_pool(interrupted, registry, "p1", {"destroyer": 2})
+
+    window = done.pending_window
+    assert window is not None and window.window_type is WindowType.STRATEGY_SECONDARY
+    assert "await_production" not in window.context
+    assert window.current_responder == "p2"
+
+
 def test_service_commit_enforces_limits_but_god_mode_is_exempt(
     registry: StaticDataRegistry,
 ) -> None:

@@ -69,6 +69,9 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   yinhero: { dim: 0.4, target: "ground", mark: "pulse", tone: "235 235 245", ms: 4200 },
   // Dark Space Navigation: flagowiec i pancerniki wychodzą z mroku w jednym systemie — cienie i słupy.
   l1z1xhero: { dim: 0.5, shadows: ["dn", "fs", "dn"], target: "ships", mark: "beam", tone: "210 60 60", ms: 4400 },
+  // Armageddon Relay: sygnał z doków Saar — fala przechodzi przez systemy z ich jednostkami
+  // (cel to system sąsiedni do doku; piechota i myśliwce innych graczy giną).
+  saarhero: { dim: 0.45, target: "units", mark: "ripple", tone: "200 150 70", ms: 4200 },
   // Nova Seed: gwiazda systemu puchnie, korona zapada się w punkt, wybuch supernowej (błysk,
   // promienie dyfrakcyjne, rozszerzająca się powłoka gazu, ejekta), potem pulsująca mgławica.
   // Stary kafel znika pod błyskiem (revealAt); dźwięk niski: pomruk, wsysanie, głuchy huk.

@@ -43,6 +43,21 @@ import {
 import { hasDeferredStartingTech } from "../deferredTech";
 import styles from "./Step_Faction.module.css";
 
+/**
+ * TYMCZASOWY znacznik (decyzja użytkownika 2026-11-18): frakcja ma pełną implementację w silniku.
+ * Do usunięcia, gdy wszystkie frakcje będą zrobione (pole `implemented` z `/factions`).
+ */
+function ImplementedBadge() {
+  return (
+    <span
+      className={styles.badgeImplemented}
+      title="Faction fully implemented in the engine (temporary marker)"
+    >
+      Ready
+    </span>
+  );
+}
+
 /** Etykieta frakcji slotu w pasku graczy („Losowa" / nazwa / „—"). */
 function slotFactionLabel(
   factionId: string,
@@ -216,6 +231,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
         >
           <CircularFactionIcon faction={currentId} size={22} />
           <span className={styles.itemName}>{entry.label}</span>
+          {entry.variants.some((v) => v.implemented) && <ImplementedBadge />}
           {isSelectedHere && (
             <span className={styles.badgeSelected} aria-hidden>
               ✓
@@ -254,6 +270,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
       >
         <CircularFactionIcon faction={faction.id} size={22} />
         <span className={styles.itemName}>{faction.name}</span>
+        {faction.implemented && <ImplementedBadge />}
         {isSelectedHere && (
           <span className={styles.badgeSelected} aria-hidden>
             ✓

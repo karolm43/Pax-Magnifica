@@ -5,10 +5,10 @@ uporządkowanych tak, że PIERWSZY jest bezpiecznym ruchem domyślnym: pas w okn
 pominięcie secondary, pas w turze, wstrzymanie się od głosu, minimalny wybór w kroku primary.
 Pusta lista = gracz nie ma teraz nic do zrobienia (czeka na innych).
 
-Zakres B1 (bez własnej akcji taktycznej): setup, faza strategii, zagranie karty strategii z
-krokami primary wszystkich kart, secondary, pas / koniec tury, okna czasowe, oferty, pokrycie
-trafień, faza statusu, faza agendy, ogłoszenia mówcy, limit ręki, okno hold-play. Inwazja i
-eksploracja prowadzone przez bota — B5.
+Zakres B1: setup, faza strategii, zagranie karty strategii z krokami primary wszystkich kart,
+secondary, pas / koniec tury, okna czasowe, oferty, pokrycie trafień, faza statusu, faza agendy,
+ogłoszenia mówcy, limit ręki, okno hold-play. B5 (``legal_tactical``): aktywacja, ruch,
+produkcja, walka, Space Cannon, odwrót, pojemność, inwazja, eksploracja, karty akcji.
 
 Generator nie zna reguł: korzysta z enumeratorów ``core/`` (``available_initiatives``,
 ``next_strategy_picker``, ``side_units``, ``current_voter``…) i z monitów obserwacji. Ostateczną
@@ -38,6 +38,7 @@ from src.core.game_state import (
     WindowType,
 )
 from src.engine import actions as act
+from src.engine import legal_tactical as lt
 from src.engine.actions import Action, EngineContext
 from src.engine.observation import Observation
 
@@ -65,9 +66,12 @@ def legal_actions(obs: Observation, ctx: EngineContext) -> list[Action]:
         return [act.DiscardExcess(player_id=pid, card_id=card) for card in hand]
     grant = s.production_grant
     if grant is not None and grant.player_id == pid:
-        # Produkcja z karty (Construction / Warfare TE): bot nie produkuje (B5), kończy ją.
-        return [act.ProductionSkip(player_id=pid)]
+        # Produkcja z karty (Construction / Warfare TE): koniec albo jedna pozycja produkcji.
+        return [act.ProductionSkip(player_id=pid), *lt.production_orders(s, ctx, pid)]
     window = s.pending_window
+    if window is not None and window.window_type is WindowType.SPACE_CANNON:
+        # Straty przypisuje cel, nie bieżący strzelec (respondent okna).
+        return lt.space_cannon_window(obs, ctx)
     if window is not None:
         if window.current_responder != pid:
             return []
@@ -83,16 +87,20 @@ def legal_actions(obs: Observation, ctx: EngineContext) -> list[Action]:
     if combat is not None:
         if combat.pending_hits.get(pid, 0) > 0:
             return _assign_hits(s, ctx, pid)
-        return []  # walkę prowadzi atakujący (B5)
-    if s.invasion is not None or s.exploration is not None:
-        return []  # B5
+        if any(n > 0 for n in combat.pending_hits.values()):
+            return []  # czekamy na pokrycie trafień przez drugą stronę
+        return lt.combat(obs, ctx)
+    if s.exploration is not None:
+        return lt.exploration_step(obs, ctx)
+    if s.invasion is not None:
+        return lt.invasion_step(obs, ctx)
     pending = s.pending_strategy
     if pending is not None:
         return _primary_step(obs, ctx, pid) if pending.owner_id == pid else []
     if s.phase is Phase.STRATEGY:
         return _strategy_phase(s, ctx, pid)
     if s.phase is Phase.ACTION:
-        return _action_phase(s, pid)
+        return _action_phase(obs, ctx)
     if s.phase is Phase.STATUS:
         return _status_phase(s, pid)
     if s.phase is Phase.AGENDA:
@@ -138,8 +146,11 @@ def _window(obs: Observation, ctx: EngineContext, pid: str) -> list[Action]:
         report = fleet_pool.fleet_report(obs.view, position, pid, ctx.registry)
         remove = fleet_pool.auto_removal(obs.view, ctx.registry, pid, report)
         return [act.FleetPoolResolve(player_id=pid, remove=remove)]
-    # SPACE_CANNON / COMBAT_RETREAT / CAPACITY: decyzje mają własne funkcje w core,
-    # akcje bota dla nich dochodzą w B5 (ruch i walka). Ogólnej odpowiedzi w oknie nie ma.
+    if window.window_type is WindowType.COMBAT_RETREAT:
+        return lt.retreat_window(obs)
+    if window.window_type is WindowType.CAPACITY:
+        return lt.capacity_window(obs, ctx)
+    # Inne okna mają własne decyzje w core; ogólnej odpowiedzi w oknie nie ma.
     return []
 
 
@@ -236,7 +247,9 @@ def _primary_step(obs: Observation, ctx: EngineContext, pid: str) -> list[Action
     pending = s.pending_strategy
     assert pending is not None
     if pending.step == "tactical_action":
-        # Warfare: akcja taktyczna w trakcie primary - bot jej nie prowadzi (B5), kończy ją.
+        # Warfare TE: akcja taktyczna w trakcie primary - prowadzona jak zwykła.
+        if s.tactical_step is not None:
+            return lt.tactical_step(obs, ctx)
         return [act.TacticalEnd(player_id=pid)]
     if pending.step == "production":
         return []  # Construction z produkcją - bot wybiera strukturę, więc tu nie trafia
@@ -312,20 +325,26 @@ def _strategy_phase(s: GameState, ctx: EngineContext, pid: str) -> list[Action]:
     return []
 
 
-def _action_phase(s: GameState, pid: str) -> list[Action]:
+def _action_phase(obs: Observation, ctx: EngineContext) -> list[Action]:
+    s = obs.view
+    pid = obs.player_id
     if pid == s.speaker_id and turn_flow.can_advance_phase(s):
         return [act.PhaseNext(player_id=pid)]
     if s.active_player_id != pid:
         return []
     player = s.players[pid]
     if s.tactical_step is not None:
-        return [act.TacticalEnd(player_id=pid)]
+        return lt.tactical_step(obs, ctx)
     if player.passed or player.took_action_this_turn:
         return [act.TurnEnd(player_id=pid)]
+    # Pierwszy = ruch domyślny (karta strategii, potem pas); dalej aktywacje i karty akcji (B5).
     unplayed = [i for i in player.strategy_cards if i not in player.exhausted_strategy_cards]
-    if unplayed:
-        return [act.StrategyPlay(player_id=pid, initiative=i) for i in unplayed]
-    return [act.TurnPass(player_id=pid)]
+    first: list[Action] = (
+        [act.StrategyPlay(player_id=pid, initiative=i) for i in unplayed]
+        if unplayed
+        else [act.TurnPass(player_id=pid)]
+    )
+    return [*first, *lt.action_phase_extras(obs, ctx)]
 
 
 def _status_phase(s: GameState, pid: str) -> list[Action]:

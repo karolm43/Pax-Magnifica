@@ -29,6 +29,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
+from src.core import faction_support
 from src.core.faction_setup import resolve_starting_tech
 from src.core.game_state import ControlType
 from src.core.models import FactionDef
@@ -321,7 +322,8 @@ def _resolve_factions(
     - Brak frakcji (``None``) → losowy dobór spośród grywalnych, jeszcze
       nieprzypisanych (R8.5). Pula bierze najwyżej jednego przedstawiciela
       z każdej rodziny, więc losowanie nie da dwóch wariantów Keleres.
-      Pusta pula przy losowaniu → ``ValueError`` (R8.6).
+      Pusta pula przy losowaniu → ``ValueError`` (R8.6). Losowanie bierze najpierw
+      frakcje zrobione (``core/faction_support``), potem pozostałe.
 
     Lookupy idą wyłącznie przez ``registry.factions`` (R11.5).
     """
@@ -366,6 +368,9 @@ def _resolve_factions(
     #    Pula wyklucza całe zajęte rodziny i daje jednego przedstawiciela na rodzinę.
     pool = _playable_faction_pool(registry, exclude_families=set(used_families))
     chooser.shuffle(pool)
+    # Najpierw frakcje z pełną implementacją (decyzja użytkownika 2026-11-18: losowa frakcja
+    # - zwłaszcza botów - z tych zrobionych); gdy ich zabraknie, reszta grywalnych.
+    pool.sort(key=lambda fid: not faction_support.is_implemented(fid))
     pool_iter = iter(pool)
     for index, fid in enumerate(assigned):
         if fid is not None:

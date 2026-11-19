@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import json
 
-from src.core import reaction_cards, reaction_window, timing, timing_view
+from src.core import reaction_cards, reaction_prefs, reaction_window, timing, timing_view
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, ReactionPause
 from src.core.reaction_cards import ANY, OTHER, SELF, OpenWindow
@@ -117,6 +117,10 @@ def sync(state: GameState, registry: StaticDataRegistry, now: float) -> None:
         eligible = eligible_players(state, registry, window)
         if not eligible:
             continue
+        category = reaction_prefs.category_of_event(window.event.value)
+        involved = reaction_prefs.involved_players(
+            state, eligible, subject=window.subject, ctx=window.ctx, category=category
+        )
         state.reaction_pause = ReactionPause(
             key=key,
             event=window.event.value,
@@ -126,9 +130,15 @@ def sync(state: GameState, registry: StaticDataRegistry, now: float) -> None:
             opened_at=float(now),
             eligible=eligible,
             seconds=float(reaction_window.window_seconds(state)),
+            involved=involved,
         )
-        # Auto-pas (54.11): silnik pasuje za graczy bez pasującej karty - lista pasów jest prywatna.
-        state.reaction_pause.passed = reaction_window.auto_passers(state, registry, eligible)
+        # Auto-pas (54.11-54.12): bez pasującej karty, deklaracje pasu, „only when involved” -
+        # lista pasów jest prywatna.
+        state.reaction_pause.passed = reaction_window.auto_passers(
+            state, registry, eligible, category=category, involved=involved
+        )
+        if reaction_window.closes_early(state, state.reaction_pause):
+            state.reaction_pause = None  # „Quick windows”: nikt nie reaguje - bez pauzy (54.12)
         return
 
 
@@ -167,6 +177,8 @@ def pass_pause(state: GameState, player_id: str) -> GameState:
     new_state = state.clone()
     assert new_state.reaction_pause is not None
     new_state.reaction_pause.passed = [*pause.passed, player_id]
+    if reaction_window.closes_early(new_state, new_state.reaction_pause):
+        new_state.reaction_pause = None  # „Quick windows”: wszyscy spasowali (54.12)
     return new_state
 
 

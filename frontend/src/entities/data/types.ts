@@ -587,6 +587,8 @@ export type GameState = {
   reactionPause?: ReactionPauseData | null;
   /** Stała długość okien reakcji w s ustawiona przez hosta (RULES.md 54.11). */
   reactionWindowSeconds?: number;
+  /** „Quick windows” hosta (RULES.md 54.12): okno kończy się, gdy wszyscy spasowali. */
+  quickReactionWindows?: boolean;
   /** Stoły transakcji (RULES.md 47.1b) — jawne pary, Ready i skrót zawartości (bez treści). */
   transactionTables?: {
     opener: string;
@@ -1087,6 +1089,8 @@ export type PlayerData = {
   acCount: number;
   /** „Skip all reactions” (RULES.md 54.11) — prawdziwe tylko u patrzącego, u innych zawsze false. */
   autoPassReactions?: boolean;
+  /** Deklaracje pasu i wyciszenia (RULES.md 54.12) — tylko u patrzącego. */
+  reactionPrefs?: ReactionPrefsData;
   /** Limit kart akcji w ręce (silnik: ``hand_limit.action_card_limit``); null = bez limitu. */
   actionCardLimit?: number | null;
 
@@ -1377,4 +1381,19 @@ export type ActiveEffectData = {
   /** Czego dotyczy (np. statek, system); pusty, gdy nic. */
   detail: string;
   round: number;
+};
+
+/** Kategoria okien reakcji, w której można z góry zadeklarować pas (RULES.md 54.12). */
+export type ReactionCategory = "all" | "strategy" | "agenda" | "combat" | "sabotage";
+/** Jak długo obowiązuje deklaracja pasu. */
+export type PassDuration = "turn" | "round" | "agenda" | "always";
+
+export type ReactionPrefsData = {
+  /** Obowiązujące deklaracje: kategoria -> czas trwania. */
+  passes: Partial<Record<ReactionCategory, PassDuration>>;
+  onlyInvolved: boolean;
+  /** Nazwy wyciszonych kart reakcji (wszystkie kopie). */
+  mutedCards: string[];
+  /** Komponenty z wyciszonymi ofertami „you may” (klucz ``covers`` + pełna nazwa). */
+  mutedOffers: { key: string; name: string }[];
 };

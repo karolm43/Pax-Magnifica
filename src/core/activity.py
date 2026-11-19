@@ -178,6 +178,9 @@ def _parse_flow(
         return "turn", "reactions.wait", None, None, None, None
     if parts[0] == "reaction-settings" and len(parts) > 2 and parts[1] == "window":
         return "turn", "reactions.window", None, None, parts[2], None
+    if parts[0] == "reaction-settings" and len(parts) > 2 and parts[1] == "quick":
+        # „Quick windows” (RULES.md 54.12) - ustawienie hosta jest jawne.
+        return "turn", "reactions.quick", None, None, "on" if parts[2] == "1" else "off", None
     if parts[0] == "speaker" and len(parts) > 1:
         return "turn", "speaker.set", None, parts[1], None, None
     if parts[0] == "setup" and len(parts) == 2 and parts[1] not in ("custodians", "skip"):

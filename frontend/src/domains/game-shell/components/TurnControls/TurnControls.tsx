@@ -48,6 +48,7 @@ import { useAppStore, useSettingsStore } from "@/state/appStore";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { useHudMetric } from "@/hooks/useHudMetric";
 import { useDeskPlayer } from "./useDeskPlayer";
+import { ReactionSettings } from "./ReactionSettings";
 import { TransactionModal } from "./TransactionModal";
 import { ActionCardPlayModal } from "./ActionCardPlayModal";
 import { TechnologyUseModal } from "./TechnologyUseModal";
@@ -420,6 +421,8 @@ export function TurnControls() {
             <small className={styles.actionPhase}>{phaseLabel}</small>
             <b className={styles.actionWho}>{activeName}</b>
           </span>
+          {/* Ustawienia reakcji poza turą - wszystkie w jednym miejscu (RULES.md 54.11-54.12). */}
+          <ReactionSettings player={active} quickWindows={gameState?.quickReactionWindows} />
         </header>
 
         <div className={styles.actionBtns}>

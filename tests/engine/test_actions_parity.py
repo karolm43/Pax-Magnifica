@@ -25,12 +25,43 @@ TARGETED_KINDS = {
 }
 """Rodzaje sprawdzane celowanymi testami w tym pliku."""
 
+_B5_FUZZ_ONLY = "B5: pokrywa tylko fuzzer losowych partii, brak celowanego scenariusza"
+
 NOT_YET_COVERED: dict[str, str] = {
     "battle_assign": "walka powstaje dopiero z ruchu i aktywacji - scenariusz w B5",
     "held_pass": "okno hold-play otwiera zagranie karty akcji - bot zagrywa karty od B5",
     "held_release": "jak held_pass",
     "offer_decline": "oferty opcjonalne wypadają dopiero w 4. rundzie gry ludzi (za wolno na "
     "szybki zestaw); celowany scenariusz w B5",
+    # B5 (akcja taktyczna): dziś tylko losowe partie fuzzera (``test_fuzz_games``, duża próba
+    # ``python -m tests.engine.fuzz``) - celowane scenariusze zgodności HTTP do dopisania.
+    "action_card_play": _B5_FUZZ_ONLY,
+    "battle_afb": _B5_FUZZ_ONLY,
+    "battle_announce_retreat": _B5_FUZZ_ONLY,
+    "battle_close": _B5_FUZZ_ONLY,
+    "battle_retreat": _B5_FUZZ_ONLY,
+    "battle_roll": _B5_FUZZ_ONLY,
+    "battle_start": _B5_FUZZ_ONLY,
+    "capacity_resolve": _B5_FUZZ_ONLY,
+    "exploration_draw": _B5_FUZZ_ONLY,
+    "exploration_finish": _B5_FUZZ_ONLY,
+    "exploration_resolve": _B5_FUZZ_ONLY,
+    "invasion_begin": _B5_FUZZ_ONLY,
+    "invasion_bombard": _B5_FUZZ_ONLY,
+    "invasion_bombard_assign": _B5_FUZZ_ONLY,
+    "invasion_commit": _B5_FUZZ_ONLY,
+    "invasion_custodians": _B5_FUZZ_ONLY,
+    "invasion_defense_assign": _B5_FUZZ_ONLY,
+    "invasion_defense_fire": _B5_FUZZ_ONLY,
+    "invasion_defense_pass": _B5_FUZZ_ONLY,
+    "invasion_next": _B5_FUZZ_ONLY,
+    "space_cannon_assign": _B5_FUZZ_ONLY,
+    "space_cannon_fire": _B5_FUZZ_ONLY,
+    "space_cannon_pass": _B5_FUZZ_ONLY,
+    "tactical_activate": _B5_FUZZ_ONLY,
+    "tactical_move": _B5_FUZZ_ONLY,
+    "tactical_next": _B5_FUZZ_ONLY,
+    "tactical_produce": _B5_FUZZ_ONLY,
 }
 
 

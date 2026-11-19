@@ -19,9 +19,9 @@ Uruchomienie ręczne (duża próba)::
 
 Mały zestaw w pytest: ``tests/engine/test_fuzz_games.py``.
 
-Zakres: generator ruchów zna dziś szkielet rundy (strategia, karty strategii, pas, status, agenda,
-okna). Akcja taktyczna (ruch, walka, inwazja, produkcja, karty akcji) wejdzie z B5 i od razu
-trafi pod ten fuzzer.
+Zakres: cały generator ruchów - szkielet rundy (strategia, karty strategii, pas, status, agenda,
+okna) i B5: aktywacje, ruch z ładunkiem, produkcja, walka, Space Cannon, odwrót, inwazja,
+eksploracja, karty akcji. Domyślnie frakcje zrobione (``--all-factions`` = wszystkie grywalne).
 """
 
 from __future__ import annotations
@@ -37,6 +37,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from src.core import faction_support
 from src.core.game_state import GameState, Phase
 from src.core.registry import StaticDataRegistry
 from src.engine.actions import Action
@@ -64,10 +65,17 @@ def playable_factions(registry: StaticDataRegistry) -> list[str]:
     return sorted(fid for fid, f in registry.factions.items() if f.is_playable)
 
 
-def sample_factions(registry: StaticDataRegistry, rng: random.Random, count: int) -> list[str]:
-    """``count`` frakcji, najwyżej jeden wariant z rodziny (Keleres) - jak wymaga setup."""
+def sample_factions(
+    registry: StaticDataRegistry, rng: random.Random, count: int, *, implemented: bool = True
+) -> list[str]:
+    """``count`` frakcji, najwyżej jeden wariant z rodziny (Keleres) - jak wymaga setup.
+
+    ``implemented=True`` = tylko frakcje zrobione (``core/faction_support``) - te testujemy.
+    """
     families: dict[str, list[str]] = {}
     for fid in playable_factions(registry):
+        if implemented and not faction_support.is_implemented(fid):
+            continue
         family = registry.faction_family(registry.factions[fid])
         families.setdefault(family, []).append(fid)
     chosen = rng.sample(sorted(families), count)
@@ -134,11 +142,14 @@ def run_game(
     max_steps: int = 4000,
     out_dir: Path | None = None,
     factions: list[str] | None = None,
+    all_factions: bool = False,
 ) -> GameResult:
     """Jedna losowa partia; każdy wyjątek/rozjazd/zawieszenie zapisuje się jako ``failure``."""
     rng = random.Random(seed)
     if factions is None:
-        factions = sample_factions(registry, rng, rng.randint(3, 6))
+        factions = sample_factions(
+            registry, rng, rng.randint(3, 6), implemented=not all_factions
+        )
     result = GameResult(seed=seed, factions=factions)
     started = time.perf_counter()
     table_ref: list[BotTable] = []
@@ -212,6 +223,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rounds", type=int, default=4, help="gra do początku tej rundy")
     parser.add_argument("--replay", type=int, default=None, help="tylko partia z tym ziarnem")
     parser.add_argument("--out", type=Path, default=Path("fuzz_reports"))
+    parser.add_argument(
+        "--all-factions", action="store_true", help="wszystkie grywalne, nie tylko zrobione"
+    )
     args = parser.parse_args(argv)
 
     registry = StaticDataRegistry()
@@ -220,7 +234,9 @@ def main(argv: list[str] | None = None) -> int:
     kinds: Counter[str] = Counter()
     total_steps = 0
     for seed in seeds:
-        res = run_game(registry, seed, rounds=args.rounds, out_dir=args.out)
+        res = run_game(
+            registry, seed, rounds=args.rounds, out_dir=args.out, all_factions=args.all_factions
+        )
         kinds.update(res.kinds)
         total_steps += res.steps
         mark = "OK " if res.failure is None else "ERR"

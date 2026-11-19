@@ -9,7 +9,16 @@ i zegar szachowy (58).
 
 from __future__ import annotations
 
-from src.core import battle, game_clock, game_end, leaders, limits, nexus, reaction_pause
+from src.core import (
+    battle,
+    game_clock,
+    game_end,
+    leaders,
+    limits,
+    nexus,
+    reaction_pause,
+    reaction_prefs,
+)
 from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
 
@@ -41,6 +50,8 @@ def settle_step(
     """
     # Wormhole Nexus odwraca się na stronę aktywną, gdy pojawi się w nim jednostka/kontrola.
     after = game_end.apply_victory(nexus.activate_nexus(state.clone()))
+    # Deklaracje pasu „do końca tury/rundy/agendy”, których czas minął (RULES.md 54.12).
+    reaction_prefs.prune(after)
     if not label.startswith(LIMITS_EXEMPT_LABELS):
         # Nadwyżka po DOWOLNYM efekcie otwiera okno usunięcia (RULES.md 42).
         after = limits.enforce_limits(after, registry)

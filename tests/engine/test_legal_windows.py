@@ -39,22 +39,24 @@ def test_assign_hits_window_yields_battle_assign(registry: StaticDataRegistry) -
 
 
 @pytest.mark.parametrize(
-    "window_type",
+    ("window_type", "kind"),
     [
-        WindowType.SPACE_CANNON,
-        WindowType.COMBAT_RETREAT,
-        WindowType.CAPACITY,
-        # FLEET_POOL ma ruch bota: test_actions_parity.test_fleet_pool_resolve_matches_http
+        (WindowType.SPACE_CANNON, "space_cannon_pass"),
+        (WindowType.COMBAT_RETREAT, "battle_announce_retreat"),
+        (WindowType.CAPACITY, "capacity_resolve"),
+        # FLEET_POOL: test_actions_parity.test_fleet_pool_resolve_matches_http
     ],
 )
-def test_windows_without_bot_action_yet_offer_nothing(
-    registry: StaticDataRegistry, window_type: WindowType
+def test_windows_offer_their_own_decision(
+    registry: StaticDataRegistry, window_type: WindowType, kind: str
 ) -> None:
+    """B5: okno ma własną decyzję core (pas Space Cannon / walka dalej / usunięcie nadwyżki)."""
     state = timing.open_window(_state(), window_type, ["p1"])
     ctx = act.EngineContext(registry=registry, grid=_grid())
 
-    assert legal_actions(observe(state, ctx, "p1"), ctx) == []
+    candidates = legal_actions(observe(state, ctx, "p1"), ctx)
 
+    assert candidates and candidates[0].kind == kind
 
 
 def test_research_offer_gain_mode_picks_available_tech() -> None:

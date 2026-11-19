@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import exhaust, rules_hooks, unit_ops
+from src.core import exhaust, floating_structures, rules_hooks, unit_ops
 from src.core import offer_inputs as oi
 from src.core.combat import resolve_unit_variant
 from src.core.damage import damaged_count, set_damaged
@@ -285,8 +285,8 @@ def _structures_on(system: Any, zone: str, player_id: str) -> int:
 def magen_place_infantry(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Magen Defense Grid ΩΩ: aktywacja systemu z Twoimi strukturami → 1 piechota przy każdej.
 
-    Niezależnie od tego, kto aktywuje (C_technology); piechota trafia na planetę struktury.
-    ⚠ Struktura w przestrzeni (Saar, Floating Factory) nie jest modelowana.
+    Niezależnie od tego, kto aktywuje (C_technology); piechota trafia na planetę struktury, a przy
+    strukturze pływającej (Floating Factory, RULES.md 62.14) - do przestrzeni (C_technology 6.1).
     """
     system = state.systems.get(str(ctx["position"]))
     if system is None:
@@ -295,6 +295,9 @@ def magen_place_infantry(state: GameState, player_id: str, ctx: Mapping[str, Any
         count = _structures_on(system, zone, player_id)
         if count > 0:
             unit_ops.place_units(state, system, zone, player_id, "infantry", count)
+    floating = sum(floating_structures.floating_in(state, player_id, system.position).values())
+    if floating > 0:
+        unit_ops.place_units(state, system, "space", player_id, "infantry", floating)
 
 
 def _magen_ground_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:

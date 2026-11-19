@@ -312,7 +312,11 @@ def resolve_capacity(
         new_state = timing.close_window(new_state)
         # Po capacity od razu sprawdzamy pulę floty w tym samym systemie (ograniczenia mają być
         # egzekwowane natychmiast, np. po produkcji Sling Relay poza krokiem akcji).
-        from src.core import fleet_pool  # lokalnie: fleet_pool importuje capacity
+        from src.core import (
+            fleet_pool,  # lokalnie: fleet_pool importuje capacity
+            strategic_action,
+        )
 
         new_state = fleet_pool.open_fleet_pool_check(new_state, position)
+        new_state = strategic_action.resume_after_limit_window(new_state)
     return new_state

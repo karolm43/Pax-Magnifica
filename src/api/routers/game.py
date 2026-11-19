@@ -24,7 +24,14 @@ from src.api.schemas import (
 from src.api.serializers import AUTO_SLOT_ORDER, DEFAULT_MAP_STRING, build_map_view
 from src.api.web_data import build_web_data
 from src.core import actor as actor_rules
-from src.core import game_clock, reaction_window, rules_hooks, strategy_phase, variants
+from src.core import (
+    faction_support,
+    game_clock,
+    reaction_window,
+    rules_hooks,
+    strategy_phase,
+    variants,
+)
 from src.core.faction_setup import (
     OFF_BOARD_HOME,
     apply_setup_to_state,
@@ -217,6 +224,7 @@ def _faction_info(f: FactionDef, registry: StaticDataRegistry) -> FactionInfo:
         complexity=f.complexity,
         breakthrough=_faction_breakthrough_id(f.id, registry),
         starting_units=_faction_starting_units(f),
+        implemented=faction_support.is_implemented(f.id),
     )
 
 

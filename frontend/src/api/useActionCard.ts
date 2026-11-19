@@ -302,6 +302,33 @@ export async function postAutoPass(actorId: string, enabled: boolean): Promise<v
   if (!response.ok) throw new Error(`Failed to change auto-pass (${response.status}).`);
 }
 
+/** Zmiana prywatnych preferencji reakcji (RULES.md 54.12); pominięte pola bez zmian. */
+export type ReactionPrefsChange = {
+  declare?: Record<string, string | null>;
+  only_involved?: boolean;
+  mute_cards?: Record<string, boolean>;
+  mute_offers?: Record<string, boolean>;
+};
+
+export async function postReactionPrefs(actorId: string, change: ReactionPrefsChange): Promise<void> {
+  const response = await fetch(`${BOT_ROOT}/reaction-settings/prefs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ actor_id: actorId, ...change }),
+  });
+  if (!response.ok) throw new Error(`Failed to change reaction settings (${response.status}).`);
+}
+
+/** Host włącza „Quick windows” w trwającej grze (RULES.md 54.12). */
+export async function postQuickReactionWindows(enabled: boolean): Promise<void> {
+  const response = await fetch(`${BOT_ROOT}/reaction-settings/quick`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+  if (!response.ok) throw new Error(`Failed to change quick windows (${response.status}).`);
+}
+
 /** Host ustawia stałą długość okien reakcji w trwającej grze (RULES.md 54.11). */
 export async function postReactionWindowSeconds(seconds: number): Promise<void> {
   const response = await fetch(`${BOT_ROOT}/reaction-settings/window`, {

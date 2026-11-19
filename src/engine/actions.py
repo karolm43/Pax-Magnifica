@@ -7,7 +7,8 @@ akcja z katalogu i to samo żądanie HTTP dają identyczny stan.
 
 Zakres B1: decyzje, bez których gra z botem by stanęła (setup, wybór i zagranie karty strategii
 z krokami primary, secondary, pas / koniec tury, okna, oferty, przypisanie trafień, status,
-agenda, ogłoszenia mówcy, limit ręki, okno hold-play). Ruch, produkcja, inwazja — B5.
+agenda, ogłoszenia mówcy, limit ręki, okno hold-play). B5 (``actions_tactical``): aktywacja,
+ruch, produkcja, walka, Space Cannon, inwazja, eksploracja, pojemność, karty akcji.
 
 Warstwa nie importuje ``api/``. Nielegalna akcja = ``ValueError`` (HTTP 422) albo
 ``ActorError`` (HTTP 403) z ``core/``.
@@ -15,11 +16,9 @@ Warstwa nie importuje ``api/``. Nielegalna akcja = ``ValueError`` (HTTP 422) alb
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import Field, TypeAdapter
 
 from src.core import actor as actor_rules
 from src.core import (
@@ -41,27 +40,17 @@ from src.core import (
     turn_flow,
 )
 from src.core.game_state import GameState
-from src.core.hex_grid import HexGrid
-from src.core.registry import StaticDataRegistry
+from src.engine import actions_tactical as tac
+from src.engine.action_base import (
+    ActionBase,
+    Apply,
+    Guard,
+)
+from src.engine.action_base import EngineContext as EngineContext
+from src.engine.action_base import claimed as _claimed
+from src.engine.action_base import entitled as _entitled
 
-
-@dataclass(frozen=True)
-class EngineContext:
-    """Zależności stosowania akcji: dane statyczne, siatka mapy i zegar serwera.
-
-    ``now`` = czas serwera w sekundach (wstrzykiwany, nigdy ``time.time()`` - RULES.md 65.5);
-    potrzebny oknom o stałej długości (pauza reakcji, hold-play) i zegarowi szachowemu.
-    """
-
-    registry: StaticDataRegistry
-    grid: HexGrid
-    now: float = 0.0
-
-
-class _Base(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    player_id: str
+_Base = ActionBase
 
 
 # --- Setup startowy (RULES.md 45) ------------------------------------------------------------
@@ -270,7 +259,8 @@ Action = Annotated[
     | AgendaDecide
     | AgendaConfirm
     | AgendaDiscard
-    | AgendaContinue,
+    | AgendaContinue
+    | tac.TacticalAction,
     Field(discriminator="kind"),
 ]
 """Dowolna akcja z katalogu (serializowalna: przechodzi do procesu roboczego i z powrotem)."""
@@ -280,21 +270,6 @@ ACTION_ADAPTER: TypeAdapter[Action] = TypeAdapter(Action)
 
 # --- Zastosowanie: te same funkcje core/ i ta sama kontrola aktora co routery ------------------
 
-_Apply = Callable[[GameState, EngineContext, Any], GameState]
-
-
-def _claimed(what: str) -> Callable[[GameState, str], None]:
-    """Kontrola jak ``actor_rules.check(state, actor, player_id, None, what)`` w routerze."""
-    return lambda state, pid: actor_rules.check(state, pid, pid, None, what)
-
-
-def _entitled(
-    allowed: Callable[[GameState], list[str | None]], what: str
-) -> Callable[[GameState, str], None]:
-    """Kontrola jak ``actor_rules.require(state, actor, allowed(state), what)`` w routerze."""
-    return lambda state, pid: actor_rules.require(state, pid, allowed(state), what)
-
-
 def _apply_battle_assign(state: GameState, ctx: EngineContext, a: BattleAssign) -> GameState:
     return battle.assign_combat_hits(
         state, ctx.grid, ctx.registry, a.player_id,
@@ -303,7 +278,8 @@ def _apply_battle_assign(state: GameState, ctx: EngineContext, a: BattleAssign) 
     )
 
 
-_HANDLERS: dict[str, tuple[Callable[[GameState, str], None] | None, _Apply]] = {
+_HANDLERS: dict[str, tuple[Guard | None, Apply]] = {
+    **tac.HANDLERS,
     "setup_secret": (
         _claimed("Choose secret objective"),
         lambda s, c, a: game_setup.choose_secret(s, a.player_id, a.objective_id),

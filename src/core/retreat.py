@@ -13,7 +13,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from src.core import action_adjacency, command_tokens, ion_storm, rules_hooks, unit_ops
+from src.core import (
+    action_adjacency,
+    command_tokens,
+    floating_structures,
+    ion_storm,
+    rules_hooks,
+    unit_ops,
+)
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
@@ -266,7 +273,9 @@ def retreat_in_place(
         if count <= 0:
             continue
         unit = resolve_unit_variant(registry, faction, techs, base_type)
-        if is_space_unit(base_type) and unit is not None and (unit.move_value or 0) > 0:
+        # Struktura pływająca wycofuje się jak statek (Floating Factory, RULES.md 62.14).
+        mover = floating_structures.moves_as_ship(state, player_id, base_type)
+        if mover and unit is not None and (unit.move_value or 0) > 0:
             movers[base_type] = count
         elif base_type in _CARGO_BASE_TYPES:
             space_cargo[base_type] = count

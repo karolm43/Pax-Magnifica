@@ -99,7 +99,9 @@ def test_more_time_raz_na_gracza_takze_po_auto_pasie(registry: StaticDataRegistr
         reaction_pause.ask_for_time(longer, "p2")
     with pytest.raises(ValueError, match="still open"):
         reaction_pause.release(longer, now=100.0 + reaction_window.DEFAULT_SECONDS)
-    assert reaction_pause.release(longer, now=114.0).reaction_pause is None
+    assert reaction_pause.release(
+        longer, now=100.0 + reaction_window.DEFAULT_SECONDS + 10
+    ).reaction_pause is None
 
 
 def test_more_time_w_oknie_sabotage(registry: StaticDataRegistry) -> None:
@@ -110,7 +112,8 @@ def test_more_time_w_oknie_sabotage(registry: StaticDataRegistry) -> None:
     assert held.held_play is not None and held.held_play.extended_by == ["p2"]
     with pytest.raises(ValueError, match="still open"):
         card_hold.release(held, registry, "p1", now=NOW + reaction_window.DEFAULT_SECONDS)
-    assert card_hold.release(held, registry, "p1", now=NOW + 14).held_play is None
+    later = NOW + reaction_window.DEFAULT_SECONDS + 10
+    assert card_hold.release(held, registry, "p1", now=later).held_play is None
 
 
 # --- nic nie wycieka (43.4) --------------------------------------------------------------------
@@ -126,7 +129,8 @@ def test_z_zewnatrz_okno_wyglada_tak_samo_z_karta_i_bez(registry: StaticDataRegi
         visibility.project_strict(s, "p2").reaction_pause for s in (without, with_card)
     ]
     assert seen[0] == seen[1]
-    assert seen[0] is not None and seen[0].passed == [] and seen[0].seconds == 4
+    assert seen[0] is not None and seen[0].passed == []
+    assert seen[0].seconds == reaction_window.DEFAULT_SECONDS
 
 
 def test_projekcja_zostawia_tylko_wlasny_pas_i_liczbe_prosb(registry: StaticDataRegistry) -> None:
@@ -189,7 +193,8 @@ def test_web_data_pasy_tylko_patrzacego(registry: StaticDataRegistry) -> None:
     payload = _reaction_pause(visibility.project_strict(state, "p3"))
     assert payload is not None
     assert payload["passed"] == ["p3"] and payload["askedForTime"] == []
-    assert payload["extensions"] == 1 and payload["pauseSeconds"] == 14
+    assert payload["extensions"] == 1
+    assert payload["pauseSeconds"] == reaction_window.DEFAULT_SECONDS + 10
 
 
 def test_nowa_gra_z_dlugoscia_okna(registry: StaticDataRegistry) -> None:

@@ -278,6 +278,9 @@ class FactionInfo(BaseModel):
     # ``starting_fleet`` w UI pełnymi nazwami jednostek. ``starting_fleet`` zostaje jako
     # oryginalny string (zgodność wsteczna / debug).
     starting_units: list[StartingUnit] = Field(default_factory=list)
+    # Frakcja ma pełną implementację w silniku (``core/faction_support``) - tymczasowy znacznik
+    # w kreatorze (decyzja użytkownika 2026-11-18, do usunięcia po komplecie frakcji).
+    implemented: bool = False
 
 
 class EngineConfigInfo(BaseModel):
@@ -1661,6 +1664,30 @@ class AutoPassRequest(BaseModel):
 
     actor_id: str
     enabled: bool
+
+
+class QuickWindowsRequest(BaseModel):
+    """„Quick windows” hosta (``/reaction-settings/quick``, RULES.md 54.12)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool
+
+
+class ReactionPrefsRequest(BaseModel):
+    """Zmiana prywatnych preferencji reakcji (``/reaction-settings/prefs``, RULES.md 54.12).
+
+    ``declare``: kategoria -> czas trwania (``None`` = odwołanie); ``mute_*``: klucz -> wł./wył.
+    Pola pominięte zostają bez zmian.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    actor_id: str
+    declare: dict[str, str | None] | None = None
+    only_involved: bool | None = None
+    mute_cards: dict[str, bool] | None = None
+    mute_offers: dict[str, bool] | None = None
 
 
 class ReactionWindowRequest(BaseModel):

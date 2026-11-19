@@ -247,8 +247,10 @@ def apply_setup_to_state(
     for planet_id, units in plan.planet_units.items():
         unit_ops.replace_zone_units(new_state, system, planet_id, player_id, units)
     new_state.systems[unit_pos] = system
+    # Planety domowe są graczowi dane przy rozstawieniu - to nie „zdobycie kontroli”, więc bez
+    # zdarzeń PLANET_CONTROL_GAINED (Scavenge Saar nie daje TG za dom, RULES.md 62.14).
     for planet_id in plan.home_planets:
-        control.set_planet_control(new_state, unit_pos, planet_id, player_id)
+        control.assign_home_planet(new_state, unit_pos, planet_id, player_id)
     return new_state
 
 

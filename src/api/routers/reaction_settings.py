@@ -1,4 +1,5 @@
-"""Router ustawień okien reakcji (RULES.md 54.11): długość okna (host) i „Skip all reactions”.
+"""Router ustawień okien reakcji (RULES.md 54.11-54.12): długość i „Quick windows” (host),
+„Skip all reactions”, deklaracje pasu i wyciszenia (gracz, prywatne).
 
 Cienkie endpointy nad ``core.reaction_window``. Oba działają także w trakcie okna Sabotage
 (middleware hold-play przepuszcza ``/reaction-settings/*``).
@@ -10,9 +11,15 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.actor import ActorId, HostOnly
 from src.api.context import AppContext, get_ctx
-from src.api.schemas import AutoPassRequest, ReactionWindowRequest, StateEnvelope
+from src.api.schemas import (
+    AutoPassRequest,
+    QuickWindowsRequest,
+    ReactionPrefsRequest,
+    ReactionWindowRequest,
+    StateEnvelope,
+)
 from src.core import actor as actor_rules
-from src.core import reaction_window
+from src.core import reaction_prefs, reaction_window
 from src.core.game_state import GameState
 
 router = APIRouter(prefix="/reaction-settings", tags=["reactions"])
@@ -47,7 +54,42 @@ async def post_auto_pass(
         new_state = reaction_window.set_auto_pass(
             ctx.service.current_state(), player, request.enabled
         )
+        new_state = reaction_window.settle_quick(new_state, ctx.registry)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     # Etykieta bez nazwy gracza i bez stanu: ustawienie jest prywatne (feed go nie pokazuje).
     return await _commit(ctx, new_state, "reaction-settings:auto-pass")
+
+
+@router.post("/quick", dependencies=[HostOnly], response_model=StateEnvelope)
+async def post_quick(
+    request: QuickWindowsRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Host włącza/wyłącza „Quick windows”: okno kończy się, gdy wszyscy spasowali (54.12)."""
+    new_state = reaction_window.configure_quick(ctx.service.current_state(), request.enabled)
+    new_state = reaction_window.settle_quick(new_state, ctx.registry)
+    return await _commit(ctx, new_state, f"reaction-settings:quick:{int(request.enabled)}")
+
+
+@router.post("/prefs", response_model=StateEnvelope)
+async def post_prefs(
+    actor: ActorId, request: ReactionPrefsRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Gracz zmienia deklaracje pasu / „only when involved” / wyciszenia (prywatne, 54.12)."""
+    player = actor_rules.merge_claimed(actor, request.actor_id)
+    try:
+        new_state = reaction_prefs.update(
+            ctx.service.current_state(),
+            player,
+            declare=request.declare,
+            only_involved=request.only_involved,
+            mute_cards=request.mute_cards,
+            mute_offers=request.mute_offers,
+        )
+        reaction_window.pass_open_windows(new_state, player)
+        new_state = reaction_window.settle_quick(new_state, ctx.registry)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    # Etykieta bez nazwy gracza i bez treści: ustawienie jest prywatne (feed go nie pokazuje).
+    return await _commit(ctx, new_state, "reaction-settings:prefs")
+

@@ -26,6 +26,7 @@ from src.core import (
     ion_storm,
     objective_events,
     production,
+    rules_hooks,
     triggers,
 )
 from src.core.battle import space_combat_required
@@ -127,6 +128,23 @@ def activate_system(
     if not free and existing is not None and active_id in existing.command_tokens:
         raise ValueError(
             "Cannot activate a system that already contains your command token."
+        )
+
+    # Zdolność INNEGO gracza zabrania aktywacji tego systemu (Chaos Mapping, RULES.md 62.14).
+    blocked_by = next(
+        (
+            pid for pid in sorted(state.players)
+            if pid != active_id and rules_hooks.permits(
+                rules_hooks.POINT_TACTICAL_ACTIVATION_BLOCKED, state, pid,
+                {"activator": active_id, "position": position},
+            )
+        ),
+        None,
+    )
+    if blocked_by is not None:
+        raise ValueError(
+            "Another player's ability prevents you from activating this system "
+            "(an asteroid field that contains their ships)."
         )
 
     # R: potrzebny żeton w puli taktycznej.

@@ -50,6 +50,9 @@ def _players_present(state: GameState) -> dict[str, set[str]]:
                     here.add(owner)
         # Kontrola planet (bez względu na stojące jednostki).
         here.update(system.planet_owners.values())
+        # R_neutral_units: „there is no neutral player” - jednostki neutralne (Pirate Contract,
+        # Thunder's Edge) nie są niczyim sąsiadem; obecność liczą tylko gracze.
+        here &= set(state.players)
         if here:
             presence[position] = here
     return presence

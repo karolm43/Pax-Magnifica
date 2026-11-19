@@ -22,7 +22,6 @@ import { Breakthrough } from "@/domains/player/components/Breakthrough/Breakthro
 import { PromissoryNote } from "@/domains/player/components/PromissoryNote";
 import { Ability } from "@/domains/player/components/Ability";
 import { Tech } from "@/domains/player/components/Tech";
-import { ReactionAutoPassToggle } from "@/domains/player/components/ReactionAutoPass/ReactionAutoPassToggle";
 import { LogisticsPlate } from "@/domains/player/components/PlayerCardShared/LogisticsPlate";
 import {
   MIN_RACK_ROWS,
@@ -228,7 +227,6 @@ export const PlayerDeckRow = memo(function PlayerDeckRow({
           <span className={styles.fac}>{player.factionDisplayName}</span>
         </span>
         <span className={styles.idEnd}>
-          <ReactionAutoPassToggle player={playerData} />
           <ActiveMark active={player.active} />
           {player.scs.map((scNumber) => (
             <StrategyCard

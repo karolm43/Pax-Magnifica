@@ -501,6 +501,20 @@
   line-height: 1;
 }
 
+/* TYMCZASOWY znacznik „frakcja zrobiona” (do usunięcia po komplecie frakcji). */
+.badgeImplemented {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border: 1px solid rgb(64 192 87 / 0.5);
+  border-radius: 9px;
+  color: rgb(105 219 124);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
 .badgeSelected {
   background: var(--ds-accent);
   color: #fff;

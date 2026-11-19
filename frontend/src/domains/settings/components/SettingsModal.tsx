@@ -5,7 +5,10 @@ import { toggleVariant, variantModules } from "@/entities/data/officialSources";
 import { AppModal } from "@/shared/ui/AppModal";
 import type { ControlTokenDisplayMode } from "@/entities/game/controlTokenDisplay";
 import { CurrentGameClockControls } from "@/domains/clock/CurrentGameClockControls";
-import { CurrentGameReactionWindow } from "./CurrentGameReactionWindow";
+import {
+  CurrentGameQuickWindows,
+  CurrentGameReactionWindow,
+} from "./CurrentGameReactionWindow";
 import { AudioSettingsPanel } from "@/shared/audio/AudioSettingsPanel";
 import styles from "./SettingsModal.module.css";
 
@@ -263,7 +266,7 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
                 value={settings.reactionWindowSeconds}
                 onChange={(value) =>
                   handlers.updateSettings({
-                    reactionWindowSeconds: clampInt(value, 2, 30, 4),
+                    reactionWindowSeconds: clampInt(value, 2, 30, 5),
                   })
                 }
               />
@@ -277,6 +280,14 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
                   gameId={gameId}
                   seconds={settings.reactionWindowSeconds}
                 />
+              </SettingRow>
+            )}
+            {gameId && (
+              <SettingRow
+                label="Quick windows"
+                description="End a reaction window as soon as every player has passed (the game passes on its own for players with nothing to play). Games go faster, but a quick end shows that nobody reacted or held a fitting card. Host only, current game."
+              >
+                <CurrentGameQuickWindows gameId={gameId} />
               </SettingRow>
             )}
           </SettingGroup>

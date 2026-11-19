@@ -33,6 +33,9 @@ export type FactionInfo = {
   // Flota startowa rozbita na pozycje (liczba + typ jednostki). Front rozwiązuje
   // `base_type` na pełną nazwę jednostki (bez surowych kodów typu `cv`/`dd`).
   starting_units: StartingUnit[];
+  // Frakcja ma pełną implementację w silniku — tymczasowy znacznik w kreatorze (do usunięcia
+  // po komplecie frakcji); losowanie „Random” bierze najpierw takie frakcje.
+  implemented?: boolean;
 };
 
 /** Jedna pozycja floty startowej frakcji (liczba + typ jednostki). */

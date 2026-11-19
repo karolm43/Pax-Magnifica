@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from src.core import triggers
+from src.core import floating_structures, triggers
 from src.core.damage import damaged_count, move_damage, set_damaged
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState
@@ -74,6 +74,8 @@ def place_units(
     """Dokłada ``count`` jednostek gracza do strefy (tworzy wpisy, gdy ich brak)."""
     if count < 0:
         raise ValueError("The number of units cannot be negative.")
+    # Struktura pływająca (Floating Factory) staje w przestrzeni, nie na planecie (RULES.md 62.14).
+    zone = floating_structures.landing_zone(state, player_id, base_type, zone)
     if zone == "space":
         bucket = system.space_units.setdefault(player_id, {})
     else:
@@ -96,11 +98,21 @@ def replace_zone_units(
     cause: UnitCause = UnitCause.SETUP,
 ) -> None:
     """Zastępuje WSZYSTKIE jednostki gracza w strefie podanym zestawem (rozstawienie startowe)."""
-    del state, cause  # miejsce na hooki (RULES.md 43)
+    del cause  # miejsce na hooki (RULES.md 43)
+    floating = {
+        bt: n for bt, n in units.items()
+        if floating_structures.landing_zone(state, player_id, bt, zone) != zone
+    }
     if zone == "space":
         system.space_units[player_id] = dict(units)
     else:
-        system.planet_units.setdefault(zone, {})[player_id] = dict(units)
+        system.planet_units.setdefault(zone, {})[player_id] = {
+            bt: n for bt, n in units.items() if bt not in floating
+        }
+        if floating:  # Floating Factory: rozstawienie startowe w przestrzeni (RULES.md 62.14)
+            space = system.space_units.setdefault(player_id, {})
+            for bt, n in floating.items():
+                space[bt] = space.get(bt, 0) + n
 
 
 def take_units(

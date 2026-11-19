@@ -21,10 +21,11 @@ def registry() -> StaticDataRegistry:
 
 @pytest.mark.parametrize("seed", [1, 2, 11, 125])
 def test_random_bots_game_survives(registry: StaticDataRegistry, seed: int) -> None:
-    result = run_game(registry, seed, rounds=3)
+    # 2 rundy: smoke w zwykłym zestawie ma być szybki; duża próba poza pytest.
+    result = run_game(registry, seed, rounds=2)
 
     assert result.failure is None, result.failure
-    assert result.rounds == 3
+    assert result.rounds == 2
 
 
 def test_fuzz_pool_is_the_setup_pool(registry: StaticDataRegistry) -> None:

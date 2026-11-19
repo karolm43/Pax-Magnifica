@@ -19,12 +19,12 @@
     "BALANCED"
   ],
   "bot": {
-    "_comment": "ZALOZENIE (warstwa AI, RULES.md 65). Algorytmy z src/engine/compute.py: first = bot pasywny (bezpieczny ruch), random = losowy legalny. executor inline = liczenie w procesie serwera; process = pula procesow (dla ciezkich algorytmow).",
-    "default_algorithm": "first",
+    "_comment": "ZALOZENIE (warstwa AI, RULES.md 65). Algorytmy z src/engine/compute.py: first = bot pasywny (bezpieczny ruch), random = losowy legalny (2026-11-18: wszystkie poziomy na random do testow - RULES.md 65.8). executor inline = liczenie w procesie serwera; process = pula procesow (dla ciezkich algorytmow).",
+    "default_algorithm": "random",
     "algorithm_by_difficulty": {
-      "EASY": "first",
-      "NORMAL": "first",
-      "HARD": "first"
+      "EASY": "random",
+      "NORMAL": "random",
+      "HARD": "random"
     },
     "move_delay_s": 1.0,
     "decision_deadline_s": 2.0,

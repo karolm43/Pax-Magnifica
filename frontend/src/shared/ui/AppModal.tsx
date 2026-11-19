@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { IconArrowsMaximize, IconMinus } from "@tabler/icons-react";
 import { Modal, type ModalProps } from "@/ds";
 import cx from "clsx";
+import { DraggablePill } from "./DraggablePill";
 import styles from "./AppModal.module.css";
 
 type AppModalProps = ModalProps & {
@@ -67,20 +67,17 @@ export function AppModal({
         styles={{ ...slotStyles, header: { padding: "14px 16px 12px", ...slotStyles.header } }}
         {...props}
       />
-      {opened && canMinimize && minimized
-        ? createPortal(
-            <button
-              type="button"
-              className={styles.pill}
-              onClick={() => setMinimized(false)}
-              title="Restore the window"
-            >
-              <IconArrowsMaximize size={15} aria-hidden="true" />
-              <span>{label}</span>
-            </button>,
-            document.body,
-          )
-        : null}
+      {opened && canMinimize && minimized ? (
+        <DraggablePill
+          storageKey="minimizedPill.pos.v1"
+          className={styles.pill}
+          title="Restore the window"
+          onRestore={() => setMinimized(false)}
+        >
+          <IconArrowsMaximize size={15} aria-hidden="true" />
+          <span>{label}</span>
+        </DraggablePill>
+      ) : null}
     </>
   );
 }

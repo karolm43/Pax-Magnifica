@@ -92,6 +92,7 @@ const ACTION_GLYPH: Record<string, Glyph> = {
   "speaker.set": IconCrown,
   "reactions.wait": IconHourglass,
   "reactions.window": IconHourglass,
+  "reactions.quick": IconHourglass,
   "tactical.activate": IconHexagon,
   "objective.score": IconTarget,
   "agenda.reveal": IconGavel,
@@ -226,6 +227,10 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
       return <>Someone asked for more time to react</>;
     case "reactions.window":
       return <>Reaction windows now last {a.subject} s</>;
+    case "reactions.quick":
+      return a.subject === "on"
+        ? <>Quick windows on: a reaction window ends once everyone has passed</>
+        : <>Quick windows off: reaction windows last their full time</>;
     case "setup.faction":
       return <>{prettifyId(a.subject ?? "")} joined the table</>;
     case "strategy.pick":

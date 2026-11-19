@@ -19,7 +19,7 @@ import { selectedModulesReplace } from "@/entities/data/officialSources";
 // spójnie z grą. Działa na etapie setupu (hooki stanu gry degradują do undefined).
 
 import { useEffect, useState } from "react";
-import { Button, MultiSelect, Stack, Text } from "@/ds";
+import { Button, Stack, Text } from "@/ds";
 import { IconArrowLeft, IconCards, IconChevronRight } from "@tabler/icons-react";
 import { type FactionInfo, useFaction } from "@/api/useNewGame";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
@@ -30,6 +30,7 @@ import { PromissoryNote } from "@/domains/player/components/PromissoryNote";
 import { Breakthrough } from "@/domains/player/components/Breakthrough/Breakthrough";
 import { UnitDetailsCard } from "@/domains/cards/components/UnitDetailsCard/UnitDetailsCard";
 import { PlanetDetailsCard } from "@/domains/cards/components/PlanetDetailsCard";
+import { TechCard } from "@/domains/cards/components/TechCard/TechCard";
 import { Unit } from "@/shared/ui/Unit";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
 import { getLeaderById } from "@/entities/lookup/leaders";
@@ -221,7 +222,12 @@ function FactionComponentChip({ component }: { component: FactionComponent }) {
   );
 }
 
-/** Wbudowany wybór technologii startowych (zastępuje osobny krok kreatora). */
+/**
+ * Wbudowany wybór technologii startowych (zastępuje osobny krok kreatora). Każda opcja to
+ * pełna karta technologii (`TechCard` — ta sama co po kliknięciu chipa `Tech` w grze), więc
+ * gracz od razu widzi, co technologia robi; klik karty zaznacza/odznacza wybór. Po
+ * przekroczeniu limitu wypada najstarszy wybór.
+ */
 function StartingTechChoice({
   faction,
   value,
@@ -232,24 +238,42 @@ function StartingTechChoice({
   onChange: (techs: string[]) => void;
 }) {
   const amount = faction.starting_tech_amount;
-  const options = faction.starting_tech_options.map((alias) => ({
-    value: alias,
-    label: getTechData(alias)?.name ?? alias,
-  }));
+  const toggle = (alias: string) => {
+    if (value.includes(alias)) {
+      onChange(value.filter((t) => t !== alias));
+      return;
+    }
+    const next = [...value, alias];
+    onChange(next.length > amount ? next.slice(next.length - amount) : next);
+  };
   return (
-    <Stack gap={4}>
-      <MultiSelect
-        label={`Starting technologies (choose ${amount})`}
-        placeholder={`Choose ${amount}`}
-        data={options}
-        value={value}
-        onChange={(next) =>
-          onChange(next.length > amount ? next.slice(next.length - amount) : next)
-        }
-      />
+    <Stack gap={6}>
       <Text size="xs" c={value.length === amount ? "dimmed" : "red"}>
-        Chosen {value.length} of {amount}.
+        Choose {amount} — chosen {value.length} of {amount}. Click a card to pick it.
       </Text>
+      <div className={styles.techOptions}>
+        {faction.starting_tech_options.map((alias) => {
+          const chosen = value.includes(alias);
+          const name = getTechData(alias)?.name ?? alias;
+          return (
+            <button
+              key={alias}
+              type="button"
+              aria-pressed={chosen}
+              aria-label={`${chosen ? "Unpick" : "Pick"} ${name}`}
+              className={`${styles.techOption} ${chosen ? styles.techOptionChosen : ""}`}
+              onClick={() => toggle(alias)}
+            >
+              <TechCard techId={alias} fluid />
+              {chosen && (
+                <span className={styles.techOptionMark} aria-hidden>
+                  ✓
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </Stack>
   );
 }

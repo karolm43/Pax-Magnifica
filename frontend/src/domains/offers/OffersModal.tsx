@@ -7,7 +7,12 @@ import {
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useOfferActions, useOffers, type OfferView } from "@/api/useOffers";
-import { buildActionCardParams, type FormValue, hasNoLegalOption } from "@/api/useActionCard";
+import {
+  buildActionCardParams,
+  type FormValue,
+  hasNoLegalOption,
+  postReactionPrefs,
+} from "@/api/useActionCard";
 import { useGameData } from "@/state/useGameContext";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import { Tech } from "@/domains/player/components/Tech";
@@ -133,6 +138,14 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
   };
   const use = () => void run(() => actions.accept(offer.player_id, offer.id, params));
   const skip = () => void run(() => actions.decline(offer.player_id, offer.id));
+  // „Never ask” (RULES.md 54.12): odmowa + wyciszenie ofert tego komponentu (odwołanie w panelu
+  // „Reactions” panelu akcji).
+  const neverAsk = () =>
+    void run(async () => {
+      if (!offer.source) return;
+      await postReactionPrefs(offer.player_id, { mute_offers: { [offer.source]: true } });
+      await actions.decline(offer.player_id, offer.id);
+    });
 
   // Skróty klawiszowe: tylko gdy fokus nie siedzi w polu formularza ani na przycisku.
   useEffect(() => {
@@ -253,6 +266,17 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
       {noOptions && <p className={styles.warn}>There is no legal option for this right now.</p>}
 
       <footer className={styles.actions}>
+        {!offer.mandatory && offer.source && (
+          <button
+            type="button"
+            className={styles.never}
+            disabled={busy}
+            onClick={neverAsk}
+            title="Skip and stop offering this ability. Undo in Reactions on the action panel."
+          >
+            Never ask
+          </button>
+        )}
         {!offer.mandatory && (
           <button type="button" className={styles.skip} disabled={busy} onClick={skip}>
             Skip <kbd>Esc</kbd>

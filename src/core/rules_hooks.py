@@ -295,6 +295,18 @@ POINT_MOVEMENT_INTO_SUPERNOVA = "movement.into_supernova"
 POINT_PRODUCTION_SYSTEM_VALUE = "production.system_value"
 # PERMIT -> gracz ma zdolność PRODUCTION na planszy spoza jednostek (warunek eliminacji, Magmus Ω).
 POINT_ELIMINATION_HAS_PRODUCTION = "elimination.has_production"
+# --- Clan of Saar (RULES.md 62.14) ---
+# PERMIT -> struktura gracza (``ctx["base_type"]``) stoi w PRZESTRZENI i rusza się / wycofuje jak
+# statek, a zablokowana ginie (Floating Factory) - ``core/floating_structures``.
+POINT_UNIT_FLOATING_STRUCTURE = "units.floating_structure"
+# PERMIT -> gracz-właściciel hooka zabrania INNEMU graczowi (``ctx["activator"]``) aktywować system
+# ``ctx["position"]`` (Chaos Mapping) - sprawdzane w ``tactical.activate_system``.
+POINT_TACTICAL_ACTIVATION_BLOCKED = "tactical.activation_blocked"
+# MODIFY -> docelowa wartość ruchu JEDNEGO statku (``ctx``: ``from``, ``base_type``); 0 = brak.
+# Silnik bierze max(własna, docelowa) po regule mgławicy, przed premiami (Captain Mendosa).
+POINT_MOVEMENT_SINGLE_SHIP_VALUE = "movement.single_ship_value"
+# PERMIT -> gracz zdobywa cele bez kontroli planet swojego systemu domowego (Nomadic).
+POINT_OBJECTIVES_IGNORE_HOME_CONTROL = "objectives.ignore_home_control"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"

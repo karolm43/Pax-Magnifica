@@ -134,6 +134,21 @@ def set_planet_control(
         objective_events.on_planet_lost(state, previous, position)
 
 
+def assign_home_planet(state: GameState, position: str, planet: str, owner: str) -> None:
+    """Planeta domowa dana graczowi przy rozstawieniu (MUTUJE ``state``).
+
+    To nie jest „zdobycie kontroli”: bez zdarzeń ``PLANET_CONTROL_*`` (Scavenge Saar nie daje TG
+    za dom, RULES.md 62.14). Ustawia ``planet_owners`` i lustro ``controlled_planets``.
+    """
+    system = state.systems.get(position)
+    if system is None:
+        raise ValueError(f"Unknown system position: {position}")
+    system.planet_owners[planet] = owner
+    player = state.players.get(owner)
+    if player is not None and planet not in player.controlled_planets:
+        player.controlled_planets = [*player.controlled_planets, planet]
+
+
 def recompute_from_units(state: GameState, position: str, planet: str) -> None:
     """Przelicza kontrolę planety po postawieniu jednostek (reguła AsyncTI4, RULES.md 23).
 

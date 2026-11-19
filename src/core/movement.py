@@ -18,14 +18,13 @@ from dataclasses import dataclass, replace
 from itertools import combinations as _combinations
 from typing import Any
 
-from src.core import ion_storm, rules_hooks, timing, triggers, unit_ops
+from src.core import floating_structures, ion_storm, rules_hooks, timing, triggers, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
-from src.core.unit_catalog import is_space_unit
 from src.core.unit_ops import UnitCause
 
 # Jednostki, które mogą być ŁADUNKIEM transportu (R_transport): myśliwce i siły
@@ -606,6 +605,7 @@ def _effective_move_value(
     tempesta: bool,
     imperator: bool = False,
     companions: Iterable[str] | None = None,
+    single: bool = True,
 ) -> int | None:
     """Wartość ruchu statku ``base_type`` startującego z ``from_pos`` (None = nie rusza się sam).
 
@@ -627,6 +627,11 @@ def _effective_move_value(
     # wartość ruchu jako 1; inne efekty (Gravity Drive — hook niżej) mogą ją podnieść.
     if _NEBULA in grid.anomalies_at(from_pos) and not _ignores_anomalies(state, player_id):
         move_value = 1
+    if single:
+        # Wartość JEDNEGO statku podniesiona do zadanej (Captain Mendosa, RULES.md 62.14): po
+        # regule mgławicy (F_saar mendosa 3), przed premiami MODIFY. ``single=False`` = stos
+        # większy niż 1 sztuka - premia dotyczy tylko jednego statku.
+        move_value = max(move_value, single_ship_target(state, player_id, from_pos, base_type))
     result = int(
         rules_hooks.modify(
             rules_hooks.POINT_MOVEMENT_MOVE_VALUE, state, player_id, move_value,
@@ -654,6 +659,14 @@ def _effective_move_value(
     return result
 
 
+def single_ship_target(state: GameState, player_id: str, from_pos: str, base_type: str) -> int:
+    """Docelowa wartość ruchu jednego statku ``base_type`` z ``from_pos`` (0 = brak efektu)."""
+    return int(rules_hooks.modify(
+        rules_hooks.POINT_MOVEMENT_SINGLE_SHIP_VALUE, state, player_id, 0,
+        {"from": from_pos, "base_type": base_type},
+    ))
+
+
 def can_move(
     state: GameState,
     grid: HexGrid,
@@ -667,6 +680,7 @@ def can_move(
     imperator: bool = False,
     route: list[str] | None = None,
     companions: Iterable[str] | None = None,
+    single: bool = True,
 ) -> tuple[bool, str]:
     """Sprawdza, czy ruch stosu ``base_type`` ze ``from_pos`` do aktywnego jest legalny.
 
@@ -679,7 +693,7 @@ def can_move(
     active = state.active_system
     if active is None:
         return False, "No active system - movement is only allowed during a tactical action (R1)."
-    if not is_space_unit(base_type):
+    if not floating_structures.moves_as_ship(state, player_id, base_type):
         return False, f"Unit {base_type} is not a ship - it cannot move."
     from src.core import promissory_play  # lokalnie: unikamy cyklu importów
 
@@ -694,6 +708,7 @@ def can_move(
     move_value = _effective_move_value(
         state, grid, registry, from_pos, base_type, player_id,
         boost=boost, tempesta=tempesta, imperator=imperator, companions=companions,
+        single=single,
     )
     if move_value is None:
         return False, (
@@ -874,7 +889,7 @@ def legal_move_sources(
         by_type = system.space_units.get(player_id, {})
         movable: list[str] = []
         for base_type, count in sorted(by_type.items()):
-            if count <= 0 or not is_space_unit(base_type):
+            if count <= 0 or not floating_structures.moves_as_ship(state, player_id, base_type):
                 continue
             ok, _ = can_move(
                 state, grid, registry, position, base_type, player_id,
@@ -1238,6 +1253,18 @@ def move_fleet(
             for name in chosen:
                 this_move[name] = True
                 spent[name] = True
+        if count > 1 and single_ship_target(state, player_id, from_pos, base_type) > 0:
+            # Captain Mendosa podnosi ruch tylko 1 statku: stos > 1 sztuki musi zdążyć bez tego.
+            flags = {name: this_move[name] for name in this_move}
+            ok_plain, _ = can_move(
+                state, grid, registry, from_pos, base_type, player_id, route=plan_route,
+                companions=list(ships), single=False, boost=flags["boost"],
+                tempesta=flags["tempesta"], imperator=flags["imperator"],
+            )
+            if not ok_plain:
+                raise ValueError(
+                    "That move value increase applies to only 1 ship - move that ship alone."
+                )
         available = _available_in_zone(source, player_id, base_type, "space")
         if available < count:
             raise ValueError(

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { IconHourglassHigh, IconHourglassOff, IconX } from "@tabler/icons-react";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
-import { useActionCardPlayability } from "@/api/useActionCard";
+import { postReactionPrefs, useActionCardPlayability } from "@/api/useActionCard";
+import { useGameData } from "@/state/useGameContext";
 import { usePromissoryPlayability } from "@/api/useFactionComponents";
 import { getActionCard } from "@/entities/lookup/actionCards";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
@@ -41,6 +42,9 @@ export function HandReactionRows({
   const { data: actions } = useActionCardPlayability(playerId, (hand?.actionCards.length ?? 0) > 0);
   const { data: notes } = usePromissoryPlayability(playerId, (hand?.promissoryNotes.length ?? 0) > 0);
   const colors = useFactionColors();
+  // Karty wyciszone w „Reactions” (RULES.md 54.12) nie wyskakują - silnik i tak za nich pasuje.
+  const muted = useGameData()?.playerData?.find((p) => p.discordId === playerId)?.reactionPrefs
+    ?.mutedCards;
   const rows = useMemo(() => {
     const byName = new Map<string, Row>();
     for (const r of readyReactions(actions, notes)) {
@@ -83,7 +87,7 @@ export function HandReactionRows({
   return (
     <>
       {rows
-        .filter((r) => !dismissed.has(r.key))
+        .filter((r) => !dismissed.has(r.key) && !muted?.includes(r.name))
         .map((r) => {
           const { name, when } = r;
           // Fraza okna stoi osobno pogrubiona - nie powtarzamy jej na początku tekstu.
@@ -122,6 +126,19 @@ export function HandReactionRows({
               {when && <p className={styles.when}>{when}</p>}
               <p className={styles.text}>{text}</p>
               <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={styles.ghost}
+                  title="Stop asking about this card. Undo in Reactions on the action panel."
+                  onClick={() => {
+                    setDismissed((cur) => new Set(cur).add(r.key));
+                    void postReactionPrefs(playerId, { mute_cards: { [name]: true } }).catch(
+                      () => undefined,
+                    );
+                  }}
+                >
+                  Never ask
+                </button>
                 <button
                   type="button"
                   className={styles.ghost}
