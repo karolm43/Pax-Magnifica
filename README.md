@@ -14,7 +14,7 @@
 ![mypy](https://img.shields.io/badge/mypy-strict-blue)
 ![Status](https://img.shields.io/badge/status-silnik%20w%20toku-orange)
 
-[Funkcje](#-co-już-działa) · [Status](#-status) · [Architektura](#-architektura) · [Uruchomienie](#-uruchomienie) · [Gra sieciowa](#-gra-sieciowa) · [Dokumentacja](#-dokumentacja)
+[Pobierz](#-pobierz-i-graj) · [Funkcje](#-co-już-działa) · [Status](#-status) · [Architektura](#-architektura) · [Uruchomienie](#-uruchomienie) · [Gra sieciowa](#-gra-sieciowa) · [Dokumentacja](#-dokumentacja)
 
 </div>
 
@@ -27,6 +27,16 @@ Grać można przez sieć (do 6 graczy, ludzie + boty); gra solo z botami to szcz
 
 Cel końcowy: **autonomiczny bot**, który sam prowadzi frakcję — wybiera strategie, rusza flotami, walczy,
 głosuje na agendzie i punktuje cele. Silnik reguł jest jego „prawami fizyki”.
+
+## 📥 Pobierz i graj
+
+Nie musisz instalować Pythona ani Node.js:
+
+1. Pobierz `PaxMagnifica-<data>.zip` z zakładki [**Releases**](https://github.com/karolm43/Pax-Magnifica/releases/latest) (~1,4 GB).
+2. Rozpakuj cały folder i uruchom `PaxMagnifica.exe` (Windows). Gra otworzy się w przeglądarce.
+3. SmartScreen może ostrzec, bo plik nie jest podpisany: „Więcej informacji” → „Uruchom mimo to”.
+
+Szczegóły (gra sieciowa, zapisy) są w `JAK_GRAC.txt` w paczce. Budowanie paczki samemu: `uv run python packaging/build_release.py`.
 
 ## ✨ Co już działa
 
@@ -59,11 +69,15 @@ Pokrycie komponentów hookami (z generowanego raportu [`docs/POKRYCIE_HOOKOW.md`
 |---|---:|---|
 | Karty akcji | 143 / 143 | ✅ |
 | Relikty | 23 / 24 | ✅ |
-| Technologie | 36 / 102 | 🔧 wszystkie ogólne; frakcyjne w toku |
-| Agendy | 0 / 123 | ⬜ głosowanie działa, efekty praw w kolejce |
-| Liderzy, zdolności frakcji, notki, przełomy | 0 | ⬜ etap frakcji |
+| Agendy | 50 / 63 | 🔧 głosowanie działa, część efektów w kolejce |
+| Technologie | 62 / 102 | 🔧 wszystkie ogólne; frakcyjne w toku |
+| Promissory notes | 18 / 40 | 🔧 |
+| Liderzy | 39 / 102 | 🔧 |
+| Zdolności frakcji | 26 / 73 | 🔧 |
+| Przełomy | 13 / 31 | 🔧 |
+| Eksploracja | 4 / 80 | ⬜ |
 
-**Następne kroki:** efekty agend → zdolności frakcji, liderzy i promissory notes → reszta okien czasowych → bot.
+**Następne kroki:** reszta agend → zdolności frakcji, liderzy i promissory notes → reszta okien czasowych → bot.
 Bieżący dziennik prac: [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## 🏗️ Architektura
@@ -110,9 +124,8 @@ uv sync --extra dev
 cd frontend && npm install && cd ..
 ```
 
-Dane gry (JSON, ~5 MB) są w repo, więc klon jest od razu grywalny. **Grafiki i fonty są poza repo** — bez nich
-w miejscu obrazków pojawią się zaślepki. Jeśli masz lokalną kopię grafik AsyncTI4, skopiuj brakujące pliki
-według manifestu:
+Dane gry i `assets/` są w repo, więc klon jest od razu grywalny. Gdyby brakowało grafik albo fontów (zaślepki
+zamiast obrazków), skopiuj brakujące pliki z lokalnej kopii AsyncTI4 według manifestu:
 
 ```bash
 uv run python -m src.audit sync_assets --from <katalog-z-grafikami>
@@ -136,7 +149,7 @@ Partia zapisuje się w `saves/` i wznawia po restarcie serwera. `--save PLIK` wy
 
 - **Biała strona / „Update Needed”** — backend nie działa albo nie oddał `web-data`; sprawdź jego okno.
 - **Rejestr ładuje 0 jednostek** — brak `assets/data/`; sprawdź: `uv run python -m src.core.registry`.
-- **Brak obrazków** — grafiki są poza repo, patrz `sync_assets` wyżej.
+- **Brak obrazków** — brakujące assety uzupełnij przez `sync_assets` (wyżej).
 - **Spójność danych** — `uv run python -m src.audit` (liczby wpisów, referencje, brakujące pliki).
 
 </details>
