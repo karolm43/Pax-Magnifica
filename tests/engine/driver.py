@@ -30,7 +30,8 @@ from src.engine.observation import observe
 # Pola zmieniane przez commit serwera (zegar szachowy itp.), a nie przez regułę akcji.
 _COMMIT_ONLY_FIELDS: frozenset[str] = frozenset()
 # Przeskok zegara, gdy wszyscy czekają na koniec okna o stałej długości (RULES.md 54.11).
-_WAIT_SECONDS = 60.0
+# Musi przekroczyć reaction_window_seconds (domyślnie 5 s) - 10 s z marginesem wystarczy.
+_WAIT_SECONDS = 10.0
 
 Policy = Callable[[list[Action]], list[Action]]
 """Kolejność prób kandydatów (domyślnie bez zmian = bot pasywny; fuzzer: losowo)."""
@@ -66,6 +67,7 @@ class BotTable:
         policy: Policy | None = None,
         seat_order: SeatOrder | None = None,
         after_step: AfterStep | None = None,
+        map_string: str | None = None,
     ) -> None:
         self.registry = registry
         self.policy: Policy = policy or (lambda candidates: candidates)
@@ -83,7 +85,10 @@ class BotTable:
             | ({"difficulty": "EASY"} if control == "BOT" else {})
             for f in factions
         ]
-        resp = self.client.post("/game/new", json={"players": players})
+        body: dict[str, Any] = {"players": players}
+        if map_string is not None:
+            body["map_string"] = map_string
+        resp = self.client.post("/game/new", json=body)
         assert resp.status_code == 200, resp.text
         # Sytuacja startowa z God-Mode (np. zdjęty żeton Custodians => faza agendy).
         resp = self.client.post("/god-mode/patch", json={"rng_seed": seed, **(patch or {})})

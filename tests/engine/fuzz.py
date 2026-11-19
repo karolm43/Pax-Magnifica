@@ -39,6 +39,8 @@ from typing import Any
 
 from src.core import faction_support
 from src.core.game_state import GameState, Phase
+from src.core.home_slots import HOME_SLOT_COLORS_6P
+from src.core.positions import ordered_positions
 from src.core.registry import StaticDataRegistry
 from src.engine.actions import Action
 from tests.engine.driver import BotTable, Report
@@ -80,6 +82,32 @@ def sample_factions(
         families.setdefault(family, []).append(fid)
     chosen = rng.sample(sorted(families), count)
     return [rng.choice(families[family]) for family in chosen]
+
+
+def random_map_string(registry: StaticDataRegistry, rng: random.Random) -> str:
+    """Losowy map string 6-osobowy: 30 kafelków (blue+red) na pierścieniach 1–3.
+
+    Home sloty (rogi pierścienia 3) zachowują ``"0"`` — frakcje wchodzą tam samy przy setupie.
+    Kafelki Fracture i Mecatol Rex są wykluczone ze puli losowania.
+    """
+    usable = sorted(
+        sid
+        for sid, s in registry.systems.items()
+        if s.tile_back in ("blue", "red") and sid != "18" and not s.is_fracture
+    )
+    # Pierścienie 1–3 = pierwsze 36 pozycji; home sloty to rogi pierścienia 3.
+    positions_6p = ordered_positions()[:36]
+    non_home = [p for p in positions_6p if p not in HOME_SLOT_COLORS_6P]
+    tiles = rng.sample(usable, min(len(non_home), len(usable)))
+    rng.shuffle(tiles)
+    tile_iter = iter(tiles)
+    tokens = []
+    for pos in positions_6p:
+        if pos in HOME_SLOT_COLORS_6P:
+            tokens.append("0")
+        else:
+            tokens.append(next(tile_iter, "0"))
+    return " ".join(tokens)
 
 
 def check_invariants(state: GameState) -> list[str]:
@@ -164,6 +192,7 @@ def run_game(
         rng.shuffle(order)
         return order
 
+    map_str = random_map_string(registry, rng)
     report = Report()
     try:
         table = BotTable(
@@ -174,6 +203,7 @@ def run_game(
             policy=policy,
             seat_order=seats,
             after_step=probe,
+            map_string=map_str,
         )
         table_ref.append(table)
         report = table.run(until_round=rounds, max_steps=max_steps)
