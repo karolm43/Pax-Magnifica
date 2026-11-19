@@ -60,8 +60,8 @@ Szczegóły (gra sieciowa, zapisy) są w `JAK_GRAC.txt` w paczce. Budowanie pacz
 | Etap | Zakres | Stan |
 |---|---|---|
 | 1 | Cyfrowa plansza + God-Mode | ✅ gotowe |
-| 2 | Silnik rozgrywki egzekwujący reguły | 🔧 w toku — szczegóły niżej |
-| 3 | Bot AI (strategiczny → operacyjny → taktyczny) | ⬜ po silniku |
+| 2 | Silnik rozgrywki egzekwujący reguły | 🔧 w toku — szczegóły niżej; 15 frakcji z hookami (Arborec, Argent, Hacan, Jol-Nar, L1Z1X, Letnev, Mentak, Muaat, Naaz-Rokha, Saar, Sardakk, Sol, Winnu, Xxcha, Yin) |
+| 3 | Bot AI (strategiczny → operacyjny → taktyczny) | 🔧 pierwsze kroki: bot prowadzi akcję taktyczną, bada technologie, jest fuzzer partii botów |
 
 Pokrycie komponentów hookami (z generowanego raportu [`docs/POKRYCIE_HOOKOW.md`](docs/POKRYCIE_HOOKOW.md)):
 
@@ -69,15 +69,15 @@ Pokrycie komponentów hookami (z generowanego raportu [`docs/POKRYCIE_HOOKOW.md`
 |---|---:|---|
 | Karty akcji | 143 / 143 | ✅ |
 | Relikty | 23 / 24 | ✅ |
-| Agendy | 50 / 63 | 🔧 głosowanie działa, część efektów w kolejce |
-| Technologie | 62 / 102 | 🔧 wszystkie ogólne; frakcyjne w toku |
-| Promissory notes | 18 / 40 | 🔧 |
-| Liderzy | 39 / 102 | 🔧 |
-| Zdolności frakcji | 26 / 73 | 🔧 |
-| Przełomy | 13 / 31 | 🔧 |
+| Agendy | 50 / 63 | ✅ cała oficjalna talia (50/50); ⬜ fanowskie warianty (Absol) |
+| Technologie | 66 / 102 | 🔧 wszystkie ogólne; frakcyjne w toku |
+| Promissory notes | 20 / 40 | 🔧 |
+| Liderzy | 45 / 102 | 🔧 |
+| Zdolności frakcji | 30 / 73 | 🔧 |
+| Przełomy | 15 / 31 | 🔧 |
 | Eksploracja | 4 / 80 | ⬜ |
 
-**Następne kroki:** reszta agend → zdolności frakcji, liderzy i promissory notes → reszta okien czasowych → bot.
+**Następne kroki:** kolejne frakcje (zdolności, liderzy, promissory notes, przełomy) → reszta okien czasowych → eksploracja → rozbudowa bota.
 Bieżący dziennik prac: [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## 🏗️ Architektura

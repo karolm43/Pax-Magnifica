@@ -59,9 +59,9 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `naalu_mech` | Iconoclast | naalu | — | MODIFY (liczba/rzut) | walka, planety i eksploracja | — | During combat against an opponent who has at least 1 relic fragment, apply +2 to the results of this unit's combat rolls. |
 | `naalu_mech_omega` | Iconoclast Omega | naalu | — | FORBID (zakaz) | walka | — | Other players cannot use ANTI-FIGHTER BARRAGE against your units in this system. |
 | `naalu_mech_te` | Iconoclast TE | naalu | — | — | planety i eksploracja | — | DEPLOY: When another player gains a relic, place 1 mech on any planet you control. |
-| `naaz_flagship` | Visz El Vir | naaz | — | MODIFY (liczba/rzut) | walka | — | Your mechs in this system roll 1 additional die during combat. |
-| `naaz_mech` | Eidolon | naaz | — | — | walka | — | If this unit is in the space area of the active system at the start of a space combat, flip this card. |
-| `naaz_mech_space` | Z-Grav Eidolon | naaz | — | — | — | — | If this unit is in the space area of the active system, it is also a ship. At the end of a space battle in the active system, flip this car… |
+| `naaz_flagship` | Visz El Vir | naaz | — | MODIFY (liczba/rzut) | walka | ✔ | Your mechs in this system roll 1 additional die during combat. |
+| `naaz_mech` | Eidolon | naaz | — | — | walka | ✔ | If this unit is in the space area of the active system at the start of a space combat, flip this card. |
+| `naaz_mech_space` | Z-Grav Eidolon | naaz | — | — | — | ✔ | If this unit is in the space area of the active system, it is also a ship. At the end of a space battle in the active system, flip this car… |
 | `naaz_voltron` | Eidolon Maximum | naaz | — | FORBID (zakaz) | walka, produkcja | — | This unit is both a ship and ground force. It cannot be assigned hits from unit abilities. Repair it at the start of every combat round. Ga… |
 | `nekro_flagship` | The Alastor | nekro | — | — | walka | — | At the start of a space combat, choose any number of your ground forces in this system to participate in that combat as if they were ships. |
 | `nekro_mech` | Mordred | nekro | — | MODIFY (liczba/rzut) | walka, technologie | — | During combat against an opponent who has an "X" or "Y" token on 1 or more of their technologies, apply +2 to the result of each of this un… |
@@ -73,8 +73,8 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `ralnel_destroyer2` | Linkship II | ralnel | — | PERMIT (pozwolenie) | walka | — | This unit can use the SPACE CANNON ability of one of your structures in its space area; each linkship can trigger the same structure. |
 | `ralnel_flagship` | Last Dispatch | ralnel | — | PERMIT (pozwolenie) | walka | — | When this unit retreats, you may destroy 1 ship in the active system that does not have SUSTAIN DAMAGE. |
 | `ralnel_mech` | Alarum | ralnel | — | PERMIT (pozwolenie) | ruch, walka, planety i eksploracja | — | At the end of a round of combat on this planet, you may move up to 2 of your ground forces to this planet from planets in adjacent systems. |
-| `saar_mech` | Scavenger Zeta | saar | — | PERMIT (pozwolenie) | ekonomia i płatności, planety i eksploracja | — | DEPLOY: After you gain control of a planet, you may spend 1 trade good to place 1 mech on that planet |
-| `saar_spacedock` | Floating Factory I | saar | — | REPLACE (instead of) | ruch, walka, planety i eksploracja | — | This unit is placed in the space area instead of on a planet. This unit can move and retreat as if it were a ship. If this unit is blockade… |
+| `saar_mech` | Scavenger Zeta | saar | — | PERMIT (pozwolenie) | ekonomia i płatności, planety i eksploracja | ✔ | DEPLOY: After you gain control of a planet, you may spend 1 trade good to place 1 mech on that planet |
+| `saar_spacedock` | Floating Factory I | saar | — | REPLACE (instead of) | ruch, walka, planety i eksploracja | ✔ | This unit is placed in the space area instead of on a planet. This unit can move and retreat as if it were a ship. If this unit is blockade… |
 | `saar_spacedock2` | Floating Factory II | saar | — | REPLACE (instead of) | ruch, walka, planety i eksploracja | — | This unit is placed in the space area instead of on a planet. This unit can move and retreat as if it were a ship. If this unit is blockade… |
 | `sardakk_dreadnought2` | Exotrireme II | sardakk | — | FORBID (zakaz) | walka, karty | ✔ | This unit cannot be destroyed by "Direct Hit" action cards. After a round of space combat, you may destroy this unit to destroy up to 2 shi… |
 | `sardakk_flagship` | C'morran N'orr | sardakk | — | MODIFY (liczba/rzut) | walka | ✔ | Apply +1 to the result of each of your other ship's combat rolls in this system. |

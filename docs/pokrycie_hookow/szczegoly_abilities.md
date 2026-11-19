@@ -22,9 +22,9 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `dark_whispers` | Dark Whispers | empyrean | — | MODIFY (liczba/rzut) | karty | — | During setup, take the additional Empyrean faction promissory note; you have 2 faction promissory notes |
 | `devotion` | Devotion | yin | after | TRIGGER (okno reakcji) | walka, produkcja | ✔ | You may destroy 1 of your cruisers or destroyers in the active system to produce 1 hit and assign it to 1 of your opponent's ships in that … |
 | `devour` | Devour | cabal | — | — | walka | — | Capture your opponent's non-structure units that are destroyed during combat. |
-| `distant_suns` | Distant Suns | naaz | when | TRIGGER (okno reakcji) | karty | — | You may draw 1 additional card; choose 1 to resolve and discard the rest. |
+| `distant_suns` | Distant Suns | naaz | when | TRIGGER (okno reakcji) | karty | ✔ | You may draw 1 additional card; choose 1 to resolve and discard the rest. |
 | `edict` | Edict | mahact | when | TRIGGER (okno reakcji) | produkcja, żetony dowodzenia | — | Other player's tokens in your fleet pool increase your fleet limit but cannot be redistributed. Place 1 command token from your opponent's … |
-| `fabrication` | Fabrication | naaz | action | — | żetony dowodzenia, planety i eksploracja | — | Either purge 2 of your relic fragments of the same type to gain 1 relic; or purge 1 of your relic fragments to gain 1 command token. |
+| `fabrication` | Fabrication | naaz | action | — | żetony dowodzenia, planety i eksploracja | ✔ | Either purge 2 of your relic fragments of the same type to gain 1 relic; or purge 1 of your relic fragments to gain 1 command token. |
 | `foresight` | Foresight | naalu | after | TRIGGER (okno reakcji) | ruch, żetony dowodzenia | — | You may place 1 token from your strategy pool in an adjacent system that does not contain another player's ships; move your ships from the … |
 | `fragile` | Fragile | jolnar | — | MODIFY (liczba/rzut) | walka | ✔ | Apply -1 to the result of each of your unit's combat rolls. |
 | `future_sight` | Future Sight | nomad | during | — | ekonomia i płatności | — | Gain 1 trade good |
@@ -45,7 +45,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `mitosis` | Mitosis | arborec | at_start | FORBID (zakaz) | produkcja, planety i eksploracja | ✔ | Your space docks cannot produce infantry Place 1 infantry from your reinforcements on any planet you control. |
 | `munitions` | Munitions Reserves | letnev | at_start | MODIFY (liczba/rzut) | walka, ekonomia i płatności | ✔ | You may spend 2 trade goods to re-roll any number of your dice during that combat round. |
 | `nocturne` | Nocturne | obsidian | — | FORBID (zakaz) | — | — | This faction cannot be chosen during setup. |
-| `nomadic` | Nomadic | saar | — | PERMIT (pozwolenie) | planety i eksploracja, cele i punkty | — | You can score objectives even if you do not control the planets in your home system. |
+| `nomadic` | Nomadic | saar | — | PERMIT (pozwolenie) | planety i eksploracja, cele i punkty | ✔ | You can score objectives even if you do not control the planets in your home system. |
 | `oceanbound` | Oceanbound | deepwrought | when | TRIGGER (okno reakcji) | karty, planety i eksploracja, status i odświeżanie | — | Any time you have more ocean cards than there are planets that contain your coexisting units, discard ocean cards until you do not. gain an… |
 | `orbital_drop` | Orbital Drop | sol | action | — | produkcja, ekonomia i płatności, żetony dowodzenia, planety i eksploracja | ✔ | Spend 1 token from your strategy pool to place 2 infantry from your reinforcements on 1 planet you control. |
 | `peace_accords` | Peace Accords | xxcha | after | TRIGGER (okno reakcji) | ruch, planety i eksploracja | ✔ | You may gain control of 1 planet other than Mecatol Rex that does not contain any units and is in a system that is adjacent to a planet you… |
@@ -60,7 +60,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `reclamation` | Reclamation | winnu | after | TRIGGER (okno reakcji) | produkcja | ✔ | You may place 1 PDS and 1 space dock from your reinforcements on Mecatol Rex. |
 | `researchteam` | Research Team | deepwrought | when | TRIGGER (okno reakcji) | technologie, planety i eksploracja | — | if your units on that planet are not already coexisting, you may choose for your units to coexist. |
 | `riftmeld` | Riftmeld | cabal | when | TRIGGER (okno reakcji) | technologie | — | You may return 1 captured unit of that type to ignore all of the technology's prerequisites. |
-| `scavenge` | Scavenge | saar | after | TRIGGER (okno reakcji) | ekonomia i płatności | — | Gain 1 trade good. |
+| `scavenge` | Scavenge | saar | after | TRIGGER (okno reakcji) | ekonomia i płatności | ✔ | Gain 1 trade good. |
 | `scheming` | Scheming | yssaril | when | TRIGGER (okno reakcji) | karty | — | Draw 1 additional action card. Then, choose and discard 1 action card from your hand. |
 | `slipstream` | Slipstream | ghost | during | MODIFY (liczba/rzut) | ruch | — | Apply +1 to the move value of each of your ships that starts its movement in your home system or in a system that contains either an alpha … |
 | `sorrow` | Sorrow | crimson | — | — | — | — | When you create the game board, place the Sorrow (tile 94) where your home system would normally be placed, then place a inactive breach th… |
