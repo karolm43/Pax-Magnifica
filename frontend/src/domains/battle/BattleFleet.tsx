@@ -97,8 +97,13 @@ function hpPips(ship: ShipEntity): { full: number; total: number } {
   return { full: 1, total: 1 };
 }
 
-/** Grupuje egzemplarze w szeregi wg ``RANK`` (od pierwszej linii). */
-function ranks(views: ShipView[]): ShipView[][] {
+/**
+ * Grupuje egzemplarze w szeregi wg ``RANK`` (od pierwszej linii). ``no`` = numer szeregu z
+ * ``RANK`` — STAŁY klucz kontenera (indeks w liście zmienia się, gdy znika cały szereg, np.
+ * myśliwce po AFB; klucz od typu pierwszego okrętu zmieniał się, gdy ten ginął) — zmiana
+ * klucza przemontowywała wszystkie okręty szeregu i odtwarzała ich animacje.
+ */
+function ranks(views: ShipView[]): { no: number; list: ShipView[] }[] {
   const byRank = new Map<number, ShipView[]>();
   for (const view of views) {
     const rank = RANK[view.ship.asyncId] ?? 3;
@@ -106,7 +111,12 @@ function ranks(views: ShipView[]): ShipView[][] {
   }
   return [...byRank.entries()]
     .sort((a, b) => a[0] - b[0])
-    .map(([, list]) => list);
+    .map(([no, list]) => ({ no, list }));
+}
+
+/** Stała faza dryfu okrętu (0–1) z jego id — nie zależy od miejsca w szeregu. */
+function phaseOf(id: string): number {
+  return (jitter(id, 3, 500) + 500) / 1000;
 }
 
 /*
@@ -166,6 +176,47 @@ function wingPlaces(n: number, slot: number, side: "left" | "right") {
     places,
     width: Math.round(slot + maxBack * WING_BACK * slot),
     height: Math.round(slot + (maxLat - minLat) * WING_SIDE * slot),
+  };
+}
+
+/**
+ * Szereg myśliwców PŁASKO: każdy myśliwiec dostaje pozycję (px) w pudełku szeregu, a eskadry
+ * (1–2 kolumny kluczy, druga kolumna przesunięta w dół) są tylko rachunkiem. Wcześniej każda
+ * eskadra była osobnym ``div``-em: po stratach (AFB) eskadry dzieliły się od nowa i myśliwiec
+ * przechodził do innego rodzica — React montował go od nowa (flota „wlatywała" ponownie).
+ */
+export function wingRank(list: ShipView[], fit: number, side: "left" | "right") {
+  const groups = squadrons(list);
+  const cols = groups.length > 2 ? 2 : 1;
+  const slot = Math.round(shipSize("ff") * fit);
+  const wings = groups.map((group) => wingPlaces(group.length, slot, side));
+  const gapX = Math.round(20 * fit);
+  const gapY = Math.round(16 * fit);
+  const shift = cols === 2 ? Math.round(30 * fit) : 0;
+  const rows = Math.ceil(groups.length / cols);
+  const colW = Array.from({ length: cols }, (_, c) =>
+    Math.max(0, ...wings.filter((_, g) => g % cols === c).map((w) => w.width)),
+  );
+  const rowH = Array.from({ length: rows }, (_, r) =>
+    Math.max(0, ...wings.filter((_, g) => Math.floor(g / cols) === r).map((w) => w.height)),
+  );
+  const colX = colW.map((_, c) => colW.slice(0, c).reduce((a, b) => a + b, 0) + c * gapX);
+  const rowY = rowH.map((_, r) => rowH.slice(0, r).reduce((a, b) => a + b, 0) + r * gapY);
+  const places = new Map<string, { x: number; y: number; sq: number }>();
+  groups.forEach((group, g) => {
+    const c = g % cols;
+    const r = Math.floor(g / cols);
+    const wing = wings[g];
+    const ox = colX[c] + Math.round((colW[c] - wing.width) / 2);
+    const oy = rowY[r] + Math.round((rowH[r] - wing.height) / 2) + (c === 1 ? shift : 0);
+    group.forEach((view, i) => {
+      places.set(view.ship.id, { x: ox + wing.places[i].x, y: oy + wing.places[i].y, sq: g });
+    });
+  });
+  return {
+    places,
+    width: colW.reduce((a, b) => a + b, 0) + (cols - 1) * gapX,
+    height: rowH.reduce((a, b) => a + b, 0) + (rows - 1) * gapY + shift,
   };
 }
 
@@ -235,9 +286,32 @@ function useFormationFit(views: ShipView[]) {
 }
 
 /**
- * DOMYKANIE SZYKU (FLIP): gdy egzemplarz znika z pola, pozostałe nie przeskakują na nowe
- * miejsca, tylko płynnie się do nich dosuwają (Web Animations na `translate`). Działa po
- * wlocie floty i przy niezmienionej skali szyku (zmiana skali przestawia wszystko naraz).
+ * Środek okrętu w układzie szyku BEZ transformacji (offset*, nie getBoundingClientRect):
+ * drganie pola przy salwach, dryf szeregu i trwające dosuwanie nie fałszują pomiaru.
+ */
+function layoutCenter(node: HTMLElement, root: HTMLElement): { x: number; y: number } {
+  let x = node.offsetWidth / 2;
+  let y = node.offsetHeight / 2;
+  let el: HTMLElement | null = node;
+  while (el && el !== root) {
+    x += el.offsetLeft;
+    y += el.offsetTop;
+    el = el.offsetParent as HTMLElement | null;
+  }
+  return { x, y };
+}
+
+/** Bieżące przesunięcie trwającego dosuwania (``translate`` z animacji) w px. */
+function currentShift(node: HTMLElement): { x: number; y: number } {
+  const [x = "0", y = "0"] = getComputedStyle(node).translate.split(" ");
+  return { x: parseFloat(x) || 0, y: parseFloat(y) || 0 };
+}
+
+/**
+ * DOMYKANIE SZYKU (FLIP): gdy egzemplarz znika z pola (wrak po wybuchu), pozostałe nie
+ * przeskakują na nowe miejsca, tylko płynnie się do nich dosuwają (Web Animations na
+ * `translate`) — także gdy szyk zmienia skalę (mniej okrętów = większe). Druga zmiana w trakcie
+ * dosuwania (np. skład, a zaraz potem skala) KONTYNUUJE ruch z bieżącego miejsca.
  */
 function useCloseRanks(
   formationRef: React.RefObject<HTMLDivElement | null>,
@@ -245,31 +319,34 @@ function useCloseRanks(
   fit: number,
   active: boolean,
 ) {
-  const last = useRef<{ fit: number; rects: Map<string, DOMRect> }>({
-    fit,
-    rects: new Map(),
-  });
+  const last = useRef(new Map<string, { x: number; y: number }>());
+  const glides = useRef(new Map<string, Animation>());
   const signature = views.map((v) => v.ship.id).join(",");
   useLayoutEffect(() => {
     const el = formationRef.current;
     if (!el) return;
-    const rects = new Map<string, DOMRect>();
-    const sameScale = last.current.fit === fit;
+    const centers = new Map<string, { x: number; y: number }>();
     el.querySelectorAll<HTMLElement>("[data-ship-id]").forEach((node) => {
       const id = node.dataset.shipId ?? "";
-      const now = node.getBoundingClientRect();
-      rects.set(id, now);
-      const before = last.current.rects.get(id);
-      if (!before || !active || !sameScale || node.hasAttribute("data-dying")) return;
-      const dx = before.left - now.left;
-      const dy = before.top - now.top;
-      if (Math.abs(dx) + Math.abs(dy) < 2 || typeof node.animate !== "function") return;
-      node.animate([{ translate: `${dx}px ${dy}px` }, { translate: "0 0" }], {
+      const now = layoutCenter(node, el);
+      centers.set(id, now);
+      const before = last.current.get(id);
+      if (!before || !active || node.hasAttribute("data-dying")) return;
+      if (typeof node.animate !== "function") return;
+      const running = glides.current.get(id);
+      const shift =
+        running && running.playState === "running" ? currentShift(node) : { x: 0, y: 0 };
+      const dx = before.x - now.x + shift.x;
+      const dy = before.y - now.y + shift.y;
+      if (Math.abs(before.x - now.x) + Math.abs(before.y - now.y) < 2) return;
+      running?.cancel();
+      const glide = node.animate([{ translate: `${dx}px ${dy}px` }, { translate: "0 0" }], {
         duration: 750,
         easing: "cubic-bezier(0.2, 0.7, 0.2, 1)",
       });
+      glides.current.set(id, glide);
     });
-    last.current = { fit, rects };
+    last.current = centers;
   }, [signature, fit, active, formationRef]);
 }
 
@@ -300,8 +377,8 @@ function ShipToken({
   view: ShipView;
   /** Układ szeregu (klin kolumny, szachownica, klucz eskadry). */
   layout: RankLayout;
-  /** Pozycja w kluczu eskadry (tylko ``layout === "wing"``). */
-  place?: { x: number; y: number };
+  /** Pozycja w szeregu myśliwców i numer eskadry (tylko ``layout === "wing"``). */
+  place?: { x: number; y: number; sq: number };
   /** Okręt można WSKAZAĆ dla decyzji (np. ofiara Assault Cannon) — klik zamiast formularza. */
   pickable: boolean;
   pickLabel?: string;
@@ -402,6 +479,9 @@ function ShipToken({
       ? `${place.y}px`
       : `${Math.round(jitter(ship.id, 2, 12) * fit) + stagger}px`,
     "--slot": `${size}px`,
+    // Faza dryfu z id (nie z miejsca w szeregu) — po zniknięciu wraku nie skacze.
+    "--ph": phaseOf(ship.id),
+    "--sq": place?.sq ?? 0,
     "--die-delay": `${dieDelay}ms`,
     "--ship-size": `${Math.round(size * 0.78)}px`,
   } as CSSProperties;
@@ -737,7 +817,7 @@ export function BattleFleet({
       const hasMech = views.some((v) => v.ship.asyncId === "mf");
       if (align === "left") {
         at(250, () => playBattleSound("dropPod", { pan, gain: 0.4 }));
-        ranks(views).forEach((list, rank) => {
+        ranks(views).forEach(({ list }, rank) => {
           const land = 1550 + rank * 350;
           at(land, () => playBattleSound("podLand", { pan, gain: 0.5 }));
           if (list[0]?.ship.asyncId === "mf") {
@@ -845,13 +925,13 @@ export function BattleFleet({
               : "Fleet destroyed"}
           </span>
         )}
-        {ranks(views).map((rankViews, rank) => {
+        {ranks(views).map(({ no, list: rankViews }, rank) => {
           const layout = layoutOf(rankViews);
           const token = (
             view: ShipView,
             i: number,
             count: number,
-            place?: { x: number; y: number },
+            place?: { x: number; y: number; sq: number },
           ) => (
             <ShipToken
               key={view.ship.id}
@@ -877,53 +957,24 @@ export function BattleFleet({
               onPick={pick?.onPick}
             />
           );
-          if (layout === "wing") {
-            const groups = squadrons(rankViews);
-            const slot = Math.round(shipSize("ff") * fit);
-            return (
-              <div
-                key={rankViews[0].ship.asyncId}
-                className={styles.rank}
-                data-layout="wing"
-                data-cols={groups.length > 2 ? 2 : 1}
-                style={
-                  {
-                    "--rank": rank,
-                    "--cols": groups.length > 2 ? 2 : 1,
-                  } as CSSProperties
-                }
-              >
-                {groups.map((group, g) => {
-                  const wing = wingPlaces(group.length, slot, align);
-                  return (
-                    <div
-                      key={g}
-                      className={styles.squadron}
-                      style={
-                        {
-                          width: wing.width,
-                          height: wing.height,
-                          "--sq": g,
-                        } as CSSProperties
-                      }
-                    >
-                      {group.map((view, i) =>
-                        token(view, i, group.length, wing.places[i]),
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          }
+          // Okręty są ZAWSZE bezpośrednimi dziećmi szeregu o stałym kluczu (numer z RANK):
+          // zmiana układu (klucz ↔ kolumna) czy przegrupowanie eskadr nie przemontowuje ich.
+          const wing = layout === "wing" ? wingRank(rankViews, fit, align) : null;
+          const rankStyle = {
+            "--rank": rank,
+            "--cruise-delay": `${-no * 3.1}s`,
+            ...(wing ? { width: wing.width, height: wing.height } : {}),
+          } as CSSProperties;
           return (
             <div
-              key={rankViews[0].ship.asyncId}
+              key={no}
               className={styles.rank}
               data-layout={layout}
-              style={{ "--rank": rank } as CSSProperties}
+              style={rankStyle}
             >
-              {rankViews.map((view, i) => token(view, i, rankViews.length))}
+              {rankViews.map((view, i) =>
+                token(view, i, rankViews.length, wing?.places.get(view.ship.id)),
+              )}
             </div>
           );
         })}

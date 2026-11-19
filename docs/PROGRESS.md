@@ -1341,3 +1341,15 @@ Plan i audyt: `PLAN_PELNA_ROZGRYWKA.md` („OSTATECZNY PLAN KOLEJNOŚCI", „Aud
   pozostali jako „Waiting for …” (`useCanActAs`).
 - UI: globalnie wyłączone zaznaczanie tekstu i natywne przeciąganie obrazków (`ds/base.css`); pola edycji
   zostają zaznaczalne, wyjątek klasą `ds-selectable`.
+
+## 2026-11-19 — Pole bitwy: bez ponownego wlotu po AFB i przeskoków po wrakach
+
+- ✅ Szereg myśliwców liczony płasko (`wingRank` w `BattleFleet.tsx`): bez `div`-ów eskadr. Po stratach z AFB
+  eskadry dzieliły się od nowa i myśliwce przechodziły do innego rodzica — React montował je od nowa (efekt
+  „wlotu” i restart animacji). Szereg ma stały klucz = numer z `RANK` (wcześniej typ pierwszego okrętu).
+- ✅ Domykanie szyku (FLIP) mierzy pozycje bez transformacji (`offset*`), działa też przy zmianie skali szyku
+  i kontynuuje trwające dosuwanie (wcześniej po zniknięciu szeregu flota przeskakiwała).
+- ✅ Fazy dryfu okrętów/silników/piechoty z id okrętu (`--ph`), dryf szeregu z numeru `RANK` — bez skoków
+  po usunięciu wraku.
+- Test: `frontend/src/domains/battle/battleFormation.test.ts`. Naprawiony błąd typów w
+  `AgendaPassButtons.test.tsx` (blokował `tsc`).

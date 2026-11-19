@@ -327,6 +327,7 @@
  * liniowe z tyłu. Lewa flota: row-reverse (pierwszy szereg najbardziej na prawo), prawa: row.
  */
 .formation {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -393,27 +394,12 @@
   padding-bottom: calc(26px * var(--fit, 1));
 }
 
-/* Myśliwce: eskadry-klucze (pozycje liczy BattleFleet), 1–2 kolumny eskadr. */
+/* Myśliwce: eskadry-klucze w 1–2 kolumnach — pozycje każdego myśliwca i rozmiar szeregu
+   liczy BattleFleet (`wingRank`); myśliwce są bezpośrednimi dziećmi szeregu (bez pudełek
+   eskadr, których przegrupowanie przemontowywało okręty). */
 .rank[data-layout="wing"] {
-  display: grid;
-  grid-template-columns: repeat(var(--cols, 1), auto);
-  gap: calc(16px * var(--fit, 1)) calc(20px * var(--fit, 1));
-  align-items: center;
-  justify-items: center;
-}
-
-/* Dwie kolumny eskadr: druga kolumna przesunięta w dół — klucze nie stoją w kratce. */
-.rank[data-layout="wing"][data-cols="2"] {
-  padding-bottom: calc(30px * var(--fit, 1));
-}
-
-.rank[data-layout="wing"][data-cols="2"] > .squadron:nth-child(even) {
-  translate: 0 calc(30px * var(--fit, 1));
-}
-
-.squadron {
+  display: block;
   position: relative;
-  flex: none;
 }
 
 .ship[data-wing] {
@@ -429,7 +415,7 @@
 
 /* Klucz dryfuje RAZEM (wspólna faza eskadry, minimalne przesunięcie skrzydłowych). */
 .ship[data-wing] .hull {
-  animation-delay: calc(var(--sq, 0) * -1.9s + var(--i, 0) * -0.12s);
+  animation-delay: calc(var(--sq, 0) * -1.9s + var(--ph, 0) * -0.3s);
 }
 
 .wiped {
@@ -526,7 +512,8 @@
   width: var(--slot);
   height: var(--slot);
   animation: shipIdle 9s ease-in-out infinite;
-  animation-delay: calc(var(--rank, 0) * -0.9s + var(--i, 0) * -1.3s);
+  /* Faza z id okrętu (--ph), nie z miejsca w szeregu — po zniknięciu wraku nie skacze. */
+  animation-delay: calc(var(--ph, 0) * -9s);
 }
 
 .ship[data-base="ws"] .hull,
@@ -570,7 +557,7 @@
   filter: blur(1.2px);
   opacity: 0.6;
   animation: engineBreath 7s ease-in-out infinite;
-  animation-delay: calc(var(--k, 0) * -0.25s + var(--i, 0) * -2.3s + var(--rank, 0) * -1.1s);
+  animation-delay: calc(var(--k, 0) * -0.25s + var(--ph, 0) * -7s);
 }
 
 .ship[data-side="left"] .engine {
@@ -821,18 +808,9 @@
 
 .overlay[data-kind="space"] .formation[data-entered] .rank {
   animation: rankCruise 16s ease-in-out infinite;
-}
-
-.overlay[data-kind="space"] .formation[data-entered] .rank:nth-child(2) {
-  animation-delay: -5s;
-}
-
-.overlay[data-kind="space"] .formation[data-entered] .rank:nth-child(3) {
-  animation-delay: -10s;
-}
-
-.overlay[data-kind="space"] .formation[data-entered] .rank:nth-child(n + 4) {
-  animation-delay: -13s;
+  /* Faza z numeru szeregu (RANK), nie z nth-child: zniknięcie szeregu myśliwców po AFB nie
+     przestawia faz pozostałych szeregów. */
+  animation-delay: var(--cruise-delay, 0s);
 }
 
 /* Po wejściu armady okręty nie wlatują ponownie (np. po rzucie czy przypisaniu strat). */
@@ -2938,12 +2916,12 @@
 
 .overlay[data-kind="ground"] .ship[data-ground="infantry"]:not([data-dying]) .hull {
   animation: infantryIdle 3.4s ease-in-out infinite;
-  animation-delay: calc(var(--rank, 0) * -0.7s + var(--i, 0) * -0.9s);
+  animation-delay: calc(var(--ph, 0) * -3.4s);
 }
 
 .overlay[data-kind="ground"] .ship[data-ground="mech"]:not([data-dying]) .hull {
   animation: mechIdle 5.6s ease-in-out infinite;
-  animation-delay: calc(var(--i, 0) * -1.7s);
+  animation-delay: calc(var(--ph, 0) * -5.6s);
 }
 
 /* Atmosfera: dryfujący dym/pył i błyski odległej artylerii na horyzoncie. */

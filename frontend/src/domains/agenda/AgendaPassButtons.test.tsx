@@ -16,7 +16,7 @@ const me = (passes: ReactionPrefsData["passes"] = {}) =>
   ({
     discordId: "p1",
     reactionPrefs: { passes, onlyInvolved: false, mutedCards: [], mutedOffers: [] },
-  }) as PlayerData;
+  }) as unknown as PlayerData;
 
 describe("AgendaPassButtons (RULES.md 54.12)", () => {
   beforeEach(() => {
