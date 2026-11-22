@@ -10,7 +10,7 @@ nie mutując wejścia — spójne z Event Sourcingiem (każdy wynik = nowa migaw
 
 from __future__ import annotations
 
-from src.core import action_budget, hand_limit, objective_events, timing, triggers
+from src.core import action_budget, hand_limit, initiative_zero, objective_events, timing, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     AgendaPhaseState,
@@ -38,12 +38,12 @@ def turn_order(state: GameState) -> list[str]:
     """Kolejność graczy wg inicjatywy (najniższy numer karty strategii pierwszy).
 
     Gracze bez karty strategii trafiają na koniec, w stabilnej kolejności po ``player_id``.
+    Żeton „0” Naalu = inicjatywa 0 (``initiative_zero``, R_initiative_order).
     """
 
     def key(player_id: str) -> tuple[int, str]:
-        player = state.players[player_id]
-        initiative = min(player.strategy_cards) if player.strategy_cards else 99
-        return (initiative, player_id)
+        initiative = initiative_zero.initiative(state, player_id)
+        return (99 if initiative is None else initiative, player_id)
 
     return sorted(state.players, key=key)
 
@@ -70,7 +70,7 @@ def strict_initiative_order(state: GameState) -> list[str]:
             )
 
     def key(player_id: str) -> tuple[int, str]:
-        return (min(state.players[player_id].strategy_cards), player_id)
+        return (initiative_zero.initiative(state, player_id) or 0, player_id)
 
     return sorted(state.players, key=key)
 

@@ -23,6 +23,8 @@ type Props = {
   isExhausted?: boolean;
   /** "sm" seats the plate in a 34px header rail. */
   size?: "sm" | "md";
+  /** Żeton „0” Naalu leży na tej karcie: gracz ma inicjatywę 0 (RULES.md 62.16). */
+  zeroToken?: boolean;
 };
 
 const STRATEGY_CARD_COLORS = new Set<StrategyCardColor>([
@@ -53,6 +55,7 @@ export function StrategyCard({
   tradeGoods = 0,
   isExhausted = false,
   size = "md",
+  zeroToken = false,
 }: Props) {
   const { opened, setOpened, toggle } = useDisclosure(false);
   const gameData = useGameData();
@@ -82,6 +85,11 @@ export function StrategyCard({
       onKeyDown={handleKeyDown}
     >
       <span className={classes.disc}>{initiative}</span>
+      {zeroToken && (
+        <span className={classes.zero} title={'Naalu "0" token: initiative 0'}>
+          0
+        </span>
+      )}
       <span className={classes.name}>{name}</span>
       {tradeGoods > 0 && (
         <span className={classes.tgv}>

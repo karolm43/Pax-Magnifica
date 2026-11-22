@@ -234,6 +234,10 @@ export const PlayerDeckRow = memo(function PlayerDeckRow({
               initiative={scNumber}
               isExhausted={(player.exhaustedSCs ?? []).includes(scNumber)}
               size="sm"
+              zeroToken={
+                gameData?.initiativeZero === player.faction &&
+                scNumber === Math.min(...player.scs)
+              }
             />
           ))}
         </span>

@@ -75,6 +75,9 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   // Perfect Synthesis: relikt i dwie karty strategii naraz — skan archeologów i pieczęcie nad
   // systemami z jednostkami Naaz-Rokha.
   naazhero: { dim: 0.35, sweep: "scan", target: "units", mark: "seal", tone: "110 220 160", ms: 4400 },
+  // C-Radium Geometry: Poison of the Nefishh - umysły rywali oddają notki; fioletowy skan
+  // i fale psioniczne nad systemami z jednostkami Naalu.
+  naaluhero: { dim: 0.45, sweep: "scan", target: "units", mark: "ripple", tone: "185 120 255", ms: 4400 },
   // Nova Seed: gwiazda systemu puchnie, korona zapada się w punkt, wybuch supernowej (błysk,
   // promienie dyfrakcyjne, rozszerzająca się powłoka gazu, ejekta), potem pulsująca mgławica.
   // Stary kafel znika pod błyskiem (revealAt); dźwięk niski: pomruk, wsysanie, głuchy huk.

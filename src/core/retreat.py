@@ -383,6 +383,6 @@ def retreat_in_place(
                         result.token_from = pool
                         break
             if result.token_from is not None:
-                dest.command_tokens.append(player_id)
+                command_tokens.place_token(new_state, dest, player_id)
                 result.token_placed = True
     return result

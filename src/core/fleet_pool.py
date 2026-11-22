@@ -12,7 +12,8 @@ przekroczenia (statki trzeba usunąć zaraz po). Dlatego silnik nie blokuje akcj
   ile trzeba).
 
 Myśliwce i siły naziemne NIE liczą się do fleet pool (liczą się do capacity — RULES.md 39.6).
-WYJĄTEK - Fighter II: myśliwce ponad capacity liczą się do fleet pool (zamiast być usuwane).
+WYJĄTEK - Fighter II: myśliwce ponad capacity liczą się do fleet pool (zamiast być usuwane);
+Hybrid Crystal Fighter II (Naalu): 2 takie myśliwce = 1 statek (``fighters_per_ship``, 62.16).
 Statki przewożone w ruchu i jednostki na planetach też nie. Funkcje CZYSTE (``state -> state``).
 """
 
@@ -50,21 +51,37 @@ class FleetReport:
     """Stan fleet pool gracza w jednym systemie."""
 
     pool: int = 0  # żetony w puli floty = maks. liczba statków
-    ships: dict[str, int] = field(default_factory=dict)  # statki liczone do puli, wg typu
+    # Statki liczone do puli, wg typu; ``fighter`` = SZTUKI myśliwców ponad pojemność.
+    ships: dict[str, int] = field(default_factory=dict)
+    # Ile myśliwców ponad pojemność liczy się razem jako 1 statek (HCF II: 2 - „1/2 of a ship”).
+    fighters_per_ship: int = 1
     # „not limited by the number of command tokens in your fleet pool” (Darktalon Treilla):
     # limit nie obowiązuje. ``pool`` zostaje prawdziwą liczbą żetonów (do wyświetlenia) —
     # NIE podmieniamy jej na sztuczną wielką liczbę.
     unlimited: bool = False
 
+    def total_after(self, remove: dict[str, int] | None = None) -> int:
+        """Statki liczone do puli po zdjęciu ``remove`` (myśliwce ważone, w górę)."""
+        gone = remove or {}
+        ships = sum(
+            max(0, n - gone.get(bt, 0)) for bt, n in self.ships.items() if bt != _FIGHTER
+        )
+        fighters = max(0, self.ships.get(_FIGHTER, 0) - gone.get(_FIGHTER, 0))
+        per_ship = max(1, self.fighters_per_ship)
+        return ships + -(-fighters // per_ship)
+
+    def excess_after(self, remove: dict[str, int] | None = None) -> int:
+        if self.unlimited:
+            return 0
+        return max(0, self.total_after(remove) - self.pool)
+
     @property
     def total(self) -> int:
-        return sum(self.ships.values())
+        return self.total_after()
 
     @property
     def excess(self) -> int:
-        if self.unlimited:
-            return 0
-        return max(0, self.total - self.pool)
+        return self.excess_after()
 
 
 def _registry_or_bound(registry: StaticDataRegistry | None) -> StaticDataRegistry | None:
@@ -85,8 +102,7 @@ def _overflow_fighters(
     combat, regardless of capacity and fleet pool" (R_fleet_pool, Notes). Statki nie-myśliwskie
     liczą się do puli zawsze (RULES.md 42.1).
     """
-    player = state.players.get(player_id)
-    if player is None or capacity.FIGHTER_II_ALIAS not in player.technologies:
+    if not capacity.fighters_overflow_to_fleet(state, player_id):
         return 0
     if capacity.combat_in_progress(state, position):
         return 0
@@ -126,7 +142,17 @@ def fleet_report(
     overflow = _overflow_fighters(state, registry, position, player_id)
     if overflow > 0:
         report.ships[_FIGHTER] = overflow
+        report.fighters_per_ship = fighters_per_ship(state, player_id)
     return report
+
+
+def fighters_per_ship(state: GameState, player_id: str) -> int:
+    """Ile myśliwców ponad pojemność liczy się jako 1 statek puli floty (baza 1, HCF II: 2)."""
+    from src.core import rules_hooks  # lokalnie: unika cyklu importów
+
+    return max(1, 1 + rules_hooks.modify(
+        rules_hooks.POINT_FLEET_POOL_FIGHTERS_PER_SHIP, state, player_id, 0
+    ))
 
 
 def unit_cost(
@@ -158,12 +184,13 @@ def ships_by_system(state: GameState, player_id: str) -> dict[str, int]:
     bez strat.
     """
     result: dict[str, int] = {}
+    per_ship = fighters_per_ship(state, player_id)
     for position, system in state.systems.items():
         n = sum(
             c
             for bt, c in system.space_units.get(player_id, {}).items()
             if c > 0 and _pool_unit(state, player_id, bt)
-        ) + _overflow_fighters(state, None, position, player_id)
+        ) + -(-_overflow_fighters(state, None, position, player_id) // per_ship)
         if n > 0:
             result[position] = n
     return result
@@ -206,18 +233,28 @@ def auto_removal(
     state: GameState, registry: StaticDataRegistry, player_id: str, report: FleetReport
 ) -> dict[str, int]:
     """Podpowiedź: usuń najtańsze statki najpierw, aż mieszczą się w puli (⚠️ ZAŁOŻENIE)."""
-    remaining = dict(report.ships)
     removal: dict[str, int] = {}
-    need = report.excess
     order = sorted(
-        remaining, key=lambda bt: (unit_cost(state, registry, player_id, bt), bt)
+        report.ships, key=lambda bt: (unit_cost(state, registry, player_id, bt), bt)
     )
     for base_type in order:
-        while need > 0 and remaining.get(base_type, 0) > 0:
-            remaining[base_type] -= 1
+        while report.excess_after(removal) > 0 and (
+            removal.get(base_type, 0) < report.ships[base_type]
+        ):
             removal[base_type] = removal.get(base_type, 0) + 1
-            need -= 1
-    return removal
+    return _trimmed(report, removal)
+
+
+def _trimmed(report: FleetReport, removal: dict[str, int]) -> dict[str, int]:
+    """Bez zbędnych sztuk: jednostka, którą da się oddać bez nadwyżki, nie musi być zdjęta."""
+    result = {bt: n for bt, n in removal.items() if n > 0}
+    for base_type in sorted(result):
+        while result[base_type] > 0:
+            fewer = {**result, base_type: result[base_type] - 1}
+            if report.excess_after(fewer) > 0:
+                break
+            result = fewer
+    return {bt: n for bt, n in result.items() if n > 0}
 
 
 def check_removal(report: FleetReport, remove: dict[str, int]) -> None:
@@ -226,22 +263,19 @@ def check_removal(report: FleetReport, remove: dict[str, int]) -> None:
     Raises:
         ValueError: Zły typ (myśliwiec/naziemna), za mało/za dużo sztuk.
     """
-    removed = 0
-    for base_type, count in remove.items():
-        if count <= 0:
-            continue
+    picked = {bt: n for bt, n in remove.items() if n > 0}
+    for base_type, count in picked.items():
         if base_type not in report.ships and not counts_toward_pool(base_type):
             raise ValueError(
                 f"Only non-fighter ships count against the fleet pool ({base_type})."
             )
         if count > report.ships.get(base_type, 0):
             raise ValueError(f"You have only {report.ships.get(base_type, 0)} {base_type} here.")
-        removed += count
-    if removed < report.excess:
-        raise ValueError(
-            f"Still over the fleet pool - remove {report.excess - removed} more ship(s)."
-        )
-    if removed > report.excess:
+    left = report.excess_after(picked)
+    if left > 0:
+        raise ValueError(f"Still over the fleet pool - remove {left} more ship(s).")
+    # Bez zbędnych: po oddaniu którejkolwiek zdjętej jednostki nadwyżka musiałaby wrócić.
+    if _trimmed(report, picked) != picked:
         raise ValueError("You are removing more ships than the fleet pool requires.")
 
 

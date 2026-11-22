@@ -151,6 +151,10 @@ def _units_owned_for_faction(
             faction_upgraded[unit.async_id] = unit.id
         elif belongs and is_upgrade:
             faction_upgraded.setdefault(unit.async_id, unit.id)
+        elif belongs and unit.id in faction_unit_ids:
+            # Wariant z listy frakcji wygrywa z innym wariantem tej frakcji (Iconoclast TE
+            # zamiast Iconoclast) - jak remis w ``combat.resolve_unit_variant``.
+            faction_base[unit.async_id] = unit.id
         elif belongs:
             faction_base.setdefault(unit.async_id, unit.id)
         elif is_upgrade:

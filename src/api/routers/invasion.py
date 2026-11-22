@@ -74,10 +74,13 @@ def _units_view(
     units: dict[str, int],
     *,
     ground: bool,
+    extra: frozenset[str] = frozenset(),
 ) -> list[InvasionUnitView]:
+    """``extra`` = statki atakującego lądujące jak siły naziemne (Matriarch, RULES.md 62.16)."""
     views: list[InvasionUnitView] = []
     for base_type, count in sorted(units.items()):
-        if count <= 0 or (base_type in invasion.GROUND_FORCES) != ground:
+        is_ground = base_type in invasion.GROUND_FORCES or base_type in extra
+        if count <= 0 or is_ground != ground:
             continue
         variant = invasion.unit_variant(state, ctx.registry, player_id, base_type)
         views.append(
@@ -141,14 +144,18 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
     infos = invasion.planet_infos(state, registry)
     combat_planets = invasion.combat_planets(state, registry)
     targets = set(invasion.bombard_targets(state, registry))
+    as_ground = invasion.attacker_ground_types(state)  # Matriarch: myśliwce lądują
 
     planets: list[InvasionPlanetView] = []
     for info in infos:
         forces: dict[str, list[InvasionUnitView]] = {}
         structures: dict[str, list[InvasionUnitView]] = {}
         for pid, by_type in system.planet_units.get(info.planet, {}).items():
-            ground = _units_view(state, ctx, system, info.planet, pid, by_type, ground=True)
-            built = _units_view(state, ctx, system, info.planet, pid, by_type, ground=False)
+            extra = as_ground if pid == inv.attacker else frozenset()
+            ground = _units_view(state, ctx, system, info.planet, pid, by_type, ground=True,
+                                 extra=extra)
+            built = _units_view(state, ctx, system, info.planet, pid, by_type, ground=False,
+                                extra=extra)
             if ground:
                 forces[key(pid)] = ground
             if built:
@@ -254,6 +261,7 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
         inv.attacker,
         system.space_units.get(inv.attacker, {}),
         ground=True,
+        extra=as_ground,
     )
     # Inwazja komponentu nie ma kroku taktycznego INVASION (panel pomocy), więc zawsze idzie
     # pełnym oknem - inaczej nikt nie przejdzie do Establish Control.

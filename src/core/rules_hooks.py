@@ -325,6 +325,19 @@ POINT_UNIT_PLACE_FORBIDDEN = "units.place_forbidden"
 # FORBID (typy jednostek) -> jednostki gracza, którym NIE wolno przypisać trafień ze zdolności
 # jednostek (Space Cannon, bombardowanie; Eidolon Maximum) - ``battle.ability_hit_targets``.
 POINT_COMBAT_ABILITY_HIT_IMMUNE = "combat.ability_hit_immune"
+# --- Naalu Collective (RULES.md 62.16) ---
+# PERMIT -> myśliwce gracza ponad pojemność liczą się do puli floty zamiast przepadać (Fighter II
+# ma to z aliasu ``ff2``; Hybrid Crystal Fighter II - hook) - ``capacity`` / ``fleet_pool``.
+POINT_FLEET_POOL_FIGHTERS_OVERFLOW = "fleet_pool.fighters_overflow"
+# MODIFY -> delta liczby myśliwców ponad pojemność, które razem liczą się jako 1 statek puli floty
+# (baza 1; Hybrid Crystal Fighter II: +1 = „count as 1/2 of a ship”) - ``fleet_pool``.
+POINT_FLEET_POOL_FIGHTERS_PER_SHIP = "fleet_pool.fighters_per_ship"
+# FORBID (typy jednostek) -> statki gracza, które w inwazji w systemie ``ctx["position"]`` lądują
+# i walczą na planetach jak siły naziemne (Matriarch: myśliwce) - ``ship_roles.ground_force_types``.
+POINT_INVASION_GROUND_FORCE_TYPES = "invasion.ground_force_types"
+# FORBID (rodzaje podglądu) -> ukryte informacje, które gracz widzi stale (M'aban:
+# ``neighbors_promissory``, ``agenda_top``, ``agenda_bottom``) - ``core/peek.py``.
+POINT_INFO_PEEK = "info.peek"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"

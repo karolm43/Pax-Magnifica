@@ -50,6 +50,7 @@ from src.core.invasion_common import BombardAssignment as BombardAssignment
 from src.core.invasion_common import BombardGroup as BombardGroup
 from src.core.invasion_common import _attacker_ignores_shield as _attacker_ignores_shield
 from src.core.invasion_common import _ground_units as _ground_units
+from src.core.invasion_common import attacker_ground_types as attacker_ground_types
 from src.core.invasion_common import planet_infos as planet_infos
 from src.core.invasion_common import planet_shield as planet_shield
 from src.core.invasion_common import system_planets as system_planets
@@ -82,8 +83,33 @@ def _enter(
     if phase is InvasionPhase.GROUND_COMBAT and not combat_planets(new_state, registry):
         return _enter(new_state, grid, registry, InvasionPhase.ESTABLISH)
     if phase is InvasionPhase.ESTABLISH:
+        return_ships_to_space(new_state)  # Matriarch: myśliwce nie dają kontroli (F_naalu 1)
         _establish_control(new_state, registry)
     return new_state
+
+
+def return_ships_to_space(state: GameState, planet: str | None = None) -> dict[str, int]:
+    """Statki atakującego zaangażowane na planety jak siły naziemne (Matriarch) wracają do
+    przestrzeni aktywnego systemu - MUTUJE ``state``. ``planet=None`` = wszystkie planety.
+
+    F_naalu matriarch 1: po walce naziemnej (i najpóźniej przed Establish Control) - nie stoją
+    na planecie, więc nie dają kontroli; uszkodzenia jadą razem z jednostkami.
+    """
+    inv = state.invasion
+    system = state.systems.get(inv.position) if inv is not None else None
+    if inv is None or system is None:
+        return {}
+    moved: dict[str, int] = {}
+    for target in sorted(system.planet_units):
+        if planet is not None and target != planet:
+            continue
+        for base_type, count in sorted(system.planet_units[target].get(inv.attacker, {}).items()):
+            if count > 0 and is_space_unit(base_type):
+                unit_ops.transfer_units(
+                    state, system, target, system, "space", inv.attacker, base_type, count
+                )
+                moved[base_type] = moved.get(base_type, 0) + count
+    return moved
 
 
 def begin_invasion(
@@ -103,7 +129,10 @@ def begin_invasion(
     new_state = state.clone()
     new_state.invasion = InvasionState(position=active, attacker=attacker)
     system = new_state.systems.get(active)
-    landable = system is not None and bool(_ground_in_zone(system, "space", attacker))
+    # Matriarch (RULES.md 62.16): myśliwce w przestrzeni też mogą lądować.
+    landable = system is not None and bool(
+        _ground_in_zone(system, "space", attacker, attacker_ground_types(new_state))
+    )
     # RULES.md 40.1 I7a: sporna planeta (siły aktywnego obok cudzych, np. po Crash Landing) też
     # otwiera inwazję - walka naziemna wybucha bez lądowania.
     landable = landable or bool(_contested(new_state, registry, active, attacker))
@@ -168,10 +197,11 @@ def commit_ground_forces(
     planets = set(system_planets(state, registry, inv.position))
     sealed = custodians.landing_blocked(state, registry, inv.position)
     system = _system(state)
+    as_ground = attacker_ground_types(state)  # Matriarch: myśliwce jak siły naziemne (62.16)
     # Parley: siły zwrócone do przestrzeni nie mogą w tej akcji lądować na inną planetę.
     available = {
         bt: n - inv.parley_locked.get(bt, 0)
-        for bt, n in _ground_in_zone(system, "space", inv.attacker).items()
+        for bt, n in _ground_in_zone(system, "space", inv.attacker, as_ground).items()
     }
     wanted: dict[str, int] = {}
     for planet, by_type in commits.items():
@@ -187,7 +217,7 @@ def commit_ground_forces(
                 )
             if planet_stats.is_demilitarized(state, planet):
                 raise ValueError(_DMZ_REASON)
-            if base_type not in GROUND_FORCES:
+            if base_type not in GROUND_FORCES and base_type not in as_ground:
                 raise ValueError(f"{base_type} is not a ground force.")
             wanted[base_type] = wanted.get(base_type, 0) + count
     if not wanted:
@@ -362,10 +392,12 @@ def _contested(
     system = state.systems.get(position)
     if system is None:
         return []
+    as_ground = attacker_ground_types(state)  # Matriarch: same myśliwce też walczą (62.16)
     return [
         p
         for p in system_planets(state, registry, position)
-        if _ground_in_zone(system, p, attacker) and _defenders(state, p, position, attacker)
+        if _ground_in_zone(system, p, attacker, as_ground)
+        and _defenders(state, p, position, attacker)
     ]
 
 

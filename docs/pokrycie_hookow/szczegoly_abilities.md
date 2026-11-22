@@ -25,7 +25,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `distant_suns` | Distant Suns | naaz | when | TRIGGER (okno reakcji) | karty | ✔ | You may draw 1 additional card; choose 1 to resolve and discard the rest. |
 | `edict` | Edict | mahact | when | TRIGGER (okno reakcji) | produkcja, żetony dowodzenia | — | Other player's tokens in your fleet pool increase your fleet limit but cannot be redistributed. Place 1 command token from your opponent's … |
 | `fabrication` | Fabrication | naaz | action | — | żetony dowodzenia, planety i eksploracja | ✔ | Either purge 2 of your relic fragments of the same type to gain 1 relic; or purge 1 of your relic fragments to gain 1 command token. |
-| `foresight` | Foresight | naalu | after | TRIGGER (okno reakcji) | ruch, żetony dowodzenia | — | You may place 1 token from your strategy pool in an adjacent system that does not contain another player's ships; move your ships from the … |
+| `foresight` | Foresight | naalu | after | TRIGGER (okno reakcji) | ruch, żetony dowodzenia | ✔ | You may place 1 token from your strategy pool in an adjacent system that does not contain another player's ships; move your ships from the … |
 | `fragile` | Fragile | jolnar | — | MODIFY (liczba/rzut) | walka | ✔ | Apply -1 to the result of each of your unit's combat rolls. |
 | `future_sight` | Future Sight | nomad | during | — | ekonomia i płatności | — | Gain 1 trade good |
 | `galactic_threat` | Galactic Threat | nekro | unclassified | FORBID (zakaz) | technologie, agenda i głosowanie | — | You cannot vote on agendas You may predict aloud the outcome of that agenda. If your prediction is correct, gain 1 technology that is owned… |
@@ -69,7 +69,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `sundered` | Sundered | crimson | — | FORBID (zakaz) | ruch, walka | — | You cannot use wormholes other than epsilon wormholes. Other players' units that move or are placed into your home system are destroyed. |
 | `survivalinstinct` | Survival Instinct | ralnel | after | TRIGGER (okno reakcji) | ruch, żetony dowodzenia | — | you may move up to 2 of your ships into the active system from adjacent systems that do not contain your command tokens. |
 | `technological_singularity` | Technological Singularity | nekro | unclassified | PERMIT (pozwolenie) | technologie | — | You may gain 1 technology that is owned by that player. |
-| `telepathic` | Telepathic | naalu | at_end | — | karty strategii i inicjatywa | — | Place the Naalu "0" token on your strategy card; you are first in initiative order. |
+| `telepathic` | Telepathic | naalu | at_end | — | karty strategii i inicjatywa | ✔ | Place the Naalu "0" token on your strategy card; you are first in initiative order. |
 | `terragenesis` | Terragenesis | titans | after | TRIGGER (okno reakcji) | ruch, planety i eksploracja | — | You may place or move 1 sleeper token onto that planet. |
 | `the_company` | The Company | nomad | — | MODIFY (liczba/rzut) | — | — | During setup, take the 2 additional Nomad faction agents and place them next to your faction sheet; you have 3 agents |
 | `the_tribuni` | The Tribuni | keleres | — | — | żetony dowodzenia, planety i eksploracja | — | During setup, choose an unplayed faction from among the Mentak, the Xxcha and The Argent Flight; take that faction's home system, command t… |

@@ -115,13 +115,18 @@ def combat_units(
         ship_roles.space_ground_variants(state, registry, player_id, position)
         if kind == "space" else {}
     )
+    # Statki walczące na planecie jak siły naziemne (Matriarch: myśliwce - RULES.md 62.16).
+    as_ground = (
+        ship_roles.ground_force_types(state, player_id, position) if kind != "space"
+        else frozenset()
+    )
     units: list[CombatUnit] = []
     for base_type, count in sorted(_units_map(system, zone, player_id).items()):
         if count <= 0:
             continue
         if base_type in as_ships:
             unit = registry.units.get(as_ships[base_type])
-        elif is_space_unit(base_type) != (kind == "space"):
+        elif base_type not in as_ground and is_space_unit(base_type) != (kind == "space"):
             continue
         else:
             unit = resolve_unit_variant(

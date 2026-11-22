@@ -111,13 +111,29 @@ def _system(state: GameState) -> SystemState:
     return system
 
 
-def _ground_in_zone(system: SystemState, zone: str, player_id: str) -> dict[str, int]:
-    """Siły naziemne gracza w strefie (``"space"`` = ładunek w przestrzeni albo planeta)."""
+def _ground_in_zone(
+    system: SystemState, zone: str, player_id: str, extra: frozenset[str] = frozenset()
+) -> dict[str, int]:
+    """Siły naziemne gracza w strefie (``"space"`` = ładunek w przestrzeni albo planeta).
+
+    ``extra`` = statki, które w tej inwazji są siłami naziemnymi (``ship_roles.ground_force_types``
+    atakującego - Matriarch: myśliwce, RULES.md 62.16).
+    """
     if zone == "space":
         units = system.space_units.get(player_id, {})
     else:
         units = system.planet_units.get(zone, {}).get(player_id, {})
-    return {bt: n for bt, n in units.items() if n > 0 and bt in GROUND_FORCES}
+    return {bt: n for bt, n in units.items() if n > 0 and (bt in GROUND_FORCES or bt in extra)}
+
+
+def attacker_ground_types(state: GameState) -> frozenset[str]:
+    """Statki atakującego, które w trwającej inwazji lądują jak siły naziemne (Matriarch)."""
+    invasion = state.invasion
+    if invasion is None:
+        return frozenset()
+    from src.core import ship_roles  # lokalnie: ship_roles -> rules_hooks -> hooki
+
+    return ship_roles.ground_force_types(state, invasion.attacker, invasion.position)
 
 
 def system_planets(

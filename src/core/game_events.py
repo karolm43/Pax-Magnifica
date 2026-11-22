@@ -306,7 +306,8 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
         "Gracz zdobył żetony dowodzenia.", ("player", "amount")
     ),
     GameEvent.COMMAND_TOKEN_PLACED: EventInfo(
-        "Żeton dowodzenia położony w systemie.", ("player", "position")
+        "Żeton dowodzenia położony w systemie.", ("player", "position"),
+        "command_tokens.place_token",
     ),
     GameEvent.TRANSACTION: EventInfo(
         "Transakcja (negocjacja/rozstrzygnięcie).",

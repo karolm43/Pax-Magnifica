@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **411**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **425**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -152,6 +152,7 @@ Razem: **411**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat.won:after` | TRIGGER | leader:mentakcommander | leaders:mentakcommander | S'ula Mentarion: After you win a space combat: You may force your opponent to give you 1 |
 | `event:combat.won:after` | TRIGGER | breakthrough:sardakkbt | breakthroughs:sardakkbt | N'orr Supremacy: After you win a combat, either gain 1 command token or research a unit |
 | `event:combat.won:after` | TRIGGER | technology:so | technologies:so | Salvage Operations: ... if you won the combat, you may also produce 1 ship in that system of |
+| `event:combat:end` | TRIGGER | unit:naalu_flagship | — | After combat, return those units to the space area (tylko z planety tej walki; reszta - |
 | `event:combat:end` | TRIGGER | unit:naaz_mech | units:naaz_mech_space | Z-Grav Eidolon: At the end of a space battle in the active system, flip this card (mechy |
 | `event:combat:end` | TRIGGER | unit:saar_spacedock | — | If this unit is blockaded, it is destroyed. |
 | `event:combat:end` | TRIGGER | unit:saar_spacedock2 | — | If this unit is blockaded, it is destroyed. |
@@ -174,6 +175,8 @@ Razem: **411**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.exhausted:after` | TRIGGER | leader:sardakkagent | — | — |
 | `event:component.gained:when` | TRIGGER | relic:bookoflatvinia | — | Book of Latvinia: When you gain this card, research up to 2 technologies that have no |
 | `event:component.gained:when` | TRIGGER | breakthrough:muaatbt | breakthroughs:muaatbt | Stellar Genesis: When you gain this card, place the Avernus planet token into a non-home |
+| `event:component.gained:when` | TRIGGER | unit:naalu_mech_te | units:naalu_mech_te | Iconoclast TE: DEPLOY: When another player gains a relic, place 1 mech on any planet you |
+| `event:component.gained:when` | TRIGGER | leader:naalucommander | — | Talia agend powstaje leniwie - przy odblokowaniu M'aban zasiewamy ją, żeby podgląd |
 | `event:component.gained:when` | TRIGGER | relic:obsidian | relics:obsidian | The Obsidian: When you gain this card, draw 1 secret objective. |
 | `event:component.gained:when` | TRIGGER | relic:quantumcore | relics:quantumcore | The Quantumcore: When you gain this card, gain your breakthrough. |
 | `event:component.gained:when` | TRIGGER | relic:shard | — | Shard of the Throne: When you gain this card, gain 1 victory point. |
@@ -194,6 +197,7 @@ Razem: **411**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:faction.ability_used:after` | TRIGGER | leader:mentakcommander | — | Przeciwnik oddaje wybraną notkę z ręki (decyzja obowiązkowa przeciwnika). |
 | `event:faction.ability_used:after` | TRIGGER | unit:muaat_mech | units:muaat_mech | Ember Colossus: When you use your Star Forge faction ability in this system or an adjacent |
 | `event:faction.ability_used:after` | TRIGGER | leader:muaatagent | — | Wybrany gracz otwiera produkcję: grant ``free`` (bez PRODUCTION jednostek - F_muaat umbat |
+| `event:faction.ability_used:after` | TRIGGER | faction:naalu | — | — |
 | `event:faction.ability_used:after` | TRIGGER | breakthrough:saarbt | — | Saar przypisuje trafienia; jednostki z Sustain Damage - decyzja ich właściciela (3). |
 | `event:faction.ability_used:after` | TRIGGER | breakthrough:saarbt | — | Właściciel trafionej jednostki decyduje o Sustain Damage (F_saar deorbit 3). |
 | `event:faction.ability_used:after` | TRIGGER | unit:sol_mech | units:sol_mech | ZS Thunderbolt M2 — DEPLOY: After you use your Orbital Drop faction ability, you may spend |
@@ -202,7 +206,10 @@ Razem: **411**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:objective.scored:after` | TRIGGER | breakthrough:yinbt | breakthroughs:yinbt | Yin Ascendant: ... or score a public objective, gain the alliance ability of a random, |
 | `event:phase:end` | TRIGGER | technology:bio | technologies:bio | Bioplasmosis: At the end of the status phase, you may remove any number of infantry from |
 | `event:phase:end` | TRIGGER | relic:emphidia | relics:emphidia | The Crown of Emphidia: At the end of the status phase, if you control the "Tomb of |
+| `event:phase:end` | TRIGGER | promissory:gift | promissory_notes:gift | Return this card to the Naalu player at the end of the status phase. |
 | `event:phase:end` | TRIGGER | agenda:minister_policy | agendas:minister_policy | — |
+| `event:phase:end` | TRIGGER | faction:naalu | abilities:telepathic | Telepathic: At the end of the strategy phase: Place the Naalu "0" token on your strategy |
+| `event:phase:end` | TRIGGER | leader:naaluhero | leaders:naaluhero | The Oracle — C-Radium Geometry: At the end of the status phase: You may force each other |
 | `event:phase:end` | TRIGGER | technology:qdn | technologies:qdn | Quantum Datahub Node: At the end of the strategy phase, you may spend 1 token from your |
 | `event:phase:end` | TRIGGER | unit:sol_flagship | units:sol_flagship | Genesis: At the end of the status phase, place 1 infantry from your reinforcements in this |
 | `event:phase:start` | TRIGGER | effect:agendas:arms_reduction:against | agendas:arms_reduction | — |
@@ -262,6 +269,7 @@ Razem: **411**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.ships_moved:after` | TRIGGER | effect:leaders:saaragent | — | Wybrany statek ruszył - premia dotyczy tylko jego (1 statek). |
 | `event:tactical.ships_moved:after` | TRIGGER | breakthrough:muaatbt | breakthroughs:muaatbt | After you move one of your war suns out of or through Avernus's system and into a non-home |
 | `event:tactical.ships_moved:after` | TRIGGER | leader:muaathero | leaders:muaathero | Adjudicator Ba'al — Nova Seed: After you move a war sun into a non-home system other than |
+| `event:tactical.ships_moved:after` | TRIGGER | faction:naalu | abilities:foresight | Foresight: After another player moves ships into a system that contains 1 or more of your |
 | `event:tactical.ships_moved:after` | TRIGGER | unit:saar_spacedock | — | If this unit is blockaded, it is destroyed. |
 | `event:tactical.ships_moved:after` | TRIGGER | unit:saar_spacedock2 | — | If this unit is blockaded, it is destroyed. |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:<color>_an | promissory_notes:<color>_an | — |
@@ -275,6 +283,7 @@ Razem: **411**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.system_activated:after` | TRIGGER | leader:l1z1xagent | leaders:l1z1xagent | I48S: After a player activates a system: You may exhaust this card to allow that player to |
 | `event:tactical.system_activated:after` | TRIGGER | agenda:minister_peace | agendas:minister_peace | — |
 | `event:tactical.system_activated:after` | TRIGGER | technology:nf | technologies:nf | Nullification Field: After another player activates a system that contains 1 or more of your |
+| `event:tactical.system_activated:after` | TRIGGER | technology:ng | technologies:ng | Neuroglaive: After another player activates a system that contains 1 or more of your ships, |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:pop | promissory_notes:pop | If you activate a system that contains 1 or more of the Mentak player's units, return this |
 | `event:tactical.system_activated:after` | TRIGGER | leader:saaragent | leaders:saaragent | Captain Mendosa: When a player activates a system: You may exhaust this card to increase |
 | `event:tactical.system_activated:after` | TRIGGER | technology:scc | technologies:scc | Spatial Conduit Cylinder: You may exhaust this card after you activate a system that |
@@ -284,6 +293,7 @@ Razem: **411**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.units_committed:after` | TRIGGER | effect:leaders:sardakkhero | — | — |
 | `event:technology.research:after` | TRIGGER | agenda:revolution | agendas:revolution | — |
 | `event:technology.research:when` | TRIGGER | relic:prophetstears | relics:prophetstears | The Prophet's Tears: When you research a technology, you may exhaust this card to ignore 1 |
+| `event:tokens.placed:after` | TRIGGER | leader:naaluagent-te | leaders:naaluagent-te | Z'eu: After any player's command token is placed in a system: You may exhaust this card to |
 | `event:transaction:after` | TRIGGER | effect:action_cards:blackmarketdealing | — | Karta dotyczy jednej transakcji: po jej rozstrzygnięciu efekt znika. |
 | `event:transaction:after` | TRIGGER | faction:mentak | abilities:pillage | Pillage: After 1 of your neighbors ... resolves a transaction (strona aktywna). |
 | `event:transaction:after` | TRIGGER | faction:mentak | abilities:pillage | Pillage przeciw partnerowi transakcji (F_mentak: także przeciw obu stronom i przeciw |
@@ -327,10 +337,14 @@ Razem: **411**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:unit.sustain_damage:after` | TRIGGER | unit:sardakk_mech | units:sardakk_mech | Valkyrie Exoskeleton: After this unit uses its SUSTAIN DAMAGE ability during ground combat, |
 | `exploration.extra_draw` | PERMIT | faction:naaz | abilities:distant_suns | Distant Suns: When you explore a planet that contains 1 of your mechs: You may draw 1 |
 | `fleet_pool.capacity` | MODIFY | faction:letnev | abilities:armada | Armada: The maximum number of non-fighter ships you can have in each system is equal to 2 |
+| `fleet_pool.fighters_overflow` | PERMIT | technology:hcf2 | technologies:hcf2 | Hybrid Crystal Fighter II: This unit may move without being transported (Move z wariantu |
+| `fleet_pool.fighters_per_ship` | MODIFY | technology:hcf2 | units:naalu_fighter2 | „count as 1/2 of a ship” - 2 myśliwce ponad pojemność = 1 statek puli floty. |
 | `fleet_pool.token_cap` | MODIFY | agenda:regulations | agendas:regulations | — |
 | `fleet_pool.unlimited` | PERMIT | effect:leaders:letnevhero | — | — |
 | `hand_limit.action_cards` | MODIFY | agenda:sanctions | agendas:sanctions | — |
+| `info.peek` | FORBID | leader:naalucommander | leaders:naalucommander | M'aban: At any time: You may look at your neighbors' hands of promissory notes and the top |
 | `invasion.commit_from_planets` | PERMIT | leader:sardakkcommander | — | F_norr: G'hom Sek'kus działa także bez statków w aktywnym systemie - inwazja otwiera |
+| `invasion.ground_force_types` | FORBID | unit:naalu_flagship | units:naalu_flagship | Matriarch: During an invasion in this system, you may commit fighters to planets as if they |
 | `invasion.skip_bombardment` | PERMIT | effect:leaders:sardakkhero | — | — |
 | `invasion.strips_planetary_shield` | PERMIT | unit:letnev_flagship | units:letnev_flagship | Arc Secundus: Other player's units in this system lose PLANETARY SHIELD. |
 | `limits.pds_unlimited` | PERMIT | agenda:defense_act | agendas:defense_act | — |
@@ -464,10 +478,14 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `elimination.has_production`
 - `exploration.extra_draw`
 - `fleet_pool.capacity`
+- `fleet_pool.fighters_overflow`
+- `fleet_pool.fighters_per_ship`
 - `fleet_pool.token_cap`
 - `fleet_pool.unlimited`
 - `hand_limit.action_cards`
+- `info.peek`
 - `invasion.commit_from_planets`
+- `invasion.ground_force_types`
 - `invasion.skip_bombardment`
 - `movement.alpha_beta_adjacent`
 - `movement.enter_asteroids`

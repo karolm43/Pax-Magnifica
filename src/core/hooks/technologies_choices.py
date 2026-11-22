@@ -27,8 +27,17 @@ def _source(alias: str) -> HookSource:
 # --- Dacxive Animators -----------------------------------------------------------------------
 
 
-def _won_ground_combat(_state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
-    return ctx.get("kind") == "ground" and ctx.get("winner") == player_id
+def _won_ground_combat(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
+    """Wygrana walka naziemna z ocalałą siłą naziemną na planecie: same myśliwce Matriarch nie
+    pozwalają przejąć planety przez Dacxive (F_naalu matriarch 3)."""
+    if ctx.get("kind") != "ground" or ctx.get("winner") != player_id:
+        return False
+    system = state.systems.get(str(ctx.get("position") or ""))
+    units = (
+        system.planet_units.get(str(ctx.get("planet") or ""), {}).get(player_id, {})
+        if system is not None else {}
+    )
+    return any(units.get(bt, 0) > 0 for bt in ("infantry", "mech"))
 
 
 @on_event(

@@ -19,6 +19,7 @@ import { getRelicData } from "@/entities/lookup/relics";
 import { getExploration } from "@/entities/lookup/explorations";
 import { Tech } from "@/domains/player/components/Tech";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
+import { usePlayerData } from "@/api/usePlayerData";
 import {
   loadStoredChoice,
   saveStoredChoice,
@@ -285,7 +286,9 @@ export function BottomHandDock() {
     return hand.promissoryNotes;
   }, [hand, tab, relicIds, frontierIds]);
 
-  // Prywatne podglądy z kart reakcji: Insider Information (top agend) i Extreme Duress (tajne cele).
+  // Prywatne podglądy z kart reakcji: Insider Information (top agend) i Extreme Duress (tajne cele);
+  // stały podgląd M'aban (Naalu): notki sąsiadów oraz wierzchnia i spodnia karta talii agend.
+  const { data: mabanPeek } = usePlayerData(gameId, { select: (d) => d.gameState?.peek ?? null });
   const peekLines = useMemo(() => {
     const lines: string[] = [];
     if (hand?.agendaPeek?.length) {
@@ -296,8 +299,20 @@ export function BottomHandDock() {
       const names = ids.map((id) => getSecretObjectiveData(id)?.name ?? id);
       lines.push(`Secret objectives of ${owner}: ${names.join(" · ") || "none"}`);
     }
+    if (mabanPeek?.agendaTop || mabanPeek?.agendaBottom) {
+      const name = (id: string | null) => (id ? (getAgenda(id)?.name ?? id) : "-");
+      lines.push(
+        `Agenda deck (M'aban): top ${name(mabanPeek.agendaTop)} · bottom ${name(mabanPeek.agendaBottom)}`,
+      );
+    }
+    for (const [owner, notes] of Object.entries(mabanPeek?.neighbors ?? {})) {
+      const names = notes.map(
+        (id) => getPromissoryNoteData(id, noteColors)?.displayName ?? id,
+      );
+      lines.push(`Promissory notes of ${owner} (M'aban): ${names.join(" · ") || "none"}`);
+    }
     return lines;
-  }, [hand?.agendaPeek, hand?.revealedSecrets]);
+  }, [hand?.agendaPeek, hand?.revealedSecrets, mabanPeek, noteColors]);
 
   // Mierzymy wysokość doku (zwinięty / rozwinięty) i wystawiamy ją jako zmienną CSS
   // ``--hand-dock-clear`` na <html> - pastylki powrotu do okien (produkcja, technologie…)

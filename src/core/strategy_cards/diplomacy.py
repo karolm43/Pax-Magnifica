@@ -94,7 +94,7 @@ def _primary(
                 command_tokens.take_from_reinforcements(state, pid)
             elif not _take_token_from_sheet(state, pid):
                 continue  # brak jakiegokolwiek żetonu - nic do położenia
-            system.command_tokens.append(pid)
+            command_tokens.place_token(state, system, pid)
     ready_planets_by_choice(state, owner_id, list(draft.get("planets", [])), READY_LIMIT)
 
 

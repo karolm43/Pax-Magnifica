@@ -6,6 +6,7 @@ import { StatusIndicator } from "../StatusIndicator";
 import { SpeakerToken } from "../SpeakerToken";
 import { TyrantToken } from "../TyrantToken";
 import { StrategyCard } from "../StrategyCard";
+import { useGameData } from "@/state/useGameContext";
 import { NeedsToFollow } from "../NeedsToFollow";
 import { Neighbors } from "../Neighbors";
 import { Breakthrough } from "../Breakthrough/Breakthrough";
@@ -35,14 +36,17 @@ type Props = {
 
 /** Speaker and tyrant markers followed by the player's strategy cards. */
 function HeaderTokens({
+  faction,
   isSpeaker = false,
   isTyrant = false,
   scs = [],
   exhaustedSCs = [],
 }: Pick<
   Props,
-  "isSpeaker" | "isTyrant" | "scs" | "exhaustedSCs"
+  "faction" | "isSpeaker" | "isTyrant" | "scs" | "exhaustedSCs"
 >) {
+  // Żeton „0” Naalu leży na najniższej karcie posiadacza (inicjatywa 0).
+  const zeroCard = useGameData()?.initiativeZero === faction && scs.length ? Math.min(...scs) : null;
   return (
     <>
       {isSpeaker && <SpeakerToken />}
@@ -52,6 +56,7 @@ function HeaderTokens({
           key={scNumber}
           initiative={scNumber}
           isExhausted={exhaustedSCs.includes(scNumber)}
+          zeroToken={scNumber === zeroCard}
         />
       ))}
     </>
@@ -122,6 +127,7 @@ export function PlayerCardHeaderCompact({
 
       <Group gap={8} className={styles.rightGroup}>
         <HeaderTokens
+          faction={faction}
           isSpeaker={isSpeaker}
           isTyrant={isTyrant}
           scs={scs}
@@ -185,6 +191,7 @@ export function PlayerCardHeaderFull({
 
       <Group gap="xs" align="center">
         <HeaderTokens
+          faction={faction}
           isSpeaker={isSpeaker}
           isTyrant={isTyrant}
           scs={scs}
@@ -296,6 +303,7 @@ export function PlayerCardHeaderMobile({
         className={styles.rightGroup}
       >
         <HeaderTokens
+          faction={faction}
           isSpeaker={isSpeaker}
           isTyrant={isTyrant}
           scs={scs}

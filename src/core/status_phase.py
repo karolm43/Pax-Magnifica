@@ -29,6 +29,7 @@ from src.core import (
     command_tokens,
     exhaust,
     fleet_pool,
+    initiative_zero,
     objectives,
     rules_hooks,
     strategy_phase,
@@ -423,6 +424,8 @@ def finish_status(state: GameState, registry: StaticDataRegistry) -> GameState:
         return ended
     new_state = strategy_phase.accumulate_unpicked_tg(state, registry)
     new_state = strategy_phase.reset_strategy_cards(new_state)
+    # Karty strategii wracają na stół - razem z nimi żeton „0” Naalu (RULES.md 62.16).
+    initiative_zero.clear(new_state)
     new_state.status = None
     if not new_state.custodians_removed:
         return turn_flow.next_round(new_state)

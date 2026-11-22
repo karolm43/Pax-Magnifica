@@ -76,7 +76,8 @@ def resolve_unit_variant(
     (``FLIP_SIDE_UNIT_IDS``) nie są wybierane nigdy.
 
     Priorytet (jak w ``web_data._units_owned_for_faction``): frakcyjny-ulepszony >
-    generyczny-ulepszony > frakcyjny-bazowy > generyczny-bazowy. Ulepszenie liczy się
+    generyczny-ulepszony > frakcyjny-bazowy > generyczny-bazowy; przy remisie wariant z listy
+    jednostek frakcji w danych. Ulepszenie liczy się
     tylko, gdy gracz ma wymaganą technologię (``required_tech_id``). Zwraca ``None``,
     gdy brak jednostki tego ``base_type`` w rejestrze.
     """
@@ -96,7 +97,7 @@ def resolve_unit_variant(
         return unit.faction is not None and unit.faction == faction_id
 
     best: UnitDef | None = None
-    best_rank = -1
+    best_rank: tuple[int, bool] = (-1, False)
     for unit in registry.units.values():
         if unit.base_type != base_type:
             continue
@@ -130,8 +131,11 @@ def resolve_unit_variant(
         # Maximum na karcie mecha) wygrywa z nią.
         if unit.id in BREAKTHROUGH_UNIT_IDS:
             rank += 2
-        if rank > best_rank:
-            best_rank = rank
+        # Remis rangi (kilka wersji jednostki frakcji, np. Iconoclast / Iconoclast TE): wygrywa
+        # wariant wymieniony w danych frakcji (``faction.units``), nie kolejność rejestru.
+        key = (rank, unit.id in faction_unit_ids)
+        if key > best_rank:
+            best_rank = key
             best = unit
     return best
 

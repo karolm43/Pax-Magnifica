@@ -165,13 +165,12 @@ def activate_system(
     )
     system = _ensure_system(new_state, position, grid)
 
-    # Żeton dowodzenia aktywnego gracza w przestrzeni (bez duplikatu — już sprawdzone wyżej).
-    if not free and active_id not in system.command_tokens:
-        system.command_tokens.append(active_id)
-
-    # Zużycie z puli taktycznej (gwarantowane > 0 przez walidację).
+    # Zużycie z puli taktycznej (gwarantowane > 0 przez walidację), potem żeton w przestrzeni
+    # systemu (bez duplikatu — już sprawdzone wyżej; ``place_token`` emituje zdarzenie).
     if not free:
         command_tokens.spend_from_pool(new_state, active_id, "tactical")
+    if not free and active_id not in system.command_tokens:
+        command_tokens.place_token(new_state, system, active_id)
     # RULES.md 31.7: aktywacja systemu rozpoczyna AKCJĘ TAKTYCZNĄ — liczy się jako
     # akcja tury, więc gracz będzie mógł zakończyć turę (End turn).
     if free:

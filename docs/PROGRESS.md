@@ -262,3 +262,32 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
 - Ręka: pusta zakładka kurczy się do linii komunikatu (zamiast 176 px pustej tacy).
 - QA: tsc ✓ (poza niezacommitowanym `useBoardEditor.ts` równoległej sesji), eslint ✓, vitest (game-shell, tutorial,
   network, setup, chat) ✓, build ✓, e2e 8/8 (tools.e2e: zoom zwija stół kart przed kółkiem). Backend bez zmian.
+
+## 2026-11-22 — B12: The Naalu Collective (RULES.md 62.16)
+
+- ✅ `core/hooks/factions/naalu.py`: Telepathic, Foresight, Gift of Prescience, Neuroglaive, Hybrid Crystal
+  Fighter II, Matriarch, Iconoclast TE, Z'eu (TE), M'aban (Codex), The Oracle, Mindsieve. Starsze warianty
+  (Z'eu/Z'eu Ω, M'aban PoK, Iconoclast/Iconoclast Ω) = `na` w `rulings_status.json`.
+- Rdzeń (punkty ogólne, bez nazw frakcji):
+  - Żeton „0”: `core/initiative_zero.py` (efekt gracza, inicjatywa 0 w `turn_flow.turn_order` /
+    `strict_initiative_order`, zdejmowany przy zwrocie kart strategii w `status_phase.finish_status`); okno reakcji
+    „koniec fazy strategii” (`reactions_misc.strategy_phase_end`) dla notek z ręki.
+  - `command_tokens.place_token` = jedyne położenie żetonu w systemie + nowe zdarzenie `COMMAND_TOKEN_PLACED/AFTER`
+    (aktywacja, odwrót, Diplomacy, Signal Jamming, Stymie...).
+  - Pula floty: PERMIT `fleet_pool.fighters_overflow` + MODIFY `fleet_pool.fighters_per_ship` (HCF II = 1/2 statku,
+    w górę); `FleetReport.excess_after`, usuwanie nadwyżki bez zbędnych jednostek.
+  - Inwazja: FORBID `invasion.ground_force_types` (`ship_roles.ground_force_types`) — myśliwce Matriarch lądują,
+    walczą, obrywają w Space Cannon Defense, wracają do przestrzeni po walce i przed Establish Control
+    (`invasion.return_ships_to_space`); widok inwazji w API pokazuje je jako siły do lądowania.
+  - `core/peek.py` + FORBID `info.peek`: stały podgląd (M'aban) w web-data `gameState.peek`; talia agend zasiewana
+    przy odblokowaniu M'aban.
+  - `combat.resolve_unit_variant` i `web_player_units`: przy remisie rangi wygrywa wariant z `faction.units`
+    (wcześniej kolejność rejestru dawała Iconoclast PoK zamiast TE).
+  - Dacxive Animators: tylko z ocalałą siłą naziemną na planecie (F_naalu matriarch 3).
+- UI: znacznik żetonu „0” na płytce karty strategii (`StrategyCard zeroToken`, `gameState.initiativeZero`), podgląd
+  M'aban w liniach podglądu ręki (`BottomHandDock`), efekt bohatera The Oracle (`heroBoardFx.ts`). Oferty
+  (Foresight, Z'eu, The Oracle, Iconoclast) i Mindsieve (Available now) idą przez wspólne okna.
+- Rulingi `F_naalu` z testami (`tests/factions/test_naalu.py`, scenariusze `test_flows_naalu.py`); F_muaat umbat 4/4.1
+  → `na` (aktywny M'aban nie produkuje). Luka: Neuroglaive przy Mahact (`requires faction:mahact`).
+- ⚠️ Założenia do potwierdzenia: Foresight zabiera siły naziemne z przestrzeni automatycznie (mechy, potem piechota,
+  do pojemności); Gift of Prescience gra się w oknie po komplecie kart strategii, zanim mówca kliknie „Next phase”.

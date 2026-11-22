@@ -80,6 +80,19 @@ class CapacityReport:
         return self.excess_for(self.cargo)
 
 
+def fighters_overflow_to_fleet(state: GameState, player_id: str) -> bool:
+    """Myśliwce gracza ponad pojemność liczą się do puli floty (Fighter II ``ff2`` albo hook
+    PERMIT ``fleet_pool.fighters_overflow`` - Hybrid Crystal Fighter II, RULES.md 62.16)."""
+    player = state.players.get(player_id)
+    if player is None:
+        return False
+    if FIGHTER_II_ALIAS in player.technologies:
+        return True
+    from src.core import rules_hooks  # lokalnie: unika cyklu importów
+
+    return rules_hooks.permits(rules_hooks.POINT_FLEET_POOL_FIGHTERS_OVERFLOW, state, player_id)
+
+
 def _variant_value(
     registry: StaticDataRegistry, faction: str | None, techs: list[str], base_type: str
 ) -> tuple[int, int, float, str]:
@@ -102,7 +115,7 @@ def capacity_report(
     player = state.players.get(player_id)
     faction = player.faction if player is not None else None
     techs = player.technologies if player is not None else []
-    report.fighters_overflow_to_fleet = FIGHTER_II_ALIAS in techs
+    report.fighters_overflow_to_fleet = fighters_overflow_to_fleet(state, player_id)
 
     for base_type, count in system.space_units.get(player_id, {}).items():
         if count <= 0:

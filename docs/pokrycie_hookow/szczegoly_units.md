@@ -54,11 +54,11 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `muaat_mech` | Ember Colossus | muaat | — | PERMIT (pozwolenie) | ruch, produkcja | ✔ | When you use your Star Forge faction ability in this system or an adjacent system, you may place 1 infantry from your reinforcements with t… |
 | `muaat_warsun` | Prototype War Sun I | muaat | — | — | — | ✔ | Other players' units in this system lose the PLANETARY SHIELD ability. |
 | `muaat_warsun2` | Prototype War Sun II | muaat | — | — | — | ✔ | Other players' units in this system lose the PLANETARY SHIELD ability. |
-| `naalu_fighter2` | Hybrid Crystal Fighter II | naalu | — | PERMIT (pozwolenie) | ruch, żetony dowodzenia | — | This unit may move without being transported. Each fighter in excess of your ships' capacity counts as 1/2 of a ship against your fleet poo… |
-| `naalu_flagship` | Matriarch | naalu | — | PERMIT (pozwolenie) | walka, planety i eksploracja | — | During an invasion in this system, you may commit fighters to planets as if they were ground forces. After combat, return those units to th… |
+| `naalu_fighter2` | Hybrid Crystal Fighter II | naalu | — | PERMIT (pozwolenie) | ruch, żetony dowodzenia | ✔ | This unit may move without being transported. Each fighter in excess of your ships' capacity counts as 1/2 of a ship against your fleet poo… |
+| `naalu_flagship` | Matriarch | naalu | — | PERMIT (pozwolenie) | walka, planety i eksploracja | ✔ | During an invasion in this system, you may commit fighters to planets as if they were ground forces. After combat, return those units to th… |
 | `naalu_mech` | Iconoclast | naalu | — | MODIFY (liczba/rzut) | walka, planety i eksploracja | — | During combat against an opponent who has at least 1 relic fragment, apply +2 to the results of this unit's combat rolls. |
 | `naalu_mech_omega` | Iconoclast Omega | naalu | — | FORBID (zakaz) | walka | — | Other players cannot use ANTI-FIGHTER BARRAGE against your units in this system. |
-| `naalu_mech_te` | Iconoclast TE | naalu | — | — | planety i eksploracja | — | DEPLOY: When another player gains a relic, place 1 mech on any planet you control. |
+| `naalu_mech_te` | Iconoclast TE | naalu | — | — | planety i eksploracja | ✔ | DEPLOY: When another player gains a relic, place 1 mech on any planet you control. |
 | `naaz_flagship` | Visz El Vir | naaz | — | MODIFY (liczba/rzut) | walka | ✔ | Your mechs in this system roll 1 additional die during combat. |
 | `naaz_mech` | Eidolon | naaz | — | — | walka | ✔ | If this unit is in the space area of the active system at the start of a space combat, flip this card. |
 | `naaz_mech_space` | Z-Grav Eidolon | naaz | — | — | — | ✔ | If this unit is in the space area of the active system, it is also a ship. At the end of a space battle in the active system, flip this car… |

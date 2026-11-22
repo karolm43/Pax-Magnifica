@@ -62,3 +62,17 @@ def space_ships(
         bt: n for bt, n in system.space_units.get(player_id, {}).items()
         if n > 0 and (is_space_unit(bt) or bt in as_ships)
     }
+
+
+def ground_force_types(state: GameState, player_id: str, position: str) -> frozenset[str]:
+    """Statki gracza, które w inwazji w systemie ``position`` lądują i walczą jak siły naziemne
+    (Matriarch Naalu: myśliwce - RULES.md 62.16). Hook FORBID ``invasion.ground_force_types``."""
+    if player_id not in state.players:
+        return frozenset()
+    return frozenset(
+        bt for bt in rules_hooks.forbidden(
+            rules_hooks.POINT_INVASION_GROUND_FORCE_TYPES, state, player_id,
+            {"position": position},
+        )
+        if is_space_unit(bt)
+    )

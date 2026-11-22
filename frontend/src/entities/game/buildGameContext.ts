@@ -407,6 +407,7 @@ export function buildGameContext(
     lawsInPlay: data.lawsInPlay,
     strategyCards: data.strategyCards,
     strategyCardIdMap: data.strategyCardIdMap,
+    initiativeZero: data.gameState?.initiativeZero ?? null,
     vpsToWin: data.vpsToWin,
     cardPool: data.cardPool,
     versionSchema: data.versionSchema,

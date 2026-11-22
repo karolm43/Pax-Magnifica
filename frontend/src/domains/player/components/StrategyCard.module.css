@@ -103,3 +103,21 @@
     transition: none;
   }
 }
+
+/* Żeton „0” Naalu na karcie (RULES.md 62.16): mały złoty krążek obok inicjatywy. */
+.zero {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: rgb(255 214 110);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.5);
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: var(--weight-title);
+  letter-spacing: 0;
+  color: rgb(30 22 8);
+}

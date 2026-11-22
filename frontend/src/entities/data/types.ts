@@ -623,6 +623,13 @@ export type GameState = {
   revealedSecrets?: Record<string, string[]>;
   /** Checks and Balances: wybraną kartę strategii dostaje inny gracz. */
   strategyGivesCards?: boolean;
+  /**
+   * Stały podgląd ukrytych kart viewera (M'aban Naalu, RULES.md 62.16): notki w rękach sąsiadów
+   * (klucz jak `playerData[].faction`) i wierzchnia/spodnia karta talii agend; null bez podglądu.
+   */
+  peek?: GamePeek | null;
+  /** Gracz z żetonem „0” Naalu (klucz jak `playerData[].faction`) - inicjatywa 0. */
+  initiativeZero?: string | null;
   /** player_id zwycięzcy po zakończeniu gry (``winner`` to jego kolor). */
   winnerId?: string | null;
   /** God-Mode: limit ręki kart akcji wyłączony przez hosta (RULES.md 53.8). */
@@ -1406,4 +1413,11 @@ export type ReactionPrefsData = {
   mutedCards: string[];
   /** Komponenty z wyciszonymi ofertami „you may” (klucz ``covers`` + pełna nazwa). */
   mutedOffers: { key: string; name: string }[];
+};
+
+/** Podgląd ukrytych kart (M'aban Naalu) - ``gameState.peek``. */
+export type GamePeek = {
+  neighbors: Record<string, string[]>;
+  agendaTop: string | null;
+  agendaBottom: string | null;
 };

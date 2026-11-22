@@ -27,6 +27,7 @@ from src.core.invasion_common import (
     _phase,
     _sustain_events,
     _system,
+    attacker_ground_types,
 )
 from src.core.registry import StaticDataRegistry
 
@@ -44,8 +45,9 @@ def defense_planets(state: GameState, registry: StaticDataRegistry) -> list[str]
     if inv.source:
         # Quantum Dissemination: „Players cannot use SPACE CANNON against these units” (F_yin Ω).
         return result
+    as_ground = attacker_ground_types(state)  # Matriarch: myśliwce też obrywają (F_naalu 4)
     for planet in sorted(inv.committed):
-        if not _ground_in_zone(system, planet, inv.attacker):
+        if not _ground_in_zone(system, planet, inv.attacker, as_ground):
             continue
         if any(
             space_cannon.zone_shooters(state, registry, pid, inv.position, planet)

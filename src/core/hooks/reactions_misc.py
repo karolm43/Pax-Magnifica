@@ -97,6 +97,22 @@ def strategy_phase_start(state: GameState) -> list[OpenWindow]:
 
 
 @window_provider
+def strategy_phase_end(state: GameState) -> list[OpenWindow]:
+    """„At the end of the strategy phase”: każdy ma komplet kart, mówca jeszcze nie przeszedł do
+    fazy akcji (Gift of Prescience Naalu, RULES.md 62.16)."""
+    if state.phase is not Phase.STRATEGY or state.setup is not None or not state.players:
+        return []
+    try:
+        strategy_phase.ensure_strategy_complete(state)
+    except ValueError:
+        return []
+    subject = state.speaker_id or state.active_player_id
+    if subject is None or subject not in state.players:
+        return []
+    return [OpenWindow(GameEvent.PHASE, Moment.END, {"player": subject, "phase": "strategy"})]
+
+
+@window_provider
 def turn_boundary(state: GameState) -> list[OpenWindow]:
     """Pauza po końcu tury: „koniec tury gracza X” i (gdy ktoś jest następny) „początek tury Y”."""
     window = state.turn_end_window

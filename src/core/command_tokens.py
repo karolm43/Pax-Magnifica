@@ -117,6 +117,28 @@ def remove_from_board(state: GameState, system: SystemState, player_id: str) -> 
     return_to_reinforcements(state, player_id, 1)
 
 
+def place_token(state: GameState, system: SystemState, player_id: str) -> None:
+    """Kładzie żeton gracza w systemie na planszy — JEDYNE miejsce (źródło żetonu: wołający).
+
+    Emituje ``COMMAND_TOKEN_PLACED/AFTER`` (Z'eu Naalu: „After any player's command token is
+    placed in a system”, RULES.md 62.16): aktywacja, odwrót, Diplomacy, Signal Jamming, Stymie...
+    God-Mode (``board_edit``) omija tę ścieżkę.
+
+    Raises:
+        ValueError: Gracz ma już swój żeton w tym systemie (najwyżej jeden - R_command_tokens).
+    """
+    if player_id in system.command_tokens:
+        raise ValueError(f"{player_id} already has a command token in system {system.position}.")
+    system.command_tokens.append(player_id)
+    from src.core import triggers  # lokalnie: triggers importuje hooki
+    from src.core.game_events import GameEvent, Moment
+
+    triggers.fire(
+        state, GameEvent.COMMAND_TOKEN_PLACED, Moment.AFTER, subject=player_id,
+        ctx={"player": player_id, "position": system.position},
+    )
+
+
 def place_on_board_from_pool(
     state: GameState, system: SystemState, player_id: str, pool: str
 ) -> None:
@@ -128,7 +150,7 @@ def place_on_board_from_pool(
     if player_id in system.command_tokens:
         raise ValueError(f"{player_id} already has a command token in system {system.position}.")
     spend_from_pool(state, player_id, pool)
-    system.command_tokens.append(player_id)
+    place_token(state, system, player_id)
 
 
 def return_board_token_to_pool(
@@ -161,7 +183,7 @@ def place_on_board_from_reinforcements(
     if player_id in system.command_tokens:
         raise ValueError(f"{player_id} already has a command token in system {system.position}.")
     take_from_reinforcements(state, player_id, 1)
-    system.command_tokens.append(player_id)
+    place_token(state, system, player_id)
 
 
 def add_to_pool(state: GameState, player_id: str, pool: str, amount: int = 1) -> None:

@@ -34,6 +34,8 @@ from src.api.web_players import _build_player_data, _build_stat_tile_positions
 from src.api.web_tiles import _build_tile_unit_data, _ring_count
 from src.core import (
     game_clock,
+    initiative_zero,
+    peek,
     strategy_phase,
 )
 from src.core.expedition_state import EXPEDITION_SLICES
@@ -172,6 +174,23 @@ def _build_chess_clock(
     }
 
 
+def _zero_token_key(state: GameState, entity_keys: dict[str, str]) -> str | None:
+    """Klucz gracza z żetonem „0” Naalu (``None`` = nikt) - RULES.md 62.16."""
+    holder = initiative_zero.holder(state)
+    return entity_keys.get(holder, holder) if holder is not None else None
+
+
+def _peek_payload(
+    state: GameState, grid: HexGrid, viewer: str | None, entity_keys: dict[str, str]
+) -> dict[str, Any] | None:
+    """Podgląd M'aban viewera (``core/peek``) z kluczami graczy jak w ``playerData``."""
+    found = peek.view(state, grid, viewer)
+    if found is None:
+        return None
+    found["neighbors"] = {entity_keys.get(p, p): notes for p, notes in found["neighbors"].items()}
+    return found
+
+
 def build_web_data(
     grid: HexGrid,
     registry: StaticDataRegistry,
@@ -259,6 +278,10 @@ def build_web_data(
             "agendaCovertCard": web_agenda.covert_for_viewer(state, registry, viewer),
             "revealedSecrets": web_agenda.revealed_secrets(state),
             "strategyGivesCards": strategy_phase.gives_chosen_cards(state),
+            # Stały podgląd ukrytych kart (M'aban Naalu - RULES.md 62.16): tylko dla viewera.
+            "peek": _peek_payload(state, grid, viewing_player if strict else viewer, entity_keys),
+            # Gracz z żetonem „0” Naalu (inicjatywa 0) - znacznik na karcie strategii.
+            "initiativeZero": _zero_token_key(state, entity_keys),
             # Setup startowy — None po zakończeniu; kandydaci tylko dla jednego gracza.
             "setup": web_setup.build_setup_payload(state, viewing_player, own_only=strict)
             if strict

@@ -59,6 +59,8 @@ export type GameData = {
   lawsInPlay: PlayerDataResponse["lawsInPlay"];
   strategyCards: PlayerDataResponse["strategyCards"];
   strategyCardIdMap?: PlayerDataResponse["strategyCardIdMap"];
+  /** Gracz z żetonem „0” Naalu (klucz jak `playerData[].faction`) - inicjatywa 0. */
+  initiativeZero?: string | null;
   vpsToWin: PlayerDataResponse["vpsToWin"];
   cardPool: PlayerDataResponse["cardPool"];
   versionSchema?: PlayerDataResponse["versionSchema"];
