@@ -68,7 +68,16 @@ def test_zeu_po_aktywacji_rywala(registry: StaticDataRegistry) -> None:
 def test_gift_of_prescience_na_koncu_fazy_strategii(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "naalu")
     note = flow.give_note("gift", flow.other)
-    flow.edit(phase="STRATEGY")  # komplet kart (po 2 na gracza) - okno „koniec fazy strategii”
+    last = max(_state(flow)["players"][flow.other]["strategy_cards"])
+
+    def unpicked(s: Json) -> None:
+        s["players"][flow.other]["strategy_cards"].remove(last)
+
+    # Faza strategii bez ostatniej karty rywala; jego wybór domyka fazę (okno „koniec fazy”).
+    flow.edit(unpicked, phase="STRATEGY", active=flow.other)
+    flow.post("/strategy/pick", {"player_id": flow.other, "initiative": last})
+    pause = _state(flow)["reaction_pause"]
+    assert pause is not None and flow.other in pause["eligible"]  # „Next phase” czeka
     row = flow.notes_playable(flow.other)[note]
     assert row["playable"], row["reason"]
     flow.play_note(flow.other, note)

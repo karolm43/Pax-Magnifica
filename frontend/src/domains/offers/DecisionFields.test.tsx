@@ -61,6 +61,19 @@ describe("DecisionFields", () => {
     expect(screen.getByRole("button", { name: /Destroyer I/ })).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("pole liczbowe z Auto: przycisk Auto wraca do wartości podpowiedzianej przez silnik", () => {
+    render(
+      <Harness
+        inputs={[
+          { key: "carry_infantry", kind: "number", label: "Infantry to take along", min: 0, max: 5, auto: 3 },
+        ]}
+      />,
+    );
+    expect(screen.getByText("3")).toBeTruthy(); // start = wartość Auto
+    fireEvent.click(screen.getByRole("button", { name: /auto/i }));
+    expect(values().carry_infantry).toBe(3);
+  });
+
   it("płatność: kafelki planet + licznik TG w jednym widżecie z paskiem", () => {
     render(
       <Harness

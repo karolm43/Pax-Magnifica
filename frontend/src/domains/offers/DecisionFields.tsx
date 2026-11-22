@@ -57,12 +57,25 @@ export function DecisionField({
   mapActive?: boolean;
 }) {
   if (input.kind === "number") {
+    // „Auto” (decyzja użytkownika: wybór gracza zawsze z opcją Auto) - wartość podpowiedziana
+    // przez silnik; gracz może ją zmienić stepperem.
+    const auto = input.auto;
     return (
       <div className={styles.field}>
         {input.hint && <p className={styles.hint}>{input.hint}</p>}
+        {auto !== undefined && (
+          <button
+            type="button"
+            className={styles.autoButton}
+            disabled={disabled}
+            onClick={() => onChange(auto)}
+          >
+            <IconWand size={14} aria-hidden="true" /> Auto
+          </button>
+        )}
         <Stepper
           label={input.label}
-          value={typeof value === "number" ? value : input.min}
+          value={typeof value === "number" ? value : (auto ?? input.min)}
           min={input.min}
           max={input.max}
           disabled={disabled}

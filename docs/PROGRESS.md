@@ -291,3 +291,20 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
   → `na` (aktywny M'aban nie produkuje). Luka: Neuroglaive przy Mahact (`requires faction:mahact`).
 - ⚠️ Założenia do potwierdzenia: Foresight zabiera siły naziemne z przestrzeni automatycznie (mechy, potem piechota,
   do pojemności); Gift of Prescience gra się w oknie po komplecie kart strategii, zanim mówca kliknie „Next phase”.
+
+## 2026-11-22 — Naalu: wybór + „Auto” w Foresight, pauza końca fazy strategii
+
+- Decyzja użytkownika: każdy wybór gracza = wybór ręczny + „Auto” (także `CLAUDE.md`). Ogólnie:
+  `oi.number(..., auto=N)` — UI wstawia wartość Auto i pokazuje przycisk „Auto” (`DecisionField`), pominięte pole
+  = Auto (`validate_params`, `single_params`, bot).
+- Foresight: gracz wybiera, ile mechów i piechoty z przestrzeni zabrać (pola `carry_mech` / `carry_infantry`,
+  Auto = do pojemności, najpierw mechy — ⚠️ ZAŁOŻENIE); ponad pojemność = 422, niezabrane zostają.
+- Pauza ochronna (54.10) w oknie „koniec fazy strategii”: `PAUSE_POINTS` (`PHASE/END`), uprawnieni = gracze z notką
+  w ręce poza właścicielem notki frakcji reagującej w oknie (`promissory_play.faction_note_owners`, jawne);
+  `turn_flow.next_phase` z fazy strategii czeka na koniec pauzy.
+- Poprawka: oferty z położenia żetonu w trakcie primary (Diplomacy + Z'eu) nie otwierają własnego okna — czekają
+  w oknie secondary (fuzz seed 11 stał).
+- QA: pytest (factions, engine, reaction pause, strategia) ✓, ruff/mypy ✓, tsc ✓, eslint ✓, vitest (offers, api) ✓.
+  Pełnego pytest nie puszczałem na tym drzewie: równoległa sesja ma niezacommitowane zmiany (Vuil'raith,
+  `transaction.py` — czerwony `test_pride_of_kenara_w_gravity_rift_rzut` to jej zmiana). Build/e2e pominięte
+  (bez nowych modułów frontu).

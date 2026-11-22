@@ -11,7 +11,10 @@ Kluczowe okna (decyzja użytkownika 2026-11-15):
 * ujawniona agenda (Veto, Diplomatic Pressure, ridery...) - blokuje pierwszy głos / wstrzymanie;
 * wygrana walka (Salvage) - blokuje zamknięcie bitwy;
 * użycie Sustain Damage (Direct Hit, Reflective Shielding) - blokuje kolejny krok walki / Space
-  Cannon.
+  Cannon;
+* koniec fazy strategii (Gift of Prescience, notka Naalu - decyzja użytkownika 2026-11-22) -
+  blokuje przejście do fazy akcji („Next phase”). Uprawnieni: każdy gracz poza właścicielem
+  notki, który ma w ręce choć jedną notkę (liczba jest jawna).
 
 **Filtr jawny (43.4 pkt 5).** Pauza otwiera się tylko, gdy na okno może zareagować karta spoza
 stosu odrzuconych (``timing_view.live_relations``) i ktoś, kto mógłby być właściwą stroną okna
@@ -46,6 +49,7 @@ PAUSE_POINTS: dict[Point, tuple[Point, ...]] = {
     (_E.UNIT_SUSTAIN_DAMAGE, _M.AFTER): (
         (_E.UNIT_SUSTAIN_DAMAGE, _M.WHEN), (_E.UNIT_SUSTAIN_DAMAGE, _M.AFTER),
     ),
+    (_E.PHASE, _M.END): ((_E.PHASE, _M.END),),
 }
 
 # Klucze kontekstu, które NIE rozróżniają okna (kilka statków z Sustain Damage = jedna pauza).
@@ -74,6 +78,16 @@ def eligible_players(
         relations |= live.get(point, set())
     # Komponent frakcji z oknem użycia (Quash) - jawny, więc też otwiera pauzę (RULES.md 62.9).
     users = set(reaction_window.window_component_users(state, registry, _seating(state)))
+    # Notka frakcji reagująca w tym oknie (Gift of Prescience): każdy inny gracz z notką w ręce.
+    from src.core import promissory_play  # lokalnie: promissory_play importuje moduły okien
+
+    points = set(PAUSE_POINTS.get((window.event, window.moment), ()))
+    owners = promissory_play.faction_note_owners(state, registry, points)
+    if owners:
+        users |= {
+            pid for pid, p in state.players.items()
+            if p.private.promissory_notes and any(o != pid for o in owners)
+        }
     if not relations:
         return [pid for pid in _seating(state) if pid in users]
     subject = window.subject

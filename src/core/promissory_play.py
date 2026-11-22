@@ -195,6 +195,24 @@ def reaction_points(registry: StaticDataRegistry, template: str) -> list[tuple[A
     return [] if is_action(registry, template) else _points(registry, template)
 
 
+def faction_note_owners(
+    state: GameState, registry: StaticDataRegistry, points: set[tuple[Any, Moment]]
+) -> set[str]:
+    """Właściciele (w grze) notek FRAKCYJNYCH reagujących w oknach ``points`` (np. Gift of
+    Prescience - koniec fazy strategii). Jawne: skład notek frakcji w grze jest publiczny; kto
+    trzyma notkę - nie (pauza 54.10 liczy wtedy każdego innego gracza z notką w ręce)."""
+    owners: set[str] = set()
+    for template, card in _templates(registry).items():
+        if not isinstance(card, PromissoryNoteDef) or not card.faction:
+            continue
+        if not set(reaction_points(registry, template)) & points:
+            continue
+        owner = _faction_owner(state, registry, card.faction)
+        if owner is not None:
+            owners.add(owner)
+    return owners
+
+
 def reaction_moments(registry: StaticDataRegistry, template: str) -> set[str]:
     """Momenty (``when``/``after``…) okien, w których gra się notkę-reakcję (puste dla ACTION)."""
     return {moment.value for _event, moment in reaction_points(registry, template)}

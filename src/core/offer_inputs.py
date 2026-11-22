@@ -92,13 +92,21 @@ def number(
     maximum: int,
     hint: str = "",
     meta: dict[str, Any] | None = None,
+    *,
+    auto: int | None = None,
 ) -> Input:
     """Wejście liczbowe. ``meta = route_meta(...)`` = ile jednostek przenieść z planety na planetę:
-    UI zbiera takie wejścia w jeden wybór NA MAPIE (źródło, potem cel), nie listę stepperów."""
+    UI zbiera takie wejścia w jeden wybór NA MAPIE (źródło, potem cel), nie listę stepperów.
+
+    ``auto`` = sensowna wartość domyślna (decyzja użytkownika: wybór gracza ZAWSZE z opcją
+    „Auto”): UI wstawia ją od razu i pokazuje przycisk „Auto”; brak odpowiedzi (bot, pominięte
+    pole) = ta wartość."""
     item: Input = {"key": key, "kind": "number", "label": label, "min": minimum, "max": maximum,
                    "hint": hint}
     if meta is not None:
         item["meta"] = meta
+    if auto is not None:
+        item["auto"] = max(minimum, min(maximum, auto))
     return item
 
 
@@ -191,7 +199,7 @@ def single_params(inputs: list[Input]) -> dict[str, Any]:
         elif kind == "multi":
             params[item["key"]] = [o["value"] for o in options[: int(item.get("min", 0))]]
         elif kind == "number":
-            params[item["key"]] = int(item.get("min", 0))
+            params[item["key"]] = int(item.get("auto") or item.get("min") or 0)
     return params
 
 
@@ -229,7 +237,7 @@ def validate_params(inputs: list[Input], params: Mapping[str, Any]) -> dict[str,
                 raise ValueError(f"Choose a technology for: {label}.")
             cleaned[key] = value
         elif kind == "number":
-            value = params.get(key)
+            value = params.get(key, item.get("auto"))  # pominięte pole = wartość „Auto”
             if not isinstance(value, int) or isinstance(value, bool):
                 raise ValueError(f"Enter a number for: {label}.")
             if not int(item.get("min", 0)) <= value <= int(item.get("max", 0)):

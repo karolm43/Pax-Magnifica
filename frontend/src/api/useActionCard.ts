@@ -39,6 +39,8 @@ export type ActionCardInput =
       kind: "number";
       min: number;
       max: number;
+      /** Wartość „Auto” (domyślna, gdy gracz nic nie zmienia; przycisk „Auto” w polu). */
+      auto?: number;
       /** ``{from, to, unit}`` = ile jednostek przenieść z planety na planetę (``RouteNumbersField``). */
       meta?: Record<string, unknown>;
     })
@@ -147,7 +149,7 @@ export function buildActionCardParams(
         .map((id) => input.options.find((o) => o.id === id)?.value)
         .filter((v) => v !== undefined);
     } else if (input.kind === "number") {
-      const amount = typeof value === "number" ? value : input.min;
+      const amount = typeof value === "number" ? value : (input.auto ?? input.min);
       if (amount < input.min || amount > input.max) ready = false;
       params[input.key] = amount;
     }

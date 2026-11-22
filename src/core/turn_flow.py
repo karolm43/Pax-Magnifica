@@ -569,6 +569,9 @@ def next_phase(state: GameState) -> GameState:
     if state.held_play is not None:  # okno hold-play (core/card_hold.py, RULES.md 53.6)
         raise ValueError("A played card is waiting for a possible Sabotage - wait for it.")
     require_no_open_decisions(state)
+    if state.phase is Phase.STRATEGY:
+        # Pauza ochronna „koniec fazy strategii” (Gift of Prescience - RULES.md 54.10, 62.16).
+        timing.require_no_reaction_pause(state)
     # Walidacja PRZED zmianą fazy: przy ValueError faza zostaje bez zmian (R9.2–R9.4).
     if state.phase is Phase.STRATEGY:
         ensure_strategy_complete(state)

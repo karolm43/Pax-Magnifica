@@ -37,6 +37,7 @@ from src.core import (
 )
 from src.core import offer_inputs as oi
 from src.core.custodians import is_mecatol_position
+from src.core.fleet_pool import unit_name
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState, WindowType
 from src.core.hex_grid import HexGrid
@@ -83,7 +84,8 @@ BREAKTHROUGH = "naalubt"
 _SPACE = "space"
 _FIGHTER = "fighter"
 _MECH = "mech"
-_GROUND_CARGO = ("mech", "infantry")  # ⚠️ ZAŁOŻENIE (62.16): kolejność ładunku przy Foresight
+_GROUND_CARGO = ("mech", "infantry")  # ⚠️ ZAŁOŻENIE (62.16): kolejność „Auto” przy Foresight
+_CARRY = "carry_"  # pole Foresight: ile sił naziemnych danego typu zabrać
 _GROUND_FORCES = frozenset(_GROUND_CARGO)
 _NEBULA = "NEBULA"
 _SUPERNOVA = "SUPERNOVA"
@@ -208,38 +210,82 @@ def _foresight_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -
 def foresight_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """Cel - system na mapie (pozycja jako wartość opcji)."""
+    """Cel - system na mapie (pozycja jako wartość opcji); siły naziemne z przestrzeni - ile
+    zabrać (wybór gracza z wartością „Auto” = ``_auto_cargo``)."""
     position = str(ctx.get("position") or "")
     options = [
         oi.option(pos, card_labels.describe_system(state, registry, pos))
         for pos in foresight_destinations(state, player_id, position)
     ]
-    return [oi.choice("destination", "Adjacent system to move your ships to", options)]
+    inputs = [oi.choice("destination", "Adjacent system to move your ships to", options)]
+    origin = state.systems.get(position)
+    if origin is None:
+        return inputs
+    free = _capacity(state, registry, player_id, _ships(origin, player_id))
+    auto = _auto_cargo(state, registry, player_id, origin, free)
+    for base_type in _GROUND_CARGO:
+        have = origin.space_units.get(player_id, {}).get(base_type, 0)
+        if have > 0:
+            inputs.append(oi.number(
+                f"{_CARRY}{base_type}", f"{unit_name(state, registry, player_id, base_type)}"
+                " to take along", 0, have,
+                hint=f"Your moving ships have capacity {free}; the rest stays in the system.",
+                auto=auto.get(base_type, 0),
+            ))
+    return inputs
 
 
-def _ground_cargo(
-    state: GameState, registry: StaticDataRegistry, player_id: str, system: SystemState,
-    ships: Mapping[str, int],
-) -> dict[str, int]:
-    """Siły naziemne z przestrzeni, które jadą z flotą: do pojemności statków (myśliwce nie
-    zajmują miejsca - ruszają się same, F_naalu foresight 3).
-
-    ⚠️ ZAŁOŻENIE: najpierw mechy, potem piechota."""
+def _capacity(
+    state: GameState, registry: StaticDataRegistry, player_id: str, ships: Mapping[str, int]
+) -> int:
+    """Pojemność ruszających statków (myśliwce nie zajmują miejsca - F_naalu foresight 3)."""
     player = state.players[player_id]
-    free = sum(
+    return sum(
         movement._capacity_provided(registry, player.faction, player.technologies, bt) * n
         for bt, n in ships.items()
     )
+
+
+def _cargo_cost(state: GameState, registry: StaticDataRegistry, player_id: str,
+                base_type: str) -> int:
+    player = state.players[player_id]
+    return max(1, movement._capacity_used(registry, player.faction, player.technologies,
+                                          base_type))
+
+
+def _auto_cargo(
+    state: GameState, registry: StaticDataRegistry, player_id: str, system: SystemState, free: int
+) -> dict[str, int]:
+    """„Auto”: siły naziemne do pojemności, najpierw mechy, potem piechota (⚠️ ZAŁOŻENIE)."""
     cargo: dict[str, int] = {}
     for base_type in _GROUND_CARGO:
         have = system.space_units.get(player_id, {}).get(base_type, 0)
-        per_unit = max(1, movement._capacity_used(
-            registry, player.faction, player.technologies, base_type
-        ))
+        per_unit = _cargo_cost(state, registry, player_id, base_type)
         take = min(have, free // per_unit)
         if take > 0:
             cargo[base_type] = take
             free -= take * per_unit
+    return cargo
+
+
+def _chosen_cargo(
+    state: GameState, registry: StaticDataRegistry, player_id: str, system: SystemState,
+    ships: Mapping[str, int], params: Mapping[str, Any],
+) -> dict[str, int]:
+    """Ładunek wybrany przez gracza (brak pola = „Auto”); nie więcej niż pojemność floty."""
+    free = _capacity(state, registry, player_id, ships)
+    auto = _auto_cargo(state, registry, player_id, system, free)
+    cargo: dict[str, int] = {}
+    for base_type in _GROUND_CARGO:
+        have = system.space_units.get(player_id, {}).get(base_type, 0)
+        count = int(params.get(f"{_CARRY}{base_type}", auto.get(base_type, 0)))
+        if not 0 <= count <= have:
+            raise ValueError(f"You have only {have} {base_type} in the space area.")
+        if count:
+            cargo[base_type] = count
+    used = sum(_cargo_cost(state, registry, player_id, bt) * n for bt, n in cargo.items())
+    if used > free:
+        raise ValueError(f"Your moving ships can carry {free}, but the ground forces need {used}.")
     return cargo
 
 
@@ -263,7 +309,7 @@ def foresight(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     grid = _grid(state)
     origin = state.systems[position]
     ships = _ships(origin, player_id)
-    cargo = _ground_cargo(state, registry, player_id, origin, ships)
+    cargo = _chosen_cargo(state, registry, player_id, origin, ships, ctx.get("params", {}))
     target = state.systems.get(destination)
     if target is None:
         system_id = grid.system_id_at(destination) if destination in grid.positions else ""

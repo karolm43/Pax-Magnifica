@@ -25,6 +25,7 @@ from src.core import (
     movement,
     peek,
     promissory_play,
+    reaction_pause,
     rules_hooks,
     status_phase,
     strategic_action,
@@ -198,6 +199,26 @@ def test_gift_of_prescience_zeton_zero_dla_grajacego(registry: StaticDataRegistr
     assert turn_flow.turn_order(after)[0] == "p2"
 
 
+def test_gift_pauza_przed_przejsciem_do_fazy_akcji(registry: StaticDataRegistry) -> None:
+    """Koniec fazy strategii = kluczowe okno pauzy (decyzja użytkownika 2026-11-22): „Next phase”
+    czeka stały czas, uprawniony jest każdy poza Naalu, kto ma notkę w ręce."""
+    state = _gift_window_state()
+    reaction_pause.sync(state, registry, now=100.0)
+    pause = state.reaction_pause
+    assert pause is not None and pause.eligible == ["p2"]
+    with pytest.raises(ValueError):
+        turn_flow.next_phase(state)
+    released = reaction_pause.release(state, now=100.0 + pause.seconds + 1)
+    assert turn_flow.next_phase(released).phase is Phase.ACTION
+
+
+def test_bez_naalu_brak_pauzy_na_koncu_fazy_strategii(registry: StaticDataRegistry) -> None:
+    state = _gift_window_state()
+    state.players["p1"].faction = "letnev"
+    reaction_pause.sync(state, registry, now=100.0)
+    assert state.reaction_pause is None
+
+
 def test_gift_poza_koncem_fazy_strategii_niezagrywalny(registry: StaticDataRegistry) -> None:
     state = _gift_window_state()
     state.players["p1"].strategy_cards = []  # wybór kart niekompletny - okna nie ma
@@ -249,6 +270,28 @@ def test_foresight_przenosi_statki_i_kladzie_zeton() -> None:
     )  # w aktywnym systemie nie ma już statków Naalu (Space Cannon Offense - 8)
     assert "p1" in after.systems[EAST].command_tokens
     assert after.players["p1"].strategic_cc == 1
+
+
+def test_foresight_wybor_ladunku_z_auto(registry: StaticDataRegistry) -> None:
+    """Gracz wybiera, ile sił naziemnych zabrać; „Auto” = do pojemności, najpierw mechy."""
+    state = _foresight_state()
+    state.systems[ARENA].space_units["p1"]["infantry"] = 5  # 1 mech + 5 piechoty, pojemność 4
+    moved = _p2_moved(state)
+    offer = _offers(moved, "p1", "Foresight")[0]
+    hook = rules_hooks.hook_by_seq(offer.hook_seq)
+    assert hook is not None and hook.inputs is not None
+    fields = {i["key"]: i for i in hook.inputs(moved, registry, "p1", offer.ctx)}
+    assert (fields["carry_mech"]["auto"], fields["carry_infantry"]["auto"]) == (1, 3)
+    auto = _accept(moved, "p1", "Foresight", {"destination": EAST})  # pola pominięte = Auto
+    assert auto.systems[EAST].space_units["p1"]["infantry"] == 3
+    own = _accept(moved, "p1", "Foresight",
+                  {"destination": EAST, "carry_mech": 0, "carry_infantry": 4})
+    assert own.systems[EAST].space_units["p1"]["infantry"] == 4
+    assert "mech" not in own.systems[EAST].space_units["p1"]
+    assert own.systems[ARENA].space_units["p1"] == {"infantry": 1, "mech": 1}
+    with pytest.raises(ValueError, match="can carry"):
+        _accept(moved, "p1", "Foresight",
+                {"destination": EAST, "carry_mech": 1, "carry_infantry": 4})
 
 
 def test_foresight_nie_dla_wlasnego_ruchu() -> None:
@@ -544,6 +587,16 @@ def test_zeu_zwraca_zeton_z_aktywacji_i_signal_jamming(registry: StaticDataRegis
     jam = _state()
     command_tokens.place_on_board_from_reinforcements(jam, jam.systems[EAST], "p2")
     assert _offers(jam, "p1", "Z'eu")
+
+
+def test_zeu_w_trakcie_primary_diplomacy_nie_otwiera_okna() -> None:
+    """Diplomacy kładzie żetony w trakcie primary: oferta Z'eu czeka (okno secondary musi się
+    jeszcze otworzyć - regresja fuzz seed 11)."""
+    state = _state()
+    state.pending_strategy = StrategyResolution(initiative=2, owner_id="p2", step="system")
+    command_tokens.place_on_board_from_reinforcements(state, state.systems[EAST], "p2")
+    assert _offers(state, "p1", "Z'eu")
+    assert state.pending_window is None
 
 
 # ---------------------------------------------------------------------- M'aban (commander)

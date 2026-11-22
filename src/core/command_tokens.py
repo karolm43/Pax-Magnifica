@@ -133,9 +133,13 @@ def place_token(state: GameState, system: SystemState, player_id: str) -> None:
     from src.core import triggers  # lokalnie: triggers importuje hooki
     from src.core.game_events import GameEvent, Moment
 
+    # W trakcie primary karty strategii (Diplomacy) oferty nie otwierają własnego okna - czekają
+    # w oknie secondary, jak oferty „after primary” (inaczej secondary nie miałoby gdzie się
+    # otworzyć).
     triggers.fire(
         state, GameEvent.COMMAND_TOKEN_PLACED, Moment.AFTER, subject=player_id,
         ctx={"player": player_id, "position": system.position},
+        open_window=state.pending_strategy is None,
     )
 
 
