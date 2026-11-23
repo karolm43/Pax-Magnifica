@@ -206,3 +206,27 @@ def test_scuffle_without_losses_is_not_mutual_annihilation(registry: StaticDataR
     state = _state()
     chronicle.record_battle(state, _combat("p2", "p3", None, {"p2": 0, "p3": 0}))
     assert "mutual_destruction" not in {h["key"] for h in chronicle.highlights(state, registry)}
+
+
+def test_achievement_catalog_has_title_for_every_emitted_key(registry: StaticDataRegistry) -> None:
+    """Każdy klucz z ``highlights`` ma wpis (tytuł) w ``assets/config/achievements.json``."""
+    from src.core import achievements
+
+    state = _state()
+    chronicle.record_battle(state, _combat("p3", "p2", "p3", {"p2": 5, "p3": 0}))
+    for h in chronicle.highlights(state, registry):
+        assert h["title"] == achievements.title(h["key"])
+
+
+def test_disabled_achievement_is_not_emitted(
+    registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.core import achievements
+
+    state = _state()
+    chronicle.record_battle(state, _combat("p3", "p2", "p3", {"p2": 5, "p3": 0}))
+    assert "greatest_battle" in {h["key"] for h in chronicle.highlights(state, registry)}
+    patched = {k: dict(v) for k, v in achievements.catalog().items()}
+    patched["greatest_battle"]["enabled"] = False
+    monkeypatch.setattr(achievements, "catalog", lambda: patched)
+    assert "greatest_battle" not in {h["key"] for h in chronicle.highlights(state, registry)}

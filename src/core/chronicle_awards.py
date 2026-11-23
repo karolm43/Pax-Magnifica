@@ -11,16 +11,15 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from src.core import achievements
 from src.core.game_state import GameState
 from src.core.registry import StaticDataRegistry
 
 _Adder = Callable[..., None]
 _Namer = Callable[[str], str]
 
-_MIN_BLITZ = 3  # tyle podbitych planet jednego gracza w jednej rundzie
-_MIN_LEAD_CHANGES = 3
-_MIN_PACIFIST_DEALS = 2
-_MIN_PACIFIST_BATTLES = 3  # w całej partii, żeby „pokój" coś znaczył
+# Progi: assets/config/achievements.json (core/achievements.py).
+_p = achievements.param
 
 
 def _homes(state: GameState, registry: StaticDataRegistry, pid: str) -> list[str]:
@@ -56,7 +55,6 @@ def _battle_awards(
     if first is not None:
         add(
             "first_blood",
-            "First Blood",
             f"{who(first['winner'])} won the first battle of the game at "
             f"{_where(registry, first)}, in round {first['round']}.",
             [first["winner"]],
@@ -74,7 +72,6 @@ def _battle_awards(
         ):
             add(
                 "home_sweet_home",
-                "Home Sweet Home",
                 f"{who(defender)} held their own homeworld, {_where(registry, b)}, "
                 f"against {who(b['attacker'])}.",
                 [defender],
@@ -88,7 +85,6 @@ def _battle_awards(
             planet = registry.planets.get(c["planet"])
             add(
                 "capital_sacker",
-                "Sacker of Capitals",
                 f"{who(c['by'])} took {planet.name if planet else c['planet']}, "
                 f"the homeworld of {who(c['from'])}, in round {c['round']}.",
                 [c["by"], c["from"]],
@@ -103,10 +99,9 @@ def _battle_awards(
         per_round[key] = per_round.get(key, 0) + 1
     if per_round:
         (by, rnd), n = max(per_round.items(), key=lambda kv: kv[1])
-        if n >= _MIN_BLITZ:
+        if n >= _p("blitzkrieg", "min_planets"):
             add(
                 "blitzkrieg",
-                "Blitzkrieg",
                 f"{who(by)} conquered {n} planets from other players in round {rnd} alone.",
                 [by],
                 stat=f"{n} planets in a round",
@@ -120,19 +115,18 @@ def _battle_awards(
     for d in state.chronicle.deals:
         for pid in (d["a"], d["b"]):
             deals[pid] = deals.get(pid, 0) + 1
-    if len(battles) >= _MIN_PACIFIST_BATTLES:
+    if len(battles) >= _p("pacifist", "min_battles_in_game"):
         peaceful = [
             pid
             for pid in state.players
             if pid != state.winner_id
             and not attacks.get(pid)
-            and deals.get(pid, 0) >= _MIN_PACIFIST_DEALS
+            and deals.get(pid, 0) >= _p("pacifist", "min_deals")
         ]
         if peaceful:
             pid = max(peaceful, key=lambda p: deals[p])
             add(
                 "pacifist",
-                "The Pacifist",
                 f"{who(pid)} never started a battle and made {deals[pid]} deals "
                 f"while the others went to war.",
                 [pid],
@@ -151,10 +145,9 @@ def _race_awards(state: GameState, who: _Namer, add: _Adder) -> None:
         if top > 0 and len(at_top) == 1:
             leaders.append(at_top[0])
     changes = sum(1 for prev, cur in zip(leaders, leaders[1:], strict=False) if prev != cur)
-    if changes >= _MIN_LEAD_CHANGES:
+    if changes >= _p("lead_changes", "min_changes"):
         add(
             "lead_changes",
-            "A Throne Contested",
             f"The lead in the race for the throne changed hands {changes} times.",
             list(dict.fromkeys(leaders))[:3],
             stat=f"{changes} lead changes",
@@ -167,10 +160,9 @@ def _race_awards(state: GameState, who: _Namer, add: _Adder) -> None:
         others = {pid: vp for pid, vp in final.items() if pid != winner}
         runner = max(others, key=lambda p: others[p])
         gap = final[winner] - final[runner]
-        if gap <= 1 and final[winner] > 0:
+        if gap <= _p("photo_finish", "max_gap") and final[winner] > 0:
             add(
                 "photo_finish",
-                "Photo Finish",
                 f"{who(winner)} took the throne "
                 + (
                     f"by a single point over {who(runner)}."
