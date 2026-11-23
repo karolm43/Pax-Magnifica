@@ -14,7 +14,7 @@ jego struktury z tych planet wracają do rezerwy.
 
 from __future__ import annotations
 
-from src.core import control, exploration, unit_ops
+from src.core import control, exploration, faction_tokens, unit_ops
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -59,6 +59,9 @@ def replace_tile(
         if system.planet_owners.get(planet) is not None:
             control.set_planet_control(state, position, planet, None, registry)
         exploration.purge_planet_attachments(state, planet)
+        # F_muaat: żetony sleeper wracają do Ul (RULES.md 61.6).
+        faction_tokens.clear_zone(state, position, planet)
+    faction_tokens.clear_zone(state, position, "space")
     system.added_planets = []
     system.destroyed_planets = []
     system.wormhole_tokens = []

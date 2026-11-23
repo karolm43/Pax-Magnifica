@@ -29,6 +29,9 @@ from src.core.planet_stats import (
     is_legendary,
     planet_stats,
 )
+from src.core.planet_stats import (
+    traits as planet_traits_with_attachments,
+)
 from src.core.registry import StaticDataRegistry
 from src.core.system_planets import planets_of_system
 
@@ -185,13 +188,9 @@ class View:
     def trait_count(self, trait: str) -> int:
         count = 0
         for planet_id in self.owned:
-            planet = self.registry.planets.get(planet_id)
-            if planet is None:
-                continue
-            traits = set(planet.planet_types or [])
-            if planet.planet_type:
-                traits.add(planet.planet_type)
-            if trait in traits:
+            # Cechy z danych + z attachmentów (Terraform: wszystkie 3 - RULES.md 62.18).
+            traits = set(planet_traits_with_attachments(self.state, self.registry, planet_id))
+            if trait.lower() in traits:
                 count += 1
         return count
 

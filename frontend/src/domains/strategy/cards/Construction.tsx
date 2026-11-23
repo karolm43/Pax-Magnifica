@@ -20,7 +20,15 @@ import type { CardShell, PrimaryViewProps, SecondaryViewProps } from "./types";
  * dok. Backend podaje legalne miejsca (`placeable`: planeta -> struktury).
  */
 
-const STRUCTURE_LABEL: Record<string, string> = { pds: "PDS", spacedock: "Space dock" };
+const STRUCTURE_LABEL: Record<string, string> = {
+  pds: "PDS",
+  spacedock: "Space dock",
+  // DEPLOY mecha Titans (RULES.md 62.18): 1 mech i 1 piechota ZAMIAST PDS.
+  mech: "Mech + 1 infantry (instead of a PDS)",
+};
+
+/** „mech zamiast PDS” wymaga PDS do postawienia - przy pustej rezerwie źródła PDS z planszy. */
+const sourceKey = (structure: string): string => (structure === "mech" ? "pds" : structure);
 
 type Dock = { planet: string; position: string; value: number };
 
@@ -44,7 +52,7 @@ type Pick = { planet: string; structure: string; source?: string };
 
 /** Wybór gotowy do wysłania: przy pustej rezerwie musi też mieć planetę źródłową. */
 function pickReady(pick: Pick | null, sources: Record<string, string[]>): boolean {
-  return pick != null && (!sources[pick.structure] || pick.source != null);
+  return pick != null && (!sources[sourceKey(pick.structure)] || pick.source != null);
 }
 
 /**
@@ -69,7 +77,7 @@ function StructurePicker({
 }) {
   const planets = Object.keys(placeable);
   const sources = value
-    ? (boardSources[value.structure] ?? []).filter((p) => p !== value.planet)
+    ? (boardSources[sourceKey(value.structure)] ?? []).filter((p) => p !== value.planet)
     : [];
   const pickingSource = value != null && sources.length > 0;
   useMapPick(
@@ -117,7 +125,8 @@ function StructurePicker({
       {pickingSource ? (
         <>
           <Hint>
-            <IconTarget size={14} aria-hidden="true" /> No {STRUCTURE_LABEL[value.structure] ?? value.structure}{" "}
+            <IconTarget size={14} aria-hidden="true" /> No{" "}
+            {STRUCTURE_LABEL[sourceKey(value.structure)] ?? value.structure}{" "}
             left in your reinforcements - <b>click a highlighted planet</b> to move one from there
             (a system without your command token).
             {value.source != null && (

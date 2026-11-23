@@ -104,6 +104,11 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   // tylko gdy gracz świadomie go wyczerpie przełącznikiem.
   const [useAida, setUseAida] = useState(false);
   const aidaOn = useAida && view.aida?.ready === true && queued > 0;
+  // Tungstantus (RULES.md 62.18): 1 TG zdobyty PRZED zapłatą - można go wydać na te jednostki.
+  // „Auto” = włączone; gracz może wyłączyć przełącznikiem.
+  const [useCommanderTg, setUseCommanderTg] = useState(true);
+  const commanderTg = useCommanderTg && !!view.commanderTradeGood && queued > 0 ? 1 : 0;
+  const tradeGoods = view.tradeGoods + commanderTg;
   const amalgam = trimPicks(picks, cart);
   const rawCost = cartCost(view.units, paidCart(cart, amalgam));
   const cost =
@@ -119,10 +124,10 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
     ...(aidaOn && view.aida ? [{ name: "AI Development Algorithm", amount: view.aida.discount }] : []),
   ];
   const discounted = queued > 0 && cost < rawCost;
-  const funds = fundsTotal(view);
+  const funds = fundsTotal({ ...view, tradeGoods });
   const payment = useMemo<Payment>(
-    () => manual ?? autoPay(view.planets, view.tradeGoods, cost, view.tradeGoodValue),
-    [manual, view.planets, view.tradeGoods, cost],
+    () => manual ?? autoPay(view.planets, tradeGoods, cost, view.tradeGoodValue),
+    [manual, view.planets, tradeGoods, cost],
   );
   const paid = paymentTotal(view.planets, payment, view.tradeGoodValue);
   const short = Math.max(0, cost - paid);
@@ -165,7 +170,7 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
     });
   };
   const setTradeGoods = (delta: number) => {
-    const next = Math.min(view.tradeGoods, Math.max(0, payment.tradeGoods + delta));
+    const next = Math.min(tradeGoods, Math.max(0, payment.tradeGoods + delta));
     setManual({ planets: payment.planets, tradeGoods: next });
   };
 
@@ -187,6 +192,7 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
         { planets: payment.planets, tradeGoods: payment.tradeGoods },
         aidaOn,
         amalgam,
+        commanderTg > 0,
       );
       setCart([]);
       setPicks({});
@@ -344,7 +350,7 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
           <span className={styles.stat} title="Ready resources + trade goods">
             <b>{readyRes}</b> res +{" "}
             <img className={styles.tgIcon} src="/tg.png" alt="Trade goods" />{" "}
-            <b>{view.tradeGoods}</b>
+            <b>{tradeGoods}</b>
           </span>
           <span className={styles.stat} data-kind="cost" data-bad={short > 0 || undefined}>
             Order cost {discounted && <s className={styles.oldCost}>{fmt(rawCost)}</s>}{" "}
@@ -598,14 +604,14 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
               <button
                 type="button"
                 className={styles.stepBtn}
-                disabled={payment.tradeGoods >= view.tradeGoods || busy}
+                disabled={payment.tradeGoods >= tradeGoods || busy}
                 onClick={() => setTradeGoods(1)}
                 aria-label="Spend more trade goods"
               >
                 <IconPlus size={18} />
               </button>
             </span>
-            <small>of {view.tradeGoods}</small>
+            <small>of {tradeGoods}</small>
           </div>
 
           <p className={styles.payLine} data-bad={short > 0 || undefined}>
@@ -719,6 +725,15 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
           >
             <IconTrash size={14} aria-hidden="true" /> Clear
           </button>
+          {view.commanderTradeGood && (
+            <Switch
+              size="xs"
+              label={`${view.commanderTradeGood}: gain 1 trade good`}
+              checked={useCommanderTg}
+              onChange={(event) => setUseCommanderTg(event.currentTarget.checked)}
+              disabled={busy}
+            />
+          )}
           {view.aida?.ready && !grant && (
             <Switch
               size="xs"

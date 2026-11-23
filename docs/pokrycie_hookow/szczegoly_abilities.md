@@ -11,11 +11,11 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `arbiters` | Arbiters | hacan | — | PERMIT (pozwolenie) | karty | ✔ | When you are negotiating a transaction, action cards can be exchanged as part of that transaction. |
 | `armada` | Armada | letnev | — | MODIFY (liczba/rzut) | żetony dowodzenia | ✔ | The maximum number of non-fighter ships you can have in each system is equal to 2 more than the number of tokens in your fleet pool |
 | `assimilate` | Assimilate | l1z1x | when | TRIGGER (okno reakcji) | produkcja, planety i eksploracja | ✔ | Replace each PDS and space dock that is on that planet with a matching unit from your reinforcements. |
-| `awaken` | Awaken | titans | after | TRIGGER (okno reakcji) | produkcja | — | You may replace each of those tokens with 1 PDS from your reinforcements. |
+| `awaken` | Awaken | titans | after | TRIGGER (okno reakcji) | produkcja | ✔ | You may replace each of those tokens with 1 PDS from your reinforcements. |
 | `bladesorchestra` | The Blade's Orchestra | obsidian | when | TRIGGER (okno reakcji) | planety i eksploracja, status i odświeżanie | — | flip your home system, double-sided faction components, and all of your in-play plot cards. Then, ready Cronos Hollow and Tallin Hollow if … |
 | `blood_ties` | Blood Ties | winnu | — | — | ekonomia i płatności | ✔ | You do not have to spend influence to remove the custodians token from Mecatol Rex. |
 | `brilliant` | Brilliant | jolnar | when | TRIGGER (okno reakcji) | — | ✔ | You may resolve the primary ability instead. |
-| `coalescence` | Coalescence | titans | — | — | walka, planety i eksploracja | — | If your flagship or your AWAKEN faction ability places your units into the same space area or onto the same planet as another player's unit… |
+| `coalescence` | Coalescence | titans | — | — | walka, planety i eksploracja | ✔ | If your flagship or your AWAKEN faction ability places your units into the same space area or onto the same planet as another player's unit… |
 | `council_patronage` | Council Patronage | keleres | at_start | — | ekonomia i płatności | — | Replenish your commodities, then gain 1 trade good. |
 | `crafty` | Crafty | yssaril | — | FORBID (zakaz) | karty | — | You can have any number of action cards in your hand. Game effects cannot prevent you from using this ability. |
 | `creuss_gate` | Creuss Gate | ghost | — | — | — | — | When you create the game board, place the Creuss Gate (tile 17) where your home system would normally be placed. The Creuss Gate system is … |
@@ -70,7 +70,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `survivalinstinct` | Survival Instinct | ralnel | after | TRIGGER (okno reakcji) | ruch, żetony dowodzenia | — | you may move up to 2 of your ships into the active system from adjacent systems that do not contain your command tokens. |
 | `technological_singularity` | Technological Singularity | nekro | unclassified | PERMIT (pozwolenie) | technologie | — | You may gain 1 technology that is owned by that player. |
 | `telepathic` | Telepathic | naalu | at_end | — | karty strategii i inicjatywa | ✔ | Place the Naalu "0" token on your strategy card; you are first in initiative order. |
-| `terragenesis` | Terragenesis | titans | after | TRIGGER (okno reakcji) | ruch, planety i eksploracja | — | You may place or move 1 sleeper token onto that planet. |
+| `terragenesis` | Terragenesis | titans | after | TRIGGER (okno reakcji) | ruch, planety i eksploracja | ✔ | You may place or move 1 sleeper token onto that planet. |
 | `the_company` | The Company | nomad | — | MODIFY (liczba/rzut) | — | — | During setup, take the 2 additional Nomad faction agents and place them next to your faction sheet; you have 3 agents |
 | `the_tribuni` | The Tribuni | keleres | — | — | żetony dowodzenia, planety i eksploracja | — | During setup, choose an unplayed faction from among the Mentak, the Xxcha and The Argent Flight; take that faction's home system, command t… |
 | `unrelenting` | Unrelenting | sardakk | — | MODIFY (liczba/rzut) | walka | ✔ | Apply +1 to the result of each of your unit's combat rolls. |

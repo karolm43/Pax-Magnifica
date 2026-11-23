@@ -467,7 +467,7 @@ def exploration_step(obs: Observation, ctx: EngineContext) -> list[Action]:
         return [tac.ExplorationFinish(player_id=pid)]
     draws: list[Action] = []
     for planet in ex.queue:
-        traits = exploration.planet_traits(ctx.registry, planet)
+        traits = exploration.planet_traits(ctx.registry, planet, s)
         decks: list[str | None] = [None] if len(traits) == 1 else list(traits)
         extras = [False, True] if exploration.extra_draw_allowed(s, pid, planet) else [False]
         draws.extend(

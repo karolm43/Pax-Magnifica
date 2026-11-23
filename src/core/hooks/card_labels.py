@@ -49,7 +49,7 @@ def describe_planet(
     stats_text = planet_stats_text(state, registry, planet_id)
     if stats_text:
         parts.append(stats_text)
-    traits = exploration.planet_traits(registry, planet_id)
+    traits = exploration.planet_traits(registry, planet_id, state)
     stats = planet_stats.planet_stats(state, registry, planet_id)
     features = list(traits)
     if stats is not None:

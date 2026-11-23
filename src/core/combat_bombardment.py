@@ -92,9 +92,11 @@ def target_open(state: GameState, registry: StaticDataRegistry, player_id: str) 
     )
     opponent = combat.defender if combat.attacker == player_id else combat.attacker
     system = state.systems[combat.position]
+    # Hel-Titan (struktura i siła naziemna) jest celem, gdy tarcza nie blokuje (F_ul hel-titan 5).
+    targets = ("infantry", "mech", *sorted(invasion.structure_ground_types(state, opponent)))
     has_ground = any(
         system.planet_units.get(combat.planet or "", {}).get(opponent, {}).get(bt, 0) > 0
-        for bt in ("infantry", "mech")
+        for bt in targets
     )
     return info is not None and not info.shielded and has_ground
 

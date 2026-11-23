@@ -25,7 +25,7 @@ def with_trait(
     return [
         planet
         for planet in controlled(state, player_id)
-        if trait in exploration.planet_traits(registry, planet)
+        if trait in exploration.planet_traits(registry, planet, state)
     ]
 
 

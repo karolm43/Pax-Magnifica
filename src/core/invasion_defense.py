@@ -28,6 +28,7 @@ from src.core.invasion_common import (
     _sustain_events,
     _system,
     attacker_ground_types,
+    structure_ground_types,
 )
 from src.core.registry import StaticDataRegistry
 
@@ -173,6 +174,18 @@ def defense_pass(state: GameState, registry: StaticDataRegistry, planet: str) ->
 
 
 
+def _landed_units(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry, planet: str, attacker: str
+) -> dict[str, battle.CombatUnit]:
+    """Cele Space Cannon Defense: siły atakującego na planecie bez struktur-sił naziemnych.
+
+    Hel-Titan z Awaken nie jest „committed” i nie dostaje tych trafień (F_ul coalescence 1,
+    RULES.md 62.18)."""
+    skip = structure_ground_types(state, attacker)
+    units = _ground_units(state, grid, registry, planet, attacker)
+    return {bt: u for bt, u in units.items() if bt not in skip}
+
+
 def required_defense_hits(
     state: GameState, grid: HexGrid, registry: StaticDataRegistry, planet: str
 ) -> int:
@@ -181,7 +194,7 @@ def required_defense_hits(
     pending = inv.defense_pending.get(planet, 0)
     if pending <= 0:
         return 0
-    units = _ground_units(state, grid, registry, planet, inv.attacker)
+    units = _landed_units(state, grid, registry, planet, inv.attacker)
     cancels = battle.sustain_cancels(state, inv.attacker)
     return min(pending, sum(u.count + cancels * u.sustainable for u in units.values()))
 
@@ -200,7 +213,7 @@ def assign_defense_hits(
     inv = _phase(state, InvasionPhase.SPACE_CANNON_DEFENSE, "Space Cannon Defense")
     if inv.defense_pending.get(planet, 0) <= 0:
         raise ValueError(f"There are no Space Cannon hits to assign on {planet}.")
-    units = _ground_units(state, grid, registry, planet, inv.attacker)
+    units = _landed_units(state, grid, registry, planet, inv.attacker)
     required = required_defense_hits(state, grid, registry, planet)
     plan = battle.plan_losses(
         units, sustain, destroy, destroy_damaged, required,

@@ -106,8 +106,14 @@ def _secondary(
     state: GameState, ctx: CardContext, player_id: str, _payload: dict[str, Any]
 ) -> None:
     position = home_position(state, ctx, player_id)
-    if position is None or not production.producers(state, ctx.registry, player_id, position):
-        raise ValueError("You have no unit with PRODUCTION in your home system.")
+    docks = [
+        p for p in (
+            production.producers(state, ctx.registry, player_id, position) if position else []
+        )
+        if p.base_type == "spacedock"  # „1 of your space docks” - nie Hel-Titan (F_ul hel-titan 1)
+    ]
+    if position is None or not docks:
+        raise ValueError("You have no space dock with PRODUCTION in your home system.")
     start_standalone_production(state, player_id, position, "Warfare")
 
 

@@ -86,7 +86,7 @@ def _build(ctx: AppContext, state: GameState) -> ExplorationResponse:
         queue=[
             ExploreQueueItem(
                 planet=p,
-                traits=exploration.planet_traits(registry, p),
+                traits=exploration.planet_traits(registry, p, state),
                 extra_draw=exploration.extra_draw_allowed(state, ex.player_id, p),
             )
             for p in ex.queue

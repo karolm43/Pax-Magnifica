@@ -16,6 +16,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, replace
 
 from src.core import (
+    active_effects,
     capture,
     control,
     economy,
@@ -28,7 +29,7 @@ from src.core import (
     unit_ops,
 )
 from src.core.combat import resolve_unit_variant
-from src.core.game_events import GameEvent, Moment
+from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, ProductionGrant
 from src.core.hex_grid import HexGrid
 from src.core.payment import apply_payment, flex_spend, trade_good_value
@@ -178,6 +179,24 @@ def _check_idle_producer_zones(
 def _planet_resources(state: GameState, registry: StaticDataRegistry, planet_id: str) -> int:
     """Zasoby planety z attachmentami (0, gdy nieznana) — ``core/planet_stats``."""
     return resources_of(state, registry, planet_id)
+
+
+# Znacznik: TG z „when your units use PRODUCTION” (Tungstantus) już wzięty w tym kroku produkcji.
+COMMANDER_TG_USED = "production:commander_trade_good"
+
+
+def commander_trade_good_problem(state: GameState, player_id: str) -> str | None:
+    """Czy gracz może teraz wziąć 1 TG przy użyciu PRODUCTION (``None`` = może) - Tungstantus.
+
+    Granty kart (Sling Relay, Freelancers…) „produce” bez PRODUCTION - nie (F_ul tungstantus 2);
+    raz na krok produkcji (wszystkie jednostki używają PRODUCTION jednocześnie)."""
+    if not rules_hooks.permits(rules_hooks.POINT_PRODUCTION_GAIN_TRADE_GOOD, state, player_id):
+        return "You have no ability that gives a trade good when your units use PRODUCTION."
+    if active_grant(state, player_id) is not None:
+        return "This production does not use the PRODUCTION ability."
+    if active_effects.has_effect(state, player_id, COMMANDER_TG_USED):
+        return "You already gained a trade good for this use of PRODUCTION."
+    return None
 
 
 def active_grant(state: GameState, player_id: str) -> ProductionGrant | None:
@@ -429,6 +448,14 @@ def producers(
     ):
         # Construction: do produkcji wolno użyć JEDNEGO doku - tylko producent z tej planety.
         result = [p for p in result if p.zone == grant.zone]
+    if (
+        grant is not None
+        and grant.producer_types
+        and grant.player_id == player_id
+        and grant.position == position
+    ):
+        # Karty strategii: tylko doki - nie Hel-Titan na tej samej planecie (F_ul hel-titan 1).
+        result = [p for p in result if p.base_type in grant.producer_types]
     return result
 
 
@@ -959,6 +986,22 @@ def cost_reduction_sources(
     return out
 
 
+def commander_trade_good_name(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> str | None:
+    """Nazwa (z assetów) komponentu, który TERAZ daje 1 TG przy użyciu PRODUCTION (Tungstantus),
+    albo ``None`` - podpis przełącznika w oknie produkcji."""
+    if commander_trade_good_problem(state, player_id) is not None:
+        return None
+    from src.core.component_text import describe_component
+
+    for hook in rules_hooks.hooks_at(
+        rules_hooks.POINT_PRODUCTION_GAIN_TRADE_GOOD, state, player_id
+    ):
+        return describe_component(registry, hook.covers)[0] or hook.source.component_id
+    return None
+
+
 def order_cost(
     state: GameState,
     registry: StaticDataRegistry,
@@ -1065,8 +1108,12 @@ def produce(
     *,
     exhaust_aida: bool = False,
     captured: CapturedSpend | None = None,
+    commander_trade_good: bool = False,
 ) -> GameState:
     """Wykonuje produkcję w aktywnym systemie: walidacja → płatność → postawienie jednostek.
+
+    ``commander_trade_good`` - gracz bierze 1 TG „when your units use PRODUCTION” (Tungstantus,
+    PERMIT ``production.gain_trade_good``) PRZED zapłatą, więc może go wydać na te jednostki.
 
     Reguły (RULES.md 33.2–33.3, R_production / R_producing_units / R_component_limitations):
     limit PRODUCTION wspólny dla akcji; blokada statków; siły naziemne tylko na planetach z
@@ -1080,6 +1127,15 @@ def produce(
     timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     active = production_system(state)
     orders = [o for o in orders if o.count > 0]
+    if commander_trade_good and active is not None and orders:
+        reason = commander_trade_good_problem(state, player_id)
+        if reason is not None:
+            raise ValueError(reason)
+        state = state.clone()
+        # F_ul tungstantus 1.1: TG zdobyty od razu (zdarzenie TG) - można nim zapłacić; bez
+        # jednostek nic (1.2).
+        economy.gain_trade_goods(state, player_id, 1)
+        active_effects.add_effect(state, COMMANDER_TG_USED, Duration.TURN, owner=player_id)
     validate_production(
         state, grid, registry, player_id, orders, exhaust_aida=exhaust_aida, captured=captured
     )

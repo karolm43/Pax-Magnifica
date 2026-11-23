@@ -363,6 +363,16 @@ POINT_TECHNOLOGY_CAPTURED_SKIP = "technology.captured_skip"
 # PERMIT -> zdobyty przełom wprowadza The Fracture bez rzutu (Al'raith Ix Ianovar) -
 # ``expeditions.gain_breakthrough``.
 POINT_BREAKTHROUGH_FRACTURE_NO_ROLL = "breakthrough.fracture_no_roll"
+# --- Titans of Ul (RULES.md 62.18) ---
+# FORBID (typy struktur) -> struktury gracza, które są TEŻ siłami naziemnymi (Hel-Titan: ``pds``) -
+# ``ship_roles.structure_ground_forces`` (obrońcy planety, walka naziemna, bombardowanie).
+POINT_UNIT_STRUCTURE_GROUND_FORCES = "units.structure_ground_forces"
+# PERMIT -> gracz może postawić 1 mecha i 1 piechotę zamiast PDS (Hecatoncheires: DEPLOY) -
+# ``strategy_cards.common.place_structure(instead_mech=True)``.
+POINT_STRUCTURE_PDS_AS_MECH = "structures.pds_as_mech"
+# PERMIT -> gdy jednostki gracza używają PRODUCTION, może zdobyć 1 TG przed zapłatą (Tungstantus) -
+# ``production.produce(commander_trade_good=True)``.
+POINT_PRODUCTION_GAIN_TRADE_GOOD = "production.gain_trade_good"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"

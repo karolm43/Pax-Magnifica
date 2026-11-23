@@ -706,6 +706,8 @@ export function useBoardEditor() {
       exhaustAida = false,
       // Amalgamation (RULES.md 62.17): {typ: {właściciel | "token": sztuki}} zamiast zasobów.
       captured: Record<string, Record<string, number>> = {},
+      // Tungstantus (RULES.md 62.18): 1 TG przed zapłatą.
+      commanderTradeGood = false,
     ) => {
       await post("/tactical/produce", {
         faction,
@@ -713,6 +715,7 @@ export function useBoardEditor() {
         spend,
         exhaust_aida: exhaustAida,
         captured,
+        commander_trade_good: commanderTradeGood,
       });
       await refresh();
     },

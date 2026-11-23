@@ -76,3 +76,15 @@ def ground_force_types(state: GameState, player_id: str, position: str) -> froze
         )
         if is_space_unit(bt)
     )
+
+
+def structure_ground_forces(state: GameState, player_id: str) -> frozenset[str]:
+    """Struktury gracza, które są też siłami naziemnymi (Hel-Titan: ``pds`` - RULES.md 62.18).
+
+    Hook FORBID ``units.structure_ground_forces``; bronią planety, walczą na niej i ją utrzymują.
+    """
+    if player_id not in state.players:
+        return frozenset()
+    return frozenset(
+        rules_hooks.forbidden(rules_hooks.POINT_UNIT_STRUCTURE_GROUND_FORCES, state, player_id)
+    )

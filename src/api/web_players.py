@@ -22,6 +22,7 @@ from src.core import (
     agenda_phase,
     capture,
     economy,
+    faction_tokens,
     hand_limit,
     legendary_planets,
     planet_abilities,
@@ -476,6 +477,8 @@ def _build_player_data(
                 "frontierCards": list(player.frontier_cards),
                 # Przechwycone jednostki na arkuszu frakcji (RULES.md 61.5) - komponent Nombox.
                 "nombox": capture.nombox(state, player.player_id),
+                # Żetony sleeper w puli (Titans of Ul, RULES.md 61.6) - pasek żetonów gracza.
+                "sleeperTokensReinf": _sleeper_supply(state, registry, player.player_id),
                 "exhaustedRelics": [r for r in player.exhausted_relics if r in player.relics],
                 # Karty zdolności legendarnych planet gracza (RULES.md 60): tekst z assetów, rodzaj
                 # (ACTION = przycisk w akcji komponentu, reszta = oferty w oknie decyzji).
@@ -579,3 +582,12 @@ def _build_player_data(
             }
         )
     return players
+
+
+def _sleeper_supply(state: GameState, registry: StaticDataRegistry, player_id: str) -> int:
+    """Pula żetonów sleeper (tylko frakcja z Terragenesis/Awaken - reszta 0)."""
+    player = state.players[player_id]
+    faction = registry.factions.get(player.faction or "")
+    if faction is None or "awaken" not in faction.abilities:
+        return 0
+    return faction_tokens.supply_left(state, player_id, faction_tokens.SLEEPER)

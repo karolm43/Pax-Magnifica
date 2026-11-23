@@ -106,6 +106,8 @@ export type ProductionBody = {
   freeSmallUnits?: number;
   /** Amalgamation: przechwycone jednostki do zwrotu zamiast zasobów (owner "token" = żeton). */
   captured?: CapturedUnit[];
+  /** Tungstantus: nazwa źródła „gain 1 trade good” przy użyciu PRODUCTION (null = niedostępne). */
+  commanderTradeGood?: string | null;
   /** Co już wyprodukowano w tej akcji, wg typu (do rozdziału między osobne zdolności). */
   usedByType: Record<string, number>;
   blockaded: boolean;

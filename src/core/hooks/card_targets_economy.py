@@ -62,7 +62,7 @@ def matching_decks(state: GameState, registry: StaticDataRegistry, player_id: st
     """Talie eksploracji pasujące do cech kontrolowanych planet (bez powtórzeń)."""
     decks: list[str] = []
     for planet in controlled(state, player_id):
-        for trait in exploration.planet_traits(registry, planet):
+        for trait in exploration.planet_traits(registry, planet, state):
             if trait not in decks:
                 decks.append(trait)
     return decks
@@ -196,12 +196,12 @@ def hazardous_planets(state: GameState, registry: StaticDataRegistry) -> list[tu
     """Planety hazardous kontrolowane przez gracza: ``(planeta, kontroler)``.
 
     ⚠ ZAŁOŻENIE: wyczerpać można tylko planetę z kontrolerem (stan „exhausted" trzyma gracz),
-    więc niczyja planeta nie jest celem; cechy z attachmentów nie są uwzględniane.
+    więc niczyja planeta nie jest celem; cechy z attachmentów (Terraform) się liczą.
     """
     result: list[tuple[str, str]] = []
     for system in state.systems.values():
         for planet, owner in system.planet_owners.items():
-            traits = exploration.planet_traits(registry, planet)
+            traits = exploration.planet_traits(registry, planet, state)
             if owner in state.players and "hazardous" in traits:
                 result.append((planet, owner))
     return result

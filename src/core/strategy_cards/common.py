@@ -155,6 +155,8 @@ def structure_problem(
     """
     from src.core import production  # lokalnie: unika cyklu importów przy starcie pakietu
 
+    if structure == MECH_INSTEAD:
+        return _mech_instead_problem(state, player_id, planet_id, allow_board=allow_board)
     if structure not in STRUCTURE_LIMIT_PER_PLANET:
         return f"Unknown structure: {structure}."
     position = planet_position(state, planet_id)
@@ -177,6 +179,33 @@ def structure_problem(
     return None
 
 
+# Pseudo-struktura „mech i piechota zamiast PDS” (Hecatoncheires, RULES.md 62.18).
+MECH_INSTEAD = "mech"
+
+
+def _mech_instead_problem(
+    state: GameState, player_id: str, planet_id: str, *, allow_board: bool
+) -> str | None:
+    """Czy wolno postawić 1 mecha i 1 piechotę ZAMIAST PDS (DEPLOY Hecatoncheires).
+
+    F_ul mech: tylko gdy PDS dałoby się postawić (limit 2 na planetę - 3; PDS z rezerwy albo
+    zdjęty z planszy - 4) i mech jest w rezerwie (2).
+    """
+    from src.core import production  # lokalnie: unika cyklu importów przy starcie pakietu
+
+    if not rules_hooks.permits(
+        rules_hooks.POINT_STRUCTURE_PDS_AS_MECH, state, player_id, {"planet": planet_id}
+    ):
+        return "You cannot place a mech instead of a PDS."
+    problem = structure_problem(state, player_id, planet_id, "pds", allow_board=allow_board)
+    if problem is not None:
+        return problem
+    mechs = production.reinforcements_left(state, player_id, "mech")
+    if mechs is not None and mechs <= 0:
+        return "No mech left in your reinforcements."
+    return None
+
+
 def placeable_structures(
     state: GameState, player_id: str, *, allow_board: bool = False
 ) -> dict[str, list[str]]:
@@ -188,7 +217,7 @@ def placeable_structures(
     result: dict[str, list[str]] = {}
     for planet_id in owned_planets(state, player_id):
         options = [
-            s for s in STRUCTURE_LIMIT_PER_PLANET
+            s for s in (*STRUCTURE_LIMIT_PER_PLANET, MECH_INSTEAD)
             if structure_problem(state, player_id, planet_id, s, allow_board=allow_board) is None
         ]
         if options:
@@ -217,6 +246,9 @@ def place_structure(
     )
     if problem is not None:
         raise ValueError(problem)
+    if structure == MECH_INSTEAD:
+        _place_mech_instead(state, player_id, planet_id, source)
+        return
     if needs_board_source(state, player_id, structure):
         if source not in board_structure_sources(state, player_id, structure, planet_id):
             raise ValueError(
@@ -235,6 +267,30 @@ def place_structure(
     unit_ops.place_units(
         state, state.systems[position], planet_id, player_id, structure, 1, UnitCause.PLACED
     )
+
+
+def _place_mech_instead(
+    state: GameState, player_id: str, planet_id: str, source: str | None
+) -> None:
+    """1 mech i 1 piechota zamiast PDS (Hecatoncheires). Przy pustej rezerwie PDS gracz najpierw
+    zdejmuje PDS z planszy do rezerwy (F_ul mech 4) - tam zostaje."""
+    if needs_board_source(state, player_id, "pds"):
+        if source not in board_structure_sources(state, player_id, "pds", planet_id):
+            raise ValueError(
+                "No PDS in your reinforcements - choose one on the board to return first "
+                "(from a system without your command token)."
+            )
+        assert source is not None
+        source_position = planet_position(state, source)
+        assert source_position is not None
+        unit_ops.remove_units(
+            state, state.systems[source_position], source, player_id, "pds", 1, UnitCause.REMOVED
+        )
+    position = planet_position(state, planet_id)
+    assert position is not None
+    system = state.systems[position]
+    unit_ops.place_units(state, system, planet_id, player_id, "mech", 1, UnitCause.PLACED)
+    unit_ops.place_units(state, system, planet_id, player_id, "infantry", 1, UnitCause.PLACED)
 
 
 # --- Produkcja z karty strategii -------------------------------------------------------------
@@ -256,6 +312,8 @@ def start_standalone_production(
         standalone=True,
         zone=zone,
         source=source,
+        # Construction / Warfare: „PRODUCTION ability of 1 of your space docks” (F_ul hel-titan 1).
+        producer_types=["spacedock"],
     )
     state.production_used = 0
     state.production_placed = {}

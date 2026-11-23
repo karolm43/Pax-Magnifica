@@ -81,6 +81,9 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   // Dimensional Anchor: szczeliny Cabal wciągają okręty rywali — plansza tonie w mroku,
   // a nad systemami z jednostkami Vuil'raith pulsuje karmazynowy wir.
   cabalhero: { dim: 0.6, target: "units", mark: "ripple", tone: "200 40 70", ms: 4600 },
+  // Geoform: Elysium budzi się jako tytan - nad systemami z Hel-Titanami (PDS) i mechami Ul
+  // wznosi się różowa tarcza, a plansza drży jak przy przebudzeniu.
+  titanshero: { dim: 0.4, target: "defense", mark: "aegis", tone: "255 120 170", ms: 4400 },
   // Nova Seed: gwiazda systemu puchnie, korona zapada się w punkt, wybuch supernowej (błysk,
   // promienie dyfrakcyjne, rozszerzająca się powłoka gazu, ejekta), potem pulsująca mgławica.
   // Stary kafel znika pod błyskiem (revealAt); dźwięk niski: pomruk, wsysanie, głuchy huk.

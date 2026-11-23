@@ -920,6 +920,6 @@ def ancient_burial_sites(
     cultural = [
         planet
         for planet in controlled(state, target)
-        if "cultural" in exploration.planet_traits(registry, planet)
+        if "cultural" in exploration.planet_traits(registry, planet, state)
     ]
     exhaust.exhaust_planets(state, target, cultural)

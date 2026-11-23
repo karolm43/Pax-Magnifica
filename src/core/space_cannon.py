@@ -30,6 +30,7 @@ from src.core import (
     exhaust,
     extra_dice,
     legendary_planets,
+    planet_stats,
     rules_hooks,
     timing,
     triggers,
@@ -187,6 +188,29 @@ def _system_shooters(
                     deep=deep,
                 )
             )
+    # Attachment z SPACE CANNON „as if it were a unit” (Geoform Titans, RULES.md 62.18): strzela
+    # kontroler planety (F_ul geoform 1); grupa jak Custodian's Favour - id attachmentu w roli typu.
+    if not entropic_scar.unit_abilities_blocked(state, position, registry):
+        for planet_id, owner in sorted(system.planet_owners.items()):
+            if owner != player_id:
+                continue
+            for attachment in planet_stats.attachment_defs(state, registry, planet_id):
+                if attachment.space_cannon_hits_on is None:
+                    continue
+                shooters.append(
+                    SpaceCannonShooter(
+                        player_id=player_id,
+                        base_type=attachment.id,
+                        unit_id=attachment.id,
+                        name=attachment.name or attachment.id,
+                        count=1,
+                        hits_on=attachment.space_cannon_hits_on,
+                        dice_per_unit=attachment.space_cannon_die_count or 1,
+                        position=position,
+                        zone=planet_id,
+                        deep=False,
+                    )
+                )
     # Custodian's Favour (Custodia Vigilia): kontrolowany Mecatol Rex sam dostaje SPACE CANNON.
     # To nie jednostka, więc strzelec to „grupa" z id planety w roli typu i strefy.
     mecatol = legendary_planets.mecatol_grants_planet(state, player_id, position)

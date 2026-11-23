@@ -60,7 +60,7 @@ def bombard_targets(state: GameState, registry: StaticDataRegistry) -> list[str]
         for i in planet_infos(state, registry)
         if not i.shielded
         and (i.defenders or (empty_ok and i.owner is not None and i.owner != attacker))
-        and not (banned and banned & set(exploration.planet_traits(registry, i.planet)))
+        and not (banned and banned & set(exploration.planet_traits(registry, i.planet, state)))
     ]
 
 

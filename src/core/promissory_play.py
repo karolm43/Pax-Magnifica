@@ -395,7 +395,11 @@ def _dispose(
     """Po efekcie: strefa gry / purge / zwrot do właściciela (R_promissory_notes)."""
     card = note_def(registry, template)
     text = " ".join(card.texts.values())
-    if card.play_area:
+    if any(template in cards for cards in state.planet_attachments.values()):
+        # Notka przyczepiona do planety (Terraform): leży przy planecie, należy do jej kontrolera,
+        # nie wraca do właściciela (F_ul terraform 1-2, RULES.md 62.18).
+        promissory_notes.discard_from_hand(state, holder, note_id)
+    elif card.play_area:
         promissory_notes.place_in_play(state, holder, note_id)
     elif _PURGE_SELF.search(text) or owner is None:
         promissory_notes.discard_from_hand(state, holder, note_id)

@@ -183,6 +183,8 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
         ),
         # Amalgamation: przechwycone jednostki do zwrotu zamiast zasobów (RULES.md 62.17).
         "captured": production.captured_view(state, player_id),
+        # Tungstantus: przełącznik „gain 1 trade good” (RULES.md 62.18) - nazwa źródła albo None.
+        "commanderTradeGood": production.commander_trade_good_name(state, registry, player_id),
         "blockaded": production.is_blockaded(state, player_id, position),
         "producers": producers,
         "groundZones": production.allowed_ground_zones(

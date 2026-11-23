@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **441**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **451**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -207,7 +207,9 @@ Razem: **441**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:faction.ability_used:after` | TRIGGER | breakthrough:saarbt | — | Saar przypisuje trafienia; jednostki z Sustain Damage - decyzja ich właściciela (3). |
 | `event:faction.ability_used:after` | TRIGGER | breakthrough:saarbt | — | Właściciel trafionej jednostki decyduje o Sustain Damage (F_saar deorbit 3). |
 | `event:faction.ability_used:after` | TRIGGER | unit:sol_mech | units:sol_mech | ZS Thunderbolt M2 — DEPLOY: After you use your Orbital Drop faction ability, you may spend |
+| `event:faction.ability_used:after` | TRIGGER | breakthrough:titansbt | breakthroughs:titansbt | — |
 | `event:faction.ability_used:after` | TRIGGER | faction:yin | unlocks:yincommander | Unlock: Use one of your faction abilities (Indoctrination albo Devotion - F_yin Ω). |
+| `event:fracture.ingress_placed:after` | TRIGGER | breakthrough:cabalbt | breakthroughs:cabalbt | Oferta zaraz po rozłożeniu ingressów (ruling 1.2) - wykonuje :func:`move_ingress`. |
 | `event:objective.revealed:after` | TRIGGER | relic:neuraloop | relics:neuraloop | Neuraloop: When a public objective is revealed, you may purge one of your relics to discard |
 | `event:objective.scored:after` | TRIGGER | breakthrough:yinbt | breakthroughs:yinbt | Yin Ascendant: ... or score a public objective, gain the alliance ability of a random, |
 | `event:phase:end` | TRIGGER | technology:bio | technologies:bio | Bioplasmosis: At the end of the status phase, you may remove any number of infantry from |
@@ -248,6 +250,7 @@ Razem: **441**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:planet.explored:after` | TRIGGER | effect:abilities:scavenge:after_explore | — | TG ze Scavenge po eksploracji zdobytej planety (F_saar scavenge 2). |
 | `event:planet.explored:after` | TRIGGER | effect:breakthroughs:l1z1xbt:after_explore | — | Piechota Fealty Uplink postawiona po eksploracji planety (wybór gracza, F_lizix 1). |
 | `event:planet.explored:after` | TRIGGER | technology:pfa | technologies:pfa | Pre-Fab Arcologies: After you explore a planet, ready that planet (po produkcji |
+| `event:planet.explored:after` | TRIGGER | faction:titans | abilities:terragenesis | Terragenesis: After you explore a planet that does not have a sleeper token: You may place |
 | `event:planet.explored:after` | TRIGGER | effect:units:saar_mech:after_explore | — | — |
 | `event:player.passed:when` | TRIGGER | planet:faunus | planets:faunus | Maxis Central Control: You may exhaust this card when you pass to gain control of a non-home, non-legendary planet that contains no units and has no attachments. |
 | `event:player.passed:when` | TRIGGER | planet:garbozia | planets:garbozia | Dok 'N Pic's Salvage Yard: You may exhaust this card when you pass to place 1 action card from the discard pile faceup on this card. |
@@ -295,7 +298,10 @@ Razem: **441**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.system_activated:after` | TRIGGER | technology:scc | technologies:scc | Spatial Conduit Cylinder: You may exhaust this card after you activate a system that |
 | `event:tactical.system_activated:after` | TRIGGER | technology:sdn | technologies:sdn | Scanlink Drone Network: przy aktywacji systemu możesz zbadać 1 planetę z Twoimi |
 | `event:tactical.system_activated:after` | TRIGGER | planet:tempesta | planets:tempesta | Ionian Fuel Refinery: You may exhaust this card after you activate a system to apply +1 to the move value of 1 of your ships during this tactical action. |
+| `event:tactical.system_activated:after` | TRIGGER | faction:titans | abilities:awaken | Awaken: After you activate a system that contains 1 or more of your sleeper tokens: You may |
+| `event:tactical.system_activated:after` | TRIGGER | unit:titans_flagship | units:titans_flagship | Ouranos: DEPLOY: After you activate a system that contains 1 or more of your PDS, you may |
 | `event:tactical.system_activated:when` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: aktywacja systemu z Twoimi strukturami → 1 piechota przy każdej. |
+| `event:tactical.system_activated:when` | TRIGGER | faction:titans | — | Migawka chwili aktywacji: żetony sleeper i PDS gracza w systemie. Awaken i Ouranos |
 | `event:tactical.units_committed:after` | TRIGGER | effect:leaders:sardakkhero | — | — |
 | `event:technology.research:after` | TRIGGER | agenda:revolution | agendas:revolution | — |
 | `event:technology.research:when` | TRIGGER | relic:prophetstears | relics:prophetstears | The Prophet's Tears: When you research a technology, you may exhaust this card to ignore 1 |
@@ -402,6 +408,7 @@ Razem: **441**. Opis = pierwsza linia docstringu funkcji hooka.
 | `production.free` | PERMIT | effect:leaders:hacanhero:free | — | — |
 | `production.free_cargo` | PERMIT | breakthrough:solbt | breakthroughs:solbt | Bellum Gloriosum: When you produce a ship that has capacity, you may also produce any |
 | `production.free_small_units` | MODIFY | leader:cabalcommander | leaders:cabalcommander | That Which Molds Flesh: When you produce fighter or infantry units: Up to 2 of those units |
+| `production.gain_trade_good` | PERMIT | leader:titanscommander | leaders:titanscommander | Tungstantus: When 1 or more of your units use PRODUCTION: You may gain 1 trade good. |
 | `production.planet_value` | MODIFY | technology:ah | technologies:ah | Aerie Hololattice: Each planet that contains 1 or more of your structures gains the |
 | `production.system_value` | MODIFY | technology:mr | technologies:mr | Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability as if |
 | `production.total_value` | MODIFY | effect:action_cards:war_machine | — | — |
@@ -422,6 +429,7 @@ Razem: **441**. Opis = pierwsza linia docstringu funkcji hooka.
 | `strategy.give_chosen_card` | PERMIT | agenda:checks | agendas:checks | — |
 | `strategy.secondary_as_primary` | PERMIT | faction:jolnar | abilities:brilliant | Brilliant: When you spend a command token to resolve the secondary ability of the |
 | `strategy.secondary_free` | PERMIT | faction:hacan | abilities:master_of_trade | Masters of Trade: You do not have to spend a command token to resolve the secondary |
+| `structures.pds_as_mech` | PERMIT | unit:titans_mech | units:titans_mech | Hecatoncheires: DEPLOY: When you would place a PDS on a planet, you may place 1 mech and |
 | `tactical.activation_blocked` | PERMIT | technology:cm | technologies:cm | Other players cannot activate asteroid fields that contain 1 or more of your ships. |
 | `technology.captured_skip` | PERMIT | faction:cabal | abilities:riftmeld | Riftmeld: When you research a unit upgrade technology: You may return 1 captured unit of |
 | `technology.free_prerequisite_ignores` | MODIFY | faction:jolnar | abilities:analytical | Analytical: When you research a technology that is not a unit upgrade technology: You may |
@@ -448,6 +456,8 @@ Razem: **441**. Opis = pierwsza linia docstringu funkcji hooka.
 | `units.floating_structure` | PERMIT | unit:saar_spacedock2 | technologies:ffac2 | This unit is placed in the space area instead of on a planet. This unit can move and |
 | `units.ground_moves_as_ship` | PERMIT | unit:naaz_voltron | — | Statek: rusza się sam (Move 3), liczy się do puli floty (eidolon-maximum 1). |
 | `units.place_forbidden` | FORBID | unit:naaz_voltron | — | Game effects cannot place or produce your mechs (nigdy dwa Eidolon Maximum - 4). |
+| `units.structure_ground_forces` | FORBID | unit:titans_pds | units:titans_pds | Hel-Titan I/II: This unit is treated as both a structure and a ground force. It cannot be |
+| `units.structure_ground_forces` | FORBID | unit:titans_pds2 | technologies:ht2 | Hel-Titan I/II: This unit is treated as both a structure and a ground force. It cannot be |
 | `units.sustain_lost` | FORBID | agenda:schematics | agendas:schematics | — |
 
 Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
@@ -537,6 +547,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `production.free`
 - `production.free_cargo`
 - `production.free_small_units`
+- `production.gain_trade_good`
 - `production.planet_value`
 - `production.system_value`
 - `production.total_value`
@@ -556,6 +567,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `strategy.secondary_free`
 - `command_tokens.strategy_from_reinforcements`
 - `invasion.strips_planetary_shield`
+- `structures.pds_as_mech`
 - `tactical.activation_blocked`
 - `technology.captured_skip`
 - `technology.free_prerequisite_ignores`
@@ -576,4 +588,5 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `units.floating_structure`
 - `units.ground_moves_as_ship`
 - `units.place_forbidden`
+- `units.structure_ground_forces`
 - `units.sustain_lost`

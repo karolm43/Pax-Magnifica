@@ -127,13 +127,23 @@ def _ground_in_zone(
 
 
 def attacker_ground_types(state: GameState) -> frozenset[str]:
-    """Statki atakującego, które w trwającej inwazji lądują jak siły naziemne (Matriarch)."""
+    """Typy atakującego, które w trwającej inwazji są siłami naziemnymi obok piechoty i mechów:
+    statki lądujące jak siły naziemne (Matriarch) i struktury-siły naziemne (Hel-Titan, 62.18)."""
     invasion = state.invasion
     if invasion is None:
         return frozenset()
     from src.core import ship_roles  # lokalnie: ship_roles -> rules_hooks -> hooki
 
-    return ship_roles.ground_force_types(state, invasion.attacker, invasion.position)
+    return ship_roles.ground_force_types(
+        state, invasion.attacker, invasion.position
+    ) | ship_roles.structure_ground_forces(state, invasion.attacker)
+
+
+def structure_ground_types(state: GameState, player_id: str) -> frozenset[str]:
+    """Struktury gracza, które są też siłami naziemnymi (Hel-Titan - RULES.md 62.18)."""
+    from src.core import ship_roles  # lokalnie: ship_roles -> rules_hooks -> hooki
+
+    return ship_roles.structure_ground_forces(state, player_id)
 
 
 def system_planets(
@@ -160,7 +170,8 @@ def _defenders(
     return sorted(
         pid
         for pid in system.planet_units.get(planet, {})
-        if pid != attacker and _ground_in_zone(system, planet, pid)
+        if pid != attacker
+        and _ground_in_zone(system, planet, pid, structure_ground_types(state, pid))
     )
 
 

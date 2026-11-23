@@ -21,6 +21,7 @@ from src.core.hooks.factions import (
     saar,
     sardakk,
     sol,
+    titans,
     winnu,
     xxcha,
     yin,
@@ -30,6 +31,6 @@ __all__ = [
     "arborec", "argent", "cabal", "hacan", "jolnar", "l1z1x", "letnev", "mentak", "muaat",
     "naalu", "naaz",
     "saar", "sardakk",
-    "sol",
+    "sol", "titans",
     "winnu", "xxcha", "yin",
 ]

@@ -25,6 +25,7 @@ from src.core import (
     exhaust,
     exploration,
     exploration_frontier,
+    faction_tokens,
     fracture,
     objectives,
     payment,
@@ -376,6 +377,7 @@ def stellar_converter(
     unit_ops.clear_planet(system, planet)
     control.set_planet_control(state, system.position, planet, None, registry)
     exploration.purge_planet_attachments(state, planet)
+    faction_tokens.clear_zone(state, system.position, planet)  # sleeper wraca (RULES.md 61.6)
     system.destroyed_planets = [*system.destroyed_planets, planet]
     relics.purge_relic(state, player_id, "stellarconverter")
 
@@ -431,6 +433,7 @@ def the_silver_flame(
                     unit_ops.remove_units(state, home, planet, owner, base_type, count)
             unit_ops.clear_planet(home, planet)
             control.set_planet_control(state, home.position, planet, None, registry)
+            faction_tokens.clear_zone(state, home.position, planet)
             home.destroyed_planets = [*home.destroyed_planets, planet]
     grid = grid_from_state(state, registry)
     fracture.put_into_play(state, registry, grid, player_id)

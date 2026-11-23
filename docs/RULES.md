@@ -101,8 +101,8 @@ Czytaj WYŁĄCZNIE plik potrzebnej sekcji. Nową regułę dopisuj do pliku jej s
 | 58 | [Zegar szachowy graczy](rules/R58.md) | 31 |
 | 59 | [Relikty — posiadanie, akcje „ACTION:”, efekty pasywne i zdarzeniowe](rules/R59.md) | 24 |
 | 60 | [Legendarne planety — karty zdolności, gotowość i zdolności](rules/R60.md) | 25 |
-| 61 | [Fundamenty frakcji — liderzy, promissory notes, zdolności, przełomy, przechwytywanie jednostek (61.5)](rules/R61.md) | 53 |
-| 62 | [Frakcje — komponenty frakcyjne (B1: Sardakk N'orr, Barony of Letnev; B2: Jol-Nar; B3: Sol, Arborec, … B7: Yin, B8: Argent, B9: L1Z1X, B10: Muaat, B11: Saar, Naaz-Rokha; B12: Naalu; B13: Vuil'raith Cabal)](rules/R62.md) | 252 |
+| 61 | [Fundamenty frakcji — liderzy, promissory notes, zdolności, przełomy, przechwytywanie jednostek (61.5), żetony frakcyjne na mapie (61.6)](rules/R61.md) | 53 |
+| 62 | [Frakcje — komponenty frakcyjne (B1: Sardakk N'orr, Barony of Letnev; B2: Jol-Nar; B3: Sol, Arborec, … B7: Yin, B8: Argent, B9: L1Z1X, B10: Muaat, B11: Saar, Naaz-Rokha; B12: Naalu; B13: Vuil'raith Cabal; B14: Titans of Ul)](rules/R62.md) | 252 |
 | 63 | [Pusta rezerwa → jednostka z planszy; audyt rulingów C_/F_ (2026-11-15)](rules/R63.md) | 52 |
 | 64 | [Kluczowe momenty gry — animacje dla wszystkich, efekty bohaterów na planszy, przejścia faz (2026-11-16)](rules/R64.md) | 58 |
 | 65 | [Bot AI — zasady projektowe warstwy decyzyjnej (jedna ścieżka reguł, informacja, obliczenia lokalne, budżet) (2026-11-16)](rules/R65.md) | 57 |

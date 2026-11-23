@@ -266,6 +266,17 @@ def _build_tile_unit_data(
                     space.setdefault("neutral", []).append(
                         {"entityId": planet_id, "entityType": "token", "count": 1}
                     )
+        # Żetony frakcji na planetach (sleeper Titans, RULES.md 61.6): token katalogu frontu.
+        if sys_state is not None:
+            for zone, kinds in sorted(sys_state.faction_tokens.items()):
+                for kind in sorted(kinds):
+                    token = {"entityId": kind, "entityType": "token", "count": 1}
+                    if zone == "space":
+                        space.setdefault("neutral", []).append(token)
+                    elif zone in planets:
+                        planets[zone].setdefault("entities", {}).setdefault(
+                            "neutral", []
+                        ).append(token)
         # Attachmenty z eksploracji (RULES.md 46): żeton przy planecie, rysowany przez front
         # jak inne wpisy `entityType: "attachment"` (id = `attachmentId` karty, np. "dysonsphere").
         for planet_id, entry in planets.items():

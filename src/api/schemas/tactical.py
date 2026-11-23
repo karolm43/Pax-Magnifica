@@ -249,6 +249,8 @@ class ProduceRequest(BaseModel):
     # Amalgamation (RULES.md 62.17): przechwycone jednostki zwracane zamiast zasobów
     # {typ: {pierwotny właściciel | "token": sztuki}}.
     captured: dict[str, dict[str, int]] = Field(default_factory=dict)
+    # Tungstantus (RULES.md 62.18): 1 TG „when your units use PRODUCTION” - przed zapłatą.
+    commander_trade_good: bool = False
 
 class CapturePlanetRequest(BaseModel):
     """Przejęcie kontroli planety po inwazji (E3): planeta + gracz."""

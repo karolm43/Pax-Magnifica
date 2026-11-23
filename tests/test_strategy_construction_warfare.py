@@ -333,6 +333,6 @@ def test_warfare_secondary_produces_in_home_system(registry: StaticDataRegistry)
 def test_warfare_secondary_needs_production_in_home(registry: StaticDataRegistry) -> None:
     state, _grid_unused = _warfare_secondary(registry)
     state.systems["102"].planet_units = {}
-    with pytest.raises(ValueError, match="no unit with PRODUCTION"):
+    with pytest.raises(ValueError, match="no space dock with PRODUCTION"):
         strategic_action.resolve_secondary(state, registry, "p2", execute=True)
     assert state.players["p2"].strategic_cc == 2  # stan wejściowy nietknięty

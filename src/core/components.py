@@ -125,6 +125,9 @@ class AttachmentDef(ComponentBase):
     # Modyfikatory wartości planety (Dyson Sphere +2/+1 itd.) — dane AsyncTI4.
     resources_modifier: int = Field(default=0, alias="resourcesModifier")
     influence_modifier: int = Field(default=0, alias="influenceModifier")
+    # SPACE CANNON nadany planecie „as if it were a unit” (Geoform: 5 x3) — dane AsyncTI4.
+    space_cannon_hits_on: int | None = Field(default=None, alias="spaceCannonHitsOn")
+    space_cannon_die_count: int | None = Field(default=None, alias="spaceCannonDieCount")
 
 
 class ExplorationDef(ComponentBase):

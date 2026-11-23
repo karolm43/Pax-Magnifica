@@ -60,7 +60,8 @@ class ActivityFact(BaseModel):
     # "eliminated" (player_id = wyeliminowany, value = frakcja, detail = nazwa gracza),
     # "winner", "battle_result" (player_id = zwycięzca walki, detail = "winner"/"draw",
     # delta = liczba rund), "rider" (value = karta, detail = przewidziany wynik agendy),
-    # "tile_replaced" (value = pozycja, detail = "<stary kafel>><nowy kafel>"; Nova Seed).
+    # "tile_replaced" (value = pozycja, detail = "<stary kafel>><nowy kafel>"; Nova Seed),
+    # "faction_token" / "faction_token_removed" (value = rodzaj żetonu, detail = planeta / space).
     # NOWY skutek gry => dopisz tu fakt i jego opis w ``describeActivity.tsx``.
     type: str
     # Czyj skutek; None dla zdarzeń talii/stołu bez jednego właściciela.
@@ -568,6 +569,7 @@ def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
         for card in cards:
             if card not in old_cards:
                 facts.append(ActivityFact(type="attached", value=card, detail=planet))
+    facts.extend(_faction_token_facts(before, after))
     for objective, scorers in after.objectives.scored.items():
         old_scorers = before.objectives.scored.get(objective, [])
         for pid in set(scorers):
@@ -621,6 +623,28 @@ def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
                     detail=gone.display_name or None,
                 )
             )
+    return facts
+
+
+def _faction_token_facts(before: GameState, after: GameState) -> list[ActivityFact]:
+    """Żetony frakcji położone / zdjęte (sleeper Titans, RULES.md 61.6): strefa = planeta/space."""
+    def tokens(state: GameState) -> dict[tuple[str, str, str], str]:
+        return {
+            (position, zone, kind): owner
+            for position, system in state.systems.items()
+            for zone, kinds in system.faction_tokens.items()
+            for kind, owner in kinds.items()
+        }
+
+    old, new = tokens(before), tokens(after)
+    facts = [
+        ActivityFact(type="faction_token", player_id=owner, value=key[2], detail=key[1])
+        for key, owner in sorted(new.items()) if old.get(key) != owner
+    ]
+    facts += [
+        ActivityFact(type="faction_token_removed", player_id=owner, value=key[2], detail=key[1])
+        for key, owner in sorted(old.items()) if key not in new
+    ]
     return facts
 
 

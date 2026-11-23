@@ -91,12 +91,22 @@ def card_def(registry: StaticDataRegistry, card_id: str) -> ExplorationDef:
     return _card_def(registry, card_id)
 
 
-def planet_traits(registry: StaticDataRegistry, planet_id: str) -> list[str]:
-    """Talie, z których można eksplorować planetę (kolejność jak w danych); pusta = nie można."""
-    planet = registry.planets.get(planet_id)
-    if planet is None:
-        return []
-    raw = [*(planet.planet_types or []), *([planet.planet_type] if planet.planet_type else [])]
+def planet_traits(
+    registry: StaticDataRegistry, planet_id: str, state: GameState | None = None
+) -> list[str]:
+    """Talie, z których można eksplorować planetę (kolejność jak w danych); pusta = nie można.
+
+    ``state`` dokłada cechy z attachmentów (Terraform: wszystkie 3 cechy - RULES.md 62.18).
+    """
+    from src.core import planet_stats  # lokalnie: planet_stats jest liściem, bez cyklu
+
+    if state is not None:
+        raw = planet_stats.traits(state, registry, planet_id)
+    else:
+        planet = registry.planets.get(planet_id)
+        if planet is None:
+            return []
+        raw = [*(planet.planet_types or []), *([planet.planet_type] if planet.planet_type else [])]
     traits: list[str] = []
     for item in raw:
         trait = item.lower()
@@ -735,7 +745,7 @@ def _auto(state: GameState, registry: StaticDataRegistry) -> None:
     Suns - dodatkowa karta to decyzja gracza przed ujawnieniem)."""
     ex = _exp(state)
     if ex.current is None and len(ex.queue) == 1:
-        traits = planet_traits(registry, ex.queue[0])
+        traits = planet_traits(registry, ex.queue[0], state)
         if len(traits) == 1 and not extra_draw_allowed(state, ex.player_id, ex.queue[0]):
             _draw_for(state, registry, ex.queue[0], traits[0])
 
@@ -822,7 +832,7 @@ def draw(
             "This planet is not waiting to be explored "
             "(it was already explored or is not part of this exploration)."
         )
-    traits = planet_traits(registry, planet)
+    traits = planet_traits(registry, planet, state)
     if deck is None:
         if len(traits) != 1:
             raise ValueError("Choose which exploration deck to draw from.")
@@ -964,7 +974,8 @@ def finish(state: GameState) -> GameState:
 
 
 def attach_to_planet(state: GameState, planet: str, card_id: str) -> None:
-    """Przyczepia kartę (eksploracji albo relikt Nano-Forge) do planety - mutuje ``state``.
+    """Przyczepia kartę (eksploracji, relikt Nano-Forge, notkę Terraform, bohatera Geoform) do
+    planety - mutuje ``state``.
 
     Karta zostaje przy planecie niezależnie od zmiany kontroli (R_attach); wartości liczy
     ``planet_stats`` z attachmentu o tym samym id.

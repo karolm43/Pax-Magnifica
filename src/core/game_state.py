@@ -651,6 +651,9 @@ class SystemState(BaseModel):
     # Planety ZNISZCZONE w trakcie gry (Stellar Converter): leży na nich „destroyed planet token”,
     # system liczy się tak, jakby ich nie miał (``core/system_planets.py``).
     destroyed_planets: list[str] = Field(default_factory=list)
+    # Żetony frakcji w strefach systemu (RULES.md 61.6): {strefa: {rodzaj: właściciel}}, strefa =
+    # "space" albo id planety (sleeper Titans of Ul). Zmiana tylko przez ``core/faction_tokens``.
+    faction_tokens: dict[str, dict[str, str]] = Field(default_factory=dict)
 
     def token_wormholes(self) -> list[str]:
         """Typy wormhole z żetonów w systemie: Gamma itd. + aktywna strona Ion Storm."""
@@ -821,6 +824,9 @@ class ProductionGrant(BaseModel):
     # Opcjonalne zawężenie do jednego producenta (Construction: JEDEN dok) - id planety,
     # na której stoi dok. ``None`` = wszyscy producenci w systemie (Warfare, TE).
     zone: str | None = None
+    # Typy producentów, których PRODUCTION wolno użyć (karty strategii: „1 of your space docks”
+    # - bez Hel-Titanów, F_ul hel-titan 1); pusta lista = każdy producent.
+    producer_types: list[str] = Field(default_factory=list)
     # ``free`` = produkcja BEZ użycia PRODUCTION jednostek, poza akcją taktyczną i w dowolnym
     # systemie (Sling Relay, Integrated Economy): limit to ``units``, bez wymogu doków, strefy
     # ograniczone do ``zone`` (planeta) i przestrzeni. ``max_cost`` = górny limit łącznego

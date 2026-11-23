@@ -346,3 +346,30 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
   (`fracture.announce_ingress_placed`: po `_enter` bez wyborów i po ostatnim `choose_ingress`); hook
   Cabal = oferta (`ingress_offer`). Fracture już w grze → oferta od razu po wejściu przełomu.
 - QA: pytest (Cabal, Fracture/ekspedycje, zdarzenia, triggery) ✓, ruff/mypy ✓.
+
+## 2026-11-23 — Frakcja The Titans of Ul (B14, RULES.md 62.18) + żetony frakcyjne na mapie (I2, 61.6)
+
+- **Żetony frakcji** (`core/faction_tokens.py`, `SystemState.faction_tokens = {strefa: {rodzaj: właściciel}}`):
+  sleeper ×5 (AsyncTI4), place / move / remove, zwrot przy wymianie kafla (Nova Seed) i zniszczeniu planety.
+  Widok: żeton `sleeper` na planecie w web-data, `sleeperTokensReinf` w panelu gracza, feed
+  `faction_token` / `faction_token_removed`.
+- **Titans** (`hooks/factions/titans.py`): Terragenesis (oferta po eksploracji: pula albo przeniesienie – klik
+  planety), Awaken (migawka żetonów i PDS na `SYSTEM_ACTIVATED/WHEN`; per żeton PDS / mech+piechota / zostaw; PDS
+  z planszy przy pustej rezerwie; cudza planeta bez sił naziemnych przejęta od razu, z siłami – walka w Invasion),
+  Coalescence (reguła bazowa), Hel-Titan jako struktura i siła naziemna (FORBID `units.structure_ground_forces`:
+  obrońcy, sporne planety, utrzymanie po walce, cel bombardowania bez tarczy; bez trafień SCD), Ouranos (DEPLOY
+  z migawki), Hecatoncheires („mech zamiast PDS” w `place_structure` – Construction i Awaken), Tellurian
+  (użycie w oknie: anuluje 1 trafienie walki / Space Cannon / bombardowania dowolnego gracza), Tungstantus
+  (unlock 5 struktur; przełącznik w `ProductionOverlay`, TG przed zapłatą), Geoform (attachment `titanshero`:
+  +3/+3, SPACE CANNON 5×3 dla kontrolera Elysium; karta przy planecie blokuje ponowne użycie), Terraform
+  (attachment `titanspn` +1/+1 i 3 cechy – `planet_stats.traits`, `exploration.planet_traits(state=…)`, cele;
+  notka nie wraca i nie leży w strefie), Slumberstate zdanie 3 (prośba → decyzja kontrolera Allow/Refuse).
+- Zmiany wspólne: karty strategii (Construction, Warfare) produkują tylko dokami (`ProductionGrant.producer_types`,
+  F_ul hel-titan 1); `invasion.cancel_bombardment_hits`; SPACE CANNON z attachmentów (`space_cannon`);
+  attachmenty z notek i liderów (`planet_stats._card_attachment`); efekt bohatera na planszy `titanshero`.
+- Rulingi `F_ul` (mapa `titans → F_ul`) z testami (`test_titans.py`, scenariusze `test_flows_titans.py`); Farran
+  + Hel-Titan (F_letnev 2.1) ma test. Statusy `gap`: przełom zdania 1–2 (koegzystencja, blok I4), Hel-Titan 3
+  (Decoy Operation / Transit Diodes).
+- ⚠️ ZAŁOŻENIA (do potwierdzenia): Awaken – każdy żeton osobno, „Auto” = PDS; Tungstantus – „Auto” = włączone;
+  Slumberstate – prośba w dowolnej chwili fazy akcji, bez akcji; Tellurian nie anuluje AFB (brak kroku przypisania).
+

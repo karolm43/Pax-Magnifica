@@ -94,12 +94,37 @@ def _raw_attachment_defs(
         ):
             # Relikt przyczepiony do planety (Nano-Forge): id relktu = id attachmentu z danych.
             attachment_id = card_id
+        if attachment_id is None:
+            attachment_id = _card_attachment(registry, card_id)
         if not attachment_id:
             continue
         attachment = registry.catalog.get(ComponentCategory.ATTACHMENT, attachment_id)
         if isinstance(attachment, AttachmentDef):
             result.append(attachment)
     return result
+
+
+def _card_attachment(registry: StaticDataRegistry, card_id: str) -> str | None:
+    """Attachment z notki (pole ``attachment`` danych - Terraform) albo z lidera o tym samym id
+    co attachment (Geoform bohatera Titans) - RULES.md 62.18."""
+    note = registry.catalog.get(ComponentCategory.PROMISSORY_NOTE, card_id)
+    raw = getattr(note, "raw", None)
+    if isinstance(raw, dict) and isinstance(raw.get("attachment"), str):
+        return str(raw["attachment"])
+    if card_id in registry.leaders:
+        return card_id
+    return None
+
+
+def traits(state: GameState, registry: StaticDataRegistry, planet_id: str) -> list[str]:
+    """Cechy planety (małe litery, kolejność danych) + cechy z attachmentów (Terraform)."""
+    planet = registry.planets.get(planet_id)
+    if planet is None:
+        return []
+    raw = [*(planet.planet_types or []), *([planet.planet_type] if planet.planet_type else [])]
+    for attachment in attachment_defs(state, registry, planet_id):
+        raw.extend(attachment.planet_types)
+    return list(dict.fromkeys(item.lower() for item in raw))
 
 
 def planet_stats(

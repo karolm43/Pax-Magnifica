@@ -82,9 +82,9 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `sol_flagship` | Genesis  | sol | — | — | produkcja, status i odświeżanie | ✔ | At the end of the status phase, place 1 infantry from your reinforcements in this system's space area. |
 | `sol_infantry2` | Spec Ops II | sol | — | — | walka, planety i eksploracja | — | After this unit is destroyed, roll 1 die. If the result is 5 or greater, place the unit on this card. At the start of your next turn, place… |
 | `sol_mech` | ZS Thunderbolt M2 | sol | — | PERMIT (pozwolenie) | ekonomia i płatności, planety i eksploracja | ✔ | DEPLOY: After you use your Orbital Drop faction ability, you may spend 3 resources to place 1 mech on that planet. |
-| `titans_flagship` | Ouranos | titans | — | MODIFY (liczba/rzut) | — | — | DEPLOY: After you activate a system that contains 1 or more of your PDS, you may replace 1 of those PDS with this unit. |
-| `titans_mech` | Hecatoncheires | titans | — | REPLACE (instead of) | planety i eksploracja | — | DEPLOY: When you would place a PDS on a planet, you may place 1 mech and 1 infantry on that planet instead. |
-| `titans_pds` | Hel-Titan I | titans | — | FORBID (zakaz) | — | — | This unit is treated as both a structure and a ground force. It cannot be transported. |
+| `titans_flagship` | Ouranos | titans | — | MODIFY (liczba/rzut) | — | ✔ | DEPLOY: After you activate a system that contains 1 or more of your PDS, you may replace 1 of those PDS with this unit. |
+| `titans_mech` | Hecatoncheires | titans | — | REPLACE (instead of) | planety i eksploracja | ✔ | DEPLOY: When you would place a PDS on a planet, you may place 1 mech and 1 infantry on that planet instead. |
+| `titans_pds` | Hel-Titan I | titans | — | FORBID (zakaz) | — | ✔ | This unit is treated as both a structure and a ground force. It cannot be transported. |
 | `titans_pds2` | Hel-Titan II | titans | — | FORBID (zakaz) | ruch, walka | — | This unit is treated as both a structure and a ground force. It cannot be transported. You may use this unit's SPACE CANNON against ships t… |
 | `winnu_flagship` | Salai Sai Corian | winnu | — | — | walka | ✔ | When this unit makes a combat roll, it rolls a number of dice (hit on a 7) equal to the number of your opponent's non-fighter ships in this… |
 | `winnu_mech` | Reclaimer | winnu | — | PERMIT (pozwolenie) | produkcja, planety i eksploracja | ✔ | After you resolve a tactical action where you gained control of this planet, you may place 1 PDS or 1 Space Dock from your reinforcements o… |

@@ -42,6 +42,7 @@ import {
   resolveUnitName,
 } from "../GameEventPanel/eventFormatting";
 import { getLeaderById } from "@/entities/lookup/leaders";
+import { promissoryNotes } from "@/entities/data/promissoryNotes";
 import { Named } from "./Named";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import { getStrategyCardByInitiative } from "@/entities/lookup/strategyCards";
@@ -822,17 +823,55 @@ function describeFact(
           </>
         ),
       };
-    case "attached":
+    case "attached": {
+      // Karta przy planecie: eksploracja / relikt, notka (Terraform) albo bohater (Geoform) - 62.18.
+      const id = fact.value ?? "";
+      const leader = getLeaderById(id);
+      const note = leader ? undefined : promissoryNotes.find((n) => n.alias === id);
+      const card = leader ? (
+        <Named kind="leader" id={id} name={leader.name} />
+      ) : note ? (
+        <Named kind="promissory" id={id} name={note.name} />
+      ) : (
+        <Named kind="explore" id={id} name={exploreCardName(fact.value)} />
+      );
       return {
         key,
         tone: "card",
         text: (
           <>
-            <Named kind="explore" id={fact.value ?? ""} name={exploreCardName(fact.value)} /> attached to{" "}
+            {card} attached to{" "}
             <Named kind="planet" id={fact.detail ?? ""} name={resolvePlanetName(fact.detail ?? "")} />
           </>
         ),
       };
+    }
+    case "faction_token":
+    case "faction_token_removed": {
+      // Żetony frakcji na mapie (sleeper Titans, RULES.md 61.6): detail = planeta albo "space".
+      const where = fact.detail ?? "";
+      const kind = prettifyId(fact.value ?? "token");
+      const place =
+        where && where !== "space" ? (
+          <Named kind="planet" id={where} name={resolvePlanetName(where)} />
+        ) : (
+          <>space</>
+        );
+      return {
+        key,
+        tone: fact.type === "faction_token" ? "info" : "bad",
+        text:
+          fact.type === "faction_token" ? (
+            <>
+              {prefix}placed a {kind} token on {place}
+            </>
+          ) : (
+            <>
+              {kind} token removed from {place}
+            </>
+          ),
+      };
+    }
     case "objective_scored":
       if (a.action === "objective.score" && fact.value === a.subject) return null;
       return {

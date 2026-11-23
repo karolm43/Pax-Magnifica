@@ -53,6 +53,7 @@ from src.core.invasion_common import _ground_units as _ground_units
 from src.core.invasion_common import attacker_ground_types as attacker_ground_types
 from src.core.invasion_common import planet_infos as planet_infos
 from src.core.invasion_common import planet_shield as planet_shield
+from src.core.invasion_common import structure_ground_types as structure_ground_types
 from src.core.invasion_common import system_planets as system_planets
 from src.core.invasion_common import unit_variant as unit_variant
 from src.core.invasion_defense import _defense_open
@@ -424,7 +425,9 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
     for planet in sorted(set(inv.committed) | set(inv.combat_results)):
         owner = system.planet_owners.get(planet)
         combat_result = inv.combat_results.get(planet)
-        attacker_present = bool(_ground_in_zone(system, planet, inv.attacker))
+        # Hel-Titan atakującego też utrzymuje planetę (struktura i siła naziemna - 62.18).
+        own_structures = structure_ground_types(state, inv.attacker)
+        attacker_present = bool(_ground_in_zone(system, planet, inv.attacker, own_structures))
         result: dict[str, Any] = {
             "planet": planet,
             "previousOwner": owner,
@@ -706,6 +709,29 @@ def cancel_defense_hits(state: GameState, planet: str, count: int = 1) -> int:
     else:
         del inv.defense_pending[planet]
         inv.defense_resolved.append(planet)
+    return cancelled
+
+
+def cancel_bombardment_hits(state: GameState, planet: str, count: int = 1) -> int:
+    """Anuluje do ``count`` trafień bombardowania czekających na ``planet`` (Tellurian, 62.18).
+
+    Bez trafień planeta jest rozstrzygnięta jak po rzucie bez trafień. Zwraca anulowane.
+
+    Raises:
+        ValueError: Brak trafień bombardowania do przypisania na planecie.
+    """
+    inv = _inv(state)
+    pending = inv.bombard_pending.get(planet, 0)
+    if pending <= 0:
+        raise ValueError(f"There are no bombardment hits to cancel on {planet}.")
+    cancelled = min(max(0, count), pending)
+    entry = _bombard_log_entry(inv, planet)
+    entry["hits"] = pending - cancelled
+    entry["cancelled"] = int(entry.get("cancelled", 0)) + cancelled
+    if pending - cancelled > 0:
+        inv.bombard_pending[planet] = pending - cancelled
+    else:
+        del inv.bombard_pending[planet]
     return cancelled
 
 
