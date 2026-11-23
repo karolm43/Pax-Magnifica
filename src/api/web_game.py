@@ -416,6 +416,10 @@ def _build_game_state(
         # każdego, kto ma coś do rozstrzygnięcia. Szczegóły (opcje) z GET /offers.
         # Czy w tej akcji taktycznej zużyto już premię Gravity Drive (UI chowa przełącznik).
         "gravityDriveUsed": state.gravity_drive_used,
+        # Czy w tej akcji poruszono już statek (UI: „Undo last move” cofa wtedy ruch, a bez ruchu
+        # - samą aktywację) i czy inwazja tej akcji jest już zamknięta (bez ponownego startu).
+        "tacticalMoved": state.tactical_moved,
+        "invasionResolved": state.invasion_resolved,
         # Czy aktywny gracz ma w tej akcji taktycznej premię „+1 do ruchu jednego statku" z karty
         # (Ionian Fuel Refinery) - UI pokazuje wtedy ten sam przełącznik co dla Gravity Drive.
         "extraMoveBoostActive": any(

@@ -1149,6 +1149,10 @@ class GameState(BaseModel):
     # Czy w tej akcji taktycznej poruszono już jakiś statek (okno „po aktywacji systemu” kart
     # reakcji zamyka się z pierwszym ruchem). Zerowane przy aktywacji i zakończeniu akcji.
     tactical_moved: bool = False
+    # Czy krok INVASION tej akcji taktycznej został już rozstrzygnięty i zamknięty (RULES.md
+    # 40.1: inwazja to JEDEN krok akcji - po zamknięciu nie otwiera się ponownie).
+    # Zerowane przy aktywacji i zakończeniu akcji.
+    invasion_resolved: bool = False
 
     # Systemy z Ion Storm, przez których wormhole przeszły statki w tej akcji (flip na końcu
     # kroku ruchu / odwrotu, R: C_exploration_cards). Zerowane przy aktywacji i końcu akcji.

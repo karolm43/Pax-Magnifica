@@ -32,7 +32,8 @@ const OUTCOME: Record<string, string> = {
 };
 
 /**
- * Krok INVASION w panelu pomocy (RULES.md 40). Inwazja startuje PRZYCISKIEM. Gdy nie ma
+ * Krok INVASION w panelu pomocy (RULES.md 40). Inwazja startuje PRZYCISKIEM, raz na akcję
+ * (po zamknięciu panel pokazuje tylko notkę, bez ponownego startu). Gdy nie ma
  * wrogich sił, struktur z Space Cannon ani celu bombardowania (kroki 1, 3, 4 odpadają), całe
  * lądowanie to prosty wybór „ile piechoty / mechów gdzie"; w przeciwnym razie otwiera się
  * pełne okno inwazji (`InvasionOverlay`).
@@ -93,6 +94,15 @@ export function InvasionStepPanel() {
 
   if (gameState?.activeCombat) {
     return <span className={styles.note}>Ground combat in progress.</span>;
+  }
+
+  // RULES.md 40.1: krok INVASION jest jeden - po zamknięciu inwazji nie ma ponownego startu.
+  if (!active && gameState?.invasionResolved === true) {
+    return (
+      <span className={styles.note}>
+        Invasion resolved for this action - go on to the next step.
+      </span>
+    );
   }
 
   if (!active || !view?.active) {

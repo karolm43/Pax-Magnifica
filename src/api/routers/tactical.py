@@ -52,6 +52,8 @@ router = APIRouter()
 
 # Etykieta migawki ruchu statków — po niej „Undo last move” rozpoznaje, co wolno cofnąć.
 MOVE_LABEL_PREFIX = "tactical:move:"
+# Etykieta migawki aktywacji systemu — bez żadnego ruchu „Undo last move” cofa samą aktywację.
+ACTIVATE_LABEL_PREFIX = "tactical:activate:"
 
 
 async def _commit_flow(
@@ -134,16 +136,23 @@ async def post_tactical_undo_move(
     """„Undo last move” w kroku ruchu — dla AKTYWNEGO gracza, nie tylko hosta.
 
     W odróżnieniu od ogólnego ``/undo`` (God-Mode, host) cofa WYŁĄCZNIE ostatnią migawkę,
-    jeśli jest to ruch statków (``tactical:move:*``) — gracz nie cofnie cudzej akcji ani
-    innego kroku. Inna ostatnia zmiana → 422.
+    jeśli jest to ruch statków (``tactical:move:*``) albo — gdy jeszcze nic się nie ruszyło —
+    sama aktywacja systemu (``tactical:activate:*``: żeton wraca do puli, gracz może wybrać inną
+    akcję; decyzja użytkownika 2026-11-23). Gracz nie cofnie cudzej akcji ani innego kroku;
+    aktywacji nie cofnie, gdy trwa otwarte okno (reakcje innych graczy). Inna zmiana → 422.
     """
     state = ctx.service.current_state()
     actor_rules.require(state, actor, [state.active_player_id], "Undo move")
     label = ctx.service.current_label() or ""
-    if not label.startswith(MOVE_LABEL_PREFIX):
+    undo_activation = (
+        label.startswith(ACTIVATE_LABEL_PREFIX)
+        and state.pending_window is None
+        and state.held_play is None
+    )
+    if not label.startswith(MOVE_LABEL_PREFIX) and not undo_activation:
         raise HTTPException(
             status_code=422,
-            detail="Nothing to undo - the last change was not a ship move.",
+            detail="Nothing to undo - the last change was not a ship move or a system activation.",
         )
     envelope = ctx.service.undo()
     await ctx.service.broadcast()

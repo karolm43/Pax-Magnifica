@@ -127,6 +127,9 @@ def begin_invasion(
         raise ValueError("Invasion starts in the INVASION step of a tactical action.")
     if state.invasion is not None:
         return state.clone()
+    # RULES.md 40.1: krok INVASION jest jeden - zamkniętej inwazji nie otwiera się ponownie.
+    if state.invasion_resolved:
+        raise ValueError("The invasion of this tactical action is already resolved.")
     new_state = state.clone()
     new_state.invasion = InvasionState(position=active, attacker=attacker)
     system = new_state.systems.get(active)
@@ -608,6 +611,9 @@ def advance(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> Ga
     if state.exploration is not None:
         raise ValueError("Finish exploring the captured planets first.")
     closed = clear_invasion(state)
+    if not inv.source:
+        # Zwykła inwazja taktyczna zamknięta - krok INVASION tej akcji jest rozstrzygnięty.
+        closed.invasion_resolved = True
     if inv.queue:
         # Inwazja komponentu: kolejny system z kolejki (RULES.md 62.10).
         nxt, *rest = inv.queue

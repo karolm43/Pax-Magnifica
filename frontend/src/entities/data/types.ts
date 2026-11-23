@@ -564,6 +564,10 @@ export type GameState = {
    */
   /** Zużyto już premię Gravity Drive w tej akcji taktycznej (RULES.md 55.6). */
   gravityDriveUsed?: boolean;
+  /** W tej akcji taktycznej poruszono już statek (bez ruchu „Undo” cofa samą aktywację). */
+  tacticalMoved?: boolean;
+  /** Inwazja tej akcji taktycznej jest już zamknięta - nie startuje ponownie (RULES.md 40.1). */
+  invasionResolved?: boolean;
   /** Aktywny gracz ma w tej akcji premię „+1 do ruchu jednego statku" z karty (Ionian Fuel Refinery). */
   extraMoveBoostActive?: boolean;
   /** Zużyto już premię Ionian Fuel Refinery w tej akcji taktycznej. */

@@ -321,6 +321,16 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
 - Przegląd U1–U4: bez błędów do poprawy. Uwaga: dymek mapy schowany nad oknem decyzji wraca po ruchu kursora.
 
 
+## Panel akcji taktycznej: cofnięcie aktywacji, licznik w kółko, jedna inwazja
+
+- „Undo last move” bez żadnego ruchu cofa aktywację systemu („Undo activation”; `/tactical/undo-move` przyjmuje
+  etykietę `tactical:activate:*`, gdy nie trwa okno) — RULES.md 44.1a; web-data `tacticalMoved`.
+- `RouteUnitChip` (ruch, trasa na mapie, oferty ruchu): klik +1, na komplecie (2/2) przekręca do 0; prawy −1 bez zmian.
+- Inwazja raz na akcję (RULES.md 40.1 I9): `GameState.invasion_resolved`, web-data `invasionResolved`; po zamknięciu
+  panel nie pokazuje ponownie „Start invasion”.
+- Testy: `test_undo_move.py`, `test_invasion.py`, `RouteUnitChip.test.tsx`.
+
+
 ## Przycisk „Component”: niedostępne pozycje szare, opis ⓘ dla każdej
 
 - `collectComponentActions` niesie `unavailable` z web-data: lider wyczerpany/zablokowany/purge, tech i relikt

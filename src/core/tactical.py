@@ -185,6 +185,7 @@ def activate_system(
     new_state.tempesta_used = False
     new_state.imperator_used = False
     new_state.tactical_moved = False
+    new_state.invasion_resolved = False
     new_state.ion_storm_used = []
     objective_events.snapshot_tactical_start(new_state)
     new_state.control_changes = []
@@ -338,7 +339,7 @@ def _step_is_empty(
     if step is TacticalStep.SPACE_COMBAT:
         return not space_combat_required(state)
     if step is TacticalStep.INVASION:
-        if state.active_system is None or player_id is None:
+        if state.active_system is None or player_id is None or state.invasion_resolved:
             return True
         probe = state.clone()
         probe.tactical_step = TacticalStep.INVASION
@@ -412,6 +413,7 @@ def end_tactical_action(state: GameState) -> GameState:
     new_state.tempesta_used = False
     new_state.imperator_used = False
     new_state.tactical_moved = False
+    new_state.invasion_resolved = False
     new_state.ion_storm_used = []
     new_state.tactical_pn_owners = []
     new_state.control_changes = []

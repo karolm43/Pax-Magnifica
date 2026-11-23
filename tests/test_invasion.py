@@ -431,3 +431,17 @@ def test_next_step_blocked_until_invasion_reaches_establish(registry: StaticData
     moved = tactical.next_step(state)
     assert moved.tactical_step is TacticalStep.PRODUCTION
     assert moved.invasion is None
+
+
+def test_closed_invasion_cannot_be_started_again(registry: StaticDataRegistry) -> None:
+    """RULES.md 40.1: krok INVASION jest jeden - po zamknięciu inwazji nie startuje ponownie."""
+    grid = _grid()
+    state = invasion.begin_invasion(_state({"p1": {"infantry": 2}}), grid, registry)
+    state = invasion.commit_ground_forces(state, registry, {_PL1: {"infantry": 1}})
+    state = invasion.advance(state, grid, registry)  # Commit → Establish Control
+    state = invasion.advance(state, grid, registry)  # zamknięcie inwazji
+    assert state.invasion is None and state.invasion_resolved
+    with pytest.raises(ValueError, match="already resolved"):
+        invasion.begin_invasion(state, grid, registry)
+    # Koniec akcji taktycznej zeruje znacznik (następna akcja ma własny krok INVASION).
+    assert tactical.end_tactical_action(state).invasion_resolved is False

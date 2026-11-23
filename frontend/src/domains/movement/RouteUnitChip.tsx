@@ -4,7 +4,8 @@ import styles from "./RouteUnitChip.module.css";
 
 /**
  * Przycisk jednostki do wyboru w ruchu z trasą (box i rysunek trasy na mapie): klik dodaje
- * 1 sztukę (Shift = wszystkie), prawy przycisk odejmuje 1 (Shift = wszystkie). Pokazuje
+ * 1 sztukę, a na komplecie (np. 2/2) przekręca licznik do 0 (Shift = wszystkie); prawy przycisk
+ * odejmuje 1 (Shift = wszystkie). Pokazuje
  * ``wybrane/dostępne``. Pełna nazwa jednostki (nie skrót AsyncTI4) trafia do ``title`` i etykiety.
  */
 export function RouteUnitChip({
@@ -39,7 +40,9 @@ export function RouteUnitChip({
     event.preventDefault();
     event.stopPropagation();
     if (disabled) return;
-    onChange(event.shiftKey ? Number.POSITIVE_INFINITY : 1);
+    if (event.shiftKey) onChange(Number.POSITIVE_INFINITY);
+    // Licznik w kółko: na komplecie kolejny klik zeruje wybór (decyzja użytkownika).
+    else onChange(max > 0 && picked >= max ? -picked : 1);
   };
   const rightClick = (event: MouseEvent) => {
     event.preventDefault();
@@ -54,7 +57,7 @@ export function RouteUnitChip({
       data-variant={variant}
       data-picked={picked > 0 || undefined}
       disabled={disabled}
-      title={title ?? `${name}: click +1, right-click −1, Shift = all`}
+      title={title ?? `${name}: click +1 (wraps to 0 when full), right-click −1, Shift = all`}
       aria-label={`${name}${caption ? ` (${caption})` : ""}: ${picked} of ${max} selected`}
       onClick={click}
       onContextMenu={rightClick}

@@ -65,7 +65,8 @@ function fleetCapacity(stacks: Stack[], faction: string, player?: PlayerData): C
  *
  * Ruch ma JEDNO okno: ``MoveRouteBox`` (trasa rysowana na mapie). Otwiera je przeciągnięcie
  * jednostek na aktywny system, Ctrl+klik/Ctrl+drag grupy albo klik w świecący system źródłowy.
- * Monitor pokazuje flotę i pojemność w aktywnym systemie; „Undo last move" cofa ostatni ruch.
+ * Monitor pokazuje flotę i pojemność w aktywnym systemie; „Undo last move" cofa ostatni ruch,
+ * a gdy nic się jeszcze nie ruszyło — samą aktywację systemu („Undo activation").
  * Zasięg/capacity egzekwuje backend (422 z powodem).
  */
 export function MovementStepPanel({
@@ -84,6 +85,8 @@ export function MovementStepPanel({
   const routeParams = useParams<{ mapid: string }>();
   const { data: gameState } = useGameState(routeParams.mapid ?? DEFAULT_GAME_ID);
   const [busy, setBusy] = useState(false);
+  // Bez ruchu w tej akcji przycisk cofa samą aktywację systemu (backend: /tactical/undo-move).
+  const moved = gameState?.tacticalMoved === true;
 
   const player = gameData?.playerData?.find((p) => p.color === activePlayerColor);
   const faction = player?.faction ?? null;
@@ -232,9 +235,14 @@ export function MovementStepPanel({
         className={styles.subAction}
         disabled={busy}
         onClick={() => void run(undoMove)}
-        title="Undo your last ship move"
+        title={
+          moved
+            ? "Undo your last ship move"
+            : "Nothing moved yet - take the command token back and cancel the activation"
+        }
       >
-        <IconArrowBackUp size={13} aria-hidden="true" /> Undo last move
+        <IconArrowBackUp size={13} aria-hidden="true" />{" "}
+        {moved ? "Undo last move" : "Undo activation"}
       </button>
     </div>
   );

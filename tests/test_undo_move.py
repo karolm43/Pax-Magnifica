@@ -91,3 +91,29 @@ def test_hand_limit_can_be_disabled(registry: StaticDataRegistry) -> None:
     state.action_card_limit_disabled = True
     assert hand_limit.action_card_limit(state, "p1") is None
     assert hand_limit.action_card_excess(state, "p1") == 0
+
+
+def test_undo_last_move_without_moves_undoes_activation(registry: StaticDataRegistry) -> None:
+    """Bez ruchu „Undo last move” cofa aktywację: żeton wraca do puli (decyzja 2026-11-23)."""
+    start, _ = _start(registry)
+    state = GameState(
+        phase=Phase.ACTION,
+        active_player_id="p1",
+        seating_order=["p1", "p2"],
+        players={
+            "p1": PlayerState(player_id="p1", faction="sol", color="red", tactical_cc=3),
+            "p2": PlayerState(player_id="p2", faction="arborec", color="blue"),
+        },
+    )
+    client = TestClient(
+        create_app(registry=registry, store=EventStore(":memory:"), initial_state=state)
+    )
+    res = client.post("/tactical/activate", json={"position": start}, headers={ACTOR_HEADER: "p1"})
+    assert res.status_code == 200, res.text
+    after = client.get("/state").json()["state"]
+    assert after["active_system"] == start and after["players"]["p1"]["tactical_cc"] == 2
+    res = client.post("/tactical/undo-move", headers={ACTOR_HEADER: "p1"})
+    assert res.status_code == 200, res.text
+    back = client.get("/state").json()["state"]
+    assert back["active_system"] is None and back["players"]["p1"]["tactical_cc"] == 3
+    assert "p1" not in back["systems"].get(start, {}).get("command_tokens", [])
