@@ -18,6 +18,8 @@ from src.core.game_state import GameState
 
 # Liczba ścianek kości TI4 (d10; „0" na kości = 10 — RULES.md 38, S4).
 DIE_SIDES = 10
+# Ile ostatnich rzutów „na stół” trzyma stan (``table_rolls``) - starsze UI i tak już odtworzyło.
+_TABLE_ROLLS_KEPT = 12
 
 
 def roll_dice(state: GameState, count: int, sides: int = DIE_SIDES) -> tuple[GameState, list[int]]:
@@ -77,7 +79,7 @@ def record_table_roll(
     (np. Fracture: 1 i 10); brak obu = rzut bez trafień (sam wynik).
     """
     state.table_roll_seq += 1
-    state.table_roll = {
+    roll = {
         "seq": state.table_roll_seq,
         "kind": kind,
         "playerId": player_id,
@@ -87,6 +89,10 @@ def record_table_roll(
         "hitValues": hit_values,
         "summary": summary,
     }
+    state.table_roll = roll
+    # Kilka rzutów w jednym żądaniu (np. każdy przeciwnik przy Dimensional Anchor) nie może się
+    # nadpisać - UI odtwarza wszystkie nowsze niż ostatnio widziany ``seq``.
+    state.table_rolls = [*state.table_rolls, dict(roll)][-_TABLE_ROLLS_KEPT:]
 
 
 def count_hits(results: list[int], hits_on: int) -> int:

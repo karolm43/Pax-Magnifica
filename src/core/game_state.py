@@ -1236,6 +1236,9 @@ class GameState(BaseModel):
     # NOWY rzut od starego; sam wynik jest już rozstrzygnięty przez silnik.
     table_roll_seq: int = 0
     table_roll: dict[str, Any] | None = None
+    # Ostatnie rzuty „na stół” (rosnące ``seq``): jeden efekt może rzucać za kilku graczy naraz
+    # (Dimensional Anchor) — UI odtwarza po kolei wszystkie nowsze niż widziane, nie tylko ostatni.
+    table_rolls: list[dict[str, Any]] = Field(default_factory=list)
     # Ostatnie odsłonięcie reliktu z talii (fragmenty, The Fracture, eksploracja) — widowisko
     # dla WSZYSTKICH graczy (``relics.record_reveal``, RULES.md 59.8). ``relic_reveal_seq``
     # rośnie z każdym dobraniem, więc UI odróżnia nowe odsłonięcie od starego.

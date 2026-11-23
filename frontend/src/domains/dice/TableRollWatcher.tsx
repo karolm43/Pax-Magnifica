@@ -8,7 +8,11 @@ import { useGameData } from "@/state/useGameContext";
 import { usePlayerLook } from "@/domains/invasion/invasionUi";
 import { isHit, type DiceGroup } from "@/domains/battle/diceRoll";
 import { useDiceStage } from "./diceStage";
+import { latestTableRollSeq, pendingTableRolls } from "./tableRolls";
 import styles from "./TableRoll.module.css";
+
+/** Przerwa po wylądowaniu kości, zanim poleci rzut następnego gracza (czas na odczyt wyniku). */
+const NEXT_ROLL_GAP_MS = 1500;
 
 type Toast = {
   seq: number;
@@ -21,9 +25,11 @@ type Toast = {
 
 /**
  * Rzuty kośćmi spoza walki (The Fracture, karty akcji…): silnik zapisuje je w
- * ``gameState.tableRoll`` (``core.dice.record_table_roll``), a ten komponent odtwarza je
- * fizycznymi kośćmi (``useDiceStage``) i PO wylądowaniu pokazuje wynik. Rzut, który już był w
- * stanie przy otwarciu strony, nie jest odtwarzany. Montowany raz na stronie gry.
+ * ``gameState.tableRolls`` (``core.dice.record_table_roll``), a ten komponent odtwarza je
+ * fizycznymi kośćmi (``useDiceStage``) i PO wylądowaniu pokazuje wynik. Kilka nowych rzutów
+ * naraz (np. każdy przeciwnik przy Dimensional Anchor) leci PO KOLEI, każdy w kolorze gracza.
+ * Rzut, który już był w stanie przy otwarciu strony, nie jest odtwarzany. Montowany raz na
+ * stronie gry.
  */
 export function TableRollWatcher() {
   const params = useParams<{ mapid: string }>();
@@ -31,8 +37,7 @@ export function TableRollWatcher() {
   const gameData = useGameData();
   const look = usePlayerLook();
   const throwDice = useDiceStage((s) => s.throwDice);
-  const roll = gameState?.tableRoll ?? null;
-  const seq = roll?.seq ?? 0;
+  const seq = latestTableRollSeq(gameState);
   const seen = useRef<number | undefined>(undefined);
   const [toast, setToast] = useState<Toast | null>(null);
   const timers = useRef<number[]>([]);
@@ -40,49 +45,60 @@ export function TableRollWatcher() {
   useEffect(() => {
     if (gameState === undefined) return;
     if (seen.current === undefined) {
-      seen.current = seq; // pierwszy odczyt: stary rzut nie jest nowością
+      seen.current = seq; // pierwszy odczyt: stare rzuty nie są nowością
       return;
     }
-    if (!roll || seq <= seen.current) {
+    if (seq <= seen.current) {
       // Licznik spadł (nowa gra, Undo): zapamiętaj nowy punkt odniesienia, inaczej pierwsze
       // rzuty nowej gry (seq 1, 2…) byłyby uznane za stare i pominięte.
       seen.current = seq;
       return;
     }
+    const rolls = pendingTableRolls(gameState, seen.current);
     seen.current = seq;
-    const faction =
-      gameData?.playerData?.find((p) => p.discordId === roll.playerId)
-        ?.faction ?? roll.playerId;
-    const who = look(faction);
-    const group: DiceGroup = {
-      dice: roll.dice,
-      modifier: 0,
-      hitsOn: roll.hitsOn ?? 99,
-      hitValues: roll.hitValues,
-    };
-    const { pauseMs } = throwDice({ left: [group], leftRgb: who.rgb });
-    const hits = roll.dice.filter((v) => isHit(group, v)).length;
     // Liczniki żyją poza cyklem efektu (efekt odpala się przy każdym renderze - ``look`` jest
     // nową funkcją); sprząta je dopiero odmontowanie.
-    timers.current.push(
-      window.setTimeout(
-        () =>
-          setToast({
-            seq,
-            who: who.name,
-            label: roll.label,
-            summary: roll.summary,
-            hits,
-            total: roll.dice.length,
-          }),
-        pauseMs,
-      ),
-      window.setTimeout(
-        () => setToast((t) => (t?.seq === seq ? null : t)),
-        pauseMs + 7000,
-      ),
-    );
-  }, [gameState, roll, seq, gameData, look, throwDice]);
+    const play = (index: number) => {
+      const roll = rolls[index];
+      if (!roll) return;
+      const faction =
+        gameData?.playerData?.find((p) => p.discordId === roll.playerId)
+          ?.faction ?? roll.playerId;
+      const who = look(faction);
+      const group: DiceGroup = {
+        dice: roll.dice,
+        modifier: 0,
+        hitsOn: roll.hitsOn ?? 99,
+        hitValues: roll.hitValues,
+      };
+      const { pauseMs } = throwDice({ left: [group], leftRgb: who.rgb });
+      const hits = roll.dice.filter((v) => isHit(group, v)).length;
+      timers.current.push(
+        window.setTimeout(
+          () =>
+            setToast({
+              seq: roll.seq,
+              who: who.name,
+              label: roll.label,
+              summary: roll.summary,
+              hits,
+              total: roll.dice.length,
+            }),
+          pauseMs,
+        ),
+        window.setTimeout(
+          () => setToast((t) => (t?.seq === roll.seq ? null : t)),
+          pauseMs + 7000,
+        ),
+      );
+      if (index + 1 < rolls.length) {
+        timers.current.push(
+          window.setTimeout(() => play(index + 1), pauseMs + NEXT_ROLL_GAP_MS),
+        );
+      }
+    };
+    play(0);
+  }, [gameState, seq, gameData, look, throwDice]);
 
   useEffect(() => {
     const pending = timers.current;

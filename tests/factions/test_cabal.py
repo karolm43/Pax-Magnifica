@@ -551,6 +551,24 @@ def test_bohater_rzut_raz_na_statek_i_przechwycenie(
     assert after.players["p1"].leader_states["cabalhero"] == "purged"
 
 
+@ruling("leaders:cabalhero#1")
+def test_bohater_rzuty_kazdego_przeciwnika_widoczne(
+    registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """„Each other player rolls” - rzut KAŻDEGO przeciwnika trafia na stół (UI), nie tylko
+    ostatniego (wcześniej ``table_roll`` nadpisywał się i widać było kości jednego gracza)."""
+    state = _state()
+    state.players["p3"] = PlayerState(player_id="p3", color="green", faction="hacan",
+                                      home_position=WEST)
+    state.seating_order = ["p1", "p2", "p3"]
+    state.systems[ARENA].space_units = {"p2": {"destroyer": 2}, "p3": {"cruiser": 3}}
+    monkeypatch.setattr(cabal, "next_rng", lambda _s: _Dice(9))
+    after = _hero(state, registry)
+    rolls = [(r["playerId"], len(r["dice"])) for r in after.table_rolls]
+    assert rolls == [("p2", 2), ("p3", 3)]  # 1 kość na każdy statek każdego gracza
+    assert [r["seq"] for r in after.table_rolls] == sorted(r["seq"] for r in after.table_rolls)
+
+
 @ruling("leaders:cabalhero#3", "F_vuilraith/it-feeds-on-carrion-dimensional-anchor/4")
 def test_bohater_nadwyzka_ladunku_tez_przechwycona(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch

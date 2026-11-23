@@ -543,17 +543,12 @@ export type GameState = {
     thundersEdgePosition: string | null;
   };
   /** Ostatni rzut kośćmi poza walką (Fracture, karty akcji) - animowany sceną kości. */
-  tableRoll?: {
-    seq: number;
-    kind: string;
-    /** `player_id` (`discordId`) rzucającego. */
-    playerId: string;
-    label: string;
-    dice: number[];
-    hitsOn: number | null;
-    hitValues: number[] | null;
-    summary: string;
-  } | null;
+  tableRoll?: TableRoll | null;
+  /**
+   * Ostatnie rzuty poza walką (rosnące `seq`). Jeden efekt może rzucać za kilku graczy
+   * (Dimensional Anchor) - UI odtwarza po kolei wszystkie nowsze niż widziane.
+   */
+  tableRolls?: TableRoll[];
   /**
    * Ostatnie odsłonięcie reliktu z talii (fragmenty, The Fracture, eksploracja) - scena
    * odsłonięcia u WSZYSTKICH graczy (`core.relics.record_reveal`, RULES.md 59.8).
@@ -1358,6 +1353,19 @@ export type StrategyCardDefinition = {
 };
 
 /** Jawne odsłonięcie reliktu (RULES.md 59.8); `relicId` null = talia była pusta. */
+/** Rzut „na stół” poza walką (`core.dice.record_table_roll`). */
+export type TableRoll = {
+  seq: number;
+  kind: string;
+  /** `player_id` (`discordId`) rzucającego. */
+  playerId: string;
+  label: string;
+  dice: number[];
+  hitsOn: number | null;
+  hitValues: number[] | null;
+  summary: string;
+};
+
 export type RelicReveal = {
   seq: number;
   /** `player_id` (`discordId`) zdobywającego. */

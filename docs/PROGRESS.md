@@ -427,3 +427,13 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
   Arborec, płyty tytana, oko Naalu, moneta…) były widoczne przed swoim momentem. Usunięte; całość i tak gaśnie
   z warstwą (`fxLife`).
 - QA: tsc app, eslint, vitest (map, KeyMoments); zrzuty klatek obejrzane.
+
+## Poprawka: rzuty kilku graczy naraz (Dimensional Anchor — bohater Cabal)
+
+- Błąd: `state.table_roll` trzymał JEDEN rzut, a Dimensional Anchor zapisuje rzut osobno dla każdego
+  przeciwnika — każdy nadpisywał poprzedni, więc UI animowało kości tylko ostatniego gracza (silnik rzucał
+  poprawnie, raz na statek). Teraz `dice.record_table_roll` dopisuje też do `GameState.table_rolls`
+  (ostatnie 12, web: `tableRolls`), a `TableRollWatcher` odtwarza po kolei wszystkie nowe rzuty
+  (`domains/dice/tableRolls.ts`), każdy w kolorze rzucającego. Dotyczy każdego efektu z kilkoma rzutami.
+- Test: `test_bohater_rzuty_kazdego_przeciwnika_widoczne`, `tableRolls.test.ts`.
+- QA: pełny pytest, ruff, mypy (zmienione), tsc app, eslint, vitest `domains/dice`. Bez build/e2e.
