@@ -37,7 +37,19 @@ export type ComponentActionChoice = {
   id: string;
   name: string;
   kind: ComponentActionKind;
+  /** Powód niedostępności (wyczerpany, zablokowany, purge) - wiersz szary; brak = można zagrać. */
+  unavailable?: string;
 };
+
+/** Stan lidera z web-data => powód niedostępności (RULES.md 61.1) albo ``undefined``. */
+function leaderUnavailable(player: PlayerData, id: string): string | undefined {
+  const state = player.leaders?.find((leader) => leader.id === id);
+  if (!state) return undefined;
+  if (state.purged) return "Purged";
+  if (state.locked) return "Locked";
+  if (state.exhausted) return "Exhausted";
+  return undefined;
+}
 
 /** Czytelna etykieta kategorii (mały tag w wierszu listy). */
 export const KIND_LABEL: Record<ComponentActionKind, string> = {
@@ -71,12 +83,13 @@ export function collectComponentActions(
 ): ComponentActionChoice[] {
   const out: ComponentActionChoice[] = [];
   const seen = new Set<string>();
-  const push = (kind: ComponentActionKind, id: string, name: string) => {
+  const push = (kind: ComponentActionKind, id: string, name: string, unavailable?: string) => {
     const key = `${kind}:${id}`;
     if (seen.has(key)) return;
     seen.add(key);
-    out.push({ id, name, kind });
+    out.push(unavailable ? { id, name, kind, unavailable } : { id, name, kind });
   };
+  const exhausted = (flag: boolean | undefined) => (flag ? "Exhausted" : undefined);
 
   // Karty akcji z ręki z oknem „Action".
   for (const id of handActionCards) {
@@ -97,32 +110,41 @@ export function collectComponentActions(
     for (const id of player.leaderIDs ?? []) {
       const leader = getLeaderById(id);
       if (leader && textHasAction(leader.abilityWindow, leader.abilityText)) {
-        push("leader", id, leader.name ?? id);
+        push("leader", id, leader.name ?? id, leaderUnavailable(player, id));
       }
     }
     // Technologie z nagłówkiem „ACTION" w tekście.
     for (const id of player.techs ?? []) {
       const tech = getTechData(id);
       if (tech && textHasAction(tech.text)) {
-        push("technology", id, tech.name ?? id);
+        push(
+          "technology",
+          id,
+          tech.name ?? id,
+          exhausted(player.exhaustedTechs?.includes(id)),
+        );
       }
     }
     // Relikty z nagłówkiem „ACTION" w tekście.
     for (const id of player.relics ?? []) {
       const relic = getRelicData(id);
       if (relic && textHasAction(relic.text)) {
-        push("relic", id, relic.name ?? id);
+        push("relic", id, relic.name ?? id, exhausted(player.exhaustedRelics?.includes(id)));
       }
     }
     // Przełom frakcji (Thunder's Edge) z „ACTION:" - tylko zdobyty (RULES.md 61.3).
     const bt = player.breakthrough;
     if (bt?.unlocked) {
       const data = getBreakthroughData(bt.breakthroughId);
-      if (data && textHasAction(data.text)) push("breakthrough", bt.breakthroughId, data.name ?? bt.breakthroughId);
+      if (data && textHasAction(data.text)) {
+        push("breakthrough", bt.breakthroughId, data.name ?? bt.breakthroughId, exhausted(bt.exhausted));
+      }
     }
     // Karty zdolności legendarnych planet z „ACTION:" (id = id planety; RULES.md 60).
     for (const ability of player.legendaryAbilities ?? []) {
-      if (ability.kind === "action") push("legendary", ability.planet, ability.name);
+      if (ability.kind === "action") {
+        push("legendary", ability.planet, ability.name, exhausted(ability.exhausted));
+      }
     }
   }
 

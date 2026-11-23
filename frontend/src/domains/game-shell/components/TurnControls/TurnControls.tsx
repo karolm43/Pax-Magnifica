@@ -59,11 +59,14 @@ import { ExpeditionModal } from "@/domains/thunders-edge/ExpeditionModal";
 import { ComponentInfoButton, type ComponentKind } from "@/domains/cards/components/ComponentInfo";
 import styles from "./TurnControls.module.css";
 
-/** Rodzaj źródła akcji → rodzaj komponentu do opisu pod ⓘ (zdolność frakcji/legendarna: brak). */
-const INFO_KIND: Partial<Record<ComponentActionKind, ComponentKind>> = {
+/** Rodzaj źródła akcji → rodzaj komponentu do opisu pod ⓘ (każdy wiersz ma pełną kartę). */
+const INFO_KIND: Record<ComponentActionKind, ComponentKind> = {
+  "action-card": "actionCard",
+  ability: "ability",
   leader: "leader",
   technology: "tech",
   relic: "relic",
+  legendary: "legendary",
   breakthrough: "breakthrough",
 };
 
@@ -330,18 +333,25 @@ export function TurnControls() {
     (networkMe?.network
       ? webData?.playerData?.find((p) => p.discordId === networkMe.player_id)
       : undefined) ?? activePlayerData;
+  // Pobierane już przy aktywnym przycisku: bez żadnej dostępnej pozycji przycisk jest szary.
   const { data: freeAbilities } = useTechnologyAbilities(
     active.discordId ?? null,
-    componentOpen,
+    componentOpen || canComponentAction,
   );
   // Fragmenty reliktów (RULES.md 59.7): „Purge 3 fragments -> relic" to akcja komponentu.
   // Silnik liczy legalne zestawy (typ, dżokery Unknown, tura); pokazujemy typy, które gracz ma.
   const { data: forgeOptions } = useForgeOptions(
     active.discordId ?? null,
-    componentOpen,
+    componentOpen || canComponentAction,
   );
   // Karty akcji z ręki NIE są na liście (U4/Z9): zagrywa się je przeciągnięciem z ręki.
   const componentChoices = collectComponentActions(activePlayerData, []);
+  const forgeShown = (forgeOptions ?? []).filter((opt) => opt.owned + opt.wildcards > 0);
+  // Czy cokolwiek da się teraz zagrać (wyczerpane/zablokowane/purge się nie liczą).
+  const hasUsableComponent =
+    componentChoices.some((choice) => !choice.unavailable) ||
+    forgeShown.some((opt) => opt.reason === null && opt.fragments.length > 0) ||
+    (freeAbilities ?? []).some((ability) => ability.usable);
 
   const run = (fn: () => Promise<void>) => {
     if (busy) return;
@@ -493,7 +503,7 @@ export function TurnControls() {
                 type="button"
                 className={`${styles.component} ${styles.tile}`}
                 style={{ "--d": "120ms" } as CSSProperties}
-                disabled={busy || !canComponentAction}
+                disabled={busy || !canComponentAction || !hasUsableComponent}
                 onClick={() => setComponentOpen(true)}
                 title={
                   windowOpen
@@ -502,7 +512,9 @@ export function TurnControls() {
                       ? "You already passed this action phase"
                       : !hasActionLeft
                         ? "You already acted this turn — End turn instead"
-                        : "Play a component ability (action card, relic, tech…)"
+                        : !hasUsableComponent
+                          ? "No component with an action is ready (action cards: drag from your hand)"
+                          : "Play a component ability (relic, tech, leader, faction ability…)"
                 }
               >
                 <IconSparkles size={16} aria-hidden="true" />
@@ -844,7 +856,8 @@ export function TurnControls() {
                   type="button"
                   role="listitem"
                   className={styles.compItem}
-                  disabled={busy}
+                  disabled={busy || !!choice.unavailable}
+                  title={choice.unavailable}
                   onClick={() => {
                     // Karta akcji: formularz wyborów, efekt stosuje silnik (RULES.md 53).
                     // Relikt z „ACTION:" (RULES.md 59): ten sam formularz, relikt zostaje u gracza.
@@ -885,24 +898,22 @@ export function TurnControls() {
                   <Icon size={17} aria-hidden="true" />
                   <span className={styles.compItemName}>{choice.name}</span>
                   <small className={styles.compItemTag}>
-                    {KIND_LABEL[choice.kind]}
+                    {choice.unavailable
+                      ? `${KIND_LABEL[choice.kind]} · ${choice.unavailable}`
+                      : KIND_LABEL[choice.kind]}
                   </small>
                 </button>
-                {infoKind && (
-                  <ComponentInfoButton
-                    componentRef={{ kind: infoKind, id: choice.id }}
-                    name={choice.name}
-                  />
-                )}
+                <ComponentInfoButton
+                  componentRef={{ kind: infoKind, id: choice.id }}
+                  name={choice.name}
+                />
                 </div>
               );
             })}
 
             {/* Fragmenty reliktów -> relikt (RULES.md 59.7). Nieaktywne z powodem w podpowiedzi,
                 gdy zestaw nie jest legalny (za mało fragmentów itd.). */}
-            {(forgeOptions ?? [])
-              .filter((opt) => opt.owned + opt.wildcards > 0)
-              .map((opt) => {
+            {forgeShown.map((opt) => {
                 const ready = opt.reason === null && opt.fragments.length > 0;
                 return (
                   <button
@@ -950,8 +961,8 @@ export function TurnControls() {
               </Text>
               <div className={styles.compList} role="list">
                 {(freeAbilities ?? []).map((ability) => (
+                  <div key={ability.tech_id} className={styles.compRow}>
                   <button
-                    key={ability.tech_id}
                     type="button"
                     role="listitem"
                     className={styles.compItem}
@@ -968,6 +979,11 @@ export function TurnControls() {
                       {ability.usable ? "Free" : ability.reason}
                     </small>
                   </button>
+                  <ComponentInfoButton
+                    componentRef={{ kind: "tech", id: ability.tech_id }}
+                    name={ability.name}
+                  />
+                  </div>
                 ))}
               </div>
             </>

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Tooltip } from "@/ds";
 import { agendas } from "@/entities/data/agendas";
 import { promissoryNotes } from "@/entities/data/promissoryNotes";
+import { getAbility } from "@/entities/lookup/abilities";
 import { getActionCard } from "@/entities/lookup/actionCards";
 import { getBreakthroughData } from "@/entities/lookup/breakthroughs";
 import { getExploration } from "@/entities/lookup/explorations";
@@ -27,6 +28,8 @@ export type NamedKind =
   | "promissory"
   | "relic"
   | "breakthrough"
+  | "ability"
+  | "legendary"
   | "system";
 
 export type Hint = { name: string; meta?: string; lines: string[] };
@@ -155,6 +158,28 @@ export function hintFor(
           ? `Breakthrough · synergy ${b.synergy.map((s) => prettifyId(s.toLowerCase())).join(" / ")}`
           : "Breakthrough",
         lines: clean([b.text]),
+      };
+    }
+    case "ability": {
+      const a = getAbility(id);
+      if (!a) return null;
+      return {
+        name: a.name,
+        meta: "Faction ability",
+        lines: clean([
+          a.permanentEffect,
+          a.window ? `${a.window}:` : null,
+          a.windowEffect,
+        ]),
+      };
+    }
+    case "legendary": {
+      const p = getPlanetData(id);
+      if (!p?.legendaryAbilityName) return null;
+      return {
+        name: p.legendaryAbilityName,
+        meta: `Planet ability · ${p.name}`,
+        lines: clean([p.legendaryAbilityText]),
       };
     }
     case "system":

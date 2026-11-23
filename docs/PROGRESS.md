@@ -320,3 +320,13 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
   filtrem (decyzja P2).
 - Przegląd U1–U4: bez błędów do poprawy. Uwaga: dymek mapy schowany nad oknem decyzji wraca po ruchu kursora.
 
+
+## Przycisk „Component”: niedostępne pozycje szare, opis ⓘ dla każdej
+
+- `collectComponentActions` niesie `unavailable` z web-data: lider wyczerpany/zablokowany/purge, tech i relikt
+  wyczerpany (`exhaustedTechs`/`exhaustedRelics`), przełom i legendarna planeta wyczerpane — wiersz szary z powodem.
+- Przycisk „Component” szary, gdy nic nie da się zagrać (lista, fragmenty reliktów, zdolności techów bez akcji);
+  opcje fragmentów i zdolności techów pobierane już przy aktywnym przycisku.
+- ⓘ przy każdym wierszu: nowe rodzaje `ability` (zdolność frakcji, `AbilityDetailsCard`) i `legendary`
+  (`PlanetAbilityDetailsCard`) w `ComponentInfo` + `hintFor`; także przy zdolnościach technologii.
+- Test: `componentActions.test.ts`.

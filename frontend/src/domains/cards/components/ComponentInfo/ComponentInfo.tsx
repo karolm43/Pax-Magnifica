@@ -1,8 +1,10 @@
 import type { MouseEvent } from "react";
 import { IconInfoCircle } from "@tabler/icons-react";
+import { AbilityDetailsCard } from "@/domains/cards/components/AbilityDetailsCard";
 import { ActionCardDetailsCard } from "@/domains/cards/components/ActionCardDetailsCard";
 import { BreakthroughCard } from "@/domains/cards/components/BreakthroughCard";
 import { LeaderDetailsCard } from "@/domains/cards/components/LeaderDetailsCard";
+import { PlanetAbilityDetailsCard } from "@/domains/cards/components/PlanetAbilityDetailsCard/PlanetAbilityDetailsCard";
 import { PlanetDetailsCard } from "@/domains/cards/components/PlanetDetailsCard";
 import { PromissoryNoteCard } from "@/domains/cards/components/PromissoryNoteCard";
 import { SecretObjectiveCard } from "@/domains/cards/components/SecretObjectiveCard";
@@ -10,6 +12,7 @@ import { StrategyCardDetailsCard } from "@/domains/cards/components/StrategyCard
 import { TechCard } from "@/domains/cards/components/TechCard/TechCard";
 import { RelicCard } from "@/domains/player/components/Relic/RelicCard";
 import { hintFor, type NamedKind } from "@/domains/game-shell/components/ActivityPanel/Named";
+import { getPlanetData } from "@/entities/lookup/planets";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { useDisclosure } from "@/hooks/useDisclosure";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
@@ -23,6 +26,7 @@ import styles from "./ComponentInfo.module.css";
  * => pełna karta - ta sama, którą pokazuje panel gracza po kliknięciu chipu.
  */
 
+/** Też ``ability`` (zdolność frakcji) i ``legendary`` (zdolność legendarnej planety; id = planeta). */
 export type ComponentKind = Exclude<NamedKind, "system">;
 
 export type ComponentRef = { kind: ComponentKind; id: string };
@@ -39,6 +43,8 @@ const KINDS = new Set<string>([
   "promissory",
   "relic",
   "breakthrough",
+  "ability",
+  "legendary",
 ]);
 
 /** Odnośnik z ``meta.ref`` opcji silnika (``offer_inputs.option(ref=...)``) albo ``null``. */
@@ -65,6 +71,19 @@ function HintCard({ componentRef }: { componentRef: ComponentRef }) {
   );
 }
 
+/** Karta zdolności legendarnej planety (ta sama, co w panelu gracza). */
+function LegendaryAbilityCard({ planetId }: { planetId: string }) {
+  const planet = getPlanetData(planetId);
+  if (!planet?.legendaryAbilityName || !planet.legendaryAbilityText) return null;
+  return (
+    <PlanetAbilityDetailsCard
+      planetId={planetId}
+      abilityName={planet.legendaryAbilityName}
+      abilityText={planet.legendaryAbilityText}
+    />
+  );
+}
+
 /** Pełna karta komponentu (jak w panelu gracza / na stole). */
 export function ComponentCard({ componentRef }: { componentRef: ComponentRef }) {
   const { kind, id } = componentRef;
@@ -85,6 +104,10 @@ export function ComponentCard({ componentRef }: { componentRef: ComponentRef }) 
       return <PromissoryNoteCard promissoryNoteId={id} />;
     case "planet":
       return <PlanetDetailsCard planetId={id} />;
+    case "ability":
+      return <AbilityDetailsCard abilityId={id} />;
+    case "legendary":
+      return <LegendaryAbilityCard planetId={id} />;
     case "objective":
       return getSecretObjectiveData(id) ? (
         <SecretObjectiveCard secretId={id} />
