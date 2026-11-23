@@ -38,7 +38,7 @@ export const test = base.extend<{ errors: string[] }>({
 export { expect };
 
 /*
- * Włącza w ustawieniach (localStorage `ti4_settings`) opcję „Skip phases button (God-Mode)”,
+ * Włącza w ustawieniach (localStorage `ti4_settings`) opcję „Skip buttons” (Settings → Testing),
  * bez której ekran setupu nie pokazuje „Skip setup (random)”. Wołać PRZED `page.goto`.
  */
 export async function enableSkipShortcuts(page: Page): Promise<void> {

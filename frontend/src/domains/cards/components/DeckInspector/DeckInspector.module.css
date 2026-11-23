@@ -99,7 +99,7 @@
   background: none;
 }
 
-/* Zakryta talia bez ustawienia „Browse deck contents”: sam rewers z licznikiem. */
+/* Zakryta talia bez ustawienia „Look inside decks” (Settings → Testing): sam rewers z licznikiem. */
 .closedDeck {
   cursor: default;
 }

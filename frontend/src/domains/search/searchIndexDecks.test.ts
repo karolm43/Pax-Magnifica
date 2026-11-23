@@ -4,7 +4,7 @@ import { actionCards } from "@/entities/data/actionCards";
 import { buildSearchIndex } from "./searchIndex";
 
 /*
- * Zakryte talie (ustawienie „Browse deck contents”, domyślnie wyłączone): wyszukiwarka nie
+ * Zakryte talie (ustawienie „Look inside decks” (Settings → Testing), domyślnie wyłączone): wyszukiwarka nie
  * zdradza, co leży w talii ani co jest w czyjejś ręce - znajduje tylko jawne stosy.
  */
 const discarded = actionCards.find((card) => card.alias === "sabo1") ?? actionCards[0];

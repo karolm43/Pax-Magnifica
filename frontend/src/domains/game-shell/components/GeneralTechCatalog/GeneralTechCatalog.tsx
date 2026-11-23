@@ -250,7 +250,12 @@ export function GeneralTechCatalog({
   return (
     <Box className={cx(styles.box, className)}>
       <RailLabel
-        meta={<span className={styles.hint}>owners shown on each tech · dimmed = exhausted</span>}
+        meta={
+          // Poza partią (biblioteka komponentów) nie ma właścicieli - bez podpowiedzi.
+          seats.length > 0 ? (
+            <span className={styles.hint}>owners shown on each tech · dimmed = exhausted</span>
+          ) : undefined
+        }
       >
         Generic technology
       </RailLabel>

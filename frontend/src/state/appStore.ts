@@ -57,10 +57,8 @@ const DEFAULT_SETTINGS: Settings = {
   techSkipsMode: false,
   attachmentsMode: false,
   showPDSLayer: false,
-  showControlLayer: false,
   controlTokenDisplayMode: "ambiguous",
   showExhaustedPlanets: true,
-  animateEventPreviews: true,
   themeName: DEFAULT_THEME,
   accessibleColors: false,
   showPlayerAreaCommandTokens: true,
@@ -675,10 +673,8 @@ export type Settings = {
   techSkipsMode: boolean;
   attachmentsMode: boolean;
   showPDSLayer: boolean;
-  showControlLayer: boolean;
   controlTokenDisplayMode: ControlTokenDisplayMode;
   showExhaustedPlanets: boolean;
-  animateEventPreviews: boolean;
   themeName: ThemeName;
   accessibleColors: boolean;
   showPlayerAreaCommandTokens: boolean;
@@ -744,7 +740,6 @@ type SettingsHandlers = {
   toggleTechSkipsMode: () => void;
   toggleAttachmentsMode: () => void;
   togglePdsMode: () => void;
-  toggleShowControlLayer: () => void;
   toggleShowExhaustedPlanets: () => void;
   setThemeName: (name: Settings["themeName"]) => void;
   toggleAccessibleColors: () => void;
@@ -789,7 +784,6 @@ export const useSettingsStore = create<SettingsStore>((set) => {
       toggleTechSkipsMode: toggle("techSkipsMode"),
       toggleAttachmentsMode: toggle("attachmentsMode"),
       togglePdsMode: toggle("showPDSLayer"),
-      toggleShowControlLayer: toggle("showControlLayer"),
       toggleShowExhaustedPlanets: toggle("showExhaustedPlanets"),
       setThemeName: (name) => {
         saveThemeToStorage(name);

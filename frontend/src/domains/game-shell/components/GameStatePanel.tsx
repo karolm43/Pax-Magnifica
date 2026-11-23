@@ -710,7 +710,7 @@ function WindowSection({
 }) {
   const { strategySecondary, closeWindow } = useBoardEditor();
   const [busy, setBusy] = useState(false);
-  // God-Mode (Settings → Admin / testing): odsłania wentyl „Close window" dla okien,
+  // God-Mode (Settings → Testing): odsłania wentyl „Close window" dla okien,
   // które mają własny panel rozstrzygania.
   const godMode = useSettingsStore((s) => s.settings.skipPhases);
 

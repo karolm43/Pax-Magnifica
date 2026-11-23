@@ -1,0 +1,230 @@
+/* Biblioteka komponentów (menu główne → Components): nawigacja sekcji + treść. */
+
+.layout {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 18px;
+  height: min(80vh, 900px);
+  min-height: 0;
+}
+
+/* ── Nawigacja sekcji ──────────────────────────────────────────────── */
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  padding-right: 12px;
+  border-right: 1px solid var(--ds-h10);
+}
+
+.navGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navGroupLabel {
+  composes: ds-label from global;
+  padding: 0 8px 4px;
+  font-size: var(--text-micro);
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-md);
+  background: transparent;
+  color: var(--ds-ink);
+  font: inherit;
+  font-size: var(--text-body);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--ds-dur-fast) var(--ds-ease-standard),
+    border-color var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.navItem:hover {
+  background: var(--ds-ground);
+  color: var(--ds-ink-hi);
+}
+
+.navItem:focus-visible {
+  outline: none;
+  border-color: var(--ds-accent);
+}
+
+.navItemActive {
+  border-color: rgb(var(--ds-accent-rgb) / 0.5);
+  background: rgb(var(--ds-accent-rgb) / 0.14);
+  color: var(--ds-ink-hi);
+}
+
+.navCount {
+  font-family: var(--ds-font-data);
+  font-size: var(--text-micro);
+  color: var(--ds-ink-lo);
+}
+
+/* ── Treść ─────────────────────────────────────────────────────────── */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.sectionHead {
+  display: grid;
+  gap: 2px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fz-lg);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-ink-hi);
+}
+
+.sectionHint {
+  margin: 0;
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
+.search {
+  max-width: 360px;
+}
+
+.empty {
+  margin: 8px 0;
+  font-size: var(--text-meta);
+  color: var(--ds-ink-lo);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  justify-items: start;
+  gap: 12px;
+  align-items: start;
+}
+
+/* Karty jednostek mają stałą szerokość (380 px) — kolumny pod nie, bez nachodzenia. */
+.unitGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 380px);
+  gap: 12px;
+  align-items: start;
+}
+
+/* ── Frakcje: lista + opis ─────────────────────────────────────────── */
+
+.factions {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.factionList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.factionScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 4px;
+}
+
+.factionGroup {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 6px 6px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ds-ink-lo);
+  background: var(--ds-ground);
+  border-bottom: 1px solid var(--ds-h10);
+}
+
+.factionItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 3px;
+  padding: 6px 8px;
+  border: 1px solid var(--ds-h10);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-socket);
+  color: var(--ds-ink);
+  font: inherit;
+  font-size: var(--text-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.factionItem:hover {
+  border-color: var(--ds-h22);
+  background: var(--ds-ground);
+}
+
+.factionItem:focus-visible {
+  outline: none;
+  border-color: var(--ds-accent);
+}
+
+.factionItemActive {
+  border-color: rgb(252 162 43);
+  box-shadow: inset 0 0 0 1px rgb(252 162 43 / 0.4);
+  color: var(--ds-ink-hi);
+}
+
+.factionDetail {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: 0;
+    border-bottom: 1px solid var(--ds-h10);
+    padding: 0 0 10px;
+  }
+
+  .factions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

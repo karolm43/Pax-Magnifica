@@ -207,7 +207,7 @@ export function DeckBack({ spec }: BackProps) {
           className={styles.closedDeck}
           role="img"
           aria-label={`${spec.label} deck, ${pileCount(spec, "deck")} cards left`}
-          title="Deck contents are hidden (Settings → Browse deck contents)"
+          title="Deck contents are hidden (Settings → Testing → Look inside decks)"
         >
           {back}
         </div>

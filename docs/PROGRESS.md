@@ -379,3 +379,16 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
   i nie indeksuje kart z zakrytych talii — znajduje tylko karty z jawnych stosów (odrzucone, purge), więc nie zdradza,
   co leży w talii ani w czyjej ręce. `buildSearchIndex(gameData, { browseDecks })`, `CardbackModal` ignoruje prośbę wyszukiwarki.
 - Test: `searchIndexDecks.test.ts`.
+
+
+## Menu główne: logo w jednej linii, biblioteka „Components”, uporządkowane Ustawienia
+
+- Logo „Custodian Engine” w jednej linii (rozmiar w `cqi` kolumny marki, bez łamania).
+- Nowa pozycja menu „Components” → `domains/library/ComponentsLibrary.tsx`: frakcje (lista wg dodatków +
+  `FactionSummary`, przełącznik wariantów Keleres), karty strategii (`StrategyCardDetailsCard`), technologie ogólne
+  (`GeneralTechCatalog` z `playerData=[]`, bez podpowiedzi o właścicielach), jednostki bazowe (`UnitDetailsCard`)
+  i wszystkie talie (`CardPoolBrowser`: akcje, agendy, cele I/II, sekrety, relikty, eksploracja, notki ogólne)
+  z wyszukiwarką. Nowa pula `genericPromissoryPool()` (znacznik `<color>` → „[color]”) + test.
+- Ustawienia: zakładki Game (zegar, okna reakcji) / Variants (moduły talii) / Display (mapa + karty graczy) / Sound /
+  Testing (Fast mode + God-Mode). Krótsze, konkretniejsze opisy. Usunięte martwe pola store: `showControlLayer`,
+  `animateEventPreviews` (+ `toggleShowControlLayer`). Odwołania do starych nazw (podpowiedzi, komentarze) poprawione.

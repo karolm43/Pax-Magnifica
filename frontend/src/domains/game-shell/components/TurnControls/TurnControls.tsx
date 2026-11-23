@@ -143,7 +143,7 @@ export function TurnControls() {
     nextRound,
     activateSystem,
   } = useBoardEditor();
-  // God-Mode (Settings → Admin / testing): pokaż przycisk przeskoku fazy.
+  // God-Mode (Settings → Testing): pokaż przycisk przeskoku fazy.
   // Gra sieciowa: God-Mode tylko dla hosta (backend i tak odrzuca innych — RULES.md 44.2).
   const { data: networkMe } = useNetworkMe();
   const skipPhasesEnabled =

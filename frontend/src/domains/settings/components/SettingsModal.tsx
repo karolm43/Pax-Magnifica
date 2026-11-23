@@ -12,6 +12,16 @@ import {
 import { AudioSettingsPanel } from "@/shared/audio/AudioSettingsPanel";
 import styles from "./SettingsModal.module.css";
 
+/*
+ * Ustawienia w pięciu zakładkach:
+ *   - Game: to, co idzie do backendu przy tworzeniu NOWEJ partii (zegar, okna reakcji)
+ *     + wiersze „Current game” dla trwającej partii (host);
+ *   - Variants: moduły fanowskich talii i errat (też dla nowej partii);
+ *   - Display: mapa i karty graczy (tylko ten komputer);
+ *   - Sound: głośność;
+ *   - Testing: przyspieszenia i gesty God-Mode omijające reguły.
+ */
+
 type PlayerAreaToggleKey =
   | "showPlayerAreaCommandTokens"
   | "showPlayerAreaArmyStrength"
@@ -24,38 +34,38 @@ type PlayerAreaToggleKey =
 const PLAYER_AREA_TOGGLES: { key: PlayerAreaToggleKey; label: string; description: string }[] = [
   {
     key: "showPlayerAreaCommandTokens",
-    label: "Command Tokens",
-    description: "Show tactical, fleet, and strategy command token counts.",
+    label: "Command tokens",
+    description: "Tactic, fleet and strategy pool counts.",
   },
   {
     key: "showPlayerAreaArmyStrength",
-    label: "Army Strength",
-    description: "Show the ground and space strength summary.",
+    label: "Army strength",
+    description: "Space and ground strength summary with the player's rank at the table.",
   },
   {
     key: "showPlayerAreaUnitUpgrades",
-    label: "Unit Upgrades",
-    description: "Show upgraded-unit styling and upgrade faction badges.",
+    label: "Unit upgrades",
+    description: "Mark units the player has already upgraded (II versions).",
   },
   {
     key: "showPlayerAreaTotalSpend",
-    label: "Total Spend",
-    description: "Show the literal total resource and influence spend column. Optimal spend stays visible.",
+    label: "Total resources and influence",
+    description: "Add a column with the plain sum of all planets. The optimal split is always shown.",
   },
   {
     key: "showPlayerAreaReinforcements",
-    label: "Reinforcements",
-    description: "Show faction reinforcement tokens near planet cards, including sleepers, wormholes, breach, and galvanize tokens.",
+    label: "Faction tokens in reinforcements",
+    description: "Sleeper, wormhole, breach and galvanize tokens the player can still place.",
   },
   {
     key: "showPlayerAreaFactionAbilities",
-    label: "Faction Abilities",
-    description: "Show faction abilities, faction tech, and related custom notes.",
+    label: "Faction abilities",
+    description: "Faction abilities, faction technologies not yet researched and faction promissory notes.",
   },
   {
     key: "showPlayerAreaNeighborship",
-    label: "Neighborship",
-    description: "Show neighbor faction icons.",
+    label: "Neighbours",
+    description: "Icons of the factions this player is adjacent to (only neighbours can trade).",
   },
 ];
 
@@ -135,76 +145,36 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
   const handlers = useSettingsStore((state) => state.handlers);
 
   return (
-    <AppModal opened={opened} onClose={onClose} title="Settings" size={620} centered>
-      <Tabs defaultValue="general">
+    <AppModal opened={opened} onClose={onClose} title="Settings" size={660} centered>
+      <Tabs defaultValue="game">
         <Tabs.List className={styles.tabList}>
-          <Tabs.Tab value="general" className={styles.tab}>
-            General
+          <Tabs.Tab value="game" className={styles.tab}>
+            Game
           </Tabs.Tab>
-          <Tabs.Tab value="player-areas" className={styles.tab}>
-            Player areas
+          <Tabs.Tab value="variants" className={styles.tab}>
+            Variants
+          </Tabs.Tab>
+          <Tabs.Tab value="display" className={styles.tab}>
+            Display
           </Tabs.Tab>
           <Tabs.Tab value="sound" className={styles.tab}>
             Sound
           </Tabs.Tab>
+          <Tabs.Tab value="testing" className={styles.tab}>
+            Testing
+          </Tabs.Tab>
         </Tabs.List>
 
-        <Tabs.Panel value="general" className={styles.panel}>
-          <SettingGroup label="Admin / testing">
-            <SwitchRow
-              label="Fast mode (skip intro & cinematics)"
-              description="Skip the opening intro screen and full-screen phase transition banners for the quickest possible testing. Game rules are unaffected."
-              checked={settings.adminFastMode}
-              onToggle={(checked) =>
-                handlers.updateSettings({ adminFastMode: checked })
-              }
-            />
-            <SwitchRow
-              label="Free unit dragging (God-Mode)"
-              description="Allow dragging units anywhere on the map, ignoring the rules. When off, units can only be dragged into the active system as a validated tactical move."
-              checked={settings.freeUnitDrag}
-              onToggle={(checked) =>
-                handlers.updateSettings({ freeUnitDrag: checked })
-              }
-            />
-            <SwitchRow
-              label="Browse deck contents (God-Mode)"
-              description="Clicking a face-down deck (action, agenda, exploration, objectives, relics) shows the cards in it. When off, decks show only how many cards are left; discard and purged piles stay open to everyone."
-              checked={settings.browseDecks}
-              onToggle={(checked) =>
-                handlers.updateSettings({ browseDecks: checked })
-              }
-            />
-            <SwitchRow
-              label="Skip phases button (God-Mode)"
-              description="Show a Skip phase button in the turn panel and a Skip setup (random) button on the game setup screen. Skip phase jumps to the next phase ignoring passes, open windows and strategy card picks (missing cards are auto-picked); Skip setup picks random secret objectives and finishes the setup. Normal Next phase is unchanged."
-              checked={settings.skipPhases}
-              onToggle={(checked) =>
-                handlers.updateSettings({ skipPhases: checked })
-              }
-            />
-          </SettingGroup>
-
-          <SettingGroup label="Game variants">
-            {variantModules().map((module) => (
-              <SwitchRow
-                key={module.id}
-                label={module.name}
-                description={`${module.description} Applies to the next new game; a game in progress keeps its decks.`}
-                checked={settings.gameVariants.includes(module.id)}
-                onToggle={(checked) =>
-                  handlers.updateSettings({
-                    gameVariants: toggleVariant(settings.gameVariants, module, checked),
-                  })
-                }
-              />
-            ))}
-          </SettingGroup>
+        <Tabs.Panel value="game" className={styles.panel}>
+          <p className={styles.intro}>
+            Used when a new game is created. A game in progress keeps its own setup; where it
+            can still be changed, use the Current game rows (host only).
+          </p>
 
           <SettingGroup label="Chess clock">
             <SwitchRow
               label="Player clocks"
-              description="Each player gets a time bank; only the player who is deciding right now (turn, vote, window response) uses it. Applies to new games; use Current game below to start it in a game in progress."
+              description="Each player gets a time bank. Only the player who has to decide right now (their turn, a vote, a reaction) spends it."
               checked={settings.chessClockEnabled}
               onToggle={(checked) =>
                 handlers.updateSettings({ chessClockEnabled: checked })
@@ -212,7 +182,7 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
             />
             <SettingRow
               label="Time per player (minutes)"
-              description="Total time bank for the whole game."
+              description="Time bank for the whole game."
             >
               <NumberInput
                 aria-label="Time per player in minutes"
@@ -230,7 +200,7 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
             </SettingRow>
             <SettingRow
               label="Bonus per turn (seconds)"
-              description="Added to a player's bank each time their turn ends (like a chess increment). 0 = none."
+              description="Added to the bank whenever the player ends a turn, like a chess increment. 0 = no bonus."
             >
               <NumberInput
                 aria-label="Bonus per turn in seconds"
@@ -250,7 +220,7 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
             {gameId && (
               <SettingRow
                 label="Current game"
-                description="Start (or restart) the clock in this game with the values above. Every player gets a full bank from now."
+                description="Start or restart the clock in this game with the values above. Every player gets a full bank from now."
               >
                 <CurrentGameClockControls
                   gameId={gameId}
@@ -264,7 +234,7 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
           <SettingGroup label="Reaction windows">
             <SettingRow
               label="Window length (seconds)"
-              description="How long the game waits for reactions such as Sabotage, Coup d'Etat, agenda riders or Salvage. The window always lasts this long, so nobody can tell who holds a card; the game passes on its own for players who have nothing to play. Applies to new games; use the button below for a game in progress (host only)."
+              description="How long everyone gets to react (Sabotage, agenda riders, Salvage…). Every window lasts the full time, so waiting never reveals who holds a card; players with nothing to play pass automatically."
             >
               <NumberInput
                 aria-label="Reaction window length in seconds"
@@ -282,7 +252,7 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
             {gameId && (
               <SettingRow
                 label="Current game"
-                description="Use this length in the game in progress, starting with the next reaction window."
+                description="Use this length in this game, starting with the next reaction window."
               >
                 <CurrentGameReactionWindow
                   gameId={gameId}
@@ -293,23 +263,48 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
             {gameId && (
               <SettingRow
                 label="Quick windows"
-                description="End a reaction window as soon as every player has passed (the game passes on its own for players with nothing to play). Games go faster, but a quick end shows that nobody reacted or held a fitting card. Host only, current game."
+                description="End a window as soon as everyone has passed. Faster, but an early end shows that nobody had a fitting card."
               >
                 <CurrentGameQuickWindows gameId={gameId} />
               </SettingRow>
             )}
           </SettingGroup>
+        </Tabs.Panel>
 
-          <SettingGroup label="Map display">
+        <Tabs.Panel value="variants" className={styles.panel}>
+          <p className={styles.intro}>
+            Optional fan-made decks and errata. Chosen modules apply to the next new game; a game
+            in progress keeps its decks. Two modules that replace the same deck cannot be on at
+            once.
+          </p>
+          <SettingGroup label="Fan decks and errata">
+            {variantModules().map((module) => (
+              <SwitchRow
+                key={module.id}
+                label={module.name}
+                description={module.description}
+                checked={settings.gameVariants.includes(module.id)}
+                onToggle={(checked) =>
+                  handlers.updateSettings({
+                    gameVariants: toggleVariant(settings.gameVariants, module, checked),
+                  })
+                }
+              />
+            ))}
+          </SettingGroup>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="display" className={styles.panel}>
+          <SettingGroup label="Map">
             <SwitchRow
-              label="Ownership overlays"
-              description="Tint systems by the player who controls them."
+              label="Controller colours"
+              description="Tint each system in the colour of the player who controls it."
               checked={settings.overlaysEnabled}
               onToggle={() => handlers.toggleOverlays()}
             />
             <SettingRow
               label="Control tokens"
-              description="Ambiguous planets are empty or hold ground forces from more than one faction."
+              description="When to draw control tokens on planets. Ambiguous = the planet is empty or holds ground forces of more than one player."
             >
               <SegmentedControl
                 aria-label="Control tokens"
@@ -327,27 +322,20 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
               />
             </SettingRow>
             <SwitchRow
-              label="Grey out exhausted planets"
-              description="Exhausted planets dim on the map."
+              label="Dim exhausted planets"
+              description="Exhausted planets are greyed out on the map."
               checked={settings.showExhaustedPlanets}
               onToggle={() => handlers.toggleShowExhaustedPlanets()}
             />
             <SwitchRow
-              label="Accessible colours"
-              description="Blue, green, purple, yellow, red, pink, black, light gray, in seat order. Extra players keep their own colours."
+              label="Colour-blind friendly colours"
+              description="Swap player colours for an easy-to-tell set (blue, green, purple, yellow, red, pink, black, light grey) in seat order. Players beyond eight keep their own colours."
               checked={settings.accessibleColors}
               onToggle={() => handlers.toggleAccessibleColors()}
             />
           </SettingGroup>
 
-
-        </Tabs.Panel>
-
-        <Tabs.Panel value="player-areas" className={styles.panel}>
-          <SettingGroup label="Data groups">
-            <p className={styles.intro}>
-              Choose which data groups appear in player area cards.
-            </p>
+          <SettingGroup label="Player cards">
             {PLAYER_AREA_TOGGLES.map(({ key, label, description }) => (
               <SwitchRow
                 key={key}
@@ -363,6 +351,49 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
         <Tabs.Panel value="sound" className={styles.panel}>
           <SettingGroup label="Volume">
             <AudioSettingsPanel />
+          </SettingGroup>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="testing" className={styles.panel}>
+          <p className={styles.intro}>
+            For testing and fixing a game. God-Mode options bypass the rules — keep them off in
+            a normal game.
+          </p>
+          <SettingGroup label="Speed">
+            <SwitchRow
+              label="Fast mode"
+              description="Skip the opening intro, the phase transition sweep and key-moment cinematics. Rules are unaffected."
+              checked={settings.adminFastMode}
+              onToggle={(checked) =>
+                handlers.updateSettings({ adminFastMode: checked })
+              }
+            />
+          </SettingGroup>
+          <SettingGroup label="God-Mode">
+            <SwitchRow
+              label="Free unit dragging"
+              description="Drag units anywhere on the map. When off, units can only be dragged into the active system as a checked tactical move."
+              checked={settings.freeUnitDrag}
+              onToggle={(checked) =>
+                handlers.updateSettings({ freeUnitDrag: checked })
+              }
+            />
+            <SwitchRow
+              label="Look inside decks"
+              description="Clicking a face-down deck (action cards, agendas, exploration, objectives, relics) shows the cards in it. When off, a deck only shows how many cards are left; discard piles are always open."
+              checked={settings.browseDecks}
+              onToggle={(checked) =>
+                handlers.updateSettings({ browseDecks: checked })
+              }
+            />
+            <SwitchRow
+              label="Skip buttons"
+              description="Adds Skip phase to the turn panel (moves on, ignoring passes, open windows and strategy card picks) and Skip setup (random secret objectives) to the setup screen."
+              checked={settings.skipPhases}
+              onToggle={(checked) =>
+                handlers.updateSettings({ skipPhases: checked })
+              }
+            />
           </SettingGroup>
         </Tabs.Panel>
       </Tabs>

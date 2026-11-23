@@ -79,7 +79,7 @@ export function GameSetupOverlay() {
   const { data: me } = useNetworkMe();
   const mySeat = me?.network ? (me.player_id ?? null) : null;
   // „Skip setup (random)” to skrót testowy: widoczny TYLKO z włączoną opcją
-  // „Skip phases button (God-Mode)” w Settings (decyzja użytkownika) — domyślnie ekran
+  // „Skip buttons” (Settings → Testing) w Settings (decyzja użytkownika) — domyślnie ekran
   // tajnych celów nie kusi losowaniem.
   const skipEnabled = useSettingsStore((s) => s.settings.skipPhases);
   const canSkip = skipEnabled && (!me?.network || me.host);

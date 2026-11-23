@@ -33,6 +33,8 @@ export interface MainMenuProps {
   onSettings: () => void;
   onGuide: () => void;
   onRules: () => void;
+  /** Biblioteka komponentów: frakcje, talie, technologie, jednostki (bez partii). */
+  onComponents: () => void;
   /** „Continue" — bieżąca partia jest już wczytana w backendzie, więc tylko wejście do gry. */
   onContinue: () => void;
   lobbyError: string | null;
@@ -174,6 +176,7 @@ export default function MainMenu({
   onSettings,
   onGuide,
   onRules,
+  onComponents,
   onContinue,
   lobbyError,
   loadOpen,
@@ -192,8 +195,7 @@ export default function MainMenu({
       <div className={styles.left}>
         <div className={styles.brand}>
           <h1 className={`${startStyles.menuTitle} ${styles.logo}`}>
-            <span className={styles.logoLine}>Custodian</span>{" "}
-            <span className={styles.logoLine}>Engine</span>
+            Custodian Engine
           </h1>
           <span className={styles.logoRule} aria-hidden />
           <p className={styles.tagline}>Twilight Imperium 4 — web game</p>
@@ -229,7 +231,12 @@ export default function MainMenu({
             <span className={styles.navDivider} aria-hidden />
             <NavItem label="How to play" caption="Interactive guide to the game" onClick={onGuide} />
             <NavItem label="Rules" caption="Living Rules Reference and rulings" onClick={onRules} />
-            <NavItem label="Settings" caption="Audio, display and game options" onClick={onSettings} />
+            <NavItem
+              label="Components"
+              caption="Every faction, deck, technology and unit"
+              onClick={onComponents}
+            />
+            <NavItem label="Settings" caption="Game rules, clocks, map display and sound" onClick={onSettings} />
             {lobbyError && (
               <p className={styles.error} role="alert">
                 {lobbyError}

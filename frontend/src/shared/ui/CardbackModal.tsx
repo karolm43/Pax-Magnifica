@@ -46,7 +46,7 @@ export function CardbackModal({
       <Stack
         className={browse ? styles.trigger : undefined}
         onClick={browse ? () => setOpened(true) : undefined}
-        title={browse ? undefined : "Deck contents are hidden (Settings → Browse deck contents)"}
+        title={browse ? undefined : "Deck contents are hidden (Settings → Testing → Look inside decks)"}
       >
         <Cardback key={cardKey} src={imageSrc} alt={alt} count={count} />
       </Stack>

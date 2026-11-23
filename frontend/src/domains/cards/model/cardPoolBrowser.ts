@@ -4,6 +4,7 @@ import { publicObjectives } from "@/entities/data/publicObjectives";
 import { secretObjectives } from "@/entities/data/secretObjectives";
 import { relics } from "@/entities/data/relics";
 import { explorations } from "@/entities/data/explorations";
+import { promissoryNotes } from "@/entities/data/promissoryNotes";
 import { isInGameDeck, isOfficialSource } from "@/entities/data/officialSources";
 import { variantDeck, withVariantList } from "@/entities/lookup/variantData";
 
@@ -229,5 +230,27 @@ export function explorationPool(type: string): PoolGroup[] {
   const entries = [...byCard.values()].sort(byName);
   return entries.length > 0
     ? [{ title: `${type} exploration`, tone: EXPLORE_TONE[type], entries }]
+    : [];
+}
+
+/**
+ * Ogólne notki (Ceasefire, Trade Agreement, Political Secret, Support for the Throne,
+ * Alliance) z oficjalnych źródeł - każdy gracz ma ich komplet w swoim kolorze. Znacznik
+ * koloru wystawcy `<color>` w tekście czyta się jako „[color]” (jak na fizycznej karcie).
+ * Źródło: statyczne dane `entities/data/promissoryNotes` (bez frakcji).
+ */
+export function genericPromissoryPool(): PoolGroup[] {
+  const entries: PoolEntry[] = promissoryNotes
+    .filter((note) => !note.faction && isOfficialSource(note.source))
+    .map((note) => ({
+      alias: note.alias,
+      name: note.name.replace(/<color>/g, "[color]"),
+      text: note.text.replace(/<color>/g, "[color]"),
+      meta: note.playArea ? "Play area" : undefined,
+      source: note.source,
+    }))
+    .sort(byName);
+  return entries.length > 0
+    ? [{ title: "Generic promissory notes", tone: "var(--ds-sig-pn)", entries }]
     : [];
 }
