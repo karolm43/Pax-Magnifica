@@ -150,8 +150,15 @@ function createIndexBuilder(factionNames: Map<string, string>): IndexBuilder {
   };
 }
 
-/** Everything on the board and in the player areas that search can point at. */
-export function buildSearchIndex(gameData: GameData): SearchEntry[] {
+/**
+ * Everything on the board and in the player areas that search can point at.
+ * ``browseDecks`` (ustawienie God-Mode): bez niego wyszukiwarka nie zdradza zawartości zakrytych
+ * talii - znajduje tylko karty na jawnych stosach (odrzucone, purge).
+ */
+export function buildSearchIndex(
+  gameData: GameData,
+  { browseDecks = false }: { browseDecks?: boolean } = {},
+): SearchEntry[] {
   const players = gameData.playerData.filter((player) => player.faction);
   const factionNames = new Map(
     players.map((player) => [player.faction, getPlayerFactionDisplayName(player)]),
@@ -165,7 +172,7 @@ export function buildSearchIndex(gameData: GameData): SearchEntry[] {
   players.forEach((player) => addPlayerHoldings(builder, gameData, player));
   addPublicCards(builder, gameData);
   addStrategyCards(builder, gameData, factionNames);
-  addDeckCards(builder, gameData);
+  addDeckCards(builder, gameData, browseDecks);
 
   return [...builder.entries(), ...buildCategoryEntries(gameData, players, factionNames)];
 }
@@ -351,14 +358,14 @@ function addStrategyCards(
  * eksploracji / akcji trafia na zakładkę, na której faktycznie leży (talia,
  * odrzucone, purge) - reszta talii nie ma stosów, więc pokazuje całą pulę.
  */
-function addDeckCards(builder: IndexBuilder, gameData: GameData) {
+function addDeckCards(builder: IndexBuilder, gameData: GameData, browseDecks: boolean) {
   const specs = new Map(
     (gameData.cardPool ? deckSpecs(gameData.cardPool) : []).map((s) => [s.key, s]),
   );
   const tabOf = (deckId: string, name: string): PileTab | undefined => {
     const spec = specs.get(deckId);
     if (!spec) return undefined;
-    const tabs: PileTab[] = ["deck", "discard", "purged"];
+    const tabs: PileTab[] = browseDecks ? ["deck", "discard", "purged"] : ["discard", "purged"];
     return tabs.find((tab) =>
       entriesFromIds(spec.kind, spec[tab]).some((entry) => entry.name === name),
     );
@@ -381,18 +388,21 @@ function addDeckCards(builder: IndexBuilder, gameData: GameData) {
   decks.forEach((deck) =>
     deck.groups
       .flatMap((group) => group.entries)
-      .forEach((card) =>
+      .forEach((card) => {
+        const tab = tabOf(deck.id, card.name);
+        // Zakryte talie: bez ustawienia tylko karty z jawnych stosów (odrzucone / purge).
+        if (!browseDecks && tab === undefined) return;
         builder.add(
           {
             key: cardSearchKey(deck.id, card.name),
             kind: "card",
             label: card.name,
             detail: deck.label,
-            deck: { id: deck.id, tab: tabOf(deck.id, card.name) },
+            deck: { id: deck.id, tab },
           },
           [card.name],
-        ),
-      ),
+        );
+      }),
   );
 }
 

@@ -371,3 +371,11 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
 - Usunięte martwe style starego menu/kreatora z `StartScreen.module.css`. `.env` w głównym `.gitignore`.
 - Plan kont, historii i draftów + instrukcja Supabase: `docs/PLAN_KONTA_LOBBY.md`.
 - QA: tsc, eslint (zmienione), vitest `domains/network` + `domains/setup`, zrzuty Playwright (menu 1600/1920, lobby).
+
+
+## Zakryte talie także w wyszukiwarce planszy
+
+- Bez ustawienia `browseDecks` wyszukiwarka nie otwiera list talii (agendy, cele, relikty, eksploracja, karty akcji)
+  i nie indeksuje kart z zakrytych talii — znajduje tylko karty z jawnych stosów (odrzucone, purge), więc nie zdradza,
+  co leży w talii ani w czyjej ręce. `buildSearchIndex(gameData, { browseDecks })`, `CardbackModal` ignoruje prośbę wyszukiwarki.
+- Test: `searchIndexDecks.test.ts`.

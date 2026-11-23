@@ -20,8 +20,7 @@ type CardbackModalProps = {
 
 /**
  * A deck's card back. Klik otwiera listę kart talii TYLKO z ustawieniem ``browseDecks``
- * (decyzja użytkownika: w grze nikt nie przegląda talii). Wyszukiwarka planszy nadal otwiera
- * listę - to katalog wszystkich kart puli, nie kolejność ani skład talii w tej grze.
+ * (decyzja użytkownika: w grze nikt nie przegląda talii) - także z wyszukiwarki planszy.
  */
 export function CardbackModal({
   imageSrc,
@@ -37,8 +36,8 @@ export function CardbackModal({
   const browse = useSettingsStore((s) => s.settings.browseDecks);
   const request = useDeckSearchStore((state) => state.request);
   useEffect(() => {
-    if (deckId && request?.deckId === deckId) setOpened(true);
-  }, [deckId, request]);
+    if (browse && deckId && request?.deckId === deckId) setOpened(true);
+  }, [browse, deckId, request]);
   const countLine =
     typeof count === "number" || typeof count === "string" ? `${count} in deck` : null;
 

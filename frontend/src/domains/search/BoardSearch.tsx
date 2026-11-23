@@ -15,6 +15,7 @@ import {
 } from "@tabler/icons-react";
 import cx from "clsx";
 import { useGameData } from "@/state/useGameContext";
+import { useSettingsStore } from "@/state/appStore";
 import {
   buildSearchIndex,
   findSearchEntries,
@@ -70,9 +71,10 @@ export function BoardSearch() {
   const [hitCount, setHitCount] = useState<number | null>(null);
   const openDeck = useDeckSearchStore((state) => state.open);
 
+  const browseDecks = useSettingsStore((s) => s.settings.browseDecks);
   const index = useMemo(
-    () => (gameData ? buildSearchIndex(gameData) : []),
-    [gameData],
+    () => (gameData ? buildSearchIndex(gameData, { browseDecks }) : []),
+    [gameData, browseDecks],
   );
   const results = useMemo(
     () => findSearchEntries(index, query),
