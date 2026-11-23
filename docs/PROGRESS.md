@@ -389,3 +389,16 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
 - Nowe w przepisie: `quake` (wstrząs planszy przez `translate` kontenera kafli — nie psuje zoomu; wyłączone przy
   prefers-reduced-motion), przejścia `static` i `mist`, dźwięki dla wszystkich bohaterów.
 - QA: vitest (KeyMoments, map), tsc app, eslint, pytest `test_activity`; zrzuty animacji (puppeteer) obejrzane.
+
+## Efekty bohaterów: miejsce działania z feedu (fakty `area`, RULES.md 64.4)
+
+- Przegląd wszystkich 18 bohaterów (Arborec … Titans): efekty z ACTION celowały zbyt szeroko (np. Sol świecił
+  nad wszystkimi systemami z jednostkami). `core/activity.py` dopisuje we wpisie z użyciem bohatera (purge albo
+  dołączenie karty) fakty `area` (pozycja + `gain`/`loss` jednostek gracza albo `token_removed`); feed ich nie
+  wypisuje (`describeActivity`), `momentsForEntry` przenosi je do momentu (`areas`, `self` = bohater).
+- Przepis może mieć `area` (zapasem zostaje `target`): Sol — systemy, z których zniknęły jego żetony (słup światła
+  unosi żeton); Saar — system, gdzie rywale stracili jednostki; Argent / L1Z1X — systemy docelowe floty;
+  Yin / Xxcha / Arborec — systemy z nowymi jednostkami. Bez wpływu na planszę (Jol-Nar, Naaz, Naalu, Winnu) bez
+  zmian; reakcje (Hacan, Mentak, Sardakk, Muaat) — aktywny system / Nova Seed.
+- Testy: `tests/test_activity.py` (fakty `area`), `tests/factions/test_hero_area_feed.py` (Sol/Saar/L1Z1X przez
+  API), vitest `keyMoments`/`heroBoardFx`; zrzut efektu Sol obejrzany.

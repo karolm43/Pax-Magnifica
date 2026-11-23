@@ -8,7 +8,7 @@
 import { create } from "zustand";
 import type { Tile } from "@/entities/game/types";
 import type { SoundName, SoundOpts } from "@/domains/battle/battleSound";
-import type { ReplacedTile } from "./keyMoments";
+import type { HeroArea, ReplacedTile } from "./keyMoments";
 
 /** Gdzie na planszy dzieje się efekt. */
 export type FxTarget =
@@ -63,6 +63,11 @@ export type HeroFxRecipe = {
   revealAt?: number;
   /** Wstrząsy planszy: chwila (ms od startu), siła (px), czas (ms). */
   quake?: { at: number; px: number; ms: number }[];
+  /**
+   * Miejsce zdolności z faktów `area` wpisu (np. Sol: systemy, z których zniknęły jego żetony);
+   * `target` zostaje zapasem, gdy wpis takich faktów nie ma.
+   */
+  area?: { self: boolean; kinds: HeroArea["kind"][] };
 };
 
 /** Bohaterowie zaimplementowani w silniku (`core/hooks/factions/*`). */
@@ -84,16 +89,19 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   // Overgrowth: produkcja wszędzie, gdzie są siły naziemne — zieleń i zarodniki wyrastają z planet.
   arborechero: {
     dim: 0.25,
+    area: { self: true, kinds: ["gain"] },
     target: "ground",
     mark: "bloom",
     tone: "120 230 110",
     ms: 4400,
     sounds: [{ at: 200, name: "fleetEnter", gain: 0.35, rate: 0.5 }],
   },
-  // Twilight Directive: żetony dowodzenia wracają — złota fala zmierzchu i słupy światła.
+  // Twilight Directive: żetony dowodzenia Sol wracają z planszy — złota fala zmierzchu, a z każdego
+  // systemu, z którego zniknął żeton, w niebo unosi się słup światła z żetonem.
   solhero: {
     dim: 0.3,
     sweep: "dawn",
+    area: { self: true, kinds: ["token_removed"] },
     target: "units",
     mark: "beam",
     tone: "255 205 90",
@@ -165,6 +173,7 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   // Planetary Defense Nexus - Aegis: PDS i mechy na planetach — kopuły tarcz wznoszą się nad nimi.
   "xxchahero-te": {
     dim: 0.3,
+    area: { self: true, kinds: ["gain"] },
     target: "defense",
     mark: "aegis",
     tone: "110 230 190",
@@ -176,6 +185,7 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   argenthero: {
     dim: 0.4,
     shadows: ["dd", "dd", "fs", "dd"],
+    area: { self: true, kinds: ["gain"] },
     target: "ships",
     mark: "helix",
     tone: "255 150 60",
@@ -189,6 +199,7 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   yinhero: {
     dim: 0.4,
     sweep: "mist",
+    area: { self: true, kinds: ["gain"] },
     target: "ground",
     mark: "drop",
     tone: "235 235 245",
@@ -204,6 +215,7 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
     dim: 0.55,
     sweep: "static",
     shadows: ["dn", "fs", "dn"],
+    area: { self: true, kinds: ["gain"] },
     target: "ships",
     mark: "warp",
     tone: "210 60 60",
@@ -213,10 +225,11 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
       { at: 1200, name: "arriveHeavy", gain: 0.7 },
     ],
   },
-  // Armageddon Relay: sygnał z doków Saar — fala uderzeniowa i odłamki w systemach z dokami
-  // (cel bohatera to system sąsiedni do doku; piechota i myśliwce innych graczy giną).
+  // Armageddon Relay: fala uderzeniowa i odłamki w wybranym systemie przy doku Saar (tam, gdzie
+  // zginęła piechota i myśliwce rywali); bez strat — w systemach z dokami.
   saarhero: {
     dim: 0.45,
+    area: { self: false, kinds: ["loss"] },
     target: "docks",
     mark: "blast",
     tone: "230 150 60",
@@ -332,8 +345,13 @@ function unitsOf(tile: Tile, keys: string[]) {
   return { space, planets };
 }
 
-/** Właściciel efektu: frakcja/kolor (klucze jednostek) i planety z karty bohatera. */
-export type FxOwner = { faction: string | null; color: string | null; planets?: string[] };
+/** Właściciel efektu: frakcja/kolor (klucze jednostek), planety z karty i miejsca działania. */
+export type FxOwner = {
+  faction: string | null;
+  color: string | null;
+  planets?: string[];
+  areas?: HeroArea[];
+};
 
 /** Pozycje systemów, w których dzieje się efekt. */
 export function fxTargets(
@@ -346,6 +364,14 @@ export function fxTargets(
   const pick = (test: (t: Tile) => boolean) => tiles.filter(test).map((t) => t.position);
   const has = (units: { entityId: string; count: number }[], ids: Set<string>) =>
     units.some((u) => ids.has(u.entityId) && u.count > 0);
+  if (recipe.area && owner.areas?.length) {
+    const { self, kinds } = recipe.area;
+    const wanted = new Set(
+      owner.areas.filter((a) => a.self === self && kinds.includes(a.kind)).map((a) => a.position),
+    );
+    const hit = pick((t) => wanted.has(t.position));
+    if (hit.length > 0) return hit;
+  }
   switch (recipe.target) {
     case "mecatol":
       return pick((t) => MECATOL_SYSTEM_IDS.has(t.systemId)).slice(0, 1);
@@ -402,6 +428,8 @@ export type HeroFxRun = {
   replaced?: ReplacedTile[];
   /** Planety, do których bohater dołączył kartę (cel „planet”). */
   planets?: string[];
+  /** Miejsca działania bohatera (fakty `area`). */
+  areas?: HeroArea[];
 };
 
 type HeroFxStore = {

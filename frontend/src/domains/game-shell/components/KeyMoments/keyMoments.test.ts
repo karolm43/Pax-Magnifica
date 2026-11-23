@@ -72,6 +72,26 @@ describe("momentsForEntry (RULES.md 64)", () => {
     ]);
   });
 
+  it("fakty area: miejsca działania bohatera (własne vs rywali)", () => {
+    const e = entry([
+      fact({ type: "leader", player_id: "p1", value: "solhero", detail: "purged" }),
+      fact({ type: "area", player_id: "p1", value: "101", detail: "token_removed" }),
+      fact({ type: "area", player_id: "p2", value: "102", detail: "loss" }),
+    ]);
+    expect(momentsForEntry(e, isHero)).toEqual([
+      {
+        kind: "hero",
+        seq: 7,
+        player: "p1",
+        leaderId: "solhero",
+        areas: [
+          { position: "101", self: true, kind: "token_removed" },
+          { position: "102", self: false, kind: "loss" },
+        ],
+      },
+    ]);
+  });
+
   it("odblokowanie bohatera nie jest użyciem", () => {
     const e = entry([fact({ type: "leader", player_id: "p1", value: "solhero", detail: "unlocked" })]);
     expect(momentsForEntry(e, isHero)).toEqual([]);

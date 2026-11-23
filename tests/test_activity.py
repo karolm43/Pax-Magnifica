@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from src.api.app import create_app
 from src.core.activity import derive_activity
 from src.core.event_store import EventStore
-from src.core.game_state import GameState, Phase, PlayerState
+from src.core.game_state import GameState, Phase, PlayerState, SystemState
 from src.core.registry import StaticDataRegistry
 
 
@@ -387,3 +387,32 @@ def test_bohater_dolaczony_do_planety_ma_sprawce_i_fakt_attached() -> None:
     assert entry.actor_id == "p1"
     facts = {(f.type, f.value, f.detail) for f in entry.facts}
     assert ("attached", "titanshero", "elysium") in facts
+
+
+def _system(position: str, **kw: object) -> SystemState:
+    return SystemState(position=position, system_id="2" + position[-1], **kw)  # type: ignore[arg-type]
+
+
+def test_obszar_bohatera_zetony_i_jednostki() -> None:
+    """Użycie bohatera dopisuje fakty ``area`` (miejsce efektu na planszy, RULES.md 64.4)."""
+    before = _state()
+    before.players["p1"].leader_states["solhero"] = "unlocked"
+    before.systems["101"] = _system("101", command_tokens=["p1"])
+    before.systems["102"] = _system("102", space_units={"p2": {"fighter": 2}})
+    after = _state()
+    after.players["p1"].leader_states["solhero"] = "purged"
+    after.systems["101"] = _system("101")
+    after.systems["102"] = _system("102", space_units={"p1": {"dreadnought": 1}})
+    entry = derive_activity("component-use:leader:solhero:p1", before, after)
+    assert entry is not None
+    areas = {(f.player_id, f.value, f.detail) for f in entry.facts if f.type == "area"}
+    assert areas == {("p1", "101", "token_removed"), ("p2", "102", "loss"), ("p1", "102", "gain")}
+
+
+def test_bez_bohatera_brak_faktow_obszaru() -> None:
+    before = _state()
+    before.systems["102"] = _system("102")
+    after = _state()
+    after.systems["102"] = _system("102", space_units={"p1": {"dreadnought": 1}})
+    entry = derive_activity("tactical:produce", before, after)
+    assert entry is None or not [f for f in entry.facts if f.type == "area"]

@@ -62,13 +62,17 @@ function Bloom() {
 }
 const SPORES = seq(14, (i) => ({ x: ((i * 61) % 180) - 90, y: ((i * 37) % 120) - 40, r: 2 + (i % 3) }));
 
-/** Sol — Twilight Directive: słup światła z orbity i fala u podstawy. */
+/** Sol — Twilight Directive: słup światła, którym żeton dowodzenia wraca w niebo. */
 function Beam() {
   return (
     <>
       <rect className={base.beam} x={-26} y={-900} width={52} height={900} />
       <rect className={fx.beamCore} x={-6} y={-900} width={12} height={900} />
       <ellipse className={fx.beamFoot} rx={90} ry={26} />
+      <g className={fx.lift}>
+        <path className={fx.liftToken} d={hex(36)} />
+        <circle className={fx.liftCore} r={12} />
+      </g>
     </>
   );
 }

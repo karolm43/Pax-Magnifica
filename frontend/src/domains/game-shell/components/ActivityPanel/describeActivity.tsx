@@ -941,6 +941,9 @@ function describeFact(
     }
     case "winner":
       return { key, tone: "good", text: <>{<b>{playerName(ctx, fact.player_id)}</b>} won the game</> };
+    case "area":
+      // Miejsce efektu bohatera na planszy (RULES.md 64.4) — tylko dla animacji, nie do feedu.
+      return null;
     default:
       return null;
   }

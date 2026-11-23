@@ -15,6 +15,8 @@ export type KeyMoment =
       replaced?: ReplacedTile[];
       /** Planety, do których bohater dołączył swoją kartę (Ul the Progenitor -> Elysium). */
       planets?: string[];
+      /** Gdzie zadziałał (fakty `area`): system, czyje zmiany, rodzaj zmiany. */
+      areas?: HeroArea[];
     }
   /** The Fracture weszła do gry (`player` = kto ją wprowadził). */
   | { kind: "fracture"; seq: number; player: string | null }
@@ -25,6 +27,9 @@ export type KeyMoment =
 
 /** Kafel wymieniony w tym samym wpisie (Nova Seed): mapa pokazuje stary do chwili wybuchu. */
 export type ReplacedTile = { position: string; from: string };
+
+/** Miejsce działania bohatera: `self` = jednostki/żetony samego bohatera, inaczej rywala. */
+export type HeroArea = { position: string; self: boolean; kind: "gain" | "loss" | "token_removed" };
 
 /** Rozpoznanie typu lidera (wstrzykiwane — w aplikacji `getLeaderById`). */
 export type IsHero = (leaderId: string) => boolean;
@@ -74,10 +79,21 @@ export function momentsForEntry(entry: ActivityEntry, isHero: IsHero): KeyMoment
     .map((f) => ({ position: f.value ?? "", from: (f.detail ?? "").split(">")[0] }));
   const hero = out.find((m) => m.kind === "hero");
   if (hero?.kind === "hero" && replaced.length > 0) hero.replaced = replaced;
+  // Miejsca działania bohatera (fakty `area` — tylko we wpisie z użyciem bohatera).
+  const areas = a.facts
+    .filter((f) => f.type === "area" && f.value && AREA_KINDS.has(f.detail ?? ""))
+    .map((f) => ({
+      position: f.value ?? "",
+      self: f.player_id === (hero?.kind === "hero" ? hero.player : null),
+      kind: f.detail as HeroArea["kind"],
+    }));
+  if (hero?.kind === "hero" && areas.length > 0) hero.areas = areas;
   // Fracture otwiera scenę: jeśli w jednym wpisie jest kilka momentów (przełom -> rzut 1/10),
   // najpierw przełom, potem Fracture.
   return out.sort((x, y) => order(x) - order(y));
 }
+
+const AREA_KINDS = new Set(["gain", "loss", "token_removed"]);
 
 function order(m: KeyMoment): number {
   return m.kind === "fracture" ? 1 : 0;

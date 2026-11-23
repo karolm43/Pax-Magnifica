@@ -26,7 +26,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.core.game_state import ActiveCombat, GameState, Phase
+from src.core.game_state import ActiveCombat, GameState, Phase, SystemState
 
 # Kategorie wpisów (do filtrów w UI).
 ActivityKind = Literal[
@@ -61,7 +61,10 @@ class ActivityFact(BaseModel):
     # "winner", "battle_result" (player_id = zwycięzca walki, detail = "winner"/"draw",
     # delta = liczba rund), "rider" (value = karta, detail = przewidziany wynik agendy),
     # "tile_replaced" (value = pozycja, detail = "<stary kafel>><nowy kafel>"; Nova Seed),
-    # "faction_token" / "faction_token_removed" (value = rodzaj żetonu, detail = planeta / space).
+    # "faction_token" / "faction_token_removed" (value = rodzaj żetonu, detail = planeta / space),
+    # "area" (TYLKO we wpisie z użyciem bohatera: value = pozycja systemu, detail = "gain" / "loss"
+    # jednostek gracza albo "token_removed" jego żetonu dowodzenia — miejsce efektu na planszy,
+    # RULES.md 64.4; feed go nie wypisuje).
     # NOWY skutek gry => dopisz tu fakt i jego opis w ``describeActivity.tsx``.
     type: str
     # Czyj skutek; None dla zdarzeń talii/stołu bez jednego właściciela.
@@ -458,7 +461,53 @@ def _facts(before: GameState | None, after: GameState) -> list[ActivityFact]:
     facts.extend(_resource_facts(before, after))
     facts.extend(_unit_facts(before, after))
     facts.extend(_table_facts(before, after))
+    facts.extend(_hero_area_facts(before, after, facts))
     return facts
+
+
+def _is_hero_card(card: str | None) -> bool:
+    """Karta bohatera (``<frakcja>hero``, ``xxchahero-te``) - po samym id, bez rejestru."""
+    return bool(card) and "hero" in str(card)
+
+
+def _hero_area_facts(
+    before: GameState, after: GameState, facts: list[ActivityFact]
+) -> list[ActivityFact]:
+    """Gdzie na planszy zadziałał bohater (RULES.md 64.4): systemy, w których zmieniła się liczba
+    jednostek graczy albo zniknął żeton dowodzenia - tylko we wpisie z purge / dołączeniem
+    bohatera, żeby efekt animacji trafił w miejsce zdolności (Sol, Argent, L1Z1X, Saar...)."""
+    used = any(
+        (f.type == "leader" and f.detail == "purged" and _is_hero_card(f.value))
+        or (f.type == "attached" and _is_hero_card(f.value))
+        for f in facts
+    )
+    if not used:
+        return []
+    out: list[ActivityFact] = []
+    for position in sorted(set(before.systems) | set(after.systems)):
+        old, new = before.systems.get(position), after.systems.get(position)
+        for pid in sorted(after.players):
+            diff = _units_in(new, pid) - _units_in(old, pid)
+            if diff:
+                detail = "gain" if diff > 0 else "loss"
+                out.append(ActivityFact(type="area", player_id=pid, value=position, detail=detail))
+            old_tokens = old.command_tokens.count(pid) if old else 0
+            new_tokens = new.command_tokens.count(pid) if new else 0
+            if new_tokens < old_tokens:
+                out.append(
+                    ActivityFact(type="area", player_id=pid, value=position, detail="token_removed")
+                )
+    return out
+
+
+def _units_in(system: SystemState | None, pid: str) -> int:
+    """Liczba jednostek gracza w systemie (kosmos + planety)."""
+    if system is None:
+        return 0
+    total = sum(system.space_units.get(pid, {}).values())
+    for owners in system.planet_units.values():
+        total += sum(owners.get(pid, {}).values())
+    return total
 
 
 def _resource_facts(before: GameState, after: GameState) -> list[ActivityFact]:

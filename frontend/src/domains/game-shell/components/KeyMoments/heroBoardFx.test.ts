@@ -81,6 +81,27 @@ describe("fxTargets (RULES.md 64.4)", () => {
     expect(fxTargets(HERO_BOARD_FX.titanshero, board, owner, null)).toEqual(["502"]);
   });
 
+  it("miejsca działania (fakty area): Sol — systemy, z których zniknęły jego żetony", () => {
+    const board = [tile("601", "6", { sol: ["cv"] }), tile("602", "7", {}), tile("603", "8", {})];
+    const owner = {
+      faction: "sol",
+      color: "blue",
+      areas: [
+        { position: "602", self: true, kind: "token_removed" as const },
+        { position: "603", self: false, kind: "token_removed" as const },
+      ],
+    };
+    expect(fxTargets(HERO_BOARD_FX.solhero, board, owner, null)).toEqual(["602"]);
+    // Bez faktów area — zapasowy cel przepisu (systemy z jednostkami).
+    expect(fxTargets(HERO_BOARD_FX.solhero, board, { faction: "sol", color: "blue" }, null)).toEqual(["601"]);
+  });
+
+  it("Saar: system, w którym rywale stracili piechotę i myśliwce", () => {
+    const board = [tile("701", "9", {}, { saar: ["sd"] }), tile("702", "10", { other: ["ff"] })];
+    const owner = { faction: "saar", color: "brown", areas: [{ position: "702", self: false, kind: "loss" as const }] };
+    expect(fxTargets(HERO_BOARD_FX.saarhero, board, owner, null)).toEqual(["702"]);
+  });
+
   it("zasłony kafli: z kolejki momentów, odsłonięcie po jednej pozycji", () => {
     const covers = coversForQueue([
       { kind: "breakthrough" },
