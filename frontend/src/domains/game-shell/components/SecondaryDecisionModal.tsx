@@ -293,7 +293,8 @@ export function SecondaryDecisionModal() {
       withCloseButton={false}
       closeOnClickOutside={false}
       closeOnEscape={false}
-      title="Strategy Card — secondary ability"
+      // Krok z widokiem karty ma własny nagłówek (PromptShell: karta + plakietka Secondary).
+      title={inputView ? undefined : "Strategy Card — secondary ability"}
       size={composing ? 560 : 460}
     >
       {inputView ? (

@@ -104,7 +104,7 @@ export function StrategyPrimaryStepModal() {
       withCloseButton={false}
       closeOnClickOutside={false}
       closeOnEscape={false}
-      title="Strategic action"
+      // Widok karty ma własny nagłówek (PromptShell: karta + plakietka Primary) - bez drugiego tytułu.
       size={PRIMARY_MODAL_SIZE[pending.initiative] ?? 560}
     >
       {body}

@@ -457,3 +457,21 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
   przez `target` (rules/R30.md 30.7, ⚠️ ZAŁOŻENIE). Backend bez zmian (`paid // 3`).
 - QA: tsc app, eslint (zmienione), vitest domains technology/invasion/game-shell/thunders-edge/offers.
   Bez testu Leadership, bez build/e2e, bez weryfikacji wizualnej.
+
+## Okna decyzji — U1: wspólna rama `DecisionFrame` + jeden `ComponentUseModal`
+
+- `shared/ui/DecisionFrame`: nagłówek (plakietka rodzaju, tytuł = nazwa/chip komponentu + ⓘ, czytelne
+  „Required”, „+N more”), pełny tekst NORMALNYM kolorem (zwijany >420 zn.), pola, komunikaty (notes/warnings),
+  stopka [Never ask] [Skip Esc] [akcja Enter]; skróty Enter/Esc w jednym miejscu; wariant `embedded` w oknie.
+  Styl przeniesiony z `OffersDock.module.css` (tam zostały tylko pule żetonów).
+- `OfferDock` (OffersModal) = `DecisionFrame` (zachowanie bez zmian: Never ask, Skip, Enter/Esc, Transit Diodes, pule).
+- `ComponentUseModal` zastępuje treść 4 modali: `ActionCardPlayModal` (karta/relikt/frontier/notka),
+  `TechnologyUseModal`, `LegendaryUseModal`, `FactionComponentUseModal` — cienkie nakładki; teraz też
+  z chipem/ⓘ, pełnym tekstem, Enter/Esc, jednolitym „Cancel”, bez formularza dla wyczerpanych/zablokowanych
+  (ostrzeżenie zamiast pól), błąd ładowania z przyciskiem Cancel.
+- Okna kart strategii: bez drugiego tytułu AppModal („Strategic action” / „Strategy Card — secondary
+  ability”), gdy widok karty ma własny nagłówek (PromptShell). Pełne przepięcie PromptShell na ramę — później.
+- Poza zakresem U1 (zostaje na U2–U5): `Stepper`/`Payment`, strefa decyzji, duplikaty informacji, „Follow”
+  nieaktywne bez wpływu.
+- QA: tsc app, eslint, vitest (game-shell, offers, strategy, shared; nowy `DecisionFrame.test.tsx`),
+  `npm run build`, `npm run e2e` (8/8). Bez weryfikacji wizualnej w grze.

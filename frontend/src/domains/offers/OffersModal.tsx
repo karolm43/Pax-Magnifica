@@ -1,9 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import {
-  IconChevronDown,
-  IconChevronUp,
-} from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useOfferActions, useOffers, type OfferView } from "@/api/useOffers";
@@ -14,7 +10,7 @@ import {
   postReactionPrefs,
 } from "@/api/useActionCard";
 import { useGameData } from "@/state/useGameContext";
-import { PlayerTag } from "@/shared/ui/PlayerTag";
+import { DecisionFrame } from "@/shared/ui/DecisionFrame";
 import { Tech } from "@/domains/player/components/Tech";
 import { getTechData } from "@/entities/lookup/tech";
 import {
@@ -26,9 +22,6 @@ import { DecisionFields } from "./DecisionFields";
 import { TransitDiodesPicker } from "./TransitDiodesPicker";
 import { isResearchOffer, ResearchOfferOverlay } from "./ResearchOfferOverlay";
 import styles from "./OffersDock.module.css";
-
-/** Opisy krótsze niż tyle znaków pokazujemy w całości (bez „more”). */
-const LONG_TEXT = 420;
 
 /** Wejścia rozdziału żetonów (Predictive Intelligence): trzy liczby o tych kluczach. */
 const POOL_KEYS = { t: "tactical", f: "fleet", s: "strategic" } as const;
@@ -45,15 +38,6 @@ function sourceTech(source: string | undefined): string | null {
   if (!source?.startsWith("technologies:")) return null;
   const id = source.slice("technologies:".length);
   return getTechData(id) ? id : null;
-}
-
-/** Czy zdarzenie klawiatury trafia w pole, które samo obsługuje Enter/Esc (formularz, przycisk). */
-function isInteractiveTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  return (
-    target.isContentEditable ||
-    ["INPUT", "SELECT", "TEXTAREA", "BUTTON", "A"].includes(target.tagName)
-  );
 }
 
 /** Przycisk „Use”, a gdy etykieta hooka mówi, co się stanie („…: spend 2 TG …”) — ta treść. */
@@ -73,7 +57,6 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
   const actions = useOfferActions();
   const [values, setValues] = useState<Record<string, FormValue>>({});
   const [busy, setBusy] = useState(false);
-  const [showText, setShowText] = useState(false);
   // Transit Diodes ma własny, graficzny wybór (podnieś → połóż); pozostałe oferty to formularz.
   const graphical = offer.inputs.some((input) => input.key === "unit1") &&
     offer.inputs.some((input) => input.key === "to1");
@@ -97,7 +80,6 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
   // Nowa oferta → czysty formularz i rozwinięty panel (nie przeoczymy kolejnej decyzji).
   useEffect(() => {
     setValues({});
-    setShowText(false);
     setGraphicalReady(false);
   }, [offer.id]);
 
@@ -147,79 +129,26 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
       await actions.decline(offer.player_id, offer.id);
     });
 
-  // Skróty klawiszowe: tylko gdy fokus nie siedzi w polu formularza ani na przycisku.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
-      if (isInteractiveTarget(event.target)) return;
-      if (event.key === "Enter" && canUse) {
-        event.preventDefault();
-        use();
-      } else if (event.key === "Escape" && !offer.mandatory && !busy) {
-        event.preventDefault();
-        skip();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [canUse, busy, offer.id, offer.mandatory, params]);
-
   const techId = sourceTech(offer.source);
   return (
-    <section className={styles.dock} role="group" aria-label={`Decision: ${offer.name}`}>
-      <header className={styles.head}>
-        <span className={styles.titleBox}>
-          {(offer.kind || foreign) && (
-            <small className={styles.kind}>
-              {offer.kind}
-              {/* Cudzy komponent (Assault Cannon - decyduje ofiara): czyj, z logo i kolorem. */}
-              {foreign && (
-                <>
-                  {offer.kind ? " · " : ""}
-                  <PlayerTag playerId={offer.owner_id} size={13} />
-                </>
-              )}
-            </small>
-          )}
-          {/* Technologia źródłowa = TEN SAM chip co w panelu gracza (pełna karta po kliknięciu)
-              i jest tytułem - bez drugiej, dublującej nazwy obok. */}
-          {techId ? (
-            <span className={styles.source} data-no-drag>
-              <Tech techId={techId} />
-            </span>
-          ) : (
-            <b className={styles.title}>{offer.name}</b>
-          )}
-        </span>
-        {offer.mandatory && <span className={styles.tag} data-tone="required">Required</span>}
-        {queued > 0 && <span className={styles.tag}>+{queued} more</span>}
-      </header>
-
-      {offer.text && (
-        <div className={styles.textBlock}>
-          <p
-            className={styles.text}
-            data-open={showText || offer.text.length <= LONG_TEXT || undefined}
-          >
-            {offer.text}
-          </p>
-          {offer.text.length > LONG_TEXT && (
-            <button
-              type="button"
-              className={styles.more}
-              onClick={() => setShowText((open) => !open)}
-            >
-              {showText ? "less" : "more"}
-              {showText ? (
-                <IconChevronUp size={12} aria-hidden="true" />
-              ) : (
-                <IconChevronDown size={12} aria-hidden="true" />
-              )}
-            </button>
-          )}
-        </div>
-      )}
-
+    <DecisionFrame
+      ariaLabel={`Decision: ${offer.name}`}
+      kind={offer.kind || undefined}
+      ownerId={foreign ? offer.owner_id : undefined}
+      // Technologia źródłowa = TEN SAM chip co w panelu gracza (pełna karta po kliknięciu)
+      // i jest tytułem - bez drugiej, dublującej nazwy obok.
+      title={techId ? <Tech techId={techId} /> : offer.name}
+      required={offer.mandatory}
+      queued={queued}
+      text={offer.text || undefined}
+      warnings={noOptions ? ["There is no legal option for this right now."] : []}
+      busy={busy}
+      canUse={canUse}
+      onUse={use}
+      useLabel={offer.mandatory ? "Confirm" : acceptLabel(offer)}
+      onSkip={offer.mandatory ? undefined : skip}
+      onNeverAsk={!offer.mandatory && offer.source ? neverAsk : undefined}
+    >
       {graphical && (
         <TransitDiodesPicker
           offer={offer}
@@ -263,30 +192,7 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
           onChange={(key, next) => setValues((prev) => ({ ...prev, [key]: next }))}
         />
       )}
-      {noOptions && <p className={styles.warn}>There is no legal option for this right now.</p>}
-
-      <footer className={styles.actions}>
-        {!offer.mandatory && offer.source && (
-          <button
-            type="button"
-            className={styles.never}
-            disabled={busy}
-            onClick={neverAsk}
-            title="Skip and stop offering this ability. Undo in Reactions on the action panel."
-          >
-            Never ask
-          </button>
-        )}
-        {!offer.mandatory && (
-          <button type="button" className={styles.skip} disabled={busy} onClick={skip}>
-            Skip <kbd>Esc</kbd>
-          </button>
-        )}
-        <button type="button" className={styles.use} disabled={!canUse} onClick={use}>
-          {offer.mandatory ? "Confirm" : acceptLabel(offer)} <kbd>Enter</kbd>
-        </button>
-      </footer>
-    </section>
+    </DecisionFrame>
   );
 }
 

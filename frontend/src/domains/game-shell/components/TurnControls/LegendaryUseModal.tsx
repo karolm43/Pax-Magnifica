@@ -1,10 +1,6 @@
-import { useMemo, useState } from "react";
-import { Button, Group, Stack, Text } from "@/ds";
-import { AppModal } from "@/shared/ui/AppModal";
 import { useBoardEditor } from "@/api/useBoardEditor";
-import { buildActionCardParams, type FormValue, hasNoLegalOption } from "@/api/useActionCard";
 import { planetComponentId, usePlanetAbilityForm } from "@/api/usePlanetAbility";
-import { DecisionFields } from "@/domains/offers/DecisionFields";
+import { ComponentUseModal, formError } from "./ComponentUseModal";
 
 type Props = {
   planetId: string;
@@ -24,81 +20,36 @@ type Props = {
 export function LegendaryUseModal({ planetId, abilityName, playerId, onClose, onDone }: Props) {
   const form = usePlanetAbilityForm(planetId, playerId);
   const { playComponentAction } = useBoardEditor();
-  const [values, setValues] = useState<Record<string, FormValue>>({});
-  const [busy, setBusy] = useState(false);
-
-  const inputs = useMemo(() => form.data?.inputs ?? [], [form.data]);
-  const { params, ready } = useMemo(() => buildActionCardParams(inputs, values), [inputs, values]);
-  const noOptions = hasNoLegalOption(inputs);
-  const exhausted = form.data?.exhausted === true;
-
-  const confirm = async () => {
-    setBusy(true);
-    try {
-      await playComponentAction(playerId, planetComponentId(planetId), params);
-      onDone();
-    } catch {
-      // Powód pokazał już komunikat; okno zostaje do poprawki wyboru.
-    } finally {
-      setBusy(false);
-    }
-  };
+  const data = form.data;
+  const exhausted = data?.exhausted === true;
 
   return (
-    <AppModal floating opened onClose={onClose} title={abilityName} size={480}>
-      <Stack gap="md">
-        {form.isLoading && (
-          <Text size="sm" c="dimmed">
-            Loading legendary planet ability…
-          </Text>
-        )}
-        {form.isError && (
-          <Text size="sm" c="red">
-            {form.error instanceof Error ? form.error.message : "Could not load this ability."}
-          </Text>
-        )}
-        {form.data && (
-          <>
-            <Text size="sm" c="dimmed">
-              {form.data.text}
-            </Text>
-            <Text size="sm">
-              {form.data.implemented
+    <ComponentUseModal
+      title={abilityName}
+      kind="Legendary planet"
+      infoRef={{ kind: "planet", id: planetId }}
+      infoName={abilityName}
+      loading={form.isLoading}
+      error={formError(form.error, "Could not load this ability.")}
+      text={data?.text}
+      notes={
+        data
+          ? [
+              data.implemented
                 ? "Using it counts as your action for this turn."
-                : "The engine does not automate this ability yet. Playing it counts as your action - resolve the effect by hand."}
-            </Text>
-            {exhausted && (
-              <Text size="sm" c="red">
-                This legendary planet ability card is exhausted.
-              </Text>
-            )}
-            {(
-              <DecisionFields
-                inputs={inputs}
-                values={values}
-                disabled={busy}
-                onChange={(key, next) => setValues((prev) => ({ ...prev, [key]: next }))}
-              />
-            )}
-            {noOptions && (
-              <Text size="sm" c="red">
-                There is nothing to use it on right now.
-              </Text>
-            )}
-          </>
-        )}
-        <Group justify="flex-end" gap="sm">
-          <Button variant="default" disabled={busy} onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            disabled={busy || !form.data || !ready || noOptions || exhausted}
-            onClick={() => void confirm()}
-          >
-            Use ability
-          </Button>
-        </Group>
-      </Stack>
-    </AppModal>
+                : "The engine does not automate this ability yet. Playing it counts as your action - resolve the effect by hand.",
+            ]
+          : []
+      }
+      warnings={exhausted ? ["This legendary planet ability card is exhausted."] : []}
+      inputs={data?.inputs ?? []}
+      blocked={exhausted}
+      useLabel="Use ability"
+      onUse={async (params) => {
+        await playComponentAction(playerId, planetComponentId(planetId), params);
+        onDone();
+      }}
+      onClose={onClose}
+    />
   );
 }

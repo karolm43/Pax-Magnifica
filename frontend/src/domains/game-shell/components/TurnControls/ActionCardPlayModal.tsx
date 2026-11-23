@@ -1,14 +1,11 @@
-import { useMemo, useState } from "react";
-import { Button, Group, Stack, Text } from "@/ds";
-import { DecisionField, DecisionFields } from "@/domains/offers/DecisionFields";
-import { AppModal } from "@/shared/ui/AppModal";
+import { useMemo } from "react";
+import { DecisionField } from "@/domains/offers/DecisionFields";
+import { ComponentUseModal, formError } from "./ComponentUseModal";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import {
-  buildActionCardParams,
   useActionCardForm,
   type ActionCardInput,
   type FormValue,
-  hasNoLegalOption,
 } from "@/api/useActionCard";
 import { useRelicForm } from "@/api/useRelics";
 import { usePromissoryForm } from "@/api/useFactionComponents";
@@ -72,116 +69,82 @@ export function ActionCardPlayModal({
   const form = isNote ? noteForm : isRelic ? relicForm : cardForm;
   const { playActionCard, playRelic, playPromissory } = useBoardEditor();
   const setNotice = useAppStore((state) => state.setNotice);
-  const [values, setValues] = useState<Record<string, FormValue>>({});
-  const [busy, setBusy] = useState(false);
-
   const inputs = useMemo(() => form.data?.inputs ?? [], [form.data]);
-  const { params, ready } = useMemo(
-    () => buildActionCardParams(inputs, values),
-    [inputs, values],
-  );
-  const noTargets = hasNoLegalOption(inputs);
 
-  const play = async () => {
-    setBusy(true);
-    try {
-      if (isNote) {
-        const result = await playPromissory(playerId, cardId, params);
-        if (!result.implemented) {
-          setNotice(
-            `${cardName} is not automated yet - it was played. Resolve its effect by hand.`,
-            "info",
-          );
-        }
-        onPlayed();
-        return;
-      }
-      if (isRelic) {
-        const result = await playRelic(
-          playerId,
-          cardId,
-          params,
-          isFrontier ? "/frontier-card/play" : "/relic/play",
-        );
-        if (!result.implemented) {
-          setNotice(
-            `${cardName} is not automated yet - it counts as your action. Resolve its effect by hand.`,
-            "info",
-          );
-        }
-        onPlayed();
-        return;
-      }
-      const result = await playActionCard(playerId, cardId, params, seq);
-      if (result.held) {
-        setNotice(`${cardName} is on the table - other players may answer with Sabotage.`, "info");
-      }
+  const play = async (params: Record<string, unknown>) => {
+    if (isNote) {
+      const result = await playPromissory(playerId, cardId, params);
       if (!result.implemented) {
         setNotice(
-          `${cardName} is not automated yet - it was played and discarded. Resolve its effect by hand.`,
+          `${cardName} is not automated yet - it was played. Resolve its effect by hand.`,
           "info",
         );
       }
       onPlayed();
-    } catch {
-      // Powód pokazał już komunikat (useBoardEditor.post); okno zostaje do poprawki wyboru.
-    } finally {
-      setBusy(false);
+      return;
     }
+    if (isRelic) {
+      const result = await playRelic(
+        playerId,
+        cardId,
+        params,
+        isFrontier ? "/frontier-card/play" : "/relic/play",
+      );
+      if (!result.implemented) {
+        setNotice(
+          `${cardName} is not automated yet - it counts as your action. Resolve its effect by hand.`,
+          "info",
+        );
+      }
+      onPlayed();
+      return;
+    }
+    const result = await playActionCard(playerId, cardId, params, seq);
+    if (result.held) {
+      setNotice(`${cardName} is on the table - other players may answer with Sabotage.`, "info");
+    }
+    if (!result.implemented) {
+      setNotice(
+        `${cardName} is not automated yet - it was played and discarded. Resolve its effect by hand.`,
+        "info",
+      );
+    }
+    onPlayed();
   };
 
+  const data = form.data;
+  const notes: string[] = [];
+  if (seq !== undefined) {
+    notes.push(
+      `HOLD: the game goes back to this step${rewindNote ? ` (${rewindNote})` : ""} and everything after it is undone.`,
+    );
+  }
+  if (data && "summary" in data && data.summary) notes.push(data.summary);
+  if (data && !data.implemented) {
+    notes.push(
+      isRelic
+        ? "The engine does not automate this relic yet. Using it counts as your action - resolve the effect by hand."
+        : "The engine does not automate this card yet. Playing it counts as your action and discards it - resolve the effect by hand.",
+    );
+  }
+  const infoKind = isNote ? "promissory" : isRelic ? "relic" : "actionCard";
+
   return (
-    <AppModal floating opened onClose={onClose} title={cardName} size={460}>
-      <Stack gap="md">
-        {form.isLoading && <Text size="sm" c="dimmed">Loading card…</Text>}
-        {form.isError && (
-          <Text size="sm" c="red">
-            {form.error instanceof Error ? form.error.message : "Could not load this card."}
-          </Text>
-        )}
-        {form.data && (
-          <>
-            {seq !== undefined && (
-              <Text size="sm" c="orange">
-                HOLD: the game goes back to this step{rewindNote ? ` (${rewindNote})` : ""} and
-                everything after it is undone.
-              </Text>
-            )}
-            <Text size="sm" c="dimmed">{form.data.text}</Text>
-            {"summary" in form.data && form.data.summary && (
-              <Text size="sm" fw={600}>{form.data.summary}</Text>
-            )}
-            {!form.data.implemented && (
-              <Text size="sm">
-                {isRelic
-                  ? "The engine does not automate this relic yet. Using it counts as your action - resolve the effect by hand."
-                  : "The engine does not automate this card yet. Playing it counts as your action and discards it - resolve the effect by hand."}
-              </Text>
-            )}
-            {(
-              <DecisionFields
-                inputs={inputs}
-                values={values}
-                disabled={busy}
-                onChange={(key, next) => setValues((prev) => ({ ...prev, [key]: next }))}
-              />
-            )}
-            {noTargets && (
-              <Text size="sm" c="red">
-                There is no legal target for this card right now.
-              </Text>
-            )}
-          </>
-        )}
-        <Group justify="flex-end" gap="sm">
-          <Button variant="default" disabled={busy} onClick={onClose}>
-            Cancel
-          </Button>
-          <Button disabled={busy || !form.data || !ready || noTargets} onClick={() => void play()}>
-            {isRelic ? "Use relic" : isNote ? "Play note" : "Play card"}
-          </Button>
-        </Group>
-      </Stack>
-    </AppModal>
+    <ComponentUseModal
+      title={cardName}
+      kind={isNote ? "Promissory note" : isFrontier ? "Frontier card" : isRelic ? "Relic" : "Action card"}
+      infoRef={isFrontier ? undefined : { kind: infoKind, id: cardId }}
+      infoName={cardName}
+      loading={form.isLoading}
+      error={formError(form.error, "Could not load this card.")}
+      text={data?.text}
+      notes={notes}
+      inputs={inputs}
+      noOptionsMessage="There is no legal target for this card right now."
+      useLabel={isRelic ? "Use relic" : isNote ? "Play note" : "Play card"}
+      onUse={play}
+      onClose={onClose}
+      size={460}
+    />
   );
 }
