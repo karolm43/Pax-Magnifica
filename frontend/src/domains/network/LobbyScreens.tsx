@@ -9,7 +9,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Group, Modal, Paper, Stack, Text, TextInput } from "@/ds";
-import { useLobby, useLobbyActions, useSaves } from "./useLobby";
+import { type SaveEntry, useLobby, useLobbyActions, useSaves } from "./useLobby";
 import { useNetworkMe } from "./useNetworkMe";
 
 const panelStyle: React.CSSProperties = { maxWidth: 460, width: "100%" };
@@ -108,20 +108,34 @@ export function JoinScreen() {
   );
 }
 
-/** Lista zapisów + wczytanie. */
-export function LoadGameModal({ opened, onClose }: { opened: boolean; onClose: () => void }) {
+/** Faza z zapisu (`action`, `strategy`…) → „Action phase". */
+export function formatSavePhase(phase: string | null): string {
+  if (!phase) return "-";
+  const words = phase.replace(/[_-]+/g, " ").toLowerCase();
+  return `${words.charAt(0).toUpperCase()}${words.slice(1)} phase`;
+}
+
+/** Jednolinijkowy opis zapisu: „Round 3 · Action phase" (albo informacja o uszkodzeniu). */
+export function describeSave(s: SaveEntry): string {
+  if (s.broken) return "Cannot be read";
+  return `Round ${s.round_number ?? "-"} · ${formatSavePhase(s.phase)}`;
+}
+
+/**
+ * Wczytanie zapisu i przejście do gry — wspólne dla okna „Load game" i panelu
+ * „Recent games" w menu głównym (jedno miejsce logiki, ten sam komunikat błędu).
+ */
+export function useLoadSave(onLoaded?: () => void) {
   const navigate = useNavigate();
-  const { data, isLoading, error } = useSaves(opened);
   const actions = useLobbyActions();
   const [loading, setLoading] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-
   const load = async (name: string) => {
     setLoading(name);
     setLoadError(null);
     try {
       await actions.loadSave(name);
-      onClose();
+      onLoaded?.();
       navigate("/game");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : String(e));
@@ -129,6 +143,13 @@ export function LoadGameModal({ opened, onClose }: { opened: boolean; onClose: (
       setLoading(null);
     }
   };
+  return { load, loading, loadError };
+}
+
+/** Lista zapisów + wczytanie. */
+export function LoadGameModal({ opened, onClose }: { opened: boolean; onClose: () => void }) {
+  const { data, isLoading, error } = useSaves(opened);
+  const { load, loading, loadError } = useLoadSave(onClose);
 
   return (
     <Modal opened={opened} onClose={onClose} title="Load game" size="lg">
@@ -147,10 +168,7 @@ export function LoadGameModal({ opened, onClose }: { opened: boolean; onClose: (
                   {s.current ? " (current)" : ""}
                 </Text>
                 <Text size="xs" c="dimmed">
-                  {s.broken
-                    ? "Cannot be read"
-                    : `Round ${s.round_number ?? "-"} · ${s.phase ?? "-"} · `}
-                  {new Date(s.modified * 1000).toLocaleString()}
+                  {describeSave(s)} · {new Date(s.modified * 1000).toLocaleString()}
                 </Text>
               </Stack>
               <Button

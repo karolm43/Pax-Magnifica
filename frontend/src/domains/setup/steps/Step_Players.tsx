@@ -39,6 +39,40 @@ const PLAYER_COUNTS = Array.from(
   (_, i) => MIN_PLAYERS + i,
 );
 
+/**
+ * Sposób przygotowania partii (frakcje + mapa). Dziś działa tylko „Standard"
+ * (frakcję wybiera każdy gracz — także „Random" w scenie frakcji — a mapę host
+ * w sekcji „Map"). Drafty to następny etap: widoczne jako niedostępne z powodem,
+ * żeby lobby miało już docelowy kształt. Gdy draft powstanie, wybór trafi do
+ * `useSetupStore` i szkicu lobby (`lobby_draft.py`), a krok draftu do `setupSteps.ts`.
+ */
+const SETUP_METHODS: { id: string; title: string; text: string; available: boolean }[] = [
+  {
+    id: "standard",
+    title: "Standard",
+    text: "Everyone picks a faction (or Random); the host chooses the map below.",
+    available: true,
+  },
+  {
+    id: "random",
+    title: "Full random",
+    text: "Random factions, seats and map for everyone.",
+    available: false,
+  },
+  {
+    id: "milty",
+    title: "Milty Draft",
+    text: "Draft a faction, a map slice and a seat in snake order.",
+    available: false,
+  },
+  {
+    id: "franken",
+    title: "Franken Draft",
+    text: "Build your own faction by drafting abilities and components.",
+    available: false,
+  },
+];
+
 /** Wartość „losowo" w selektorach bota (pusty string = `null` w store'ie). */
 const RANDOM_OPTION = "";
 
@@ -355,6 +389,28 @@ export default function Step_Players({ stage }: SetupStepProps) {
             <p className={styles.hint}>
               Lowering the count keeps the first players&apos; settings.
             </p>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Setup method</h2>
+            <div className={styles.optionList} role="radiogroup" aria-label="Setup method">
+              {SETUP_METHODS.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={m.id === "standard"}
+                  disabled={!m.available}
+                  className={`${styles.option} ${m.id === "standard" ? styles.optionOn : ""}`}
+                >
+                  <span className={styles.optionHead}>
+                    <span className={styles.optionTitle}>{m.title}</span>
+                    {!m.available && <span className={styles.soon}>Soon</span>}
+                  </span>
+                  <span className={styles.optionText}>{m.text}</span>
+                </button>
+              ))}
+            </div>
           </section>
 
           <section className={styles.section}>

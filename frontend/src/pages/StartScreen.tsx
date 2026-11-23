@@ -6,7 +6,7 @@ import SetupWizard from "@/domains/setup/SetupWizard";
 import { SettingsModal } from "@/domains/settings/components/SettingsModal";
 import { usePageThemeClass } from "@/hooks/usePageThemeClass";
 import styles from "./StartScreen.module.css";
-import { JoinScreen, LoadGameModal } from "@/domains/network/LobbyScreens";
+import MainMenu from "./MainMenu";
 import { useSetupStore } from "@/domains/setup/useSetupStore";
 import { useLobbyActions } from "@/domains/network/useLobby";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
@@ -189,63 +189,18 @@ export default function StartScreen() {
           aria-hidden={view === "setup"}
           inert={view === "setup"}
         >
-          <div className={styles.menuTitleWrap}>
-            <h1 className={styles.menuTitle}>Custodian Engine</h1>
-            <span className={styles.titleRule} aria-hidden />
-            <p className={styles.menuTagline}>Twilight Imperium 4 — web game</p>
-          </div>
-
-          {isGuest ? (
-            <JoinScreen />
-          ) : (
-          <nav className={styles.menuButtons} aria-label="Main menu">
-            <Button
-              size="xl"
-              fullWidth
-              className={styles.menuButton}
-              onClick={() => void play()}
-            >
-              Play
-            </Button>
-            <Button
-              size="xl"
-              fullWidth
-              variant="default"
-              className={styles.menuButton}
-              onClick={() => setLoadOpen(true)}
-            >
-              Load game
-            </Button>
-            <Button
-              size="xl"
-              fullWidth
-              variant="default"
-              className={styles.menuButton}
-              onClick={() => setSettingsOpen(true)}
-            >
-              Settings
-            </Button>
-            <Button
-              size="xl"
-              fullWidth
-              variant="default"
-              className={styles.menuButton}
-              onClick={() => openGuide()}
-            >
-              How to play
-            </Button>
-            <Button
-              size="xl"
-              fullWidth
-              variant="default"
-              className={styles.menuButton}
-              onClick={() => navigate("/rules")}
-            >
-              Rules
-            </Button>
-            {lobbyError && <p role="alert">{lobbyError}</p>}
-          </nav>
-          )}
+          <MainMenu
+            isGuest={isGuest}
+            onPlay={() => void play()}
+            onContinue={() => navigate("/game")}
+            onLoad={() => setLoadOpen(true)}
+            onSettings={() => setSettingsOpen(true)}
+            onGuide={() => openGuide()}
+            onRules={() => navigate("/rules")}
+            lobbyError={lobbyError}
+            loadOpen={loadOpen}
+            onLoadClose={() => setLoadOpen(false)}
+          />
         </div>
 
         {/* ── Ekran konfiguracji nowej gry (Setup_Wizard) ───────────────── */}
@@ -266,7 +221,6 @@ export default function StartScreen() {
       {/* Ustawienia — ten sam panel co w grze (`SettingsModal`), żeby np. tryb
           administratora (szybkie testy) dało się włączyć JESZCZE przed startem gry,
           zanim pojawi się intro. Stan jest współdzielony przez `useSettingsStore`. */}
-      <LoadGameModal opened={loadOpen} onClose={() => setLoadOpen(false)} />
       <HowToPlayModal />
       <SettingsModal
         opened={settingsOpen}

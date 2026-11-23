@@ -7,6 +7,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 .venv/
+# Sekrety (klucze Supabase itp.) — nigdy w repo
+.env
+.env.*
 venv/
 env/
 .Python

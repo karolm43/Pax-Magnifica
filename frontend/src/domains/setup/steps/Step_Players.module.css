@@ -330,6 +330,32 @@
   color: var(--ds-ink-lo);
 }
 
+/* Opcja jeszcze niedostępna (np. Milty Draft) — szara, z powodem w podpisie. */
+.option:disabled,
+.option:disabled:hover {
+  cursor: not-allowed;
+  opacity: 0.55;
+  border-color: var(--ds-h10);
+  background: var(--ds-socket);
+}
+
+.optionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.soon {
+  padding: 0 6px;
+  border: 1px solid rgb(252 162 43 / 0.55);
+  border-radius: 999px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(252 162 43);
+}
+
 /* Szybkie akcje. */
 .actionList {
   display: flex;

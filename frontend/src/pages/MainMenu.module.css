@@ -1,0 +1,521 @@
+/*
+ * Menu główne — układ „ekranu tytułowego" gry strategicznej.
+ * Tło (grafika + winieta) daje `StartScreen` (`.root`); tu tylko warstwa treści.
+ * Kolory: dekoracje w cieple TI4 (bursztyn / gradient czerwień→złoto), niebieski akcent
+ * DS wyłącznie jako sygnał interakcji (focus). Bez ozdobnych pasków u góry ekranu.
+ */
+
+.layout {
+  position: relative;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(440px, 36vw) 1fr minmax(320px, 24vw);
+  grid-template-rows: 1fr auto;
+  text-align: left;
+}
+
+/*
+ * Ciemne „szkło" pod lewą kolumną: gradient od lewej krawędzi ekranu do przezroczystości,
+ * żeby nawigacja była czytelna, a grafika tła nadal widoczna po prawej.
+ */
+.layout::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: min(62vw, 980px);
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgb(0 0 0 / 0.78) 0%,
+    rgb(0 0 0 / 0.6) 45%,
+    rgb(0 0 0 / 0.22) 78%,
+    transparent 100%
+  );
+}
+
+/* ── Lewa kolumna: logo + nawigacja ───────────────────────────────────── */
+
+.left {
+  position: relative;
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(24px, 5vh, 56px);
+  padding: clamp(32px, 6vh, 72px) clamp(28px, 4vw, 72px) 0;
+  min-height: 0;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  animation: rise 0.7s var(--ds-ease) both;
+}
+
+/*
+ * Logo w lewej kolumnie: te same litery co na ekranie rozruchu (`.menuTitle` ze
+ * StartScreen.module.css), ale mniejsze, wyrównane do lewej i w dwóch liniach.
+ * `scaleY` rośnie z lewej krawędzi; margines w pionie kompensuje wydłużenie dwóch linii.
+ */
+.logo {
+  font-size: clamp(2.3rem, 3.7vw, 4.3rem);
+  line-height: 1.02;
+  text-align: left;
+  text-indent: 0;
+  transform-origin: left center;
+  margin-block: 0.42em 0.3em;
+}
+
+.logoLine {
+  display: block;
+}
+
+.logoRule {
+  width: min(100%, 460px);
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #f24a21 0%, #fca22b 40%, #ffd34a 70%, transparent 100%);
+  box-shadow: 0 0 14px rgb(246 121 42 / 0.45);
+}
+
+.tagline {
+  margin: 4px 0 0;
+  font-family: var(--ds-font-display);
+  font-size: clamp(0.8rem, 1vw, 0.95rem);
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgb(252 162 43 / 0.85);
+  text-shadow: 0 2px 10px rgb(0 0 0 / 0.7);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: min(100%, 460px);
+  /* Etykiety równo z logo: wcięcie pozycji (znacznik hover) wychodzi w lewo. */
+  margin-left: -20px;
+}
+
+/* Pozycje wchodzą kaskadą (kolejne opóźnienia), szybko — to informacja robocza. */
+.nav > * {
+  animation: rise 0.5s var(--ds-ease) both;
+}
+.nav > :nth-child(1) { animation-delay: 0.1s; }
+.nav > :nth-child(2) { animation-delay: 0.15s; }
+.nav > :nth-child(3) { animation-delay: 0.2s; }
+.nav > :nth-child(4) { animation-delay: 0.25s; }
+.nav > :nth-child(5) { animation-delay: 0.3s; }
+.nav > :nth-child(6) { animation-delay: 0.35s; }
+.nav > :nth-child(7) { animation-delay: 0.4s; }
+.nav > :nth-child(8) { animation-delay: 0.45s; }
+.nav > :nth-child(9) { animation-delay: 0.5s; }
+
+.navItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 16px 9px 18px;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--ds-radius-md) var(--ds-radius-md) 0;
+  background: transparent;
+  color: var(--ds-ink-hi);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--ds-dur) var(--ds-ease-standard),
+    border-color var(--ds-dur) var(--ds-ease-standard),
+    transform var(--ds-dur) var(--ds-ease-standard);
+}
+
+.navItem:hover:not(:disabled) {
+  border-left-color: rgb(252 162 43);
+  background: linear-gradient(90deg, rgb(252 162 43 / 0.16), rgb(252 162 43 / 0.04) 70%, transparent);
+  transform: translateX(4px);
+}
+
+.navItem:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
+}
+
+.navItem:active:not(:disabled) {
+  transform: translateX(2px);
+}
+
+/* Niedostępna pozycja: szary KOLOR (nie opacity — animacja wejścia z `fill: both`
+   trzyma opacity na 1 i nadpisałaby wyszarzenie). */
+.navItem:disabled {
+  cursor: not-allowed;
+}
+
+.navItem:disabled .navLabel {
+  color: var(--ds-ink-lo);
+}
+
+.navItem:disabled .navCaption {
+  color: rgb(134 142 150 / 0.7);
+}
+
+.navLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Handel Gothic", var(--ds-font-display), sans-serif;
+  font-size: clamp(1.15rem, 1.45vw, 1.5rem);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  line-height: 1.15;
+  text-shadow: 0 2px 10px rgb(0 0 0 / 0.75);
+}
+
+/* Główna akcja (Play / Continue): większa, w gradiencie TI4 wyciętym w literach. */
+.navItemPrimary .navLabel {
+  font-size: clamp(1.45rem, 1.9vw, 1.95rem);
+  background: linear-gradient(180deg, #f6792a 0%, #fca22b 45%, #ffd34a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 2px 8px rgb(0 0 0 / 0.7));
+}
+
+.navCaption {
+  font-size: var(--ds-fz-xs);
+  letter-spacing: 0.02em;
+  color: var(--ds-ink-lo);
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.8);
+  transition: color var(--ds-dur) var(--ds-ease-standard);
+}
+
+.navItem:hover:not(:disabled) .navCaption {
+  color: var(--ds-ink);
+}
+
+.badge {
+  padding: 1px 7px;
+  border: 1px solid rgb(252 162 43 / 0.55);
+  border-radius: 999px;
+  font-family: var(--ds-font-display);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgb(252 162 43);
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
+}
+
+.navDivider {
+  display: block;
+  height: 1px;
+  margin: 8px 0 8px 18px;
+  width: 60%;
+  background: linear-gradient(90deg, var(--ds-h22), transparent);
+}
+
+.join {
+  width: min(100%, 460px);
+  animation: rise 0.5s var(--ds-ease) 0.1s both;
+}
+
+/* ── Prawa kolumna: ostatnie gry ──────────────────────────────────────── */
+
+.right {
+  position: relative;
+  grid-column: 3;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--ds-space-md);
+  padding: clamp(80px, 12vh, 140px) clamp(20px, 3vw, 56px) var(--ds-space-lg) 0;
+  min-height: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-sm);
+  padding: var(--ds-space-md) var(--ds-space-lg);
+  border: 1px solid var(--ds-h14);
+  border-radius: var(--ds-radius-lg);
+  background: color-mix(in oklab, var(--ds-ground) 72%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--ds-shadow-lg);
+  animation: rise 0.6s var(--ds-ease) 0.3s both;
+}
+
+.panelTitle {
+  margin: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--ds-h10);
+  font-family: var(--ds-font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(252 162 43 / 0.9);
+}
+
+.empty {
+  margin: 0;
+  font-size: var(--ds-fz-xs);
+  line-height: 1.45;
+  color: var(--ds-ink-lo);
+}
+
+.saveList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.saveRow {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-sm);
+  padding: 8px 10px;
+  border: 1px solid var(--ds-h10);
+  border-radius: var(--ds-radius-md);
+  background: rgb(0 0 0 / 0.28);
+}
+
+.saveText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.savePlayers {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ds-fz-sm);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+}
+
+.saveMeta {
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+}
+
+.saveButton,
+.signIn {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border: 1px solid rgb(252 162 43 / 0.55);
+  border-radius: var(--ds-radius-sm);
+  background: rgb(252 162 43 / 0.1);
+  color: rgb(255 211 74);
+  font-family: var(--ds-font-display);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--ds-dur-fast) var(--ds-ease-standard),
+    border-color var(--ds-dur-fast) var(--ds-ease-standard);
+}
+
+.saveButton:hover:not(:disabled),
+.signIn:hover:not(:disabled) {
+  background: rgb(252 162 43 / 0.22);
+  border-color: rgb(252 162 43);
+}
+
+.saveButton:focus-visible,
+.signIn:focus-visible,
+.linkButton:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
+}
+
+.saveButton:disabled,
+.signIn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.linkButton {
+  align-self: flex-end;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ds-ink);
+  font-size: var(--ds-fz-xs);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  color: var(--ds-ink-hi);
+}
+
+.error {
+  margin: 4px 0 0;
+  font-size: var(--ds-fz-xs);
+  color: var(--ds-red-4);
+}
+
+/* ── Profil (prawy górny róg) ─────────────────────────────────────────── */
+
+.profile {
+  position: absolute;
+  z-index: 2;
+  top: clamp(14px, 2.6vh, 28px);
+  right: clamp(16px, 2.4vw, 40px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 6px;
+  border: 1px solid var(--ds-h14);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--ds-ground) 70%, transparent);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.6s var(--ds-ease-standard) 0.4s both;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgb(252 162 43 / 0.6);
+  background: radial-gradient(circle at 35% 30%, rgb(252 162 43 / 0.35), rgb(0 0 0 / 0.6));
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-weight: 700;
+  color: rgb(255 211 74);
+}
+
+.profileText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.profileName {
+  font-size: var(--ds-fz-sm);
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+}
+
+.profileSub {
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+}
+
+.signIn {
+  border-radius: 999px;
+}
+
+/* ── Stopka ───────────────────────────────────────────────────────────── */
+
+.footer {
+  position: relative;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-md);
+  padding: var(--ds-space-sm) clamp(28px, 4vw, 72px) var(--ds-space-md);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ds-ink-lo);
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.8);
+  animation: fadeIn 0.6s var(--ds-ease-standard) 0.5s both;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(252 162 43 / 0.8);
+  box-shadow: 0 0 8px rgb(252 162 43 / 0.6);
+}
+
+.statusDotLive {
+  background: var(--ds-green-5);
+  box-shadow: 0 0 8px rgb(81 207 102 / 0.7);
+}
+
+.footerNote {
+  text-align: right;
+}
+
+/* ── Animacje ─────────────────────────────────────────────────────────── */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Reduced-motion: zostaje sam spokojny fade (bez ruchu), hover bez przesunięcia. */
+@media (prefers-reduced-motion: reduce) {
+  .brand,
+  .nav > *,
+  .join,
+  .panel {
+    animation-name: fadeIn;
+  }
+  .navItem:hover:not(:disabled),
+  .navItem:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Wąskie okno: jedna kolumna, panel ostatnich gier pod nawigacją. */
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    overflow-y: auto;
+  }
+  .right {
+    grid-column: 1;
+    grid-row: 2;
+    padding: var(--ds-space-lg) clamp(28px, 4vw, 72px);
+  }
+  .footer {
+    grid-row: 3;
+  }
+  .footerNote {
+    display: none;
+  }
+}

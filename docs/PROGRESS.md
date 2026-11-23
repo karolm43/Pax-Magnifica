@@ -357,3 +357,17 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
   Manipulate Investments.
 - Testy: `test_reactions_agenda.py` (wiedza), `test_strategy_diplomacy_politics_imperial.py`, `test_action_cards_economy.py`,
   `KnownCards.test.ts`.
+
+
+## Menu główne „AAA” + lobby: sposób przygotowania partii (plan kont)
+
+- Nowe menu `pages/MainMenu.tsx` (+css): lewa kolumna na ciemnym szkle (logo w dwóch liniach, nawigacja z podpisami,
+  główna akcja w gradiencie TI4), „Continue” gdy jest bieżąca partia, panel „Recent games” (zapisy, wczytanie
+  jednym kliknięciem), profil „Guest” w rogu (logowanie nieaktywne z powodem), stopka ze statusem serwera.
+  Nazwy przycisków bez zmian (E2E). „Game history” = „Soon” (wymaga kont).
+- Wspólna logika zapisów: `useLoadSave`, `describeSave`, `formatSavePhase` w `LobbyScreens.tsx` (okno Load game + menu).
+- Lobby (`Step_Players`): sekcja „Setup method” — Standard aktywny; Full random / Milty Draft / Franken Draft szare
+  („Soon”), bez logiki.
+- Usunięte martwe style starego menu/kreatora z `StartScreen.module.css`. `.env` w głównym `.gitignore`.
+- Plan kont, historii i draftów + instrukcja Supabase: `docs/PLAN_KONTA_LOBBY.md`.
+- QA: tsc, eslint (zmienione), vitest `domains/network` + `domains/setup`, zrzuty Playwright (menu 1600/1920, lobby).
