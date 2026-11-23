@@ -309,7 +309,7 @@ def _dice(state: GameState, registry: StaticDataRegistry, player: str) -> dict[s
     return {u.base_type: u.total_dice for u in units}
 
 
-@ruling("leaders:solagent#1")
+@ruling("leaders:solagent#1", "leaders:solagent#2")
 def test_evelyn_jedna_kosc_dla_jednej_sily_naziemnej(registry: StaticDataRegistry) -> None:
     after = _evelyn_round(registry, "p1|infantry")
     assert leaders.state_of(after, registry, "p1", sol.AGENT) == leaders.EXHAUSTED

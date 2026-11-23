@@ -67,7 +67,7 @@ def test_ambuscade_dodatkowa_kosc_afb_i_zwrot(registry: StaticDataRegistry) -> N
                    state["active_effects"])
 
 
-@ruling("leaders:argentagent#1")
+@ruling("leaders:argentagent#1", "leaders:argentagent#2")
 @covers("leaders:argentagent")
 def test_trilossa_przenosi_wyprodukowana_piechote(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "argent")

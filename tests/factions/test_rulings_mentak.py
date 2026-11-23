@@ -847,7 +847,7 @@ def test_corsair_karta_na_cruiser_ii(registry: StaticDataRegistry) -> None:
 # ======================================================================================= Suffi An
 
 
-@ruling("leaders:mentakagent#1")
+@ruling("leaders:mentakagent#1", "leaders:mentakagent#2")
 def test_suffi_an_po_pillage(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].leader_states = {mentak.AGENT: "unlocked"}

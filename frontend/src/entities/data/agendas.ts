@@ -1999,7 +1999,7 @@ export const agendas: Agenda[] = [
     target:
       "Elect Scored Secret Objective (When this agenda is revealed, if there are no scored secret objectives, discard this card and reveal another agenda from the top of the deck.)",
     text1:
-      "The elected secret objective becomes a public objective - place it near the other public objectives in the common play area.",
+      "The elected secret objective becomes a public objective; place it near the other public objectives in the common play area.",
     text2: "",
     mapText:
       "The elected secret objective becomes a public objective. Place it near the other public objectives in the common play area.",
@@ -2092,7 +2092,7 @@ export const agendas: Agenda[] = [
     name: "Covert Legislation",
     type: "Directive",
     target:
-      "When this agenda is revealed, the speaker draws the next card in the agenda deck but does not reveal it to the other players. Instead, the speaker reads the eligible outcomes aloud (for, against, elect Elect Player, etc.). The other Players vote for these outcomes as if they were outcomes of this agenda, without knowing their effects.",
+      "When this agenda is revealed, the speaker draws the next card in the agenda deck but does not reveal it to the other players. Instead, the speaker reads the eligible outcomes aloud (for, against, elect player, etc.); the other players vote for these outcomes as if they were outcomes of this agenda, without knowing their effects.",
     text1: "",
     text2: "",
     source: "pok",
@@ -2103,7 +2103,7 @@ export const agendas: Agenda[] = [
     type: "Directive",
     target: "Elect Strategy Card",
     text1:
-      "Each player may perform the secondary ability of the elected strategy card without spending a command token - command tokens placed by the ability are placed from a player's reinforcements instead.",
+      "Each player may perform the secondary ability of the elected strategy card without spending a command token; command tokens placed by the ability are placed from a player's reinforcements instead.",
     text2: "",
     source: "pok",
   },
@@ -2851,7 +2851,7 @@ export const agendas: Agenda[] = [
     text1:
       "For: Draw and reveal 1 stage I public objective from the deck and place it near the public objectives.",
     text2:
-      "Against: Draw and reveal 1 stage II public from the deck and place it near the public objectives.",
+      "Against: Draw and reveal 1 stage II public objective from the deck and place it near the public objectives.",
     forEmoji: "Public1alt",
     againstEmoji: "Public2alt",
     source: "base",
@@ -3563,7 +3563,7 @@ export const agendas: Agenda[] = [
     type: "Law",
     target: "Elect Player",
     text1:
-      "The elected player gains this card. After a player activates a system that contains 1 or more of a different player's units, the owner of this card may discard this card - immediately end the active player's turn.",
+      "The elected player gains this card. After a player activates a system that contains 1 or more of a different player's units, the owner of this card may discard this card; immediately end the active player's turn.",
     text2: "",
     mapText:
       "After a player activates a system that contains 1 or more of a different player's units, you may discard this card - immediately end the active player's turn.",
@@ -3598,7 +3598,7 @@ export const agendas: Agenda[] = [
     type: "Law",
     target: "Elect Player",
     text1:
-      "The elected player gains this card. The owner of this card may discard this card after performing an action to remove 1 of their command tokens from the game board and return it to their reinforcements - then they may perform 1 additional action.",
+      "The elected player gains this card. The owner of this card may discard this card after performing an action to remove 1 of their command tokens from the game board and return it to their reinforcements; then they may perform 1 additional action.",
     text2: "",
     mapText:
       "Discard this card after performing an action to return 1 of your command counters from the game board to your reinforcements. then you may perform 1 additional action.",
@@ -3773,7 +3773,7 @@ export const agendas: Agenda[] = [
     type: "Directive",
     target: "Elect Non-Home Planet Other Than Mecatol Rex",
     text1:
-      "Destroy each unit on the elected planet. Then, the player who controls that planet chooses 1 player with the fewest victory points - that player may place 1 infantry from their reinforcements on that planet.",
+      "Destroy each unit on the elected planet. Then, the player who controls that planet chooses 1 player with the fewest victory points; that player may place 1 infantry from their reinforcements on that planet.",
     text2: "",
     source: "base",
   },
@@ -3795,7 +3795,7 @@ export const agendas: Agenda[] = [
     type: "Law",
     target: "For/Against",
     text1:
-      "For: Players cannot exhaust planets to cast votes during the agenda phase. each player may cast 1 vote on each agenda instead. Players cannot cast additional votes.",
+      "For: Players cannot exhaust planets to cast votes during the agenda phase; each player may cast 1 vote on each agenda instead. Players cannot cast additional votes.",
     text2:
       'Against: At the start of the next strategy phase, each player that voted "Against" exhausts all of their cultural planets.',
     forEmoji: "🗳️",
@@ -4215,7 +4215,7 @@ export const agendas: Agenda[] = [
     type: "Directive",
     target: "Elect Player",
     text1:
-      "The elected player place command tokens from their reinforcements so that they have 3 tokens in their tactic pool, 3 tokens in their fleet pool, and 2 tokens in their strategy pool. They return any excess tokens to their reinforcements.",
+      "The elected player places command tokens from their reinforcements so that they have 3 tokens in their tactic pool, 3 tokens in their fleet pool, and 2 tokens in their strategy pool. They return any excess tokens to their reinforcements.",
     text2: "",
     source: "pok",
   },
@@ -4436,7 +4436,7 @@ export const agendas: Agenda[] = [
     name: "Compensated Disarmament",
     type: "Directive",
     target: "Elect Planet",
-    text1: "Destroy each ground force on the elected planet. For each unit that was destroyed, the player who control that planet gains 1 trade good.",
+    text1: "Destroy each ground force on the elected planet; for each unit that was destroyed, the player who controls that planet gains 1 trade good.",
     text2: "",
     source: "base",
   },

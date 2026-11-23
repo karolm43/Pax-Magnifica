@@ -166,7 +166,7 @@ def test_letani_warrior_ii_prog_z_karty() -> None:
 # --------------------------------------------------------------------------- Letani Ospha
 
 
-@ruling("leaders:arborecagent#1")
+@ruling("leaders:arborecagent#1", "leaders:arborecagent#2")
 def test_letani_ospha_wlasciciel_zamienia_statek(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems["102"].space_units = {"p2": {"destroyer": 1}}

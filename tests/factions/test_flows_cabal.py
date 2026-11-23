@@ -94,7 +94,7 @@ def test_dimensional_anchor(registry: StaticDataRegistry) -> None:
 
 
 @covers("promissory_notes:crucible")
-@ruling("promissory_notes:crucible#2")
+@ruling("promissory_notes:crucible#2", "promissory_notes:crucible#3")
 def test_crucible_po_aktywacji_wraca_do_cabal(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "cabal")
     note = flow.give_note("crucible", flow.other)

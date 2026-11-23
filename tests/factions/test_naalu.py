@@ -226,7 +226,7 @@ def test_gift_poza_koncem_fazy_strategii_niezagrywalny(registry: StaticDataRegis
     assert not rows[naalu.GIFT]["playable"]
 
 
-@ruling("promissory_notes:gift#3")
+@ruling("promissory_notes:gift#3", "promissory_notes:gift#4")
 def test_gift_wraca_do_naalu_na_koncu_statusu(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p2"].promissory_notes_in_play = [naalu.GIFT]

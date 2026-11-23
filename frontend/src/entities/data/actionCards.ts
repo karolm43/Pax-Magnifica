@@ -821,7 +821,7 @@ export const actionCards: ActionCard[] = [
     name: "Coup d'Etat",
     phase: "Action",
     window: "When another player would perform a strategic action",
-    text: "End that player's turn, the strategic action is not resolved and the strategy card is not exhausted.",
+    text: "End that player's turn; the strategic action is not resolved and the strategy card is not exhausted.",
     flavorText:
       "Artuno shoved the slug pistol into Huro's face as armored mercenaries stormed into the office. \"I'm afraid the station's undergoing a change in management.\"",
     source: "pok",
@@ -983,7 +983,7 @@ export const actionCards: ActionCard[] = [
     name: "Deadly Plot",
     phase: "Agenda",
     window: "During the agenda phase when an outcome would be resolved",
-    text: "If you voted for or predicted another outcome, discard the agenda instead. The agenda is resolved with no effect and it is not replaced. Then, exhaust all of your planets.",
+    text: "If you voted for or predicted another outcome, discard the agenda instead; the agenda is resolved with no effect and it is not replaced. Then, exhaust all of your planets.",
     flavorText:
       "The hooded envoy erupted into a nightmare of black metal, lunging at the shocked diplomats.",
     source: "pok",
@@ -1443,7 +1443,7 @@ export const actionCards: ActionCard[] = [
     name: "Diplomatic Pressure",
     phase: "Agenda",
     window: "When an agenda is revealed",
-    text: "Choose another player. That player must give you 1 promissory note from their hand. [Note: one player cannot play multiple of these on another player in the same agenda]",
+    text: "Choose another player; that player must give you 1 promissory note from their hand.",
     automationID: "diplo_pressure",
     flavorText:
       'The Arborec emissary leaned close, and Brother Milor flinched at the faint whiff of decay. "You do not understand," Dirzuga Ohao rasped. "You must support this measure."',
@@ -1454,7 +1454,7 @@ export const actionCards: ActionCard[] = [
     name: "Diplomatic Pressure",
     phase: "Agenda",
     window: "When an agenda is revealed",
-    text: "Choose another player. That player must give you 1 promissory note from their hand. [Note: one player cannot play multiple of these on another player in the same agenda]",
+    text: "Choose another player; that player must give you 1 promissory note from their hand.",
     automationID: "diplo_pressure",
     flavorText:
       'Brother Milor shook his head. "The Brotherhood can not support your war against this extra-dimensional threat." Dirzuga Ohao raised an eyebrow. "Are you certain?"',
@@ -1465,7 +1465,7 @@ export const actionCards: ActionCard[] = [
     name: "Diplomatic Pressure",
     phase: "Agenda",
     window: "When an agenda is revealed",
-    text: "Choose another player. That player must give you 1 promissory note from their hand. [Note: one player cannot play multiple of these on another player in the same agenda]",
+    text: "Choose another player; that player must give you 1 promissory note from their hand.",
     automationID: "diplo_pressure",
     flavorText:
       'It would be unfortunate, the Arborec Dirzuga said, "if your supplies of diraxium were to dry up. How would your fleet defend you if we stopped supplying its fuel?"',
@@ -1476,7 +1476,7 @@ export const actionCards: ActionCard[] = [
     name: "Diplomatic Pressure",
     phase: "Agenda",
     window: "When an agenda is revealed",
-    text: "Choose another player. That player must give you 1 promissory note from their hand. [Note: one player cannot play multiple of these on another player in the same agenda]",
+    text: "Choose another player; that player must give you 1 promissory note from their hand.",
     automationID: "diplo_pressure",
     flavorText:
       'Damn you! Brother MIlor hissed. "You leave us no choice but to fight in your war." Dirzuga Ohao smiled, dead skin stretching over her teeth.',
@@ -1647,7 +1647,7 @@ export const actionCards: ActionCard[] = [
     name: "Fighter Conscription",
     phase: "Action",
     window: "Action",
-    text: "Place 1 fighter from your reinforcements in each system that contains 1 or more of your space docks or units that have capacity. They cannot be placed in systems that contain other players' ships.",
+    text: "Place 1 fighter from your reinforcements in each system that contains 1 or more of your space docks or units that have capacity; they cannot be placed in systems that contain other players' ships.",
     flavorText:
       'T\'esla grinned as her shimmering vessel lifted off the flight deck - at last, that damned Viscount would experience the superiority of Naalu dogfighting. "Get ready," she hissed into the comms.',
     source: "codex1",
@@ -2040,7 +2040,7 @@ export const actionCards: ActionCard[] = [
     name: "Ghost Squad",
     phase: "Action",
     window: "After another player commits units to land on a planet you control",
-    text: "Move any number of your ground forces from any planet you control in the active system to any other planet you control in the active system.",
+    text: "Move any number of ground forces from any planet you control in the active system to any other planet you control in the active system.",
     flavorText:
       "The L1 advance team was expecting to find the outpost abandoned. What they found - unfortunately for them - was Connor.",
     source: "codex1",
@@ -2301,7 +2301,7 @@ export const actionCards: ActionCard[] = [
     name: "Manipulate Investments",
     phase: "Strategy",
     window: "At the start of the strategy phase",
-    text: "Place a total of 5 trade goods from the supply on strategy cards of your choice. You must place these tokens on at least 3 different cards.",
+    text: "Place a total of 5 trade goods from the supply on strategy cards of your choice; you must place these tokens on at least 3 different cards.",
     flavorText:
       'But my good fellow, the envoy sputtered. "Surely you can\'t expect me to agree to those prices!" Durruq leaned in close. "Check again. You may find your goods are trading for less than you think."',
     source: "pok",
@@ -2880,7 +2880,7 @@ export const actionCards: ActionCard[] = [
     name: "Nav Suite",
     phase: "Action",
     window: "After you activate a system",
-    text: "During the 'Movement' step of this tactical action, ignore the effect of anomalies.",
+    text: "During the \"Movement\" step of this tactical action, ignore the effect of anomalies.",
     flavorText:
       'The field is too thick! Sikosk gasped. Trrakan\'s plume flared. "Not for me, and not for Iruth." A flick of his talon, and the destroyer flipped and dove for the asteroid field.',
     source: "pok",
@@ -3207,7 +3207,7 @@ export const actionCards: ActionCard[] = [
     name: "Plagiarize",
     phase: "Action",
     window: "Action",
-    text: "Spend 5 influence and choose a non-faction technology owned by 1 of your neighbors. Gain that technology.",
+    text: "Spend 5 influence and choose a non-faction technology owned by 1 of your neighbors; gain that technology.",
     automationID: "plagiarize",
     flavorText:
       'The Yssaril spies handed over their prize to Connor, who in turn passed it to the Sol engineers with a grim smile. "Now then, boys," he said, one hand on his rifle, "about those loose ends..."',
@@ -3603,7 +3603,7 @@ export const actionCards: ActionCard[] = [
     name: "Refit Troops",
     phase: "Action",
     window: "Action",
-    text: "Choose 1 or 2 of your infantry on the game board. Replace each of those infantry with mechs.",
+    text: "Choose 1 or 2 of your infantry on the game board; replace each of those infantry with mechs.",
     flavorText:
       "Sek'kus leapt from the trenches, the plasma projectors on her Valkyrie exoskeleton howling as they scoured the field ahead of her.",
     source: "pok",
@@ -3846,7 +3846,7 @@ export const actionCards: ActionCard[] = [
     name: "Rout",
     phase: "Action",
     window:
-      "At the start of the 'Announce Retreats' step of space combat, if you are the defender",
+      "At the start of the \"Announce Retreats\" step of space combat, if you are the defender",
     text: "Your opponent must announce a retreat, if able.",
     flavorText:
       "Vuil'raith fleshships swarmed the weary defenders, sending unease and sweeping through the telepathic links. But Z'eu projected a powerful feeling of calm, and the Naalu fighters began to drive the Cabal back toward the rift.",
@@ -3868,7 +3868,7 @@ export const actionCards: ActionCard[] = [
     name: "Skilled Retreat",
     phase: "Action",
     window: "At the start of a combat round",
-    text: "Move all of your ships from the active system into an adjacent system that does not contain another player's ships. The space combat ends in a draw. Then, place a command token from your reinforcements in that system.",
+    text: "Move all of your ships from the active system into an adjacent system that does not contain another player's ships; the space combat ends in a draw. Then, place a command token from your reinforcements in that system.",
     automationID: "skilled_retreat",
     flavorText:
       "In an instant, the Sol fleet vanished from the Barony's scanners.",
@@ -3879,7 +3879,7 @@ export const actionCards: ActionCard[] = [
     name: "Skilled Retreat",
     phase: "Action",
     window: "At the start of a combat round",
-    text: "Move all of your ships from the active system into an adjacent system that does not contain another player's ships. The space combat ends in a draw. Then, place a command token from your reinforcements in that system.",
+    text: "Move all of your ships from the active system into an adjacent system that does not contain another player's ships; the space combat ends in a draw. Then, place a command token from your reinforcements in that system.",
     automationID: "skilled_retreat",
     flavorText:
       "The Creuss fleet was gone. No trace remained of their passage.",
@@ -3890,7 +3890,7 @@ export const actionCards: ActionCard[] = [
     name: "Skilled Retreat",
     phase: "Action",
     window: "At the start of a combat round",
-    text: "Move all of your ships from the active system into an adjacent system that does not contain another player's ships. The space combat ends in a draw. Then, place a command token from your reinforcements in that system.",
+    text: "Move all of your ships from the active system into an adjacent system that does not contain another player's ships; the space combat ends in a draw. Then, place a command token from your reinforcements in that system.",
     automationID: "skilled_retreat",
     flavorText:
       "T'ro gave the order, and the entire fleet withdrew without question.",
@@ -3901,7 +3901,7 @@ export const actionCards: ActionCard[] = [
     name: "Skilled Retreat",
     phase: "Action",
     window: "At the start of a combat round",
-    text: "Move all of your ships from the active system into an adjacent system that does not contain another player's ships. The space combat ends in a draw. Then, place a command token from your reinforcements in that system.",
+    text: "Move all of your ships from the active system into an adjacent system that does not contain another player's ships; the space combat ends in a draw. Then, place a command token from your reinforcements in that system.",
     automationID: "skilled_retreat",
     flavorText:
       'We have no choice, captain. Ciel looked nervous."We must retreat."',
@@ -3911,7 +3911,7 @@ export const actionCards: ActionCard[] = [
     alias: "sabo1",
     name: "Sabotage",
     phase: "Any",
-    window: "When another player plays an action card other than 'Sabotage'",
+    window: "When another player plays an action card other than \"Sabotage\"",
     text: "Cancel that action card.",
     flavorText:
       'Q\'uesh Sish tapped her claws impatiently. "You were sssaying?" But the confused Jol-Nar envoy stood silent. It was as if the words had escaped his thoughts entirely.',
@@ -3921,7 +3921,7 @@ export const actionCards: ActionCard[] = [
     alias: "sabo2",
     name: "Sabotage",
     phase: "Any",
-    window: "When another player plays an action card other than 'Sabotage'",
+    window: "When another player plays an action card other than \"Sabotage\"",
     text: "Cancel that action card.",
     flavorText:
       "trjn.desgn.ALIZARIN introduced itself to each data nodes, incorporating them into its platform, expunging any data it deemed a threat to the Virus.",
@@ -3931,7 +3931,7 @@ export const actionCards: ActionCard[] = [
     alias: "sabo3",
     name: "Sabotage",
     phase: "Any",
-    window: "When another player plays an action card other than 'Sabotage'",
+    window: "When another player plays an action card other than \"Sabotage\"",
     text: "Cancel that action card.",
     flavorText:
       "unit.desgn.BEELZEBUL followed the group of men through the winding hallways until they stopped at an intersection. Investigators would later find its cracked oculus at the center of a smoking crater, singed, but still functional.",
@@ -3941,7 +3941,7 @@ export const actionCards: ActionCard[] = [
     alias: "sabo4",
     name: "Sabotage",
     phase: "Any",
-    window: "When another player plays an action card other than 'Sabotage'",
+    window: "When another player plays an action card other than \"Sabotage\"",
     text: "Cancel that action card.",
     flavorText:
       "Unlenn smashed a clenched fist into the bulkhead, green eyes ablaze with rage. The entire plan had been turned on its head. Such incompetence was unfathomable.",
@@ -4064,7 +4064,7 @@ export const actionCards: ActionCard[] = [
     name: "Scuttle",
     phase: "Action",
     window: "Action",
-    text: "Choose 1 or 2 of your non-fighter ships on the game board and return them to your reinforcements. Gain trade goods equal to the combined cost of those ships.",
+    text: "Choose 1 or 2 of your non-fighter ships on the game board and return them to your reinforcements; gain trade goods equal to the combined cost of those ships.",
     flavorText:
       'Rear Admiral Farran saluted as he watched the blasted starship being towed to the scrap yard. "You served me well," he whispered. "Now you can serve the Barony once more."',
     source: "pok",
@@ -5098,7 +5098,7 @@ export const actionCards: ActionCard[] = [
     alias: "puppetsonastring",
     name: "Puppets on a String",
     phase: "Action",
-    window: "At the end of a player's turn, if you have passed",
+    window: "At the end of any player's turn, if you have passed",
     text: "Perform 1 action.",
     flavorText: "A red light flashed as the pile that was once thought to be destroyed remains of UNIT_DSGN_ASTAROTH came once more to life. \"YOU THOUGHT. YOU BELIEVED YOUR VICTORY SECURE. BUT YOU WERE WRONG.\"",
     source: "thunders_edge",
@@ -5189,7 +5189,7 @@ export const actionCards: ActionCard[] = [
     name: "Black Market Dealings",
     phase: "Any",
     window: "When you are negotiating a transaction",
-    text: "You and the other player may include relics, action cards, and unscored secret objectives as part of the transaction. This card cannot be canceled.",
+    text: "You and the other player can include relics, action cards, and unscored secret objectives as part of the transaction. This card cannot be canceled.",
     flavorText: "A chill went up Riad's spine as the Empyrean extended a clawed hand, a small black box floating in their palm, sucking up all the light and life in the room.",
     source: "thunders_edge",
   },
@@ -5242,7 +5242,7 @@ export const actionCards: ActionCard[] = [
     alias: "crisis",
     name: "Crisis",
     phase: "Action",
-    window: "At the end of any players turn, if there are at least 2 players who have not passed",
+    window: "At the end of any player's turn, if there are at least 2 players who have not passed",
     text: "Skip the next player's turn.",
     flavorText: "4X41A \"Apollo\" shrieked in the skies over Ordinian. Blazing shards of metal and fire rained down upon the planet's surface - the remains of Nekro whose atoms were undergoing a rapid and violent disintegration.",
     source: "thunders_edge",

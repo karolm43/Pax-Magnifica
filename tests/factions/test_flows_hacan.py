@@ -64,7 +64,7 @@ def test_carth_of_golden_sands_w_fazie_akcji(registry: StaticDataRegistry) -> No
 
 
 @covers("leaders:hacancommander")
-@ruling("leaders:hacancommander#1")
+@ruling("leaders:hacancommander#1", "leaders:hacancommander#2")
 def test_gila_przy_glosowaniu(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "hacan")
     flow.player(lambda p: p.update(trade_goods=10))

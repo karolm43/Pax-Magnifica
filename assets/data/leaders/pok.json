@@ -8,12 +8,14 @@
         "title": "Unity Through Peace",
         "tfTitle": "Abundance",
         "abilityWindow": "ACTION:",
-        "abilityText": "Exhaust this card and choose a player's non-fighter ship: that player may replace that ship with one from their reinforcements that costs up to 2 more than the replaced ship.",
+        "abilityText": "Exhaust this card and choose a player's non-fighter ship; that player may replace that ship with one from their reinforcements that costs up to 2 more than the replaced ship.",
         "unlockCondition": "Always Unlocked",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/arborecagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/arborecagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/pacific_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "tfAbilityText": "Exhaust this card and choose any player's non-fighter ship; that player may replace that ship with one from their reinforcements that costs up to 2 more than the replaced ship.",
+        "flavourText": "\"I am Arborec. Even the smallest spore may grow into a towering structure or a mighty vessel of the stars. I wish my spores to grow strong and tall and wide, and so I send forth my Letani. Through them, I unleash the full potential of myself.\""
     },
     {
         "id": "argentagent",
@@ -24,12 +26,13 @@
         "title": "Scorn of Ylir",
         "tfTitle": "Zeal",
         "abilityWindow": "When a player produces ground forces in a system:",
-        "abilityText": "You may exhaust this card: that player may place those units on any planets they control in that system and any adjacent systems.",
+        "abilityText": "You may exhaust this card; that player may place those units on any planets they control in that system and any adjacent systems.",
         "unlockCondition": "Always Unlocked",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/argentagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/argentagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/scornful_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "The forces of the Argent Flight muster in small flocks, rather than huge armies. To defeat larger foes, Mirik's foremost student Trilossa has mastered the art of concentrating her warriors to launch devastating precision assaults. Now she leads the vanguard of the Argent Flight in righteous war."
     },
     {
         "id": "cabalagent",
@@ -46,7 +49,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/cabalagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/cabalagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/ravenous_genome.png?raw=true",
-        "shortName": "Stillness of Stars"
+        "shortName": "Stillness of Stars",
+        "flavourText": "Three times, the freetrader ship had flown to the heart of the asteroid field in response to the summons. Each time, they brought stasis pods of unsuspecting colonists, and left them drifting next to the planetoid where they picked up their bundled ingots of precious metals. The fourth time, the freetrader ship did not return."
     },
     {
         "id": "ghostagent",
@@ -58,12 +62,13 @@
         "tfTitle": "Mystery",
         "abilityWindow": "After a player activates a system that contains a non-delta wormhole:",
         "tfAbilityWindow": "After a player activates a non-home system that contains a wormhole",
-        "abilityText": "You may exhaust this card: if you do, that system is adjacent to all other systems that contain a wormhole during this tactical action.",
+        "abilityText": "You may exhaust this card; if you do, that system is adjacent to all other systems that contain a wormhole during this tactical action.",
         "unlockCondition": "Always Unlocked",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/ghostagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/ghostagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/enigmatic_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "When the Jol-Nar fleet emerged from their hidden ambush amongst the planet's rings, they found...nothing. The Creuss convoy had simply vanished. All that remained was a message drone for the Hylar commodore from Taivra, regretting that they would not be able to meet in person."
     },
     {
         "id": "redcreussagent",
@@ -131,12 +136,13 @@
         "title": "The Gift of Night",
         "tfTitle": "Enlightenment",
         "abilityWindow": "After a player moves ships into a system that does not contain any planets:",
-        "abilityText": "You may exhaust this card: that player gains 1 command token.",
+        "abilityText": "You may exhaust this card; that player gains 1 command token.",
         "unlockCondition": "Always Unlocked",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/empyreanagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/empyreanagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/cosmic_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Acamar, the observer, greatest of the void-captains of the Empyrean. The lightless depths of space hold no terrors for them, for they have traveled from the raging black heart of the galaxy to its furthest edges, where even the stars grow cool and dim."
     },
     {
         "id": "hacanagent",
@@ -154,7 +160,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/hacanagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/hacanagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/silver_genome.png?raw=true",
-        "shortName": "Carth of G'ld'n Sands"
+        "shortName": "Carth of G'ld'n Sands",
+        "flavourText": "Responsible for all matters concerning the entire Kenara system, Carth is constantly enmeshed in a tangled web of trade deals, clan negotiations, and resource allocation pacts. To give her authority over the trading clans, she answers only to the Quieron."
     },
     {
         "id": "jolnaragent",
@@ -167,7 +174,8 @@
         "unlockCondition": "Always Unlocked",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/jolnaragent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/jolnaragent_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "After the Sidori Quarantine Breach forced the Hacan fleet to isolate and destroy Mishka Orbital, the Emirates demanded Doctor Sucaban be turned over to them for justice. Instead the Universities had the brilliant researcher 'die' in an aircar accident and installed him as a program director at their top-secret \"Black Trench\" facility."
     },
     {
         "id": "keleresagent",
@@ -184,7 +192,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/keleresagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/keleresagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/action_genome.png?raw=true",
-        "shortName": "Xander A. Victori III"
+        "shortName": "Xander A. Victori III",
+        "flavourText": "\"It's honestly incredible, the way that he manages to stretch a couple aurei. To find money where there is none. The man could fund an army at the same cost you or I might get lunch. Terrifying, really.\"\n - Suffi An"
     },
     {
         "id": "l1z1xagent",
@@ -203,7 +212,8 @@
         "source": "pok",
         "searchTags": [
             "l1 agent"
-        ]
+        ],
+        "flavourText": "\"For the other races, every soldier killed on the battlefield is a loss. Their experience, their training, and their warrior prowess are all spent. For we L1Z1X, every soldier killed is a chance to resurrect them into a form even more powerful than before.\""
     },
     {
         "id": "letnevagent",
@@ -216,12 +226,13 @@
         "title": "The Dunlain Scourge",
         "tfTitle": "Dominance",
         "abilityWindow": "At the start of a space combat round:",
-        "abilityText": "You may exhaust this card to choose 1 ship in the active system: that ship rolls 1 additional die during this combat round.",
+        "abilityText": "You may exhaust this card to choose 1 ship in the active system; that ship rolls 1 additional die during this combat round.",
         "unlockCondition": "Always Unlocked",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/letnevagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/letnevagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/aristocratic_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"The Alliance carrier has struck her colors,\" the master gunner reported. \"Shall we switch fire to their destroyers?\" Unlenn smiled cruelly and leaned over his warship's command pulpit. \"No. Bring all guns to bear on that carrier. I want it dead.\""
     },
     {
         "id": "mahactagent",
@@ -235,7 +246,8 @@
         "source": "pok",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/mahactagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/mahactagent_back.png?raw=true",
-        "shortName": "Jae\nMir Kan"
+        "shortName": "Jae\nMir Kan",
+        "flavourText": "\"If only you and the rest of your kind would submit to my will. My only hope is that you would know the rich prosperity of the slave who serves under a generous master.\""
     },
     {
         "id": "mentakagent",
@@ -244,11 +256,12 @@
         "name": "Suffi An",
         "title": "90% Smuggler, 110% Energy",
         "abilityWindow": "After the Pillage faction ability is used against another player:",
-        "abilityText": "You may exhaust this card: if you do, you and that player each draw 1 action card.",
+        "abilityText": "You may exhaust this card; if you do, you and that player each draw 1 action card.",
         "unlockCondition": "Always Unlocked",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/mentakagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/mentakagent_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"So to deliver these guns you're saying I need to get my ship around the Isofal Nebula and through the Charon Reefs, chart a new course through the Wraith Stars, then fight a couple of Winnu battlewagons? And here I thought you were giving me a challenge!\""
     },
     {
         "id": "muaatagent",
@@ -259,12 +272,14 @@
         "title": "Forgemaster",
         "tfTitle": "Intensity",
         "abilityWindow": "ACTION:",
-        "abilityText": "Exhaust this card to choose a player: that player may produce up to 2 units that each have a cost of 4 or less in a system that contains one of their war suns or their flagship.",
+        "abilityText": "Exhaust this card to choose a player; that player may produce up to 2 units that each have a cost of 4 or less in a system that contains one of their war suns or their flagship.",
         "unlockCondition": "Always Unlocked",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/muaatagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/muaatagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/molten_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "tfAbilityText": "Exhaust this card to choose a player; that player may produce up to 2 units that each have a cost of 4 or less in a system that contains one of their war suns or flagship.",
+        "flavourText": "From the outside, the forge appeared to be a perfectly smooth sphere of quicksilver, albeit one ringed by humming magno-coils. But when the forgemaster diverted the flow of raw base elements into its center, it began to ripple and bubble, and within minutes, a fully formed colossus emerged from its core."
     },
     {
         "id": "naaluagent",
@@ -294,7 +309,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/naazagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/naazagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/curious_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"I thought you disabled the laser traps!\" Garv yelped as the corridor filled with searing light. Gunn waved one hand from inside the open panel. \"No, that was the blade barrier. Just...throw something at the kill switch and see if that works!\""
     },
     {
         "id": "nekroagent",
@@ -305,12 +321,13 @@
         "title": "The Shifting Host",
         "tfTitle": "\\_ERROR\\_ERROR\\_ERROR\\_ERROR\\_",
         "abilityWindow": "During the action phase:",
-        "abilityText": "You may exhaust this card to choose a player: that player may discard 1 action card or spend 1 command token from their command sheet to gain 2 trade goods.",
+        "abilityText": "You may exhaust this card to choose a player; that player may discard 1 action card or spend 1 command token from their command sheet to gain 2 trade goods.",
         "unlockCondition": "Always Unlocked",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/nekroagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/nekroagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/recursive_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "UNIT.MALLEON.QUERY: NEED ORGANIC SUBSTANCES 18.9-75.1 FOR PROJECT SCOUR.\nORGANIC SUBSTANCES PRESENT IN BIOFORMS CAPTURED DURING COMBAT ACTION 181.9-DXI.\nRENDER CAPTURED BIOFORMS: Y/N?"
     },
     {
         "id": "nomadagentartuno",
@@ -327,7 +344,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/nomadagentartuno.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/nomadagentartuno_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/investment_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Once, Artuno was the head of security for Sumerian Station, trusted by Huro M'es and the other Sumerian factions to stay impartial and keep order. Then, two weeks after a chance meeting with the Nomad, M'es was in the brig, and the guilder leaders were either exiled or dead at her hand."
     },
     {
         "id": "nomadagentmercer",
@@ -346,7 +364,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/nomadagentmercer.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/nomadagentmercer_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/deployment_genome.png?raw=true",
-        "shortName": "Fld Mrshl\nMercer"
+        "shortName": "Fld Mrshl\nMercer",
+        "flavourText": "\"The Argent Flight? The ones who left my people in poverty while they pursued some secret crusade? No, this Shikrai has no time for their pious zealotry. I'm going to take what the universe owes me by doing what I do best.\""
     },
     {
         "id": "nomadagentthundarian",
@@ -363,7 +382,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/nomadagentthundarian.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/nomadagentthundarian_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/temporal_genome.png?raw=true",
-        "shortName": "The Thun\n-darian"
+        "shortName": "The Thun\n-darian",
+        "flavourText": "\"Nothing yet,\" Feng growled. \"There is naught here but dust.\"\nThe Thundarian stood motionless on the bridge of the Memoria, as they had for hours. Suddenly, they raised a hand and pointed. Space rippled, and a gravity rift formed off the bow. Feng tensed as the first flesh ships emerged. \"Fire!\""
     },
     {
         "id": "sardakkagent",
@@ -374,12 +394,14 @@
         "title": "Tekklar Legionnaire",
         "tfTitle": "Fervor",
         "abilityWindow": "At the end of a player's tactical action:",
-        "abilityText": "You may exhaust this card: if you do, that player may place 2 infantry from their reinforcements on a planet they control in the active system.",
+        "abilityText": "You may exhaust this card; if you do, that player may place 2 infantry from their reinforcements on a planet they control in the active system.",
         "unlockCondition": "Always Unlocked",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/sardakkagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/sardakkagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/swarm_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "tfAbilityText": "You may exhaust this card, if you do, that player may place 2 infantry from their reinforcements on a planet they control in the active system.",
+        "flavourText": "\"Broodmates! The Tekklar legions are feared by all our foes across the galaxy. They do not fear us because of our strength, though we are mighty. They do not fear us because of our numbers, though we are many. They fear us because we strike hard, we strike fast, and as long as one of us is alive, we do not stop!\""
     },
     {
         "id": "saaragent",
@@ -395,7 +417,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/saaragent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/saaragent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/captains_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Even after settling in the Jorun Asteroid Field, the Saar tend to see their ships as a beloved home, and devote time and effort to improving them and personalizing them. For example, Captain Mendosa of the Fifth Fleet ensures his ships have the best engines the Saar can build."
     },
     {
         "id": "solagent",
@@ -406,12 +429,13 @@
         "title": "Master Tactician",
         "tfTitle": "Adaptability",
         "abilityWindow": "At the start of a ground combat round:",
-        "abilityText": "You may exhaust this card to choose 1 ground force in the active system: that ground force rolls 1 additional die during this combat round.",
+        "abilityText": "You may exhaust this card to choose 1 ground force in the active system; that ground force rolls 1 additional die during this combat round.",
         "unlockCondition": "Always Unlocked",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/solagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/solagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/human_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Daughter of Supreme Admiral Alastair DeLouis. Lauded for her contribution to the massively successful Centauri campaign. A brilliant tactician possessed by a fierce love for Jord, she is every bit her father's daughter."
     },
     {
         "id": "titansagent",
@@ -427,7 +451,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/titansagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/titansagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/altruistic_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Kiro's assault mech collapsed under the Nekro's assault, cockpit shattering and legs twisting. The Mordred lunged for the kill, only to be smashed aside by a mighty blow. A towering figure stood over Kiro's mech, and bowed slightly. \"You seemed to need my assistance, ally,\" they said calmly."
     },
     {
         "id": "winnuagent",
@@ -443,7 +468,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/winnuagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/winnuagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/divine_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Berekon strode down the corridor, imperiously ignoring the nervous yard-master at his side. \"But Arbiter,\" the yard-master yelped. \"There's no way I can meet these new quotas.\" Berekon spared him a withering glance. \"You're mistaken. The Emperor has decreed it. That means there is no way that you will not.\""
     },
     {
         "id": "xxchaagent",
@@ -459,7 +485,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/xxchaagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/xxchaagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/diplomatic_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "In most societies, a title like the King's Shield may be awarded to a valiant bodyguard or warrior. The Xxcha gave it to their most accomplished diplomat, for Rinn has saved more lives through his tireless work than an army of soldiers ever will."
     },
     {
         "id": "yinagent",
@@ -478,7 +505,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/te/yinagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/te/yinagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/splitting_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"Brothers...\" Milor said, openly weeping as he watched the ships break apart in the sky above. \"They must not be forgotten! In Darien's name, we fight to the last!\" The crowd roared in support."
     },
     {
         "id": "yssarilagent",
@@ -490,12 +518,13 @@
         "tfTitle": "Acuity",
         "abilityWindow": "At any time:",
         "abilityText": "This card has the text ability of each other player's agent, even if that agent is exhausted.",
-        "tfAbilityText": "This card has the text ability of each other player's genomes, even if those genomes are exhausted.",
+        "tfAbilityText": "This card has the ability of each other player's genomes, even if those genomes are exhausted.",
         "unlockCondition": "Always Unlocked",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/yssarilagent.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/agents/yssarilagent_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/genome/clever_genome.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "The black shadow dropped from the skylight and into the bedroom. The sleeping man did not stir as it plucked the communicator from his wrist and activated it. \"This is Governor Singh,\" the figure said in a voice that was not its own. \"On my authority, deactivate the defense grid.\""
     },
     {
         "id": "arboreccommander",
@@ -508,7 +537,8 @@
         "unlockCondition": "Have 12 ground forces on planets you control.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/arboreccommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/arboreccommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"As I grow, I must expand. I send forth my Dirzuga into the galaxy, so that I may touch many lives.\""
     },
     {
         "id": "argentcommander",
@@ -521,7 +551,8 @@
         "unlockCondition": "Have 6 units that have ANTI-FIGHTER BARRAGE, SPACE CANNON, or BOMBARDMENT on the game board.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/argentcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/argentcommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"Nobody can fly like the Shikrai, and no Shikrai can fly like Trrakan.\""
     },
     {
         "id": "cabalcommander",
@@ -535,7 +566,8 @@
         "source": "pok",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/cabalcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/cabalcommander_back.png?raw=true",
-        "shrinkName": true
+        "shrinkName": true,
+        "flavourText": "The cruiser Formidable was thought lost when it fell into the gravity rift during the battle. The rest of the fleet was shocked when the Formidable drifted free a week later; and horrified when they discovered what happened to her crew."
     },
     {
         "id": "ghostcommander",
@@ -548,7 +580,8 @@
         "unlockCondition": "Have units in 3 systems that contain alpha or beta wormholes.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/ghostcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/ghostcommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"When you leave the familiar safety of your universe, you enter our domain. I suggest you do not trespass here lightly.\""
     },
     {
         "id": "empyreancommander",
@@ -561,7 +594,8 @@
         "unlockCondition": "Be neighbors with all other players.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/empyreancommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/empyreancommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Xuange, the recorder, speaker to those who are not Empyrean. They learn all there is to know from the other races, while revealing nothing in return."
     },
     {
         "id": "hacancommander",
@@ -570,12 +604,13 @@
         "name": "Gila the Silvertongue",
         "title": "Kenaran Ambassador",
         "abilityWindow": "When you cast votes:",
-        "abilityText": "You may spend any number of trade goods: cast 2 additional votes for each trade good spent.",
+        "abilityText": "You may spend any number of trade goods; cast 2 additional votes for each trade good spent.",
         "unlockCondition": "Have 10 trade goods.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/hacancommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/hacancommander_back.png?raw=true",
         "source": "pok",
-        "shortName": "Gila the Sil\n-vertongue"
+        "shortName": "Gila the Sil\n-vertongue",
+        "flavourText": "\"Elder Qanoj. I have heard the Xxcha's work to restore Archon Tau has run short of resources. Perhaps the Emirates may be of some assistance?\""
     },
     {
         "id": "jolnarcommander",
@@ -588,7 +623,8 @@
         "unlockCondition": "Own 8 technologies.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/te/jolnarcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/te/jolnarcommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "After the rift between the Deepwrought and the Universities, the universally disliked Agnlan Oln of Oln Medical replaced Ta Zern in an advisory role."
     },
     {
         "id": "kelerescommander",
@@ -598,10 +634,11 @@
         "title": "Working Multiple Angles",
         "abilityWindow": "After you perform a component action:",
         "abilityText": "You may perform an additional action.",
-        "unlockCondition": "Spend 1 trade good after you play an action card that has a component action",
+        "unlockCondition": "Spend 1 trade good after you play an action card that has a component action.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/kelerescommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/kelerescommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Suffi looked over the contracts. \"So I get paid twice... once each by two different contractors... for doing the same job? What's the catch?\""
     },
     {
         "id": "l1z1xcommander",
@@ -618,7 +655,8 @@
         "searchTags": [
             "l1 commander",
             "l1 comm"
-        ]
+        ],
+        "flavourText": "The newly integrated network flared to life, and the warships' guns spoke with one voice. The planetary shield flared and died under the concentrated barrage."
     },
     {
         "id": "letnevcommander",
@@ -632,7 +670,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/letnevcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/letnevcommander_back.png?raw=true",
         "source": "pok",
-        "shortName": "Rear Adml Farran"
+        "shortName": "Rear Adml Farran",
+        "flavourText": "\"The sight of a fleet of our warships, line abreast and guns out, states our demands more clearly than a thousand diplomats.\""
     },
     {
         "id": "mahactcommander",
@@ -646,7 +685,8 @@
         "unlockCondition": "Have 2 other factions' command tokens in your fleet pool.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/mahactcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/mahactcommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Watching the flow of battle, Il Na Viroset sent the trailing flotilla forward, catching the unsuspecting Xxcha cruisers in the flank."
     },
     {
         "id": "mentakcommander",
@@ -659,7 +699,8 @@
         "unlockCondition": "Have 4 cruisers on the game board.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/mentakcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/mentakcommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "The Table of Captains appreciates self-reliant military expeditions, but the ships under Captain Mentarion's command make being \"self-funded\" into an art form."
     },
     {
         "id": "muaatcommander",
@@ -672,7 +713,8 @@
         "unlockCondition": "Produce a war sun.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/muaatcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/muaatcommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"Not for us, these 'garden worlds.' We owe our strength to being birthed in the galaxy's harshest forge, and we should seek out similar crucibles amongst the stars.\""
     },
     {
         "id": "naalucommander",
@@ -685,7 +727,8 @@
         "unlockCondition": "Have ground forces in or adjacent to the Mecatol Rex system.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/naalucommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/naalucommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "First amongst Q'uesh's sorceresses, M'aban has been gifted with radium crystal enhancements, allowing her mind to sing to thousands of Naalu at once."
     },
     {
         "id": "naazcommander",
@@ -698,7 +741,8 @@
         "unlockCondition": "Have mechs in 3 systems.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/naazcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/naazcommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "The Eidolon is a dual-role mech that needs a skilled pilot and a cunning commando who are both slightly crazy; requirements that describe Dart and Tai perfectly."
     },
     {
         "id": "nekrocommander",
@@ -711,7 +755,8 @@
         "unlockCondition": "Own 3 technologies. A \"Valefar Assimilator\" technology counts only if its X or Y token is on a technology.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/nekrocommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/nekrocommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"That thing took our tank apart as carefully as a surgeon... then it started doing the same to us!\""
     },
     {
         "id": "nomadcommander",
@@ -724,7 +769,8 @@
         "unlockCondition": "Have 1 scored secret objective.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/nomadcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/nomadcommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Once the most skilled chartist captain in the Emirates' merchant fleet, Feng was all too happy to sail under a different flag when the Nomad made a better offer."
     },
     {
         "id": "saarcommander",
@@ -737,7 +783,8 @@
         "unlockCondition": "Have 3 space docks on the game board.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/saarcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/saarcommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "An eccentric even by Saar standards, Sarrig has spent years in a small asteroid habitat, attempting to crack the puzzle of \"instant mass transference.\""
     },
     {
         "id": "sardakkcommander",
@@ -751,7 +798,8 @@
         "unlockCondition": "Control 5 planets in non-home systems.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/sardakkcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/sardakkcommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Renowned for her vicious raids and surprise assaults into enemy territory, Sek'kus and her Valkyrie commandos are the elite vanguard of the swarm's vast armies."
     },
     {
         "id": "solcommander",
@@ -764,7 +812,8 @@
         "unlockCondition": "Control planets that have a combined total of at least 12 resources.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/solcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/solcommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Beloved in the House of the People, General Gibson sees the diversity of humanity spread across the stars as the Federation's greatest potential strength."
     },
     {
         "id": "titanscommander",
@@ -778,7 +827,8 @@
         "source": "pok",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/titanscommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/titanscommander_back.png?raw=true",
-        "shortName": "Tung-\nstantus"
+        "shortName": "Tung-\nstantus",
+        "flavourText": "While other Titans explore the galaxy, Tungstantus remains on Elysium, working tirelessly to see it become a paradise that blends the natural and the machine."
     },
     {
         "id": "winnucommander",
@@ -791,7 +841,8 @@
         "unlockCondition": "Control Mecatol Rex or enter into a combat in the Mecatol Rex system.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/winnucommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/winnucommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"Admiral Rickani. For your victories in battle, your Emperor commands you to take your fleet to Mecatol Rex, and reclaim it for the Throne. Fail this charge at your peril.\""
     },
     {
         "id": "xxchacommander",
@@ -804,7 +855,8 @@
         "unlockCondition": "Control planets that have a combined total of at least 12 influence.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/xxchacommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/xxchacommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"The Xxcha have not forgotten the Twilight Wars. Though we may speak softly, you would not be wise to attempt to silence us!\""
     },
     {
         "id": "yincommander",
@@ -817,7 +869,8 @@
         "unlockCondition": "Use one of your faction abilities.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/yincommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/yincommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "It is said that Omar's creation of the genetic spinner loom is the greatest breakthrough for the Brotherhood since Darien's first forbidden research centuries ago."
     },
     {
         "id": "yssarilcommander",
@@ -830,7 +883,8 @@
         "unlockCondition": "Have 7 action cards.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/yssarilcommander.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/commanders/yssarilcommander_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "As the blockade fleet approached Retillion, the admiral returned to her quarters to find a message chip on her desk. After reading it, her fleet quickly left the system."
     },
     {
         "id": "arborechero",
@@ -848,7 +902,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/arborechero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/arborechero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/arborec_paradigm.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"Wherever I live, I may put down roots. Wherever I put down roots, I will endure until the last star dies.\""
     },
     {
         "id": "argenthero",
@@ -866,7 +921,8 @@
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/argenthero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/argent_paradigm.png?raw=true",
         "unlockCondition": "Have 3 scored objectives.",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"You understand the power of the swift blow, Trilossa. But only when you can direct all of our flocks to dance amongst the stars in perfect harmony will you surpass me.\""
     },
     {
         "id": "cabalhero",
@@ -876,11 +932,12 @@
         "title": "Twisted Horror",
         "abilityName": "Dimensional Anchor: Event Horizon",
         "abilityWindow": "ACTION:",
-        "abilityText": "Each other player rolls a die for each of his non-fighter ships that are in or adjacent to a system that contains a dimensional tear. on a 1-3, capture that unit. If this causes a player's ground forces or fighter to be removed, also capture those units. Then, purge this card.",
+        "abilityText": "Each other player rolls a die for each of his non-fighter ships that are in or adjacent to a system that contains a dimensional tear; on a 1-3, capture that unit. If this causes a player's ground forces or fighter to be removed, also capture those units. Then, purge this card.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/cabalhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/cabalhero_back.png?raw=true",
         "unlockCondition": "Have 3 scored objectives.",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "The Vuil'raith had glutted themselves on a score of unfortunate worlds. Now it would return the consumed to an unprepared and unsuspecting galaxy."
     },
     {
         "id": "ghosthero",
@@ -892,13 +949,15 @@
         "tfTitle": "",
         "abilityName": "Singularity Reactor: Changing the Ways",
         "abilityWindow": "ACTION:",
-        "abilityText": "Swap the positions of any 2 non-Fracture systems that contain wormholes or your units, other than the Creuss system, Ahk Creuxx system, or the Wormhole Nexus.",
+        "abilityText": "Swap the positions of any 2 non-Fracture systems that contain wormholes or your units, other than the Creuss system, Ahk Creuxx system, or the Wormhole Nexus. Then, purge this card.",
         "unlockCondition": "Have 3 scored objectives.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/ghosthero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/ghosthero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/creuss_paradigm.png?raw=true",
         "source": "pok",
-        "shortName": "Riftwlkr\nMeian"
+        "shortName": "Riftwlkr\nMeian",
+        "tfAbilityText": "Swap the positions of any 2 non-Fracture systems that contain wormholes or your units, other than the Creuss systems, Ahk Creuxx system, or the wormhole nexus. Then, purge this card.",
+        "flavourText": "\"The Creuss have unsurpassed command of wormhole technology, true - but enough to warp the very bounds of space? Preposterous!\""
     },
     {
         "id": "empyreanhero",
@@ -916,7 +975,8 @@
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/empyreanhero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/empyrean_paradigm.png?raw=true",
         "source": "pok",
-        "shortName": "Conservtr Procyon"
+        "shortName": "Conservtr Procyon",
+        "flavourText": "Procyon, the seeker, eldest of the Empyrean. They have mastered the mysteries of dark energy, and thus, they know all possible realities."
     },
     {
         "id": "hacanhero",
@@ -934,7 +994,8 @@
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/hacanhero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/hacan_paradigm.png?raw=true",
         "unlockCondition": "Have 3 scored objectives.",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "The former Quieron created a galactic financial network, enriching all who participated in it. Especially the Hacan, who quietly retained control of their creation."
     },
     {
         "id": "jolnarhero",
@@ -949,7 +1010,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/jolnarhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/jolnarhero_back.png?raw=true",
         "source": "pok",
-        "shortName": "Rin, the Mstr's Lgcy"
+        "shortName": "Rin, the Mstr's Lgcy",
+        "flavourText": "The young Hylar's gills glared as swirling blackness filled her eyes. \"Headmaster,\" she gasped. \"I remember...I remember it all.\""
     },
     {
         "id": "keleresherokuuasi",
@@ -960,13 +1022,14 @@
         "title": "Keleres Tribunii",
         "tfTitle": "",
         "abilityName": "Overwing Zeta: Artemiris Ascendant",
-        "abilityWindow": "At the start of a round of of space combat in a system that contains a planet you control:",
-        "abilityText": "Place your flagship and up to a total of 2 cruisers and/or destroyers from your reinforcements in the active system. Then, purge this card.",
+        "abilityWindow": "At the start of a round of space combat in a system that contains a planet you control:",
+        "abilityText": "Place your flagship and any combination of up to 2 cruisers or destroyers from your reinforcements into the active system. Then, purge this card.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/keleresherokuuasi.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/keleresherokuuasi_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/keleresa_paradigm.png?raw=true",
         "unlockCondition": "Have 3 scored objectives.",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Valor. Grace. Wisdom."
     },
     {
         "id": "keleresheroodlynn",
@@ -980,7 +1043,8 @@
         "unlockCondition": "Have 3 scored objectives.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/keleresheroodlynn.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/keleresheroodlynn_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Peace. Community. Deterrence."
     },
     {
         "id": "keleresheroharka",
@@ -997,7 +1061,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/keleresheroharka.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/keleresheroharka_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/keleresm_paradigm.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Authority. Strength. Efficacy."
     },
     {
         "id": "l1z1xhero",
@@ -1009,7 +1074,7 @@
         "tfTitle": "",
         "abilityName": "Dark Space Navigation: Diaspora",
         "abilityWindow": "ACTION:",
-        "abilityText": "Choose 1 system that does not contain other players' ships. you may move your flagship and any number of your dreadnoughts from other systems into the chosen system. Then, purge this card.",
+        "abilityText": "Choose 1 system that does not contain other players' ships; you may move your flagship and any number of your dreadnoughts from other systems into the chosen system. Then, purge this card.",
         "notes": "This can transport ground forces and fighters up to capacity, but cannot land them.",
         "unlockCondition": "Have 3 scored objectives.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/l1z1xhero.png?raw=true",
@@ -1018,7 +1083,8 @@
         "source": "pok",
         "searchTags": [
             "l1 hero"
-        ]
+        ],
+        "flavourText": "Information flooded the captain's mind from the cable plugged into his cyber-cortex. \"The records of the lost Hall of Cartography,\" Vel Syd hissed. \"Use them well.\""
     },
     {
         "id": "letnevhero",
@@ -1031,12 +1097,14 @@
         "tfTitle": "",
         "abilityName": "Dark Matter Affinity: Void Transference",
         "abilityWindow": "ACTION:",
-        "abilityText": "Place this card near the game board. the number of non-fighter ships you can have in systems is not limited by laws or by the number of command tokens in your fleet pool during this game round. At the end of that game round, purge this card.",
+        "abilityText": "Place this card near the game board; the number of non-fighter ships you can have in systems is not limited by laws or by the number of command tokens in your fleet pool during this game round. At the end of that game round, purge this card.",
         "unlockCondition": "Have 3 scored objectives.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/letnevhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/letnevhero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/letnev_paradigm.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "tfAbilityText": "Place this card near the game board; the number of non-fighter ships you can have in systems is not limited by the number of command tokens in your fleet pool during this game round. At the end of that game round, purge this card.",
+        "flavourText": "\"The void is not simply nothingness. The Empyrean have known this for millennia. Is it any wonder that the greatest Letnev minds have discovered this too?\""
     },
     {
         "id": "mahacthero",
@@ -1046,11 +1114,12 @@
         "title": "Archon of Command",
         "abilityName": "Benediction: Pax Magnifica",
         "abilityWindow": "ACTION:",
-        "abilityText": "Move all units in the space area of any system to an adjacent system that contains a different player's ships. Space combat is resolved in that system. neither player can retreat or resolve abilities that would move their ships. Then, purge this card.",
+        "abilityText": "Move all units in the space area of any system to an adjacent system that contains a different player's ships. Space combat is resolved in that system; neither player can retreat or resolve abilities that would move their ships. Then, purge this card.",
         "unlockCondition": "Have 3 scored objectives.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/mahacthero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/mahacthero_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "As the army warily approached their foe, the gleaming golden figure raised their hand. Golden light flashed, and the army fell upon itself in wanton slaughter."
     },
     {
         "id": "mentakhero",
@@ -1063,14 +1132,15 @@
         "tfTitle": "",
         "abilityName": "Sleeper Cell: Insurrection",
         "abilityWindow": "At the start of a space combat that you are participating in:",
-        "abilityText": "You may purge this card. if you do, for each other player's ship that is destroyed during this combat, place 1 ship of that type from your reinforcements in the active system.",
+        "abilityText": "You may purge this card; if you do, for each other player's ship that is destroyed during this combat, place 1 ship of that type from your reinforcements in the active system.",
         "unlockCondition": "Have 3 scored objectives.",
         "source": "pok",
         "shrinkName": true,
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/mentakhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/mentakhero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/mentak_paradigm.png?raw=true",
-        "shortName": "Ipswitch, Loose C'nn'n"
+        "shortName": "Ipswitch, Loose C'nn'n",
+        "flavourText": "The blast doors exploded inwards and the mutineers surged onto the bridge, cutting down the loyal crew. \"Come on, mates!\" Ipswitch bellowed. \"The ship is ours!\""
     },
     {
         "id": "muaathero",
@@ -1090,7 +1160,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/muaathero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/muaathero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/muaat_paradigm.png?raw=true",
-        "shortName": "Adjudictr Ba'al"
+        "shortName": "Adjudictr Ba'al",
+        "flavourText": "The star's corona began to boil and writhe, bathing the doomed worlds around it in a terrible glow. Aboard the war sun, Ba'al spread his arms wide. \"Behold,\" he said, \"The instrument of your deliverance.\""
     },
     {
         "id": "naaluhero",
@@ -1104,7 +1175,8 @@
         "unlockCondition": "Have 3 scored objectives.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/naaluhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/naaluhero_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Only in their most desperate hour would the Naalu link the broken, poisoned mind of their former leader to the power of the Nefishh."
     },
     {
         "id": "naazhero",
@@ -1114,11 +1186,12 @@
         "title": "Architect Savants",
         "abilityName": "Perfect Synthesis: Forge Legend",
         "abilityWindow": "ACTION:",
-        "abilityText": "Gain 1 relic and perform the secondary ability of up to 2 readied or unchosen strategy cards. during this action, spend command tokens from your reinforcements instead of your strategy pool. Then, purge this card.",
+        "abilityText": "Gain 1 relic and perform the secondary ability of up to 2 readied or unchosen strategy cards; during this action, spend command tokens from your reinforcements instead of your strategy pool. Then, purge this card.",
         "unlockCondition": "Have 3 scored objectives.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/naazhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/naazhero_back.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"What the two of us have created here is going to ensure the rest of the galaxy never underestimates the Naaz and Rokha again.\""
     },
     {
         "id": "nekrohero",
@@ -1133,7 +1206,8 @@
         "source": "pok",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/nekrohero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/nekrohero_back.png?raw=true",
-        "shortName": "UNIT.DSGN.\nFLAYESH"
+        "shortName": "UNIT.DSGN.\nFLAYESH",
+        "flavourText": "Once Ordinian was a paradise world with windswept plains and shining white cities. Now it is a wasteland of bare rock under gray sky, haunted by black-armored metal nightmares."
     },
     {
         "id": "nomadhero",
@@ -1145,12 +1219,13 @@
         "tfTitle": "",
         "abilityName": "Probability Matrix: Time Warp",
         "abilityWindow": "ACTION:",
-        "abilityText": "Place this card near the game board. your flagship and units it transports can move out of systems that contain your command tokens during this game round. At the end of that game round, purge this card.",
+        "abilityText": "Place this card near the game board; your flagship and units it transports can move out of systems that contain your command tokens during this game round. At the end of that game round, purge this card.",
         "unlockCondition": "Have 3 scored objectives.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/nomadhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/nomadhero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/nomad_paradigm.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "Those who deal with the Nomad speak in hushed whispers about their most trusted officer; a Creuss in cracked and damaged armor, bleeding streams of violet light."
     },
     {
         "id": "sardakkhero",
@@ -1167,7 +1242,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/sardakkhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/sardakkhero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/norr_paradigm.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "The burning exotrireme tore through the sky before crashing into the grass-covered plains. Hatches blew open and Sh'val, Master of the First, charged out of the broken vessel, his Tekklar close behind."
     },
     {
         "id": "saarhero",
@@ -1184,7 +1260,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/saarhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/saarhero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/saar_paradigm.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"When we arrived at the colony, we found it and one whole hemisphere of the planet had been scoured down to ash and bedrock, as if hit by some giant solar flare.\""
     },
     {
         "id": "solhero",
@@ -1201,7 +1278,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/solhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/solhero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/federation_paradigm.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"We're done falling back. Here we hold, until the techs can activate the Helio Array. Let's show these scum what it means to face the Fighting 4th!\""
     },
     {
         "id": "titanshero",
@@ -1220,7 +1298,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/titanshero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/titanshero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/titan_paradigm.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"Even now, we search the galaxy to awaken our slumbering kin. But there is one other greater than any of us, and it is time they slept no longer.\""
     },
     {
         "id": "winnuhero",
@@ -1237,7 +1316,8 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/winnuhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/winnuhero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/winnu_paradigm.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "\"You cannot enter,\" the Custodian shouted, struggling against the Winnu soldiers' grips. \"It is forbidden!\" Mathinus paused before the doorway to the hidden vault. \"We are the children of the Lazax. Nothing of theirs is forbidden to us.\""
     },
     {
         "id": "xxchahero",
@@ -1263,12 +1343,13 @@
         "tfTitle": "",
         "abilityName": "Quantum Dissemination: Blessing of the Yin",
         "abilityWindow": "ACTION:",
-        "abilityText": "Commit up to 3 infantry from your reinforcements to any non-home planets and resolve ground combats on those planets. Players cannot use SPACE CANNON against these units. Then, purge this card.",
+        "abilityText": "Commit up to 3 infantry from your reinforcements to any non-home planets and resolve ground combats on those planets; players cannot use SPACE CANNON against these units. Then, purge this card.",
         "unlockCondition": "Have 3 scored objectives.",
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/yinhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/codex/yinhero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/yin_paradigm.png?raw=true",
-        "source": "pok"
+        "source": "pok",
+        "flavourText": "At Dannel's command, they burned out their spinners, welcoming thousands of new brothers into their ranks in mere weeks. Such is the potential of the Yin."
     },
     {
         "id": "yssarilhero",
@@ -1286,6 +1367,7 @@
         "imageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/yssarilhero.png?raw=true",
         "imageBackURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/leaders/pok/heroes/yssarilhero_back.png?raw=true",
         "tfImageURL": "https://cdn.statically.io/gh/AsyncTI4/TI4_map_generator_bot/master/src/main/resources/hover_images/twilights_fall/paradigm/yssaril_paradigm.png?raw=true",
-        "shortName": "Kyver,\nBlade & Key"
+        "shortName": "Kyver,\nBlade & Key",
+        "flavourText": "\"I don't know what's worse,\" Ris waved a tentacle across the report. \"Our agents that the Guild of Spies killed in one night? Or the ones who survived because they were already in the Guild's pocket!\""
     }
 ]

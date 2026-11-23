@@ -11,7 +11,8 @@
         "wormholes": [
             "GAMMA"
         ],
-        "source": "pok"
+        "source": "pok",
+        "wormholeIconMerge": false
     },
     {
         "id": "dmz_large",
@@ -77,7 +78,8 @@
         "wormholes": [
             "ALPHA"
         ],
-        "source": "pok"
+        "source": "pok",
+        "wormholeIconMerge": false
     },
     {
         "id": "ionbeta",
@@ -90,7 +92,8 @@
         "wormholes": [
             "BETA"
         ],
-        "source": "pok"
+        "source": "pok",
+        "wormholeIconMerge": false
     },
     {
         "id": "mirage",

@@ -249,7 +249,7 @@ def test_tekklar_poza_walka_naziemna(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------------------------- T'ro
 
 
-@ruling("leaders:sardakkagent#1")
+@ruling("leaders:sardakkagent#1", "leaders:sardakkagent#2")
 def test_agent_tro_daje_piechote_aktywnemu(registry: StaticDataRegistry) -> None:
     state = _state(sardakk_active=False)
     state.systems["102"].planet_owners["industrex"] = "p2"

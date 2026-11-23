@@ -391,7 +391,12 @@ def test_arc_secundus_nie_wylacza_magen_omega(registry: StaticDataRegistry) -> N
 # ============================================================================ Viscount Unlenn
 
 
-@ruling("F_letnev/viscount-unlenn/1", "F_letnev/viscount-unlenn/2", "leaders:letnevagent#1")
+@ruling(
+    "F_letnev/viscount-unlenn/1",
+    "F_letnev/viscount-unlenn/2",
+    "leaders:letnevagent#1",
+    "leaders:letnevagent#2",
+)
 def test_unlenn_kosc_tylko_do_rzutu_combat(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems["102"].space_units["p1"] = {"destroyer": 1}

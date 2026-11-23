@@ -217,7 +217,7 @@ def test_fabrication_pusta_talia_reliktow(registry: StaticDataRegistry) -> None:
     assert after.players["p1"].relics == []
 
 
-@ruling("abilities:fabrication#2", "F_naaz_rokha/fabrication/2")
+@ruling("abilities:fabrication#1", "F_naaz_rokha/fabrication/2")
 def test_fabrication_zeton_i_pusta_rezerwa(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].relic_fragments = ["irf1", "irf2"]

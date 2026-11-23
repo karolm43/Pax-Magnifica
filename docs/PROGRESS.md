@@ -447,3 +447,52 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
 - Motyw „Player color” (domyślny): stonowany akcent strony w kolorze mojego gracza (`usePlayerAccent` →
   `--player-accent-rgb`, `styles/playercolortheme.css`); sygnały gry bez zmian. Pozostałe motywy w kropkach paska.
   Zapisany wcześniej wybór motywu w przeglądarce ma pierwszeństwo.
+
+## Kronika Imperium (Chronicle of the Empire), czytelniejszy feed, nowe osiągnięcia
+
+- Przycisk z piórem (`domains/chronicle/ChronicleButton`) obok Events w `FloatingMapToolbar`: złoty „oddech”, pisanie
+  pióra, błysk i licznik przy nowych ważnych wpisach (`prefers-reduced-motion` wyłącza animacje). Otwiera księgę
+  `ChronicleBook` (ds `Modal`, rozdział = runda, chipy rund, strzałki, „All events”, „Show all facts”).
+- `buildChronicle.ts`: czysta funkcja feed Activity → rozdziały. Wpis = opowieść (`chronicleLore.ts`, pule wariantów
+  wybierane deterministycznie, przydomki frakcji) + motto z lore planety (`flavourText`) + „What exactly happened”
+  (suche fakty). Bitwy opisuje istniejące `describeBattle` (`domains/lore/battleLore.ts`) — ten sam tekst co w oknie
+  wyniku. Zdarzenia: bitwy, podbój / kolonia / upadek planety-domu, cele, prawa i agendy, relikty, liderzy,
+  bohaterowie, zdjęcie Custodians, eliminacja, Fracture, Nova Seed, umowy; drugoplanowe (tech, umowy, karty strategii,
+  eksploracja, Speaker) ukryte w „Major events”. Cofnięte (`seq > current_seq`) i God-Mode pomijane.
+- Feed: nowe fakty `moved` (ruch floty: typ, liczba, cel) i `landed` (desant na planetę) — ruch sam się znosił w
+  sumach jednostek (`core/activity.py::_movement_facts`); nagłówki „moved N ships from A to B”, „landed N ground forces
+  on X”; secondary karty strategii z nazwą karty (inicjatywa z okna); wpis `update` nazwany po pierwszym skutku.
+- Osiągnięcia (`core/chronicle_awards.py`): First Blood, Home Sweet Home, Sacker of Capitals, Blitzkrieg,
+  The Pacifist, A Throne Contested (zmiany lidera), Photo Finish. Poprawka: „Mutual Annihilation” nie pokazuje już
+  walk bez strat. Ikony w `AchievementCard.tsx`.
+- ⚠️ ZAŁOŻENIA: przydomki frakcji (`FACTION_EPITHET`) i pule tekstów to moje szkice — do poprawy/rozszerzenia przez
+  użytkownika. Kronika nie ma własnego endpointu (czyta feed), więc nie wymaga restartu backendu poza nowymi faktami.
+
+
+## Lore: pola na flavour kart, komunikaty frakcji, narracja i historia bitew
+
+Warstwa PREZENTACYJNA (nic w regułach). Użytkownik pisze teksty sam; ja dałem miejsca + generator opisów bitew.
+- **Pola lore kart** (`frontend/src/entities/lore/cardLore.ts`, szablon z `scripts/gen_lore_template.py` — dopisuje
+  brakujące karty z aktywnych źródeł i NIE rusza wpisanych tekstów): liderzy, agendy, notki, cele publiczne/tajne,
+  technologie, przełomy, zdolności frakcji (~490 pustych pól). Wyświetla `shared/ui/DetailsCard/CardLore.tsx` (kursywa
+  na dole karty szczegółów, pusty = nic). Akcje, relikty i eksploracja mają flavour z AsyncTI4 (`flavorText`) i już go
+  pokazują; **liderzy w AsyncTI4 flavouru nie mają** (tylko 2 z homebrew `wftv`), agendy/notki/cele/tech/przełomy też nie.
+- **Komunikaty frakcji**: `entities/lore/factionVoiceLines.ts` (puste tablice per frakcja, wpisuje użytkownik) →
+  `domains/chat/FactionVoice.tsx`: przycisk z dymkiem przy kartach strategii własnego gracza (nagłówek panelu),
+  lista kwestii jako duże chipy, wybór = publiczna wiadomość czatu z flagą `voice` (`core/chat.py`, `POST /chat/send`).
+  Dymek 9 s nad polem nadawcy u wszystkich + kursywa w czacie. ⚠️ ZAŁOŻENIE: treść kwestii nie jest walidowana po
+  stronie serwera (tylko limit długości i brak szeptu); nowe pole `voice` w odpowiedzi czatu — restart backendu.
+- **Narracja bitew** (`domains/lore/battleLore.ts`): klasy Crushing / Decisive / Hard-fought / Pyrrhic / Skirmish /
+  Annihilation / Standoff × space/ground, ~100 szablonów z podstawianiem nazw, strat i typów jednostek (pełne nazwy);
+  wariant wybiera deterministyczne ziarno z danych bitwy. Pokazana w ekranie wyniku (`BattleSummary`) i w historii.
+  ⚠️ ZAŁOŻENIE: progi klas (crushing = 0 strat własnych i ≥4 wroga itd.) w `classifyBattle`, z testami.
+- **Historia bitew w teczce systemu**: `chronicle.battle_history` (+ `lost_types` w `record_battle`) → `battleHistory`
+  w web-data → `SystemDossier/SystemBattleHistory.tsx` (najnowsze na górze). Restart backendu (nowe pole).
+
+## Sync assetów z AsyncTI4 (2026-11-23, master 9ff908b)
+- `assets/data` (tylko źródła base/pok/codex/thunders_edge): nadpisano pola różniące się od upstreamu (poprawki literówek i tekstów,
+  nazwy: The Sorrow, Ragh's Call, Specialized Compounds, Yin Spinner, Scholarate Founder) i dodano brakujące: `flavourText` przywódców,
+  `lore`/`quotes`/`information`/`complexity`/`wikiURL` frakcji. Pominięte: pola obrazów, `theodisi.json`, `tokens/base.json`
+  (`wormholeIconMerge`), `border_anomalies` (reguły one-way adjacency — silnik ich nie ma).
+- `frontend/src/entities/lore/cardLore.ts`: 97/103 lore przywódców z upstreamu. `scripts/sync_card_texts.py` odświeżył teksty kart na froncie.
+- Testy: `@ruling` agentów/notek przesunięte po zmianie podziału zdań (`;` zamiast `:`), `abilities:fabrication#2` scalone w `#1`.

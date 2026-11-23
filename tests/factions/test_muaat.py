@@ -286,7 +286,7 @@ def _umbat(registry: StaticDataRegistry, target: str = "p2") -> GameState:
     return _accept(after, target, "Umbat", {"position": RIVAL})
 
 
-@ruling("leaders:muaatagent#1", "F_muaat/umbat/2")
+@ruling("leaders:muaatagent#1", "leaders:muaatagent#2", "F_muaat/umbat/2")
 def test_umbat_wybrany_gracz_produkuje_2_tanie_jednostki(registry: StaticDataRegistry) -> None:
     state = _umbat(registry)
     grant = state.production_grant
