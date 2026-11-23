@@ -29,6 +29,7 @@ import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { DraggablePill } from "@/shared/ui/DraggablePill";
 import { useAfterDice } from "@/domains/dice/diceGate";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
+import { PHASE_WINDOW_SELECTOR, useDomPresence } from "@/hooks/useDecisionZone";
 import styles from "./AbilityPrompts.module.css";
 
 /*
@@ -69,6 +70,15 @@ export function pruneDismissed(dismissed: Set<string>, available: AvailableNow[]
   const live = new Set(available.map(promptKey));
   const kept = [...dismissed].filter((key) => live.has(key));
   return kept.length === dismissed.size ? dismissed : new Set(kept);
+}
+
+/**
+ * Ile decyzji czeka w centrum, gdy ustępuje ono oknu fazy (pastylka „+N”, U3): oferty (bez okna
+ * badania - ono ma własne pełne okno), zdolności „Available now” i zaproszenia do stołu transakcji.
+ * Znaczniki „Ready” i okna czasowe to informacja, nie decyzja - nie liczą się.
+ */
+export function waitingDecisions(parts: { offers: number; moments: number; invites: number }): number {
+  return parts.offers + parts.moments + parts.invites;
 }
 
 /**
@@ -134,23 +144,55 @@ export function DecisionCenter() {
   const momentsReady = useAfterDice(moments.map(promptKey).join("|"));
   const handReady = useAfterDice(openWindows.map((w) => w.key).join("|"));
 
+  // Jedna strefa decyzji (U3): przy otwartym oknie fazy (status, Rada, karta strategii) centrum
+  // nie jest drugim oknem - czeka jako pastylka „+N”; klik pokazuje je na chwilę (`peek`), a po
+  // zamknięciu okna fazy wraca samo.
+  const phaseOpen = useDomPresence(PHASE_WINDOW_SELECTOR);
+  const [peek, setPeek] = useState(false);
+  useEffect(() => {
+    if (!phaseOpen) setPeek(false);
+  }, [phaseOpen]);
+  const yielded = phaseOpen && !peek;
+  const invites = (gameState?.transactionTables ?? []).filter(
+    (t) => handOwners.includes(t.partner) || (t.prefilled && handOwners.includes(t.opener)),
+  ).length;
+  const waiting = waitingDecisions({
+    offers: offer.first && !research ? 1 + offer.queued : 0,
+    moments: moments.length,
+    invites,
+  });
+  const showPill = (minimized || (yielded && waiting > 0)) && !using && !playing;
+
   return (
     <>
       {/* Decyzja badania = pełne okno badania (poza kolumną). */}
       {offer.first && research && offerReady && <OfferCard offer={offer.first} queued={offer.queued} />}
-      {minimized && !using && !playing && (
+      {showPill && (
         <DraggablePill
           storageKey="decisionCenter.pill.v1"
           className={styles.pill}
-          title="Show decisions"
-          onRestore={() => setMinimized(false)}
+          title={yielded ? "Decisions waiting - the phase window goes first. Show them" : "Show decisions"}
+          onRestore={() => {
+            setMinimized(false);
+            if (yielded) setPeek(true);
+          }}
         >
           <IconChevronUp size={15} aria-hidden="true" />
           <span>Decisions</span>
+          {waiting > 0 && (
+            <span
+              className={styles.pillCount}
+              data-required={(offer.first && !research && offer.first.mandatory) || undefined}
+              aria-label={`${waiting} waiting`}
+            >
+              +{waiting}
+            </span>
+          )}
         </DraggablePill>
       )}
-      {/* Kolumna chowa się na czas formularza, który z niej otwarto (nie zasłania wyborów). */}
-      {!using && !playing && !minimized &&
+      {/* Kolumna chowa się na czas formularza, który z niej otwarto (nie zasłania wyborów),
+          i ustępuje oknu fazy (czeka jako pastylka „+N”). */}
+      {!using && !playing && !minimized && !yielded &&
         createPortal(
           <div
             className={styles.stack}
@@ -177,7 +219,10 @@ export function DecisionCenter() {
                 type="button"
                 className={styles.iconBtn}
                 data-no-drag
-                onClick={() => setMinimized(true)}
+                onClick={() => {
+                  setMinimized(true);
+                  setPeek(false);
+                }}
                 aria-label="Minimize decisions to see the board"
                 title="Minimize to see the board"
               >

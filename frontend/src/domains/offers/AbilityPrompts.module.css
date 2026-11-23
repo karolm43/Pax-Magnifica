@@ -89,6 +89,23 @@
   box-shadow: 0 8px 22px rgb(0 0 0 / 0.5);
 }
 
+/* Licznik czekających decyzji („+N”, U3); wymagana decyzja - kolor ostrzeżenia. */
+.pillCount {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--ds-accent, #60a5fa);
+  color: var(--ds-ground, #0b0f17);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.pillCount[data-required] {
+  background: var(--ds-sig-warn, #f59f00);
+  color: #1a1306;
+}
+
 .card {
   display: grid;
   gap: 8px;

@@ -33,6 +33,7 @@ import { autoAlloc, type Alloc } from "./autoAlloc";
 import { ObjectiveSpendForm } from "./ObjectiveSpendForm";
 import styles from "./StatusPhasePanel.module.css";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
+import { PHASE_WINDOW } from "@/hooks/useDecisionZone";
 
 /** Osiem kroków fazy statusu (R_status_phase): krótka etykieta + czy robi to silnik. */
 const STEPS: { n: number; label: string; auto: boolean }[] = [
@@ -121,6 +122,8 @@ export function StatusPhasePanel() {
       className={styles.panel}
       aria-label="Status phase"
       style={drag.style}
+      // Okno fazy (U3): centrum Decisions czeka jako „+N”, dymki mapy go nie zasłaniają.
+      {...PHASE_WINDOW}
       data-draggable-panel
       data-dragging={drag.isDragging || undefined}
     >

@@ -38,6 +38,7 @@ import {
 import { UndoControls } from "./UndoControls";
 import { ReactionPauseBanner } from "./ReactionPauseBanner";
 import { HeldPlayBanner } from "./HeldPlayBanner";
+import { useDockCovered } from "./useDockCovered";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
 import {
   postDiscardExcess,
@@ -96,24 +97,6 @@ function useDockOpen(): [boolean, (next: boolean) => void] {
 }
 
 /**
- * Czy jest otwarte okno pełnoekranowe (walka, inwazja, agenda, produkcja, technologie,
- * eksploracja — atrybut `data-fullscreen-overlay` na ich korzeniu). Dok leży NAD nimi
- * (karty reakcji, RULES.md 53.5), więc rozwinięty zasłaniał dół okna (np. tabele jednostek).
- */
-function useFullscreenOverlay(): boolean {
-  const [present, setPresent] = useState(false);
-  useEffect(() => {
-    const check = () =>
-      setPresent(document.querySelector("[data-fullscreen-overlay]") !== null);
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, []);
-  return present;
-}
-
-/**
  * Technologie gracza w doku ręki: najpierw działające w turze (Fleet Logistics, Transit
  * Diodes, Bio-Stims…), potem reszta. Te same kafelki `Tech` co w panelu gracza.
  */
@@ -164,9 +147,12 @@ export function BottomHandDock() {
     player: active?.discordId ?? null,
   });
   const [storedOpen, setStoredOpen] = useDockOpen();
-  // Przy oknie pełnoekranowym dok startuje ZWINIĘTY; rozwinięcie w tym czasie jest chwilowe
-  // (`peek`) i nie nadpisuje zapamiętanego wyboru gracza.
-  const overlayOpen = useFullscreenOverlay();
+  // Przy oknie pełnoekranowym albo oknie decyzji, które wchodzi na rękę (U3), dok startuje
+  // ZWINIĘTY; rozwinięcie w tym czasie jest chwilowe (`peek`) i nie nadpisuje zapamiętanego
+  // wyboru gracza. Dok leży NAD tymi oknami (karty reakcji, RULES.md 53.5), więc rozwinięty
+  // zasłaniałby ich dół.
+  const [dockNode, setDockNode] = useState<HTMLElement | null>(null);
+  const overlayOpen = useDockCovered(dockNode);
   const [peek, setPeek] = useState(false);
   useEffect(() => {
     if (!overlayOpen) setPeek(false);
@@ -317,7 +303,6 @@ export function BottomHandDock() {
   // Mierzymy wysokość doku (zwinięty / rozwinięty) i wystawiamy ją jako zmienną CSS
   // ``--hand-dock-clear`` na <html> - pastylki powrotu do okien (produkcja, technologie…)
   // ustawiają się NAD dokiem, także gdy wachlarz kart jest otwarty.
-  const [dockNode, setDockNode] = useState<HTMLElement | null>(null);
   useEffect(() => {
     const root = document.documentElement;
     if (!dockNode) {

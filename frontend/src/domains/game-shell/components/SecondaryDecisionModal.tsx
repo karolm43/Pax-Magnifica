@@ -65,6 +65,7 @@ async function fetchActionCards(gameId: string, playerId: string): Promise<strin
 import type { CardShell } from "@/domains/strategy/cards/types";
 import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strategyPrompt";
 import { useCanActAs } from "@/domains/network/useNetworkMe";
+import { PHASE_WINDOW } from "@/hooks/useDecisionZone";
 
 /**
  * Popup decyzji SECONDARY karty strategii (RULES.md 29.2, 31.6).
@@ -300,7 +301,7 @@ export function SecondaryDecisionModal() {
       {inputView ? (
         inputView
       ) : (
-      <Stack gap="md">
+      <Stack gap="md" {...PHASE_WINDOW}>
         {/* Kto teraz decyduje. */}
         <Group gap="sm" wrap="nowrap">
           {responder?.faction ? (

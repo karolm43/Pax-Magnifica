@@ -45,7 +45,7 @@ export function HeldPlayBanner({
   const counter = held.counter ?? null;
 
   return (
-    <aside className={styles.banner} role="status" aria-live="polite" aria-label="Sabotage window">
+    <aside className={styles.banner} data-reaction-banner="" role="status" aria-live="polite" aria-label="Sabotage window">
       <div className={styles.text}>
         <b>{mine ? "You play" : "Played"}: {held.cardName}</b>
         <span>{held.text}</span>

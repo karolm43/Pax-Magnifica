@@ -21,3 +21,13 @@
 :global(body:has([data-fullscreen-overlay])) .area {
   top: 12px;
 }
+
+/* Baner okna reakcji przeniesiony na górę przez strefę decyzji (HeldPlayBanner.module.css):
+   komunikaty zjeżdżają pod niego, zamiast leżeć jedno na drugim. */
+:global(body:has([data-reaction-banner]):has([data-decision-zone])) .area {
+  top: calc(var(--app-header-height, 60px) + var(--map-tabs-height, 54px) + 88px);
+}
+
+:global(body:has([data-reaction-banner]):has([data-fullscreen-overlay])) .area {
+  top: 86px;
+}

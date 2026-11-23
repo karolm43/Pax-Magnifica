@@ -10,6 +10,7 @@ import {
   type PromptPlayer,
 } from "./strategyPrompt";
 import styles from "./StrategyPrompt.module.css";
+import { PHASE_WINDOW } from "@/hooks/useDecisionZone";
 
 /** Oprawa okna karty: nagłówek z kolorem karty, treść i stopka z akcjami. */
 export function PromptShell({
@@ -30,7 +31,7 @@ export function PromptShell({
   footer?: ReactNode;
 }) {
   return (
-    <div className={styles.shell} style={{ "--sc-hue": hue } as CSSProperties}>
+    <div className={styles.shell} style={{ "--sc-hue": hue } as CSSProperties} {...PHASE_WINDOW}>
       <div className={styles.head}>
         <span className={styles.disc}>{initiative}</span>
         <span className={styles.headText}>

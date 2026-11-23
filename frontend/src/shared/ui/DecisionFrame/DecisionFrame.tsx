@@ -6,6 +6,7 @@ import {
   type ComponentRef,
 } from "@/domains/cards/components/ComponentInfo";
 import styles from "./DecisionFrame.module.css";
+import { DECISION_ZONE } from "@/hooks/useDecisionZone";
 
 /** Opisy krótsze niż tyle znaków pokazujemy w całości (bez „more”). */
 export const LONG_TEXT = 420;
@@ -111,6 +112,8 @@ export function DecisionFrame({
     <section
       className={styles.frame}
       data-embedded={embedded || undefined}
+      // Strefa decyzji (U3): dymki mapy, dok ręki i baner reakcji jej nie zasłaniają.
+      {...DECISION_ZONE}
       role="group"
       aria-label={ariaLabel}
     >

@@ -44,7 +44,7 @@ export function ReactionPauseBanner({
   if (!pause) return null;
 
   return (
-    <aside className={styles.banner} role="status" aria-live="polite" aria-label="Reaction window">
+    <aside className={styles.banner} data-reaction-banner="" role="status" aria-live="polite" aria-label="Reaction window">
       <div className={styles.text}>
         <b>
           Reaction window: {pause.label}

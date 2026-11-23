@@ -60,6 +60,7 @@ import {
   type ComponentKind,
 } from "@/domains/cards/components/ComponentInfo";
 import styles from "./AgendaOverlay.module.css";
+import { PHASE_WINDOW } from "@/hooks/useDecisionZone";
 
 /*
  * OKNO RADY GALAKTYCZNEJ - faza agendy (RULES.md 51), pełny ekran na tle assets/extra/agenda2.jpg.
@@ -1212,6 +1213,8 @@ function CouncilWindow({
       className={styles.overlay}
       // Okno pełnoekranowe: dok ręki zwija się do paska, a okno rezerwuje pod nim miejsce.
       data-fullscreen-overlay=""
+      // Okno fazy (U3): centrum Decisions czeka jako „+N” i nie leży na karcie Ballot.
+      {...PHASE_WINDOW}
       style={{ "--att-rgb": voterLook?.rgb ?? "214 178 94" } as CSSProperties}
       role="dialog"
       aria-label="Galactic Council - agenda phase"

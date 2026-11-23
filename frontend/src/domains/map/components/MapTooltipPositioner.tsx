@@ -8,6 +8,7 @@ import {
 import { Box, type BoxProps } from "@/ds";
 import { useAppStore } from "@/state/appStore";
 import { getBrowserZoomScale } from "@/utils/zoom";
+import { decisionZoneOverlaps } from "@/hooks/useDecisionZone";
 import {
   getMapLayoutConfig,
   mapCoordsToScreen,
@@ -64,6 +65,11 @@ type MapTooltipPositionerProps = {
   zIndexVar?: string;
   applyBrowserScale?: boolean;
   pointerEvents?: CSSProperties["pointerEvents"];
+  /**
+   * Dymek nie wchodzi na okno decyzji (`data-decision-zone`, U3): zamiast leżeć na formularzu
+   * (np. Sling Relay nad Mecatol Rex) chowa się, póki kursor jest przy tym oknie.
+   */
+  yieldToDecisions?: boolean;
   children?: ReactNode;
 } & Omit<BoxProps, "children">;
 
@@ -76,6 +82,7 @@ export function MapTooltipPositioner({
   zIndexVar = "var(--z-map-tooltip)",
   applyBrowserScale = false,
   pointerEvents = "none",
+  yieldToDecisions = true,
   children,
   style,
   ...rest
@@ -85,6 +92,7 @@ export function MapTooltipPositioner({
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [placement, setPlacement] = useState<TooltipPlacement>("top");
   const [shiftX, setShiftX] = useState(0);
+  const [blocked, setBlocked] = useState(false);
 
   const resolvedPadding =
     mapPadding ?? getMapLayoutConfig(mapLayout).mapPadding;
@@ -128,6 +136,14 @@ export function MapTooltipPositioner({
     setShiftX(shiftIntoVisualViewport(rect.left - shiftX, rect.right - shiftX));
   }, [screenX, screenY, placement, shiftX]);
 
+  useLayoutEffect(() => {
+    if (!yieldToDecisions || !boxRef.current || screenX === null) {
+      setBlocked(false);
+      return;
+    }
+    setBlocked(decisionZoneOverlaps(boxRef.current.getBoundingClientRect()));
+  }, [yieldToDecisions, screenX, screenY, placement, shiftX]);
+
   if (!screen) return null;
 
   const { x, y } = screen;
@@ -156,6 +172,7 @@ export function MapTooltipPositioner({
         top,
         zIndex: zIndexVar,
         pointerEvents,
+        visibility: blocked ? "hidden" : undefined,
         transform,
         transformOrigin: applyBrowserScale ? scaleOrigin : undefined,
         ...style,

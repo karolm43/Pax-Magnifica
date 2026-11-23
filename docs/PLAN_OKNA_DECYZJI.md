@@ -71,6 +71,9 @@ testy + sekcja w `PROGRESS.md` + commit.
   overlay agendy (Z2).
 - Toast reakcji i dymki mapy nie zachodzą na okno decyzji (warstwa z-index + pozycja) (Z2, Z10).
 - Dok ręki zwija się, gdy okno decyzji go przykrywa.
+- **Stan (2026-11-23): zrobione** — znaczniki `data-decision-zone` / `data-phase-window`
+  (`hooks/useDecisionZone.ts`); oferty przy oknie fazy czekają jako pastylka „+N” (nie jako krok
+  wewnątrz okna fazy); baner reakcji przy oknie decyzji jedzie na górę.
 
 ### U4 — Usunięcie duplikatów informacji
 - Respondent: tylko w ramie okna; panel boczny pokazuje kolejkę bez „Responding” (Z8).

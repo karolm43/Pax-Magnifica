@@ -16,6 +16,21 @@
   font-size: 13px;
 }
 
+/* Strefa decyzji (U3, `hooks/useDecisionZone.ts`): przy otwartym oknie decyzji (panel statusu,
+   okno karty strategii, oferta) baner okna reakcji nie leży nad ręką na środku ekranu, tylko u góry
+   pod zakładkami - tam, gdzie komunikaty (te zjeżdżają pod niego, NotificationArea). */
+:global(body:has([data-decision-zone])) .banner {
+  top: calc(var(--app-header-height, 60px) + var(--map-tabs-height, 54px) + 12px);
+  bottom: auto;
+}
+
+/* Okno pełnoekranowe (Rada, walka) zakrywa nagłówek: baner na jego pasku tytułu, zamiast na
+   liście Senatu i wynikach głosowania. */
+:global(body:has([data-fullscreen-overlay])) .banner {
+  top: 10px;
+  bottom: auto;
+}
+
 .text {
   display: flex;
   flex: 1;
