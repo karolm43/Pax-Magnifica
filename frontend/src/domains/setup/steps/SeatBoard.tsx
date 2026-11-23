@@ -6,6 +6,7 @@
 
 import type { CSSProperties } from "react";
 import { getTextColor } from "@/entities/lookup/colors";
+import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
 import type { SetupSlot } from "../useSetupStore";
 import { colorLabel, colorSwatchBackground } from "../playerColors";
 import styles from "./SeatBoard.module.css";
@@ -63,10 +64,16 @@ export function SeatBoard({
   slots,
   activeIndex,
   onPickSeat,
+  seatFactions,
+  factionName,
 }: {
   slots: readonly SetupSlot[];
   activeIndex: number;
   onPickSeat: (seat: number) => void;
+  /** Gotowa mapa: frakcja domu na każdym miejscu (ikona na miejscu). */
+  seatFactions?: readonly (string | null)[] | null;
+  /** Pełna nazwa frakcji do opisu miejsca. */
+  factionName?: (factionId: string) => string;
 }) {
   return (
     <div
@@ -87,11 +94,13 @@ export function SeatBoard({
         const name = occupant
           ? occupant.name.trim() || `Player ${occupantIndex + 1}`
           : "empty";
+        const home = seatFactions?.[seat] ?? null;
+        const homeLabel = home ? ` · ${factionName?.(home) ?? home} home` : "";
         const title = occupant
-          ? `Seat ${seat + 1}: ${name} (${colorLabel(occupant.color)})${
+          ? `Seat ${seat + 1}${homeLabel}: ${name} (${colorLabel(occupant.color)})${
               mine ? "" : ", click to swap"
             }`
-          : `Seat ${seat + 1}: empty, click to sit here`;
+          : `Seat ${seat + 1}${homeLabel}: empty, click to sit here`;
         return (
           <span key={seat}>
             {mine && (
@@ -114,7 +123,11 @@ export function SeatBoard({
               title={title}
               onClick={() => onPickSeat(seat)}
             >
-              <span className={styles.seatNumber}>{seat + 1}</span>
+              {home ? (
+                <CircularFactionIcon faction={home} size={22} />
+              ) : (
+                <span className={styles.seatNumber}>{seat + 1}</span>
+              )}
               <span className={styles.seatName}>
                 {occupant ? `P${occupantIndex + 1}` : "free"}
               </span>

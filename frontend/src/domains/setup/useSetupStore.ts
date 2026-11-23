@@ -204,6 +204,29 @@ export function resolveRandomFactions(
 }
 
 /**
+ * Frakcje z domów na gotowej mapie: gracz siedzący na miejscu z kafelkiem domowym dostaje
+ * tę frakcję (wybór domyślny — „Auto"; w kroku frakcji można go zmienić).
+ *
+ * `seatFactions[seat]` = frakcja domu na miejscu `seat` albo `null`. Nadpisujemy tylko
+ * sloty „Random" albo z frakcją domu INNEGO miejsca (gracz się przesiadł — frakcja jedzie
+ * z miejscem, inaczej powstałby duplikat); jawnie wybrana frakcja spoza mapy zostaje.
+ * Gracz przesadzony na miejsce bez domu wraca do „Random". Czysta, idempotentna funkcja.
+ */
+export function applySeatFactions(
+  slots: readonly SetupSlot[],
+  seatFactions: readonly (string | null)[],
+): SetupSlot[] {
+  const mapFactions = new Set(seatFactions.filter((f): f is string => f !== null));
+  return slots.map((slot) => {
+    const target = seatFactions[slot.seat] ?? null;
+    const followsSeat = slot.factionId === RANDOM_FACTION || mapFactions.has(slot.factionId);
+    if (!followsSeat) return slot;
+    const next = target ?? RANDOM_FACTION;
+    return next === slot.factionId ? slot : { ...slot, factionId: next, startingTech: [] };
+  });
+}
+
+/**
  * Wartość `mapString` oznaczająca „losowa mapa" (generuje backend przy starcie gry).
  * Trzymana w `mapString`, bo to pole jest już synchronizowane w lobby sieciowym.
  */
@@ -243,6 +266,13 @@ export interface SetupStore {
    * (jak kolory), więc duplikat nigdy nie powstaje.
    */
   swapSeat: (index: number, seat: number) => void;
+  /**
+   * Zamienia numery dwóch graczy (cały slot: nazwa, sterowanie, frakcja, miejsce, kolor).
+   * Osoba zostaje na swoim miejscu przy stole, zmienia się tylko numer (gracz 1 = mówca).
+   */
+  swapPlayers: (a: number, b: number) => void;
+  /** Frakcje z domów gotowej mapy (patrz `applySeatFactions`). */
+  applySeatFactions: (seatFactions: readonly (string | null)[]) => void;
   /** Dobiera kolory wg preferencji frakcji (patrz `assignPreferredColors`). */
   applyPreferredColors: (factionById: Map<string, FactionInfo>) => void;
   /** Losuje frakcje graczom z „Random" (patrz `resolveRandomFactions`). */
@@ -332,6 +362,20 @@ export const useSetupStore = create<SetupStore>((set) => ({
           return slot;
         }),
       };
+    }),
+
+  swapPlayers: (a, b) =>
+    set((state) => {
+      if (a === b || !state.slots[a] || !state.slots[b]) return state;
+      const slots = [...state.slots];
+      [slots[a], slots[b]] = [slots[b], slots[a]];
+      return { slots };
+    }),
+
+  applySeatFactions: (seatFactions) =>
+    set((state) => {
+      const next = applySeatFactions(state.slots, seatFactions);
+      return next.some((slot, i) => slot !== state.slots[i]) ? { slots: next } : state;
     }),
 
   applyPreferredColors: (factionById) =>

@@ -721,3 +721,59 @@
   font-size: 13px;
 }
 
+
+/* Gracz wybrany do przesiadki (plansza miejsc). */
+.cardSelected {
+  border-color: rgb(255 211 74 / 0.75);
+  box-shadow: 0 0 0 1px rgb(255 211 74 / 0.35);
+}
+
+/* Strzałki zmiany numeru gracza. */
+.moveSet {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.moveButton {
+  min-width: 26px;
+  padding: 2px 6px;
+  border: 1px solid var(--ds-h14);
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-ink);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.moveButton:hover:not(:disabled) {
+  border-color: rgb(252 162 43 / 0.7);
+  background: rgb(252 162 43 / 0.08);
+}
+
+.moveButton:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* „Seat N" - wybór gracza do przesiadki na planszy miejsc. */
+.seatChip {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 1px solid var(--ds-h14);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ds-ink);
+  font-size: var(--ds-fz-xs);
+  cursor: pointer;
+}
+
+.seatChip:hover,
+.seatChipOn {
+  border-color: rgb(255 211 74 / 0.75);
+  background: rgb(255 211 74 / 0.1);
+  color: var(--ds-ink-hi);
+}
+
+.seatHome {
+  color: var(--ds-ink-lo);
+}

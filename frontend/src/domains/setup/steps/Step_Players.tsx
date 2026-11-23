@@ -6,18 +6,20 @@
 //   - pasek górny: ← Main menu · tytuł kroku · podsumowanie (ludzie/boty) · „Choose factions →";
 //   - lewy panel „Game": liczba graczy (2–6), mapa (domyślna / własny map string),
 //     szybkie ustawienia (wszyscy ludzie, ja + boty);
-//   - siatka kart graczy: nazwa, człowiek/bot, trudność i osobowość bota.
+//   - siatka kart graczy: nazwa, człowiek/bot, trudność i osobowość bota, miejsce przy
+//     stole i strzałki zmiany numeru gracza (gracz 1 = mówca na start);
+//   - plansza miejsc (`SeatBoard`): klik w kartę gracza, potem w miejsce = przesiadka.
 //
-// Kolor i miejsce przy stole NIE są tu wybierane — zależą od frakcji (preferowane
-// kolory), więc mają osobny, ostatni krok (`Step_SeatColor`). Docelowo między tym
-// krokiem a wyborem frakcji pojawi się lobby / moduł sieciowy.
+// Gotowa mapa z domami (np. z draftu Milty): miejsce = frakcja domu, którą gracz dostaje
+// domyślnie w kroku frakcji (`applySeatFactions`). Kolor wybiera ostatni krok
+// (`Step_SeatColor`), bo zależy od frakcji.
 //
 // Odpowiedzialności (R7.1/R7.2/R7.4/R7.5):
 //  1. dane zapisujemy WYŁĄCZNIE do store'a (`useSetupStore`) — jedno źródło prawdy;
 //  2. lokalne podpowiedzi walidacji per slot (długość nazwy, duplikat nazwy). Twarde
 //     blokowanie „Dalej" robi kontener przez `validateStep`/`validateSetup`.
 
-import { canEditSlot, useLobbyRole } from "@/domains/network/setupSync";
+import { canEditSlot, swapPlayers, useLobbyRole } from "@/domains/network/setupSync";
 import { useState, type CSSProperties } from "react";
 import { useEngineConfig } from "@/api/useNewGame";
 import type { SetupStepProps } from "../SetupWizard";
@@ -31,6 +33,8 @@ import {
   useSetupStore,
 } from "../useSetupStore";
 import { colorAccent } from "../playerColors";
+import { useMapSeatInfo } from "../useMapSeatInfo";
+import { SeatBoard } from "./SeatBoard";
 import styles from "./Step_Players.module.css";
 
 /** Wartości dozwolonej liczby graczy (przyciski 2..6). */
@@ -107,11 +111,19 @@ function PlayerCard({
   index,
   slots,
   bot,
+  selected,
+  onSelect,
+  seatHome,
 }: {
   slot: SetupSlot;
   index: number;
   slots: SetupSlot[];
   bot: BotOptions;
+  /** Ten gracz jest wybrany do przesiadki na planszy miejsc. */
+  selected: boolean;
+  onSelect: () => void;
+  /** Pełna nazwa frakcji, której dom leży na miejscu gracza (gotowa mapa). */
+  seatHome: string | null;
 }) {
   const updateSlot = useSetupStore((s) => s.updateSlot);
   const setControlType = useSetupStore((s) => s.setControlType);
@@ -132,16 +144,46 @@ function PlayerCard({
           : null;
 
   const nameError = slotNameError(slot, index, slots);
+  const canReorder = !(role.active && role.isGuest);
+  const move = (to: number) => void swapPlayers(index, to).catch(() => undefined);
   const isBot = slot.controlType === "BOT";
   const cardStyle = { "--pc": colorAccent(slot.color) } as CSSProperties;
 
   return (
-    <article className={styles.card} style={cardStyle} aria-label={`Player ${index + 1}`}>
+    <article
+      className={`${styles.card} ${selected ? styles.cardSelected : ""}`}
+      style={cardStyle}
+      aria-label={`Player ${index + 1}`}
+    >
       <header className={styles.cardHead}>
         <span className={styles.badge} aria-hidden>
           {index + 1}
         </span>
         <h2 className={styles.cardTitle}>Player {index + 1}</h2>
+        {canReorder && (
+          <span className={styles.moveSet}>
+            <button
+              type="button"
+              className={styles.moveButton}
+              aria-label={`Make Player ${index + 1} Player ${index}`}
+              title={index === 0 ? undefined : `Swap with Player ${index}`}
+              disabled={index === 0}
+              onClick={() => move(index - 1)}
+            >
+              ◀
+            </button>
+            <button
+              type="button"
+              className={styles.moveButton}
+              aria-label={`Make Player ${index + 1} Player ${index + 2}`}
+              title={index === slots.length - 1 ? undefined : `Swap with Player ${index + 2}`}
+              disabled={index === slots.length - 1}
+              onClick={() => move(index + 1)}
+            >
+              ▶
+            </button>
+          </span>
+        )}
         <fieldset
           disabled={role.active && role.isGuest}
           className={styles.lockSet}
@@ -168,6 +210,17 @@ function PlayerCard({
         </div>
         </fieldset>
       </header>
+
+      <button
+        type="button"
+        className={`${styles.seatChip} ${selected ? styles.seatChipOn : ""}`}
+        aria-pressed={selected}
+        onClick={onSelect}
+        title="Select, then click a seat on the table to move this player"
+      >
+        Seat {slot.seat + 1}
+        {seatHome && <span className={styles.seatHome}> · {seatHome} home</span>}
+      </button>
 
       {ownerLabel && (
         <span
@@ -251,7 +304,7 @@ function PlayerCard({
  * Krok „Gracze i mapa": pasek górny + panel ustawień gry + karty graczy.
  * Walidacja żyje w store'ie; kontener (`SetupWizard`) blokuje „Dalej" przez `stage.canSubmit`.
  */
-export default function Step_Players({ stage }: SetupStepProps) {
+export default function Step_Players({ stage, factionById }: SetupStepProps) {
   const slots = useSetupStore((s) => s.slots);
   const playerCount = useSetupStore((s) => s.playerCount);
   const mapString = useSetupStore((s) => s.mapString);
@@ -259,6 +312,12 @@ export default function Step_Players({ stage }: SetupStepProps) {
   const setMapString = useSetupStore((s) => s.setMapString);
 
   const applyControlPreset = useSetupStore((s) => s.applyControlPreset);
+  const swapSeat = useSetupStore((s) => s.swapSeat);
+  const { seatFactions, unknownTiles } = useMapSeatInfo();
+  const factionName = (id: string) => factionById.get(id)?.name ?? id;
+  // Gracz wybrany do przesiadki (klik w „Seat N" na karcie, potem w miejsce na planszy).
+  const [seatPicker, setSeatPicker] = useState(0);
+  const pickerIndex = Math.min(seatPicker, slots.length - 1);
   const role = useLobbyRole();
   const [copied, setCopied] = useState<string | null>(null);
   const copy = async (link: string) => {
@@ -392,6 +451,21 @@ export default function Step_Players({ stage }: SetupStepProps) {
           </section>
 
           <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Seats</h2>
+            <SeatBoard
+              slots={slots}
+              activeIndex={pickerIndex}
+              onPickSeat={(seat) => swapSeat(pickerIndex, seat)}
+              seatFactions={seatFactions}
+              factionName={factionName}
+            />
+            <p className={styles.hint}>
+              Player {pickerIndex + 1} is selected: click a seat to move them (an occupied
+              seat swaps). Player 1 is the first speaker; turns go clockwise around the table.
+            </p>
+          </section>
+
+          <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Setup method</h2>
             <div className={styles.optionList} role="radiogroup" aria-label="Setup method">
               {SETUP_METHODS.map((m) => (
@@ -470,6 +544,17 @@ export default function Step_Players({ stage }: SetupStepProps) {
                 onChange={(e) => setMapString(e.currentTarget.value)}
               />
             )}
+            {mapMode === "custom" && unknownTiles.length > 0 && (
+              <p className={styles.error}>
+                Unknown tiles (not in the enabled sources): {unknownTiles.join(", ")}
+              </p>
+            )}
+            {mapMode === "custom" && seatFactions && (
+              <p className={styles.hint}>
+                This map has home systems: each player gets the faction of their seat by
+                default (you can still change it in the next step).
+              </p>
+            )}
           </section>
 
           <section className={styles.section}>
@@ -506,6 +591,12 @@ export default function Step_Players({ stage }: SetupStepProps) {
               index={index}
               slots={slots}
               bot={bot}
+              selected={index === pickerIndex}
+              onSelect={() => setSeatPicker(index)}
+              seatHome={(() => {
+                const home = seatFactions?.[slot.seat];
+                return home ? factionName(home) : null;
+              })()}
             />
           ))}
         </section>

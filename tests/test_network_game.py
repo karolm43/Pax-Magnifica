@@ -376,3 +376,22 @@ def test_network_setup_secrets_are_simultaneous_and_private(registry: StaticData
     setup = client.get(url, headers=p2).json()["gameState"]["setup"]
     assert setup["candidates"] == [] and setup["candidatesFor"] is None
     assert setup["pending"] == ["p1"]
+
+
+def test_host_swaps_player_numbers_with_owners(registry: StaticDataRegistry) -> None:
+    """Host zmienia numer gracza: slot jedzie razem z osobą (właścicielem) i jej miejscem."""
+    client = TestClient(create_app(registry=registry, store=EventStore(":memory:")))
+    client.post("/lobby/open", json={"reset": True})
+    draft = {"slots": [_slot("Host", seat=0), _slot("", seat=1)], "mapString": "", "step": 0}
+    assert client.put("/lobby/draft", json={"draft": draft}).status_code == 200
+    joined = client.post("/lobby/join", json={"name": "Ania"}, headers=REMOTE).json()
+    ania = {SEAT_TOKEN_HEADER: joined["token"], **REMOTE}
+
+    assert client.patch("/lobby/draft", json={"swap": [0, 1]}, headers=ania).status_code == 403
+    res = client.patch("/lobby/draft", json={"swap": [0, 1]})
+    assert res.status_code == 200, res.text
+    view = res.json()["draft"]
+    assert view["owners"] == [joined["member_id"], "host"]
+    assert [s["name"] for s in view["slots"]] == ["Ania", "Host"]
+    assert [s["seat"] for s in view["slots"]] == [1, 0]
+    assert client.patch("/lobby/draft", json={"swap": [0, 7]}).status_code == 422

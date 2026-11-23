@@ -55,6 +55,24 @@ export const useLobbyRole = create<LobbyRole>(() => ({
   links: [],
 }));
 
+/** Przyjęcie szkicu z serwera do kreatora — ustawiane przez aktywny `useSetupSync`. */
+let applyServerDraft: ((d: LobbyDraft) => void) | null = null;
+
+/**
+ * Zamienia numery dwóch graczy. Lokalnie — w kreatorze; w lobby (host) — na serwerze,
+ * bo razem ze slotem przesiada się jego właściciel (kto steruje graczem).
+ */
+export async function swapPlayers(a: number, b: number): Promise<void> {
+  const role = useLobbyRole.getState();
+  if (!role.active || !applyServerDraft) {
+    useSetupStore.getState().swapPlayers(a, b);
+    return;
+  }
+  if (role.isGuest) return;
+  const view = await send("PATCH", { swap: [a, b] });
+  if (view.draft) applyServerDraft(view.draft as LobbyDraft);
+}
+
 /** Czy ta osoba może edytować slot `index` (lokalnie / host: zawsze; gość: tylko swój). */
 export function canEditSlot(role: LobbyRole, index: number): boolean {
   return !role.active || !role.isGuest || role.mySlot === index;
@@ -136,7 +154,13 @@ export function useSetupSync(enabled: boolean, onGuestStarted?: () => void): voi
     });
   }, [enabled, lobby, draft, isHost]);
 
-  useEffect(() => () => useLobbyRole.setState({ active: false, isGuest: false }), []);
+  useEffect(
+    () => () => {
+      applyServerDraft = null;
+      useLobbyRole.setState({ active: false, isGuest: false });
+    },
+    [],
+  );
 
   const apply = (d: LobbyDraft) => {
     applying.current = true;
@@ -149,7 +173,17 @@ export function useSetupSync(enabled: boolean, onGuestStarted?: () => void): voi
     applying.current = false;
     synced.current = snapshot();
     version.current = d.version;
+    // Właściciele mogli się przesiąść (zamiana graczy) — rola od razu, nie po odczycie lobby.
+    const me = useLobbyRole.getState();
+    const mySlotKey = me.mySlot !== null ? me.owners[me.mySlot] : undefined;
+    const mine = mySlotKey ? d.owners.indexOf(mySlotKey) : -1;
+    useLobbyRole.setState({
+      owners: d.owners,
+      ownerNames: d.ownerNames ?? me.ownerNames,
+      mySlot: mine >= 0 ? mine : me.mySlot,
+    });
   };
+  applyServerDraft = apply;
 
   // Brak szkicu na serwerze (świeże lobby po „Play") → host wysyła pełny kreator; gość czeka.
   // Jest szkic → nowsza wersja trafia do kreatora (gdy nie wysyłamy własnej zmiany).

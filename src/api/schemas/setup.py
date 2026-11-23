@@ -126,6 +126,21 @@ class EngineConfigInfo(BaseModel):
     seats: list[str] = Field(default_factory=list)
 
 
+class MapSeatView(BaseModel):
+    """Miejsce gracza wykryte w map stringu (``core.map_string.map_seats``)."""
+
+    position: str
+    # Frakcja, której kafelek domowy leży na tym miejscu (gotowa mapa); None = pusty slot.
+    faction_id: str | None = None
+
+
+class MapSeatsView(BaseModel):
+    """Podgląd map stringa w kreatorze: miejsca graczy i kafelki spoza rejestru."""
+
+    seats: list[MapSeatView] = Field(default_factory=list)
+    unknown_tiles: list[str] = Field(default_factory=list)
+
+
 class SetupPlayerRequest(BaseModel):
     """Żądanie setupu gracza: frakcja + kolor na wskazanym slocie domowym.
 
@@ -489,6 +504,8 @@ __all__ = [
     "AgendaVoteRequest",
     "ChessClockConfig",
     "EngineConfigInfo",
+    "MapSeatView",
+    "MapSeatsView",
     "EpilogueVoteRequest",
     "FactionInfo",
     "LeaderStateRequest",

@@ -59,11 +59,13 @@ def apply_patch(draft: Draft, who: str, is_host: bool, patch: Draft) -> Draft:
     """Zmiana szkicu (na kopii). Raises: ``ValueError`` (reguły), ``DraftPermissionError``."""
     result = copy.deepcopy(draft)
     if not is_host and set(patch) - {"slots"}:
-        raise DraftPermissionError("Only the host changes the map and the steps.")
+        raise DraftPermissionError("Only the host changes the map, the steps and the player order.")
     if is_host and "mapString" in patch:
         result["mapString"] = str(patch["mapString"] or "")
     if is_host and "step" in patch:
         result["step"] = int(patch["step"])
+    if is_host and "swap" in patch:
+        _swap_players(result, patch["swap"])
     changes = patch.get("slots") or {}
     if not isinstance(changes, dict):
         raise ValueError("Invalid slot changes.")
@@ -85,6 +87,24 @@ def apply_patch(draft: Draft, who: str, is_host: bool, patch: Draft) -> Draft:
     check_unique(result)
     result["version"] = int(draft.get("version", 0)) + 1
     return result
+
+
+def _swap_players(draft: Draft, pair: Any) -> None:
+    """Zamiana numerów dwóch graczy (host): sloty RAZEM z właścicielami (kto tam siedzi).
+
+    Miejsce przy stole, kolor i frakcja jadą ze slotem, więc osoba zostaje przy swoim
+    miejscu — zmienia się tylko jej numer gracza (gracz 1 = mówca na start).
+    Raises: ``ValueError``.
+    """
+    if not isinstance(pair, list) or len(pair) != 2:
+        raise ValueError("Swap needs two player numbers.")
+    i, j = int(pair[0]), int(pair[1])
+    slots: list[Draft] = draft["slots"]
+    owners: list[str | None] = draft["owners"]
+    if not (0 <= i < len(slots) and 0 <= j < len(slots)):
+        raise ValueError("Invalid players to swap.")
+    slots[i], slots[j] = slots[j], slots[i]
+    owners[i], owners[j] = owners[j], owners[i]
 
 
 def normalize_owners(draft: Draft, members: dict[str, str]) -> None:

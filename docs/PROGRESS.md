@@ -392,3 +392,18 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
 - Ustawienia: zakładki Game (zegar, okna reakcji) / Variants (moduły talii) / Display (mapa + karty graczy) / Sound /
   Testing (Fast mode + God-Mode). Krótsze, konkretniejsze opisy. Usunięte martwe pola store: `showControlLayer`,
   `animateEventPreviews` (+ `toggleShowControlLayer`). Odwołania do starych nazw (podpowiedzi, komentarze) poprawione.
+
+
+## Lobby: kto gdzie siedzi, numery graczy; map string z gotowymi domami
+
+- Map string: token tłumaczony aliasami z danych (`8` = `08`, `96` = `96a`, `nekro`) — `core/map_string.resolve_tile_id`.
+  Wcześniej `8`/`96` cicho znikały (dziury w mapie). Nieznany kafelek = 422 z listą (`/game/new`, `/map/load`).
+- Gotowa mapa z domami (np. Milty): `map_seats` wykrywa frakcję domu na każdym miejscu (też `51` Creuss / `118` Crimson);
+  `GET /map/seats` dla kreatora. Gracz na domu dostaje jego frakcję domyślnie (kreator `applySeatFactions`, backend dla
+  gracza bez `faction_id`); przesiadka przenosi frakcję; nieobsadzony dom wraca do pustego slotu. RULES 2a.
+- Kolejność przy stole wg miejsc zgodnie z zegarem od gracza 1 (`home_slots.seating_by_seats`), nie wg numeru. RULES 24.
+- Krok „Players & map”: plansza miejsc (`SeatBoard`, ikony domów z mapy), chip „Seat N” na karcie, strzałki ◀ ▶
+  zmieniające numer gracza. W lobby sieciowym zamiana idzie przez serwer razem z właścicielem (`PATCH /lobby/draft
+  {"swap": [i, j]}`, tylko host; `setupSync.swapPlayers`). Nieznane kafelki blokują „Choose factions”.
+- Testy: `tests/test_map_string_seats.py`, `test_network_game.py::test_host_swaps_player_numbers_with_owners`,
+  `useSetupStore.test.ts` (applySeatFactions, swapPlayers).

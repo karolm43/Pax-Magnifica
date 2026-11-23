@@ -141,6 +141,30 @@ export function useEngineConfig() {
   });
 }
 
+/** Podgląd map stringa (GET /map/seats): miejsca graczy i kafelki spoza rejestru. */
+export type MapSeatsInfo = {
+  // Miejsca w kolejności stołu; `faction_id` = frakcja, której dom leży na miejscu.
+  seats: { position: string; faction_id: string | null }[];
+  unknown_tiles: string[];
+};
+
+/**
+ * Miejsca graczy z własnego map stringa — gotowa mapa (np. z draftu Milty) ma już domy,
+ * więc kreator wie, kto gdzie siedzi. `null` (mapa domyślna/losowa) = bez zapytania.
+ */
+export function useMapSeats(mapString: string | null) {
+  return useQuery<MapSeatsInfo>({
+    queryKey: ["mapSeats", mapString],
+    queryFn: () =>
+      fetchJson<MapSeatsInfo>(
+        `${BOT_ROOT}/map/seats?map_string=${encodeURIComponent(mapString ?? "")}`,
+        "map seats",
+      ),
+    enabled: mapString !== null,
+    staleTime: Infinity,
+  });
+}
+
 /** Tworzy nową grę jednym żądaniem (POST /game/new). Rzuca przy błędzie HTTP. */
 export async function createNewGame(request: NewGameRequest): Promise<void> {
   // Moduły wariantów (talie fanowskie, erraty) pochodzą z Ustawień (Game variants),

@@ -31,6 +31,7 @@ import {
   colorSwatchBackground,
   preferredColorsOf,
 } from "../playerColors";
+import { useMapSeatInfo } from "../useMapSeatInfo";
 import { SeatBoard } from "./SeatBoard";
 import base from "./Step_Players.module.css";
 import styles from "./Step_SeatColor.module.css";
@@ -110,6 +111,8 @@ export default function Step_SeatColor({ factions, factionById, stage }: SetupSt
   const shuffleColors = useSetupStore((s) => s.shuffleColors);
   const applyPreferredColors = useSetupStore((s) => s.applyPreferredColors);
   const rollRandomFactions = useSetupStore((s) => s.rollRandomFactions);
+  // Gotowa mapa: ikona frakcji domu na miejscu (przesiadka = zmiana frakcji, SetupWizard).
+  const { seatFactions } = useMapSeatInfo();
 
   // Lobby sieciowe (RULES.md 44.5a): gość ustawia tylko swój kolor i miejsce; losowanie
   // frakcji „Random" robi host (jedno źródło — inaczej każdy klient losowałby co innego).
@@ -270,6 +273,8 @@ export default function Step_SeatColor({ factions, factionById, stage }: SetupSt
               slots={slots}
               activeIndex={activeSlotIndex}
               onPickSeat={(seat) => swapSeat(activeSlotIndex, seat)}
+              seatFactions={seatFactions}
+              factionName={(id) => factionById.get(id)?.name ?? id}
             />
           </div>
 

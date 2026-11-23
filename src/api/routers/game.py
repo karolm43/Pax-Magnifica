@@ -13,6 +13,8 @@ from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     EngineConfigInfo,
     FactionInfo,
+    MapSeatsView,
+    MapSeatView,
     MapStringRequest,
     MapView,
     NewGamePlayer,
@@ -42,7 +44,14 @@ from src.core.faction_setup import (
 from src.core.game_setup import begin_setup, place_frontier_tokens
 from src.core.game_state import GameState, Phase
 from src.core.hex_grid import Hex, HexGrid
-from src.core.map_string import build_grid_from_map_string, random_map_string
+from src.core.home_slots import seating_by_seats
+from src.core.map_string import (
+    HOME_SLOT_SYSTEM_ID,
+    build_grid_from_map_string,
+    map_seats,
+    random_map_string,
+    unknown_tiles,
+)
 from src.core.models import FactionDef
 from src.core.player_colors import all_color_aliases, canonical_color
 from src.core.registry import StaticDataRegistry
@@ -273,6 +282,51 @@ def get_engine_config(ctx: AppContext = Depends(get_ctx)) -> EngineConfigInfo:
     )
 
 
+def _reject_unknown_tiles(map_string: str, registry: StaticDataRegistry) -> None:
+    """Nieznane kafelki w map stringu → 422 (zamiast cichych dziur w mapie)."""
+    unknown = unknown_tiles(map_string, registry)
+    if unknown:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Unknown tiles in the map string: {', '.join(unknown)} "
+                "(not in the enabled sources)."
+            ),
+        )
+
+
+def _default_factions_from_seats(
+    players: Sequence[NewGamePlayer], seat_factions: dict[str, str]
+) -> None:
+    """Gracz bez frakcji na miejscu z kafelkiem domowym dostaje frakcję tego domu (Auto).
+
+    Miejsce gracza = jawne ``home_position`` albo auto-slot wg kolejności. Frakcja
+    wybrana jawnie przez kogokolwiek nie jest przydzielana drugi raz.
+    """
+    taken = {p.faction_id for p in players if p.faction_id}
+    for index, player in enumerate(players):
+        if player.faction_id or index >= len(AUTO_SLOT_ORDER):
+            continue
+        position = player.home_position or AUTO_SLOT_ORDER[index][0]
+        faction_id = seat_factions.get(position)
+        if faction_id and faction_id not in taken:
+            player.faction_id = faction_id
+            taken.add(faction_id)
+
+
+@router.get("/map/seats", response_model=MapSeatsView)
+def get_map_seats(map_string: str, ctx: AppContext = Depends(get_ctx)) -> MapSeatsView:
+    """Podgląd map stringa dla kreatora: miejsca graczy (z frakcją domu) i nieznane kafelki."""
+    try:
+        seats = map_seats(map_string, ctx.registry)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return MapSeatsView(
+        seats=[MapSeatView(position=s.position, faction_id=s.faction_id) for s in seats],
+        unknown_tiles=unknown_tiles(map_string, ctx.registry),
+    )
+
+
 @router.post("/map/load", dependencies=[HostOnly], response_model=MapView)
 async def post_load_map(
     request: MapStringRequest, ctx: AppContext = Depends(get_ctx)
@@ -288,6 +342,7 @@ async def post_load_map(
             status_code=422,
             detail="The map string produced no known system (check IDs and sources).",
         )
+    _reject_unknown_tiles(request.map_string, ctx.registry)
     ctx.set_map(grid)
     await ctx.broadcast_map()
     return build_map_view(grid, ctx.registry, ctx.service.current_state())
@@ -567,6 +622,17 @@ async def post_new_game(
             status_code=422,
             detail="The map string produced no known system (check IDs and sources).",
         )
+    _reject_unknown_tiles(map_string, registry)
+
+    # Gotowa mapa z domami (np. z draftu Milty): gracz bez jawnej frakcji siedzący na
+    # kafelku domowym dostaje tę frakcję („Auto", docs/RULES.md 2a); nieobsadzone domy
+    # wracają do pustych slotów.
+    seat_factions = {
+        seat.position: seat.faction_id
+        for seat in map_seats(map_string, registry)
+        if seat.faction_id is not None
+    }
+    _default_factions_from_seats(request.players, seat_factions)
 
     # Delegacja całej walidacji/normalizacji graczy do core (R11.1–R11.6, R8.5).
     # Zakres liczby graczy, losowy dobór frakcji i auto-kolory obsługuje resolve_players.
@@ -612,11 +678,17 @@ async def post_new_game(
             unit_position=unit_position,
             unit_system_id=unit_system_id,
         )
+    for position in set(seat_factions) - taken_homes:
+        _place_tile_on_slot(grid, HOME_SLOT_SYSTEM_ID, position, registry)
     grid.build_edges()
 
-    # Kolejność miejsc + mówca (RULES.md 24): pierwszy gracz = mówca na start.
+    # Kolejność miejsc + mówca (RULES.md 24): pierwszy gracz = mówca na start, dalej
+    # gracze na kolejnych miejscach zgodnie z ruchem zegara (nie wg numeru gracza).
     # Nowa gra zaczyna fazą strategii, więc aktywny = pierwszy wybierający (mówca).
-    new_state.seating_order = seating
+    new_state.seating_order = seating_by_seats(
+        seating,
+        {pid: p.home_position for pid, p in new_state.players.items() if p.home_position},
+    )
     strategy_phase.set_speaker(new_state, seating[0] if seating else None)
     new_state.active_player_id = strategy_phase.next_strategy_picker(new_state)
     # Cele i talie (RULES.md 41.1): 5+5 celów publicznych, dwa cele I etapu odkryte,

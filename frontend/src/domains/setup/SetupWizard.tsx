@@ -41,6 +41,7 @@ import Step_Faction from "./steps/Step_Faction";
 import Step_SeatColor from "./steps/Step_SeatColor";
 import GameIntro from "./GameIntro";
 import { loadIntroPlayers, type IntroPlayer } from "./introPlayers";
+import { useMapSeatInfo } from "./useMapSeatInfo";
 
 /**
  * Propsy współdzielone przez komponenty kroków. Każdy krok dostaje listę frakcji
@@ -141,16 +142,33 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
   // Walidacja bieżącego kroku — blokuje „Dalej". Sprawdza TYLKO reguły tego kroku,
   // więc np. brak wyboru technologii (krok późniejszy) nie blokuje wyjścia z kroku
   // graczy. To była przyczyna „nie da się przejść dalej" dla frakcji z wyborem tech.
+  // Gotowa mapa (domy w map stringu): frakcja jedzie z miejscem; nieznane kafelki blokują.
+  const { seatFactions, unknownTiles } = useMapSeatInfo();
+  const mapError =
+    unknownTiles.length > 0 ? `Map string: unknown tiles ${unknownTiles.join(", ")}.` : null;
   const stepError = useMemo(
-    () => validateStep(step.id, slots, factionById, mapString),
-    [step.id, slots, factionById, mapString],
+    () =>
+      (step.id === "players" ? mapError : null) ??
+      validateStep(step.id, slots, factionById, mapString),
+    [step.id, slots, factionById, mapString, mapError],
   );
 
   // Pełna walidacja — wymagana dopiero przy „Start" (ostatni krok): komplet reguł.
   const fullError = useMemo(
-    () => validateSetup(slots, factionById, mapString),
-    [slots, factionById, mapString],
+    () => mapError ?? validateSetup(slots, factionById, mapString),
+    [slots, factionById, mapString, mapError],
   );
+
+  // Miejsce na domu z mapy = domyślnie frakcja tego domu (Auto, docs/RULES.md 2a). Tylko
+  // przy zmianie miejsc lub mapy — nie przy wyborze frakcji, żeby nie cofać wyboru gracza.
+  // W lobby robi to host (gość zmienia tylko swój slot).
+  const seatKey = slots.map((s) => s.seat).join(",");
+  const seatFactionsKey = seatFactions?.join(",") ?? "";
+  useEffect(() => {
+    if (!seatFactions || isGuest) return;
+    useSetupStore.getState().applySeatFactions(seatFactions);
+    // Klucze opisują zmianę; `seatFactions` jest ich źródłem.
+  }, [seatKey, seatFactionsKey, isGuest]);
 
   // Komunikat pod krokiem: na ostatnim kroku pokazuje pełny błąd (co jeszcze brakuje),
   // na wcześniejszych — błąd bieżącego kroku.

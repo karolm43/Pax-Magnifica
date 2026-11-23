@@ -10,6 +10,7 @@
 import { describe, it, expect } from "vitest";
 
 import {
+  applySeatFactions,
   assignPreferredColors,
   resolveRandomFactions,
   toNewGameRequest,
@@ -175,5 +176,40 @@ describe("losowa mapa (RANDOM_MAP)", () => {
     const req = toNewGameRequest([], RANDOM_MAP, new Map());
     expect(req.random_map).toBe(true);
     expect(req.map_string).toBeUndefined();
+  });
+});
+
+describe("gotowa mapa z domami (applySeatFactions)", () => {
+  const SEATS = ["nekro", "cabal", null, null, null, null];
+  const at = (seat: number, factionId = RANDOM_FACTION): SetupSlot => ({
+    ...slot(factionId, AVAILABLE_COLORS[seat]),
+    seat,
+  });
+
+  it("gracz na domu dostaje jego frakcję, jawny wybór spoza mapy zostaje", () => {
+    const next = applySeatFactions([at(0), at(1, "sol"), at(2)], SEATS);
+    expect(next.map((s) => s.factionId)).toEqual(["nekro", "sol", RANDOM_FACTION]);
+  });
+
+  it("frakcja jedzie z miejscem: przesiadka zmienia frakcję, miejsce bez domu = Random", () => {
+    const next = applySeatFactions([at(1, "nekro"), at(2, "cabal")], SEATS);
+    expect(next.map((s) => s.factionId)).toEqual(["cabal", RANDOM_FACTION]);
+  });
+
+  it("jest idempotentna (ta sama referencja slotu bez zmian)", () => {
+    const once = applySeatFactions([at(0)], SEATS);
+    expect(applySeatFactions(once, SEATS)[0]).toBe(once[0]);
+  });
+});
+
+describe("swapPlayers", () => {
+  it("zamienia całe sloty (osoba zachowuje miejsce, zmienia numer)", () => {
+    useSetupStore.getState().reset();
+    useSetupStore.getState().updateSlot(0, { name: "Ala" });
+    const seat0 = useSetupStore.getState().slots[0].seat;
+    useSetupStore.getState().swapPlayers(0, 1);
+    const { slots } = useSetupStore.getState();
+    expect(slots[1].name).toBe("Ala");
+    expect(slots[1].seat).toBe(seat0);
   });
 });
