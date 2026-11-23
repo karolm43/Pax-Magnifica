@@ -422,3 +422,13 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
   `"flavourText": ""` zaraz pod `"name"` — 435 miejsc do ręcznego uzupełnienia (anomalie, puste systemy, systemy z
   planetami). Typ `TileData.flavourText`.
 - `SystemDossier` (`Flavour`): niepusty lore systemu wyświetla się nad opisami planet; pusty jest pomijany.
+
+## Lore planet z AsyncTI4 (PR #6213)
+
+- Upstream AsyncTI4 PR #6213 (scalony 2026-11-20) dodał/poprawił `flavourText` planet. Zsynchronizowane 92 pliki
+  `assets/planets/*.json` z aktywnych źródeł (base, pok, codex*, thunders_edge) + te same pola we
+  `frontend/src/entities/data/planets.ts`: +40 nowych opisów (m.in. New Terra i reszta Thunder's Edge), poprawki
+  literówek, zamiana lore Darien/Archon Tau/Archon Ren, nazwy „Ba'kal” i „Vira-Pics III”, kropki w
+  `legendaryAbilityText` (Primor, Hope's End, Mirage, Mr Te, Thunder's Edge, Custodia Vigilia), dedup aliasów.
+- Własne teksty Keleres planet `*k` (commit 4145b436) zostawione — upstream dał im kopię lore oryginałów.
+- Pozostała część PR (teksty kart akcji/agend/techów/liderów, lore frakcji, plik `asteroid.json`) NIE zsynchronizowana.
