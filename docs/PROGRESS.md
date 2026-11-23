@@ -446,3 +446,14 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
   spornych planet przechodzi Commit/Establish sama (klient atakującego, jedno wywołanie na krok). Gdy krok
   się nie uda (np. eksploracja), okno zostaje z komunikatem. Backend bez zmian (reakcje po zaangażowaniu).
 - QA: tsc app, eslint, vitest `domains/invasion`. Bez testu jednostkowego, bez build/e2e.
+
+## Okna decyzji: płatność kafelkami + Leadership bez blokady 3 wpływu, z „Auto” (plan U2, część)
+
+- `docs/PLAN_OKNA_DECYZJI.md`: dopisane decyzje użytkownika (P1 kafelki płatności, P2 siatka chipów/drag zamiast
+  list, kolejka „+N”, kolejność U1→U6).
+- `PaymentPicker` (PromptParts): planety jako `Tile` z `DecisionTiles` (jak w ofertach) zamiast kart planet —
+  dotyczy wszystkich okien z płatnością (Leadership, technologie, status, Custodians, ekspedycje).
+- Leadership: usunięta blokada zbędnego wydatku (płatność w dowolnej kwocie, informacja o reszcie), „Auto”
+  przez `target` (rules/R30.md 30.7, ⚠️ ZAŁOŻENIE). Backend bez zmian (`paid // 3`).
+- QA: tsc app, eslint (zmienione), vitest domains technology/invasion/game-shell/thunders-edge/offers.
+  Bez testu Leadership, bez build/e2e, bez weryfikacji wizualnej.

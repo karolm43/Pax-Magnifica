@@ -29,31 +29,21 @@ function useInfluencePlan(options: Record<string, unknown>, baseGain: number) {
   const paid = paymentTotal(values, payment, tgValue);
   const bought = Math.floor(paid / perToken);
   const gain = Math.min(baseGain + bought, reinforcements);
-  const wasted = wastefulPart(values, payment, perToken, tgValue);
+  // Płatność w dowolnej kwocie (decyzja użytkownika): reszta niepodzielna przez `perToken`
+  // przepada, ale UI tego nie blokuje - tylko informuje (`leftover`).
+  const leftover = paid - bought * perToken;
+  // „Auto”: kup tyle żetonów, ile da się opłacić (limit: pula zapasów), najtańszą płatnością.
+  // ⚠️ ZAŁOŻENIE (R30.7): Auto = maksimum stać-i-mieści-się, nie „bez wydatku”.
+  const tgAvailable = num(options.trade_goods);
+  const affordable = Math.floor(
+    (Object.values(values).reduce((s, v) => s + v, 0) + tgAvailable * tgValue) / perToken,
+  );
+  const autoTokens = Math.max(0, Math.min(affordable, reinforcements - baseGain));
+  const autoTarget = autoTokens * perToken;
   return {
-    values, perToken, reinforcements, payment, setPayment, paid, bought, gain, wasted, tgValue,
+    values, perToken, reinforcements, payment, setPayment, paid, bought, gain, leftover, tgValue,
+    autoTarget,
   };
-}
-
-/**
- * Czy płatność ma ZBĘDNĄ część: coś (planetę albo 1 trade good), co można odjąć bez utraty
- * żetonu. Reguła pozwala zmarnować wpływ, ale UI tego nie dopuszcza (decyzja użytkownika):
- * np. 2 wpływu za 0 żetonów albo 5 za 1. Nadwyżka nieunikniona (planeta 4 = 1 żeton) jest OK.
- * Zwraca liczbę marnowanego wpływu (0 = płatność bez zbędnych elementów).
- */
-function wastefulPart(
-  values: Record<string, number>,
-  payment: Payment,
-  perToken: number,
-  tgValue = 1,
-): number {
-  const paid = paymentTotal(values, payment, tgValue);
-  const tokens = Math.floor(paid / perToken);
-  const keeps = (less: number) => Math.floor((paid - less) / perToken) === tokens;
-  const removable =
-    (payment.tradeGoods > 0 && keeps(tgValue)) ||
-    payment.planets.some((id) => (values[id] ?? 0) > 0 && keeps(values[id] ?? 0));
-  return removable ? paid - tokens * perToken : 0;
 }
 
 export function LeadershipPrimary(props: PrimaryViewProps) {
@@ -81,7 +71,7 @@ function SpendStep({
       subtitle="Gain command tokens"
       footer={
         <ConfirmButton
-          disabled={busy || plan.wasted > 0}
+          disabled={busy}
           icon={<IconCheck size={16} />}
           onClick={() =>
             submit({ planets: plan.payment.planets, trade_goods: plan.payment.tradeGoods })
@@ -103,6 +93,7 @@ function SpendStep({
         onChange={plan.setPayment}
         unit="influence"
         busy={busy}
+        target={plan.autoTarget}
       />
       <SpendSummary plan={plan} base={3} />
     </PromptShell>
@@ -117,15 +108,6 @@ function SpendSummary({
   plan: ReturnType<typeof useInfluencePlan>;
   base: number;
 }) {
-  if (plan.wasted > 0) {
-    return (
-      <Hint>
-        <IconAlertTriangle size={14} aria-hidden="true" /> <b>{plan.wasted} influence</b> would
-        buy nothing. Spend influence in groups of {plan.perToken} - remove a planet or a trade
-        good.
-      </Hint>
-    );
-  }
   return (
     <Hint>
       Spending <b>{plan.paid}</b> influence buys <b>{plan.bought}</b> token(s) - you will gain{" "}
@@ -134,6 +116,13 @@ function SpendSummary({
         ? ` (limited by ${plan.reinforcements} in reinforcements)`
         : ""}
       .
+      {plan.leftover > 0 && (
+        <>
+          {" "}
+          <IconAlertTriangle size={14} aria-hidden="true" /> {plan.leftover} influence is left
+          over and buys nothing.
+        </>
+      )}
     </Hint>
   );
 }
@@ -197,7 +186,7 @@ export function LeadershipSecondary({
             Back
           </Button>
           <ConfirmButton
-            disabled={busy || safePlaced !== plan.gain || plan.wasted > 0 || plan.gain === 0}
+            disabled={busy || safePlaced !== plan.gain || plan.gain === 0}
             icon={<IconCheck size={16} />}
             onClick={() =>
               submit({
@@ -228,6 +217,7 @@ export function LeadershipSecondary({
         }}
         unit="influence"
         busy={busy}
+        target={plan.autoTarget}
       />
       {plan.gain > 0 ? (
         <PoolDistributor

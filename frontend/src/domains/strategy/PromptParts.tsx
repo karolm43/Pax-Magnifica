@@ -1,7 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
 import { IconMinus, IconPlus, IconWand } from "@tabler/icons-react";
 import { Button } from "@/ds";
-import { PlanetCard } from "@/domains/player/components/PlanetCard";
+import { getPlanetData } from "@/entities/lookup/planets";
+import { Tile } from "@/domains/offers/DecisionTiles";
 import { autoPay } from "@/domains/technology/techModel";
 import {
   splitTotal,
@@ -151,17 +152,21 @@ export function PaymentPicker({
           <span className={styles.empty}>No ready planets.</span>
         ) : (
           <div className={styles.planets}>
+            {/* Te same kafelki co w ofertach (DecisionFields): nazwa + wartość, klik = wybór. */}
             {ids.map((id) => (
-              <div className={styles.planetSlot} key={id}>
-                <PlanetCard
-                  planetId={id}
-                  picked={value.planets.includes(id)}
-                  onPick={busy ? undefined : () => toggle(id)}
-                />
-                <span className={styles.planetValue}>
-                  {values[id]} {unit}
-                </span>
-              </div>
+              <Tile
+                key={id}
+                multi
+                option={{
+                  id,
+                  value: id,
+                  label: getPlanetData(id)?.name ?? id,
+                  meta: { planet: id, value: values[id], valueKind: unit },
+                }}
+                selected={value.planets.includes(id)}
+                disabled={!!busy}
+                onClick={() => toggle(id)}
+              />
             ))}
           </div>
         )}

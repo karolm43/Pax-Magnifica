@@ -57,8 +57,8 @@ testy + sekcja w `PROGRESS.md` + commit.
 ### U2 — Jeden zestaw widżetów
 - Jeden `Stepper` (z `DecisionTiles`) zamiast 5 kopii (PromptParts, TradingTable,
   RemovalWindowModal, CommandPools).
-- Płatność: jeden widżet; `PaymentPicker` (karty planet) i `PaymentField` (kafelki) → wybrać
-  jeden wygląd (patrz pytanie P1).
+- Płatność: jeden widżet = kafelki (`PaymentField`); `PaymentPicker` (karty planet z Leadership)
+  usunąć (decyzja P1). Leadership: bez wymogu wielokrotności 3 + „Auto”.
 - Rozdział żetonów: `CommandPools` wszędzie (Leadership, Warfare, Predictive Intelligence, status),
   zawsze z „Auto” (Z5).
 - „Auto”: jeden komponent `AutoButton`, zawsze przy polu, styl pomocniczy; główna akcja w stopce
@@ -90,9 +90,20 @@ testy + sekcja w `PROGRESS.md` + commit.
 ### U6 — Wybór planet tylko na mapie (zasady użytkownika)
 - Agenda „Elect Planet”: wybór wyniku klikiem na mapie (podświetlone planety) + lista wyników
   tylko jako podgląd głosów.
-- DecisionFields: zamiast `Select`/`MultiSelect` przy > 18 opcjach — patrz pytanie P2.
+- DecisionFields: zamiast `Select`/`MultiSelect` → siatka dużych chipów, drag/klik zamiast list (decyzja P2).
 
-## Pytania do użytkownika
-- **P1** Płatność: karty planet (jak w Leadership) czy kompaktowe kafelki z wartością (jak w ofertach)?
-- **P2** Ponad 18 opcji nie-planet/nie-tech (np. wiele jednostek): siatka chipów z wyszukiwarką czy grupowanie?
-- **P3** Kolejność bloków: proponowana U1 → U2 → U3 → U4 → U5 → U6.
+## Decyzje użytkownika (odpowiedzi na pytania)
+- **P1 — Płatność: ujednolicić, ma być ładna.** Wygląd z Leadership (wiersze/karty planet) NIE podoba się
+  użytkownikowi „wcale” — usunąć. Jeden widżet płatności w całej grze = kompaktowe kafelki z wartością
+  (wzór ofert/`PaymentField`), spójny z resztą. W Leadership:
+  - USUNĄĆ ograniczenie „płacić można tylko po 3 influence” (dowolna kwota; liczba żetonów = `base_gain`
+    z silnika wg reguły karty, nie wymuszone wielokrotności 3 w UI),
+  - DODAĆ „Auto” (sensowna domyślna kwota/rozdział; ⚠️ ZAŁOŻENIE wpisać do `rules/R<NN>.md`).
+- **P2 — Wiele opcji (>18) nie-planet/nie-tech: najwygodniej, preferować przeciąganie i klikanie, nie listy.**
+  Siatka dużych klikalnych chipów (bez `Select`/`MultiSelect`), tam gdzie sensowne drag&drop; wyszukiwarka/
+  grupowanie tylko pomocniczo. Zasada ogólna dla wszystkich okien: drag/klik > lista.
+- **Kolejka decyzji = „kolejka do Twojej decyzji”.** Oczekujące decyzje gracza stoją w kolejce widocznej
+  jako licznik „+N” przy jednym otwartym oknie (pkt 1 zasad); nie jako dodatkowe okna ani osobna lista
+  (Z1, Z8). Kolejność obsługi = kolejność nadejścia, gracz decyduje po kolei.
+- **P3** Kolejność bloków bez zmian: U1 → U2 → U3 → U4 → U5 → U6 (U2 zawiera powyższe zmiany płatności
+  i Leadership; U5 „`base_gain` z silnika” dotyczy tego samego miejsca).
