@@ -1,0 +1,56 @@
+.payment {
+  display: grid;
+  gap: 6px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ds-ink-lo);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 6px;
+}
+
+.bar {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ds-ink);
+}
+
+.bar i {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--ds-trough, rgba(255, 255, 255, 0.08));
+}
+
+.bar em {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ds-sig-warn, #f59f00);
+  transition: width var(--ds-dur, 180ms) ease;
+}
+
+.bar[data-ok] em {
+  background: var(--ds-sig-ok, #40c057);
+}

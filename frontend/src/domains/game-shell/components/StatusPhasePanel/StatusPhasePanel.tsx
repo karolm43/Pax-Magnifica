@@ -6,7 +6,6 @@ import {
   IconChevronsRight,
   IconHourglass,
   IconTrophy,
-  IconWand,
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { Tooltip } from "@/ds";
@@ -225,19 +224,16 @@ export function StatusPhasePanel() {
                       </div>
                       {/* Hyper Metabolism, Neural Motivator... - dodatkowe żetony/karty w tej fazie. */}
                       <ActiveTechs context="status" faction={player.faction} />
-                      <CommandPools alloc={alloc} total={total} disabled={busy} onChange={set} />
+                      <CommandPools
+                        alloc={alloc}
+                        total={total}
+                        disabled={busy}
+                        onChange={set}
+                        onAuto={() => set(autoAlloc(base, unassigned, ships))}
+                        autoTitle="New tokens fill the fleet pool up to your largest fleet, the rest go to the tactic pool"
+                      />
                       {/* Fleet pool (RULES.md 42): podgląd floty względem planowanej puli. */}
                       <FleetPoolStatusMeter pool={alloc.f} ships={ships} />
-                      <button
-                        type="button"
-                        className={styles.secondary}
-                        disabled={busy}
-                        onClick={() => set(autoAlloc(base, unassigned, ships))}
-                        title="New tokens fill the fleet pool up to your largest fleet, the rest go to the tactic pool"
-                      >
-                        <IconWand size={15} aria-hidden="true" />
-                        <span>Auto</span>
-                      </button>
                       <button
                         type="button"
                         className={styles.primary}

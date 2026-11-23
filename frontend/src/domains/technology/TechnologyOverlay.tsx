@@ -1,3 +1,4 @@
+import { AutoButton } from "@/shared/ui/AutoButton/AutoButton";
 import { useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -759,14 +760,7 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                       ) : null}
                       <h4>
                         Pay {options.cost} {costUnit}
-                        <button
-                          type="button"
-                          className={styles.linkBtn}
-                          onClick={() => setPayment(null)}
-                          disabled={payment == null}
-                        >
-                          <IconSparkles size={12} aria-hidden="true" /> Auto
-                        </button>
+                        <AutoButton onClick={() => setPayment(null)} pressed={payment == null} />
                       </h4>
                       <div className={styles.planets}>
                         {payPlanets.length === 0 ? (

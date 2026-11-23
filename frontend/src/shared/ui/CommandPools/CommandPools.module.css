@@ -15,31 +15,11 @@
   text-transform: uppercase;
   letter-spacing: var(--ds-label-track);
 }
-.pool > div {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.pool small {
+  font-size: 11px;
+  color: var(--ds-ink-lo);
 }
-.pool b {
-  min-width: 22px;
-  text-align: center;
-  font-family: var(--font-data);
-  font-size: var(--text-title, 16px);
-  color: var(--ds-ink-hi);
-}
-.pool button {
+.wrap {
   display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  color: var(--ds-ink-hi);
-  background: var(--ds-socket);
-  border: 1px solid var(--ds-h14);
-  border-radius: 6px;
-  cursor: pointer;
-}
-.pool button:disabled {
-  opacity: 0.35;
-  cursor: default;
+  gap: 8px;
 }

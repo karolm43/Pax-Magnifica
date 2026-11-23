@@ -1,8 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
-import { IconMinus, IconPlus, IconWand } from "@tabler/icons-react";
 import { Button } from "@/ds";
 import { getPlanetData } from "@/entities/lookup/planets";
-import { Tile } from "@/domains/offers/DecisionTiles";
+import { PaymentTiles } from "@/domains/offers/PaymentTiles";
+import { CommandPools } from "@/shared/ui/CommandPools/CommandPools";
 import { autoPay } from "@/domains/technology/techModel";
 import {
   splitTotal,
@@ -58,46 +58,6 @@ export function Hint({ children }: { children: ReactNode }) {
   return <p className={styles.hint}>{children}</p>;
 }
 
-export function Stepper({
-  value,
-  min = 0,
-  max,
-  onChange,
-  disabled,
-  label,
-}: {
-  value: number;
-  min?: number;
-  max: number;
-  onChange: (next: number) => void;
-  disabled?: boolean;
-  label: string;
-}) {
-  return (
-    <span className={styles.stepper}>
-      <button
-        type="button"
-        className={styles.stepBtn}
-        disabled={disabled || value <= min}
-        onClick={() => onChange(value - 1)}
-        aria-label={`Less ${label}`}
-      >
-        <IconMinus size={16} />
-      </button>
-      <b className={styles.stepVal}>{value}</b>
-      <button
-        type="button"
-        className={styles.stepBtn}
-        disabled={disabled || value >= max}
-        onClick={() => onChange(value + 1)}
-        aria-label={`More ${label}`}
-      >
-        <IconPlus size={16} />
-      </button>
-    </span>
-  );
-}
-
 export type Payment = { planets: string[]; tradeGoods: number };
 
 /**
@@ -127,6 +87,12 @@ export function PaymentPicker({
   target?: number;
 }) {
   const ids = Object.keys(values).sort((a, b) => values[b] - values[a] || a.localeCompare(b));
+  const planets = ids.map((id) => ({
+    id,
+    value: id,
+    label: getPlanetData(id)?.name ?? id,
+    meta: { planet: id, value: values[id], valueKind: unit },
+  }));
   const toggle = (id: string) =>
     onChange({
       ...value,
@@ -135,58 +101,22 @@ export function PaymentPicker({
         : [...value.planets, id],
     });
   return (
-    <>
-      {target !== undefined && target > 0 && (
-        <Button
-          variant="subtle"
-          size="compact-sm"
-          leftSection={<IconWand size={14} aria-hidden="true" />}
-          disabled={busy}
-          onClick={() => onChange(autoPay(values, [], tradeGoodsAvailable, target, tradeGoodValue))}
-        >
-          Auto
-        </Button>
-      )}
-      <Section title={`Planets to exhaust (${unit})`}>
-        {ids.length === 0 ? (
-          <span className={styles.empty}>No ready planets.</span>
-        ) : (
-          <div className={styles.planets}>
-            {/* Te same kafelki co w ofertach (DecisionFields): nazwa + wartość, klik = wybór. */}
-            {ids.map((id) => (
-              <Tile
-                key={id}
-                multi
-                option={{
-                  id,
-                  value: id,
-                  label: getPlanetData(id)?.name ?? id,
-                  meta: { planet: id, value: values[id], valueKind: unit },
-                }}
-                selected={value.planets.includes(id)}
-                disabled={!!busy}
-                onClick={() => toggle(id)}
-              />
-            ))}
-          </div>
-        )}
-      </Section>
-      <div className={styles.row}>
-        <span className={styles.rowLabel}>
-          <img className={styles.tgIcon} src="/tg.png" alt="" aria-hidden="true" /> Trade goods
-          <small>
-            1 trade good = {tradeGoodValue} {unit} · you have {tradeGoodsAvailable}
-          </small>
-        </span>
-        <Stepper
-          value={value.tradeGoods}
-          max={tradeGoodsAvailable}
-          onChange={(tradeGoods) => onChange({ ...value, tradeGoods })}
-          disabled={busy || tradeGoodsAvailable === 0}
-          label="trade goods"
-        />
-      </div>
-    </>
+    <PaymentTiles
+      unit={unit}
+      planets={planets}
+      picked={value.planets}
+      onTogglePlanet={toggle}
+      tradeGoods={value.tradeGoods}
+      tradeGoodsMax={tradeGoodsAvailable}
+      tradeGoodValue={tradeGoodValue}
+      onTradeGoods={(tradeGoods) => onChange({ ...value, tradeGoods })}
+      onAuto={
+        target !== undefined && target > 0
+          ? () => onChange(autoPay(values, [], tradeGoodsAvailable, target, tradeGoodValue))
+          : undefined
+      }
+      disabled={busy}
+    />
   );
 }
 
@@ -202,49 +132,34 @@ export function paymentTotal(
   );
 }
 
-const POOL_LABELS: { key: keyof PoolSplit; label: string }[] = [
-  { key: "tactical", label: "Tactic" },
-  { key: "fleet", label: "Fleet" },
-  { key: "strategic", label: "Strategy" },
-];
-
-/** Rozdział zdobytych żetonów dowodzenia po pulach (suma musi dać `total`). */
+/** Rozdział zdobytych żetonów dowodzenia po pulach (suma musi dać `total`); „Auto” = `auto`. */
 export function PoolDistributor({
   total,
   value,
   onChange,
   player,
   busy,
+  auto,
 }: {
   total: number;
   value: PoolSplit;
   onChange: (next: PoolSplit) => void;
   player?: PromptPlayer;
   busy?: boolean;
+  /** Podpowiedziany rozdział („Auto”); brak = bez przycisku. */
+  auto?: PoolSplit;
 }) {
   const used = splitTotal(value);
-  const current: Record<keyof PoolSplit, number | undefined> = {
-    tactical: player?.tacticalCC,
-    fleet: player?.fleetCC,
-    strategic: player?.strategicCC,
-  };
   return (
     <Section title="Place the command tokens in your pools">
-      {POOL_LABELS.map(({ key, label }) => (
-        <div className={styles.row} key={key}>
-          <span className={styles.rowLabel}>
-            {label} pool
-            {current[key] != null ? <small>now {current[key]}</small> : null}
-          </span>
-          <Stepper
-            value={value[key]}
-            max={value[key] + (total - used)}
-            onChange={(next) => onChange({ ...value, [key]: next })}
-            disabled={busy}
-            label={`${label} tokens`}
-          />
-        </div>
-      ))}
+      <CommandPools
+        alloc={{ t: value.tactical, f: value.fleet, s: value.strategic }}
+        total={total}
+        disabled={busy}
+        onChange={(next) => onChange({ tactical: next.t, fleet: next.f, strategic: next.s })}
+        onAuto={auto ? () => onChange(auto) : undefined}
+        current={{ t: player?.tacticalCC, f: player?.fleetCC, s: player?.strategicCC }}
+      />
       <div className={styles.total} data-ok={used === total || undefined} data-bad={used !== total || undefined}>
         Placed <b>{used}</b> of <b>{total}</b>
       </div>

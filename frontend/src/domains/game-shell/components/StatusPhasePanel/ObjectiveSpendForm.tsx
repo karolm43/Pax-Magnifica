@@ -4,7 +4,9 @@ import { Switch } from "@/ds";
 import type { ObjectivePaymentBody, ObjectiveSpend } from "@/entities/data/types";
 import { getActionCard } from "@/entities/lookup/actionCards";
 import { getPlanetData } from "@/entities/lookup/planets";
-import { PaymentPicker, Stepper, paymentTotal } from "@/domains/strategy/PromptParts";
+import { PaymentPicker, paymentTotal } from "@/domains/strategy/PromptParts";
+import { AutoButton } from "@/shared/ui/AutoButton/AutoButton";
+import { Stepper } from "@/shared/ui/Stepper/Stepper";
 import styles from "./ObjectiveSpendForm.module.css";
 
 /*
@@ -109,6 +111,15 @@ export function ObjectiveSpendForm({
     summary = `Spend ${goal} command tokens from your pools: ${used}/${goal}.`;
     controls = (
       <div className={styles.pools}>
+        {spend.suggested && (
+          <AutoButton
+            disabled={busy}
+            onClick={() => {
+              setTokens(start.tokens ?? {});
+              setScepter(start.scepter ?? false);
+            }}
+          />
+        )}
         {spend.scepter && (
           <Switch
             checked={scepter}
@@ -125,6 +136,7 @@ export function ObjectiveSpendForm({
                 {POOL_LABELS[pool] ?? pool} pool <small>now {pools[pool]}</small>
               </span>
               <Stepper
+                bare
                 value={value}
                 max={Math.min(available(pool), value + (goal - used))}
                 onChange={(next) => setTokens({ ...tokens, [pool]: next })}
@@ -174,6 +186,16 @@ export function ObjectiveSpendForm({
     const ids = [...new Set([...Object.keys(resValues), ...Object.keys(infValues)])];
     controls = (
       <>
+        {spend.suggested && (
+          <AutoButton
+            disabled={busy}
+            onClick={() => {
+              setResPlanets(start.resource_planets ?? []);
+              setInfPlanets(start.influence_planets ?? []);
+              setTradeGoods(start.trade_goods ?? 0);
+            }}
+          />
+        )}
         <div className={styles.planetRows}>
           {ids.map((id) => (
             <div className={styles.planetRow} key={id}>
@@ -213,6 +235,7 @@ export function ObjectiveSpendForm({
             Trade goods <small>you have {spend.tradeGoods}</small>
           </span>
           <Stepper
+            bare
             value={tradeGoods}
             max={spend.tradeGoods}
             onChange={setTradeGoods}

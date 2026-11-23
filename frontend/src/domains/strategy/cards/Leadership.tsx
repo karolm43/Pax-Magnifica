@@ -153,7 +153,14 @@ function DistributeStep({
         </ConfirmButton>
       }
     >
-      <PoolDistributor total={total} value={split} onChange={setSplit} player={owner} busy={busy} />
+      <PoolDistributor
+        total={total}
+        value={split}
+        onChange={setSplit}
+        player={owner}
+        busy={busy}
+        auto={{ ...EMPTY_SPLIT, tactical: total }}
+      />
     </PromptShell>
   );
 }
@@ -226,6 +233,7 @@ export function LeadershipSecondary({
           onChange={setSplit}
           player={responder}
           busy={busy}
+          auto={{ ...EMPTY_SPLIT, tactical: plan.gain }}
         />
       ) : (
         <SpendSummary plan={plan} base={0} />

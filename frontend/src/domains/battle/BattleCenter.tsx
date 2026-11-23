@@ -1,3 +1,4 @@
+import { AutoButton } from "@/shared/ui/AutoButton/AutoButton";
 import type { CSSProperties } from "react";
 import {
   ExtraDicePicker,
@@ -14,7 +15,6 @@ import {
   IconShield,
   IconTargetArrow,
   IconTrophy,
-  IconWand,
 } from "@tabler/icons-react";
 import type {
   BattleLogEntry,
@@ -498,14 +498,7 @@ export function BattleCenter({
             </b>
           </div>
           <div className={styles.assignBtns}>
-            <button
-              type="button"
-              className={styles.ghost}
-              disabled={busy}
-              onClick={onAuto}
-            >
-              <IconWand size={15} aria-hidden="true" /> Auto
-            </button>
+            <AutoButton disabled={busy} onClick={onAuto} />
             <button
               type="button"
               className={styles.ghost}

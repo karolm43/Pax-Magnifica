@@ -1,3 +1,4 @@
+import { AutoButton } from "@/shared/ui/AutoButton/AutoButton";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
@@ -12,7 +13,6 @@ import {
   IconMinus,
   IconPlanet,
   IconPlus,
-  IconSparkles,
   IconTrash,
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
@@ -552,15 +552,11 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
           <div className={styles.fundsHead}>
             <b>{funds}</b>
             <span>to spend</span>
-            <button
-              type="button"
-              className={styles.ghostBtn}
+            <AutoButton
               onClick={() => setManual(null)}
-              disabled={manual === null}
+              pressed={manual === null}
               title="Let the engine pick the cheapest payment"
-            >
-              <IconSparkles size={14} aria-hidden="true" /> Auto
-            </button>
+            />
           </div>
           <div className={styles.planets}>
             {sorted.length === 0 && <span className={styles.empty}>You control no planets.</span>}

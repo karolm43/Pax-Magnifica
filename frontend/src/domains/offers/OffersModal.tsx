@@ -173,6 +173,13 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
             alloc={alloc}
             total={poolsTotal}
             disabled={busy}
+            // „Auto” = bez zmian (obecny rozdział); ⚠️ ZAŁOŻENIE w rules/R41.md.
+            onAuto={() =>
+              setValues((prev) => {
+                const { [POOL_KEYS.t]: _t, [POOL_KEYS.f]: _f, [POOL_KEYS.s]: _s, ...rest } = prev;
+                return rest;
+              })
+            }
             onChange={(next) =>
               setValues((prev) => ({
                 ...prev,

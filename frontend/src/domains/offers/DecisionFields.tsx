@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { IconWand } from "@tabler/icons-react";
+import { IconCoins } from "@tabler/icons-react";
 import { MultiSelect, Select } from "@/ds";
 import type { ActionCardInput, ActionCardOption, FormValue } from "@/api/useActionCard";
 import { useGameData } from "@/state/useGameContext";
@@ -13,7 +13,10 @@ import {
 } from "./optionKinds";
 import { SlotsMapField } from "./SlotsMapField";
 import { describeOption, useOptionLookups } from "./DecisionPickers";
-import { FieldHead, metaOf, Stepper, Tile, UnitStackStepper } from "./DecisionTiles";
+import { AutoButton } from "@/shared/ui/AutoButton/AutoButton";
+import { Stepper } from "@/shared/ui/Stepper/Stepper";
+import { FieldHead, metaOf, Tile, UnitStackStepper } from "./DecisionTiles";
+import { PaymentTiles } from "./PaymentTiles";
 import { GroupedMapField } from "./GroupedMapField";
 import { TechPickField } from "./TechPickField";
 import { routeOf, RouteNumbersField, type Route } from "./RouteNumbersField";
@@ -39,8 +42,6 @@ function paymentOf(input: ActionCardInput): Payment | null {
   return input.kind === "multi" && input.payment ? input.payment : null;
 }
 
-export { Stepper };
-
 /** Jedno pole decyzji (bez parowania płatności — patrz ``DecisionFields``). */
 export function DecisionField({
   input,
@@ -64,14 +65,7 @@ export function DecisionField({
       <div className={styles.field}>
         {input.hint && <p className={styles.hint}>{input.hint}</p>}
         {auto !== undefined && (
-          <button
-            type="button"
-            className={styles.autoButton}
-            disabled={disabled}
-            onClick={() => onChange(auto)}
-          >
-            <IconWand size={14} aria-hidden="true" /> Auto
-          </button>
+          <AutoButton disabled={disabled} onClick={() => onChange(auto)} />
         )}
         <Stepper
           label={input.label}
@@ -79,7 +73,11 @@ export function DecisionField({
           min={input.min}
           max={input.max}
           disabled={disabled}
-          coins={/trade.?goods|\btg\b/i.test(`${input.key} ${input.label}`)}
+          icon={
+            /trade.?goods|\btg\b/i.test(`${input.key} ${input.label}`) ? (
+              <IconCoins size={16} aria-hidden="true" />
+            ) : undefined
+          }
           onChange={onChange}
         />
       </div>
@@ -116,15 +114,7 @@ export function DecisionField({
   if (autoId === undefined) return field;
   return (
     <div className={styles.field}>
-      <button
-        type="button"
-        className={styles.autoButton}
-        disabled={disabled}
-        aria-pressed={value === autoId}
-        onClick={() => onChange(autoId)}
-      >
-        <IconWand size={14} aria-hidden="true" /> Auto
-      </button>
+      <AutoButton disabled={disabled} pressed={value === autoId} onClick={() => onChange(autoId)} />
       {field}
     </div>
   );
@@ -331,7 +321,6 @@ function PaymentField({
     .filter((o) => picked.includes(o.id))
     .reduce((sum, o) => sum + (typeof metaOf(o).value === "number" ? (metaOf(o).value as number) : 0), 0);
   const paid = fromPlanets + tg;
-  const enough = paid >= payment.cost;
   const toggle = (id: string) =>
     onChange(input.key, picked.includes(id) ? picked.filter((p) => p !== id) : [...picked, id]);
   // „Auto”: najtańsza płatność - planety od największych bez zbędnych, potem trade goods.
@@ -346,46 +335,22 @@ function PaymentField({
 
   return (
     <div className={styles.field}>
-      <FieldHead label={`Pay ${payment.cost} ${payment.valueKind}`} hint={input.hint} />
-      <button type="button" className={styles.autoButton} disabled={disabled} onClick={auto}>
-        <IconWand size={14} aria-hidden="true" /> Auto
-      </button>
-      <div className={styles.payBar} data-ok={enough || undefined} aria-live="polite">
-        <span>
-          Paid <b>{paid}</b> / {payment.cost}
-          {paid > payment.cost ? " · overpaying" : ""}
-        </span>
-        <i aria-hidden="true">
-          <em style={{ width: `${Math.min(100, (paid / Math.max(1, payment.cost)) * 100)}%` }} />
-        </i>
-      </div>
-      {input.options.length > 0 ? (
-        <div className={styles.tiles}>
-          {input.options.map((option) => (
-            <Tile
-              key={option.id}
-              option={option}
-              multi
-              selected={picked.includes(option.id)}
-              disabled={disabled}
-              onClick={() => toggle(option.id)}
-            />
-          ))}
-        </div>
-      ) : (
-        <p className={styles.hint}>No ready planets — pay with trade goods.</p>
-      )}
-      {tgInput && tgInput.max > 0 && (
-        <Stepper
-          label="Trade goods"
-          value={tg}
-          min={tgInput.min}
-          max={tgInput.max}
-          disabled={disabled}
-          coins
-          onChange={(next) => onChange(payment.tradeGoods, next)}
-        />
-      )}
+      <PaymentTiles
+        title={`Pay ${payment.cost} ${payment.valueKind}`}
+        hint={input.hint}
+        cost={payment.cost}
+        unit={payment.valueKind}
+        planets={input.options}
+        picked={picked}
+        onTogglePlanet={toggle}
+        tradeGoods={tg}
+        tradeGoodsMin={tgInput?.min ?? 0}
+        tradeGoodsMax={tgInput?.max ?? 0}
+        onTradeGoods={(next) => onChange(payment.tradeGoods, next)}
+        onAuto={auto}
+        paid={paid}
+        disabled={disabled}
+      />
     </div>
   );
 }

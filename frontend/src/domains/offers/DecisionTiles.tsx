@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from "react";
-import { IconCheck, IconCoins, IconEye, IconMinus, IconPlus } from "@tabler/icons-react";
+import { IconCheck, IconEye } from "@tabler/icons-react";
 import type { ActionCardOption } from "@/api/useActionCard";
 import { getColorAlias } from "@/entities/lookup/colors";
+import { Stepper } from "@/shared/ui/Stepper/Stepper";
 import { Unit } from "@/shared/ui/Unit";
 import { asyncOfBase } from "@/domains/movement/routeTypes";
 import { ComponentInfoButton, type ComponentRef } from "@/domains/cards/components/ComponentInfo";
@@ -68,7 +69,9 @@ export function UnitStackStepper({
   return (
     <div className={styles.unitStack} data-picked={value > 0 || undefined}>
       <UnitSprite meta={metaOf(first)} />
-      <Stepper label={title} value={value} min={0} max={max} disabled={disabled} onChange={onChange} />
+      <span className={styles.stackCtl}>
+        <Stepper label={title} value={value} min={0} max={max} disabled={disabled} onChange={onChange} />
+      </span>
     </div>
   );
 }
@@ -251,64 +254,6 @@ export function FieldHead({ label, hint, note }: { label: string; hint?: string;
       <span className={styles.label}>{label}</span>
       {note && <span className={styles.note}>{note}</span>}
       {hint && <p className={styles.hint}>{hint}</p>}
-    </div>
-  );
-}
-
-/** Stepper liczby: − wartość + (bez suwaka i bez wpisywania z klawiatury). */
-export function Stepper({
-  label,
-  value,
-  min,
-  max,
-  disabled,
-  coins,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  disabled: boolean;
-  coins?: boolean;
-  onChange: (value: number) => void;
-}) {
-  const clamp = (n: number) => Math.max(min, Math.min(max, n));
-  return (
-    <div className={styles.stepper} role="group" aria-label={label}>
-      {coins && <IconCoins size={16} className={styles.coins} aria-hidden="true" />}
-      <span className={styles.stepLabel}>{label}</span>
-      <button
-        type="button"
-        className={styles.stepBtn}
-        disabled={disabled || value <= min}
-        aria-label={`${label}: less`}
-        onClick={() => onChange(clamp(value - 1))}
-      >
-        <IconMinus size={14} />
-      </button>
-      <output className={styles.stepValue} aria-live="polite">
-        {value}
-      </output>
-      <button
-        type="button"
-        className={styles.stepBtn}
-        disabled={disabled || value >= max}
-        aria-label={`${label}: more`}
-        onClick={() => onChange(clamp(value + 1))}
-      >
-        <IconPlus size={14} />
-      </button>
-      {max > min + 1 && (
-        <button
-          type="button"
-          className={styles.stepMax}
-          disabled={disabled || value === max}
-          onClick={() => onChange(max)}
-        >
-          max {max}
-        </button>
-      )}
     </div>
   );
 }

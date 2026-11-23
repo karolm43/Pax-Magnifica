@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import type { ActionCardInput, FormValue } from "@/api/useActionCard";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { useMapPick } from "@/domains/strategy/mapPick";
-import { FieldHead, Stepper } from "./DecisionTiles";
+import { Stepper } from "@/shared/ui/Stepper/Stepper";
+import { FieldHead } from "./DecisionTiles";
 import styles from "./DecisionFields.module.css";
 
 type NumberInput = Extract<ActionCardInput, { kind: "number" }>;

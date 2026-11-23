@@ -3,12 +3,11 @@ import { Button, Group, Stack, Text } from "@/ds";
 import {
   IconAlertTriangle,
   IconCheck,
-  IconMinus,
-  IconPlus,
   IconRotate,
-  IconWand,
 } from "@tabler/icons-react";
 import { AppModal } from "@/shared/ui/AppModal";
+import { AutoButton } from "@/shared/ui/AutoButton/AutoButton";
+import { Stepper } from "@/shared/ui/Stepper/Stepper";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { Unit } from "@/shared/ui/Unit";
 import { useAppStore } from "@/state/appStore";
@@ -180,30 +179,15 @@ export function RemovalWindowModal({
                     {n > 0 ? ` · remove ${n}` : ""}
                   </small>
                 </div>
-                <div className={styles.stepper}>
-                  <button
-                    type="button"
-                    disabled={busy || n <= 0}
-                    onClick={() => step(c.baseType, c.count, -1)}
-                    aria-label={`Keep one more ${c.name}`}
-                  >
-                    <IconMinus size={14} />
-                  </button>
-                  <span
-                    className={styles.stepValue}
-                    data-active={n > 0 || undefined}
-                  >
-                    {n}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={busy || n >= c.count}
-                    onClick={() => step(c.baseType, c.count, +1)}
-                    aria-label={`Remove one ${c.name}`}
-                  >
-                    <IconPlus size={14} />
-                  </button>
-                </div>
+                <Stepper
+                  bare
+                  active
+                  label={`${c.name} to remove`}
+                  value={n}
+                  max={c.count}
+                  disabled={busy}
+                  onChange={(next) => step(c.baseType, c.count, next - n)}
+                />
               </div>
             );
           })}
@@ -242,15 +226,7 @@ export function RemovalWindowModal({
 
         <Group justify="space-between" gap="xs">
           <Group gap="xs">
-            <Button
-              size="xs"
-              variant="default"
-              leftSection={<IconWand size={14} />}
-              disabled={busy}
-              onClick={() => setRemove({ ...suggestion })}
-            >
-              Auto
-            </Button>
+            <AutoButton disabled={busy} onClick={() => setRemove({ ...suggestion })} />
             <Button
               size="xs"
               variant="default"

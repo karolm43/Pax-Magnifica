@@ -1,3 +1,4 @@
+import { AutoButton } from "@/shared/ui/AutoButton/AutoButton";
 import { useState } from "react";
 import {
   autoMarks,
@@ -66,13 +67,7 @@ export function AssignPanel({
         ))}
       </div>
       <div className={styles.assignActions}>
-        <button
-          type="button"
-          className={styles.ghostBtn}
-          onClick={() => setMarks(autoMarks(ships, required, cancels))}
-        >
-          Auto
-        </button>
+        <AutoButton onClick={() => setMarks(autoMarks(ships, required, cancels))} />
         <button
           type="button"
           className={styles.ghostBtn}

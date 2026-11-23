@@ -63,7 +63,7 @@ function Redistribute({
         You may <b>redistribute your command tokens</b> between your pools{" "}
         {after ? "after" : "before"} the free tactical action. Total tokens: <b>{total}</b>.
       </Hint>
-      <PoolDistributor total={total} value={split} onChange={setSplit} player={owner} busy={busy} />
+      <PoolDistributor total={total} value={split} onChange={setSplit} player={owner} busy={busy} auto={initial} />
     </PromptShell>
   );
 }

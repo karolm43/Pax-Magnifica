@@ -123,8 +123,8 @@ describe("DecisionFields", () => {
     expect(screen.getByText("Pay 2 resources")).toBeInTheDocument();
     // Osobnego pola liczbowego TG nie ma - jest stepper w widżecie płatności.
     expect(screen.getAllByRole("group", { name: "Trade goods" })).toHaveLength(1);
-    fireEvent.click(screen.getByRole("button", { name: "Trade goods: more" }));
-    fireEvent.click(screen.getByRole("button", { name: "Trade goods: more" }));
+    fireEvent.click(screen.getByRole("button", { name: "More Trade goods" }));
+    fireEvent.click(screen.getByRole("button", { name: "More Trade goods" }));
     expect(values()).toEqual({ trade_goods: 2 });
     expect(screen.getByText(/Paid/)).toHaveTextContent("Paid 2 / 2");
     fireEvent.click(screen.getByRole("button", { name: /Wren Terra/ }));
@@ -247,8 +247,8 @@ describe("DecisionFields", () => {
     expect(screen.queryByRole("group", { name: /^Mech/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Jord/ })).toBeNull();
     clickOnMap("jord");
-    fireEvent.click(screen.getByRole("button", { name: "Mech on jord: more" }));
-    fireEvent.click(screen.getByRole("button", { name: "Mech on jord: more" }));
+    fireEvent.click(screen.getByRole("button", { name: "More Mech on jord" }));
+    fireEvent.click(screen.getByRole("button", { name: "More Mech on jord" }));
     expect(values()).toEqual({ units: ["mech|jord|0", "mech|jord|1"] });
     // Planeta z jedną możliwością: klik w nią od razu wybiera.
     clickOnMap("mr");

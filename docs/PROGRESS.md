@@ -475,3 +475,20 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
   nieaktywne bez wpływu.
 - QA: tsc app, eslint, vitest (game-shell, offers, strategy, shared; nowy `DecisionFrame.test.tsx`),
   `npm run build`, `npm run e2e` (8/8). Bez weryfikacji wizualnej w grze.
+
+## Okna decyzji — U2: jeden `Stepper`, jedna płatność (`PaymentTiles`), wspólny `AutoButton`
+
+- `shared/ui/Stepper` zastępuje 5 kopii (PromptParts, DecisionTiles, TradingTable, RemovalWindowModal, kontrolki
+  `CommandPools`); aria: „Less/More <label>”; wariant `bare` (same przyciski w wierszu z własną etykietą).
+- `domains/offers/PaymentTiles`: jeden widżet płatności (kafelki planet + TG + pasek „Paid X / Y” + Auto). Adaptery:
+  `PaymentField` (DecisionFields) i `PaymentPicker` (Leadership, technologie, status, Custodians, ekspedycje).
+- `shared/ui/AutoButton`: jedno „Auto” przy polu (subtelne); przepięte: pola liczbowe/wybór, płatność, pule żetonów,
+  usuwanie jednostek, walka (BattleCenter), przydział (AssignPanel), Production, Technology. Pominięte świadomie:
+  `ExtraDicePicker` (Auto jest tam jedną z wzajemnie wykluczających się opcji). Nowe „Auto”: Leadership/Warfare
+  (rozdział żetonów), Predictive Intelligence, cele „Spend…” (pule, mixed) — ⚠️ ZAŁOŻENIA w R30.md/R41.md.
+- `CommandPools` (+`onAuto`, `current`) używany też przez `PoolDistributor` (Leadership, Warfare) i status (Auto przeniesione
+  z osobnego przycisku do pul, bez pomarańczowego „secondary”).
+- Poza zakresem: Stepper w Invasion/Production/Technology/SpaceCannon/Politics (inne widżety: reorder, kości) — do U-dalej.
+- QA: tsc app, eslint (zmienione), vitest (offers, strategy, game-shell, map, technology, invasion, production, battle, shared;
+  nowy `Stepper.test.tsx`), `npm run build`. `npm run e2e` (8/8). Bez weryfikacji wizualnej.
+

@@ -1,12 +1,10 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties } from "react";
 import {
   IconArrowsExchange,
   IconCheck,
   IconCircleFilled,
   IconCoins,
   IconDoorExit,
-  IconMinus,
-  IconPlus,
   IconRefresh,
 } from "@tabler/icons-react";
 import { Button, Group } from "@/ds";
@@ -28,63 +26,13 @@ import {
   unitName,
   unitSpriteId,
 } from "./transactionItems";
+import { Stepper } from "@/shared/ui/Stepper/Stepper";
 import { Unit } from "@/shared/ui/Unit";
 import { getColorAlias } from "@/entities/lookup/colors";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import { playerRgb } from "@/domains/strategy/PlayerChip";
 import { useMapPick } from "@/domains/strategy/mapPick";
 import styles from "./TransactionModal.module.css";
-
-/** Mała liczba z przyciskami −/+ (zakres min..max). */
-export function Stepper({
-  label,
-  icon,
-  value,
-  max,
-  min = 0,
-  hint,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  icon: ReactNode;
-  value: number;
-  max: number;
-  min?: number;
-  /** Nadpisuje domyślny podpis „N available". */
-  hint?: string;
-  disabled?: boolean;
-  onChange: (next: number) => void;
-}) {
-  return (
-    <div className={styles.stepper}>
-      <span className={styles.stepperLabel}>
-        {icon}
-        {label}
-        <small>{hint ?? `${max} available`}</small>
-      </span>
-      <span className={styles.stepperCtl}>
-        <button
-          type="button"
-          aria-label={`Less ${label}`}
-          disabled={disabled || value <= min}
-          onClick={() => onChange(value - 1)}
-        >
-          <IconMinus size={14} aria-hidden="true" />
-        </button>
-        <output aria-live="polite">{value}</output>
-        <button
-          type="button"
-          aria-label={`More ${label}`}
-          disabled={disabled || value >= max}
-          onClick={() => onChange(value + 1)}
-        >
-          <IconPlus size={14} aria-hidden="true" />
-        </button>
-      </span>
-    </div>
-  );
-}
 
 /** Pusta strona stołu. */
 export const EMPTY_SIDE: TransactionSide = {
