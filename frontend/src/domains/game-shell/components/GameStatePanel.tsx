@@ -604,7 +604,6 @@ function PlateBody({
       {gameState.pendingWindow && (
         <WindowSection
           window={gameState.pendingWindow}
-          playerData={playerData}
           variant={variant}
         />
       )}
@@ -704,11 +703,9 @@ const WINDOW_RESOLVED_ELSEWHERE: Record<string, string> = {
  */
 function WindowSection({
   window,
-  playerData,
   variant = "full",
 }: {
   window: NonNullable<GameState["pendingWindow"]>;
-  playerData: PlayerData[];
   variant?: PanelVariant;
 }) {
   const { strategySecondary, closeWindow } = useBoardEditor();
@@ -725,11 +722,6 @@ function WindowSection({
   const isSecondary = window.windowType === "STRATEGY_SECONDARY";
   const showGenericControls = !isInfo && isSecondary;
   const showCloseVent = !isInfo && (elsewhere == null || godMode);
-  const responderColor = window.currentResponder;
-  const responder = playerData.find((p) => p.color === responderColor);
-  const responderName = responderColor
-    ? playerNameForColor(playerData, responderColor)
-    : null;
 
   const run = async (fn: () => Promise<void>) => {
     if (busy) return;
@@ -774,19 +766,7 @@ function WindowSection({
         </>
       ) : (
         <>
-          {/* Kto teraz reaguje — baner spójny z pickerem fazy strategii. */}
-          <div
-            className={styles.pickerNow}
-            style={toneStyle({ "--pc": playerTone(responderColor) })}
-          >
-            {responder ? <FactionMark player={responder} size={22} /> : null}
-            <span className={styles.pickerText}>
-              <small className={styles.pickerLabel}>Responding</small>
-              <b className={styles.pickerName}>
-                {responderName ?? window.currentResponderId}
-              </b>
-            </span>
-          </div>
+          {/* Respondent (U4): kto decyduje — tylko w ramie okna decyzji; tu sama kolejka. */}
           <span className={styles.label}>
             Remaining in queue: {window.remaining}
           </span>

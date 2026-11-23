@@ -382,7 +382,6 @@ export function SecondaryDecisionModal() {
                 : "Following is optional. "}
           Players respond in turn order — the player to the left of the active
           player first, then clockwise.
-          {window ? ` Remaining after you: ${Math.max(window.remaining - 1, 0)}.` : ""}
         </Text>
 
         {sheetNeeded && (

@@ -720,6 +720,18 @@
   padding-right: 2px;
 }
 
+.compRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compRow > .compItem {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
 /* Pozycja listy = klikany wiersz: ikona + nazwa + mały tag źródła. */
 .compItem {
   display: flex;

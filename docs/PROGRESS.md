@@ -280,3 +280,16 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
   (czytelniejsze „nie używasz”, np. „do not place” bohatera).
 - QA: tsc app, eslint (zmienione), vitest (offers, hooks, game-shell, agenda, strategy, shared, map; nowy
   `useDecisionZone.test.tsx`), `npm run build`, `npm run e2e` (8/8). Bez weryfikacji wizualnej w grze.
+
+## Okna decyzji — U4: usunięcie duplikatów informacji
+
+- Respondent: panel boczny okna czasowego (`GameStatePanel`/`WindowSection`) pokazuje tylko kolejkę
+  („Remaining in queue”), bez banera „Responding”; okno „Your call” nie powtarza „Remaining after you” (Z8).
+- Agenda: „N votes available” usunięte z wyników (głosy tylko na liście miejsc Senatu); licznik „Agenda N of M”
+  tylko w nagłówku Rady (Z3). Remis = klik zwycięskiego wyniku na podium (speaker; bez osobnej listy
+  przycisków; nietypowe wyniki poza remisem wyszarzone). Agenda `manual` bez zmian (opis + „Resolve as chosen”).
+- Kafelki opcji: bez natywnego `title` (opis przez ⓘ). Oferta: etykieta pola równa tytułowi ramy nie jest
+  powtarzana (`FrameTitleContext` + `FieldHead`; ustawiane w `OffersModal`) (Z12).
+- Akcja komponentu: lista bez kart akcji z ręki (zagrywane przeciągnięciem), nowy wstęp, ⓘ z opisem przy
+  liderze/technologii/relikcie/przełomie (Z9).
+- QA: tsc app, eslint (zmienione), vitest (offers, agenda, game-shell). Bez weryfikacji wizualnej w grze.

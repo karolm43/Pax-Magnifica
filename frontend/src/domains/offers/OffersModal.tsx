@@ -19,6 +19,7 @@ import {
   type PoolAlloc,
 } from "@/shared/ui/CommandPools/CommandPools";
 import { DecisionFields } from "./DecisionFields";
+import { FrameTitleContext } from "./DecisionTiles";
 import { TransitDiodesPicker } from "./TransitDiodesPicker";
 import { isResearchOffer, ResearchOfferOverlay } from "./ResearchOfferOverlay";
 import styles from "./OffersDock.module.css";
@@ -192,12 +193,14 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
         </div>
       )}
       {!graphical && !pools && offer.inputs.length > 0 && (
-        <DecisionFields
-          inputs={offer.inputs}
-          values={values}
-          disabled={busy}
-          onChange={(key, next) => setValues((prev) => ({ ...prev, [key]: next }))}
-        />
+        <FrameTitleContext.Provider value={offer.name}>
+          <DecisionFields
+            inputs={offer.inputs}
+            values={values}
+            disabled={busy}
+            onChange={(key, next) => setValues((prev) => ({ ...prev, [key]: next }))}
+          />
+        </FrameTitleContext.Provider>
       )}
     </DecisionFrame>
   );

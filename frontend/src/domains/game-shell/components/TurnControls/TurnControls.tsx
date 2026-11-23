@@ -26,7 +26,6 @@ import {
   useStrategyCards,
   type StrategyCardState,
 } from "@/api/useBoardEditor";
-import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
 import {
   collectComponentActions,
   KIND_LABEL,
@@ -57,7 +56,16 @@ import { FactionComponentUseModal } from "./FactionComponentUseModal";
 import { useTechnologyAbilities } from "@/api/useTechnology";
 import { useForgeOptions } from "@/api/useRelics";
 import { ExpeditionModal } from "@/domains/thunders-edge/ExpeditionModal";
+import { ComponentInfoButton, type ComponentKind } from "@/domains/cards/components/ComponentInfo";
 import styles from "./TurnControls.module.css";
+
+/** Rodzaj źródła akcji → rodzaj komponentu do opisu pod ⓘ (zdolność frakcji/legendarna: brak). */
+const INFO_KIND: Partial<Record<ComponentActionKind, ComponentKind>> = {
+  leader: "leader",
+  technology: "tech",
+  relic: "relic",
+  breakthrough: "breakthrough",
+};
 
 /* Initiative → wariant koloru DetailsCard (tooltip treści) — jak w StrategyCardTable. */
 const SC_DETAILS_COLOR: Record<number, DetailsCardColor> = {
@@ -185,13 +193,6 @@ export function TurnControls() {
   // Pulpit widoczny CAŁY CZAS — pokazuje „gracza pulpitu" (aktywny → mówca →
   // pierwszy). Zwraca null tylko, gdy nie ma żadnego posadzonego gracza.
   const active = useDeskPlayer();
-  // Ręka aktywnego gracza — do listy „co zagrałeś?" w modalu akcji komponentu
-  // (karty z oknem „Action"). Hook wołany ZAWSZE (przed early-return) — stała
-  // kolejność hooków. ``player=null`` → backend oddaje rękę aktywnego gracza.
-  const { data: hand } = usePlayerHand(gameId, {
-    ignoreAuthGate: true,
-    player: active?.discordId ?? null,
-  });
 
   // Odbiór kliknięcia w kafelek w trybie aktywacji: gdy store zgłosi pozycję
   // (``activateRequest``), aktywujemy ten system, czyścimy żądanie i wyłączamy tryb.
@@ -339,10 +340,8 @@ export function TurnControls() {
     active.discordId ?? null,
     componentOpen,
   );
-  const componentChoices = collectComponentActions(
-    activePlayerData,
-    hand?.actionCards ?? [],
-  );
+  // Karty akcji z ręki NIE są na liście (U4/Z9): zagrywa się je przeciągnięciem z ręki.
+  const componentChoices = collectComponentActions(activePlayerData, []);
 
   const run = (fn: () => Promise<void>) => {
     if (busy) return;
@@ -830,17 +829,18 @@ export function TurnControls() {
       >
         <Stack gap="md">
           <Text size="sm" c="dimmed">
-            Pick what you're playing. Action cards and technologies open a form where you
-            make the choices and the engine applies the effect; other components are only
-            recorded as your action for now (apply their effect by hand).
+            Pick what you're playing. Components open a form where you make the choices and
+            the engine applies the effect. Action cards are played by dragging them from your
+            hand.
           </Text>
 
           <div className={styles.compList} role="list">
             {componentChoices.map((choice) => {
               const Icon = COMPONENT_KIND_ICON[choice.kind];
+              const infoKind = INFO_KIND[choice.kind];
               return (
+                <div key={`${choice.kind}:${choice.id}`} className={styles.compRow}>
                 <button
-                  key={`${choice.kind}:${choice.id}`}
                   type="button"
                   role="listitem"
                   className={styles.compItem}
@@ -888,6 +888,13 @@ export function TurnControls() {
                     {KIND_LABEL[choice.kind]}
                   </small>
                 </button>
+                {infoKind && (
+                  <ComponentInfoButton
+                    componentRef={{ kind: infoKind, id: choice.id }}
+                    name={choice.name}
+                  />
+                )}
+                </div>
               );
             })}
 

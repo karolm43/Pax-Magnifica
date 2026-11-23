@@ -82,6 +82,7 @@ testy + sekcja w `PROGRESS.md` + commit.
 - Kafelki: usunąć natywne `title` (dymek przez ⓘ i Tooltip). Oferta: etykieta pola nie powtarza
   tytułu (Z12).
 - Component action: tylko komponenty spoza ręki (karty akcji = przeciąganie), opis + ⓘ (Z9).
+- **Stan (2026-11-23): zrobione** — patrz `PROGRESS.md` (U4).
 
 ### U5 — Czytelność i ślepe uliczki
 - Secondary: koszt follow jako osobna wyraźna linia; „Follow” nieaktywne z powodem, gdy nie da

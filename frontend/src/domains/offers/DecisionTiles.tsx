@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import { IconCheck, IconEye } from "@tabler/icons-react";
 import type { ActionCardOption } from "@/api/useActionCard";
 import { getColorAlias } from "@/entities/lookup/colors";
@@ -177,7 +177,6 @@ export function Tile({
       data-shape={shape}
       aria-pressed={selected}
       disabled={disabled}
-      title={option.label}
       onClick={onClick}
       onMouseEnter={mapRef ? () => showOnMap(mapRef) : undefined}
       onMouseLeave={mapRef ? clearMapMarks : undefined}
@@ -248,10 +247,15 @@ function useMapRef(option: ActionCardOption) {
   return keys;
 }
 
+/** Tytuł otaczającej ramy: etykieta pola równa tytułowi nie jest powtarzana (U4, Z12). */
+export const FrameTitleContext = createContext<string | null>(null);
+
 export function FieldHead({ label, hint, note }: { label: string; hint?: string; note?: string }) {
+  const frameTitle = useContext(FrameTitleContext);
+  const repeats = frameTitle != null && label.trim().toLowerCase() === frameTitle.trim().toLowerCase();
   return (
     <div className={styles.head}>
-      <span className={styles.label}>{label}</span>
+      {!repeats && <span className={styles.label}>{label}</span>}
       {note && <span className={styles.note}>{note}</span>}
       {hint && <p className={styles.hint}>{hint}</p>}
     </div>

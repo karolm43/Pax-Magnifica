@@ -492,12 +492,10 @@ function OutcomeInfo({
   if (isPlayer) {
     const player = byId.get(outcome);
     if (!player) return null;
-    const voter = agenda.voters[outcome];
     return (
       <span className={styles.outcomeInfo}>
         {player.totalVps} VP
         {player.isSpeaker ? " · speaker" : ""}
-        {voter ? ` · ${voter.available + voter.extra} votes available` : ""}
       </span>
     );
   }
@@ -601,8 +599,7 @@ function Podium({
   return (
     <section className={styles.panel} aria-label="Agenda">
       <h3>
-        <IconGavel size={15} aria-hidden="true" /> Agenda {agenda.agendaNumber} of{" "}
-        {agenda.totalAgendas}
+        <IconGavel size={15} aria-hidden="true" /> Agenda
       </h3>
       {card ? (
         <article className={styles.agendaCard} data-type={(type ?? "").toLowerCase()}>
@@ -678,7 +675,7 @@ function Podium({
                 <button
                   type="button"
                   className={styles.outcomeBtn}
-                  disabled={!canPick}
+                  disabled={!canPick || (agenda.step === "TIEBREAK" && agenda.tied.length > 0 && !isTied)}
                   onClick={() => onSelect(outcome)}
                   aria-pressed={selected === outcome}
                 >
@@ -1046,19 +1043,9 @@ function Ballot({
             : "No votes were cast."}{" "}
           The speaker decides which outcome resolves. This is not a vote.
         </p>
-        <div className={styles.tieList}>
-          {(agenda.tied.length > 0 ? agenda.tied : agenda.outcomes).map((o) => (
-            <button
-              key={o}
-              type="button"
-              className={styles.ghostBtn}
-              disabled={busy}
-              onClick={() => run(() => api.agendaDecide(speaker, o))}
-            >
-              {outcomeLabel(agenda, o, lookOf)}
-            </button>
-          ))}
-        </div>
+        {agenda.kind !== "manual" ? (
+          <p className={styles.hint}>Click the winning outcome on the podium.</p>
+        ) : null}
         {agenda.kind === "manual" ? (
           <>
             <p className={styles.hint}>
@@ -1182,6 +1169,7 @@ function CouncilWindow({
   covertCard: AgendaPhaseData["card"];
 }) {
   const { lookOf, round } = usePlayers();
+  const api = useBoardEditor();
   const setHidden = useAppStore((s) => s.setAgendaHidden);
   const [busy, setBusy] = useState(false);
   const [tradeOpen, setTradeOpen] = useState(false);
@@ -1203,10 +1191,17 @@ function CouncilWindow({
       .catch(() => undefined)
       .finally(() => setBusy(false));
   };
+  // Remis (U4): speaker rozstrzyga KLIKIEM wyniku na podium (bez osobnej listy przycisków).
+  const tiebreakClick = agenda.step === "TIEBREAK" && agenda.kind !== "manual";
   const canPick =
     !busy &&
     ((agenda.step === "VOTE" && agenda.currentVoter != null && !agenda.unresolvable) ||
-      (agenda.step === "TIEBREAK" && agenda.kind === "manual"));
+      (agenda.step === "TIEBREAK" && agenda.kind === "manual") ||
+      tiebreakClick);
+  const pickOutcome = (outcome: string) => {
+    if (tiebreakClick) run(() => api.agendaDecide(agenda.speakerId ?? "", outcome));
+    else setSelected(outcome);
+  };
 
   return createPortal(
     <div
@@ -1270,7 +1265,7 @@ function CouncilWindow({
           lookOf={lookOf}
           canPick={canPick}
           selected={selected}
-          onSelect={setSelected}
+          onSelect={pickOutcome}
           manual={manual}
           setManual={setManual}
           covertCard={covertCard}
