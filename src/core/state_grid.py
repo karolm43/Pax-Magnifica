@@ -14,7 +14,7 @@ nie są uwzględniane (jak w ``core/neighbors.py``).
 
 from __future__ import annotations
 
-from src.core import fracture, nexus, tile_swap
+from src.core import fracture, map_anomalies, nexus, tile_swap
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 from src.core.positions import load_positions
@@ -44,4 +44,5 @@ def grid_from_state(state: GameState, registry: StaticDataRegistry) -> HexGrid:
     fracture.sync_grid(grid, state, registry)
     nexus.sync_grid(grid, state, registry)
     tile_swap.sync_grid(grid, state, registry)
+    map_anomalies.sync_grid(grid, state)
     return grid

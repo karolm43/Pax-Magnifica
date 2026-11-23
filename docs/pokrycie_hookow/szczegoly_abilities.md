@@ -5,7 +5,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |
 |---|---|---|---|---|---|:---:|---|
 | `aetherpassage` | Aetherpassage | empyrean | after | TRIGGER (okno reakcji) | ruch | — | You may allow that player to move their ships through systems that contain your ships. |
-| `amalgamation` | Amalgamation | cabal | when | TRIGGER (okno reakcji) | produkcja, ekonomia i płatności | — | You may return 1 captured unit of that type to produce that unit without spending resources. |
+| `amalgamation` | Amalgamation | cabal | when | TRIGGER (okno reakcji) | produkcja, ekonomia i płatności | ✔ | You may return 1 captured unit of that type to produce that unit without spending resources. |
 | `ambush` | Ambush | mentak | at_start | PERMIT (pozwolenie) | walka, produkcja | ✔ | You may roll 1 die for each of up to 2 of your cruisers or destroyers in the system. For each result equal to or greater than that ship's c… |
 | `analytical` | Analytical | jolnar | when | TRIGGER (okno reakcji) | technologie | ✔ | You may ignore 1 prerequisite. |
 | `arbiters` | Arbiters | hacan | — | PERMIT (pozwolenie) | karty | ✔ | When you are negotiating a transaction, action cards can be exchanged as part of that transaction. |
@@ -21,7 +21,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `creuss_gate` | Creuss Gate | ghost | — | — | — | — | When you create the game board, place the Creuss Gate (tile 17) where your home system would normally be placed. The Creuss Gate system is … |
 | `dark_whispers` | Dark Whispers | empyrean | — | MODIFY (liczba/rzut) | karty | — | During setup, take the additional Empyrean faction promissory note; you have 2 faction promissory notes |
 | `devotion` | Devotion | yin | after | TRIGGER (okno reakcji) | walka, produkcja | ✔ | You may destroy 1 of your cruisers or destroyers in the active system to produce 1 hit and assign it to 1 of your opponent's ships in that … |
-| `devour` | Devour | cabal | — | — | walka | — | Capture your opponent's non-structure units that are destroyed during combat. |
+| `devour` | Devour | cabal | — | — | walka | ✔ | Capture your opponent's non-structure units that are destroyed during combat. |
 | `distant_suns` | Distant Suns | naaz | when | TRIGGER (okno reakcji) | karty | ✔ | You may draw 1 additional card; choose 1 to resolve and discard the rest. |
 | `edict` | Edict | mahact | when | TRIGGER (okno reakcji) | produkcja, żetony dowodzenia | — | Other player's tokens in your fleet pool increase your fleet limit but cannot be redistributed. Place 1 command token from your opponent's … |
 | `fabrication` | Fabrication | naaz | action | — | żetony dowodzenia, planety i eksploracja | ✔ | Either purge 2 of your relic fragments of the same type to gain 1 relic; or purge 1 of your relic fragments to gain 1 command token. |
@@ -59,7 +59,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `raid_formation` | Raid Formation | argent | when | TRIGGER (okno reakcji) | walka, produkcja | ✔ | for each hit produced in excess of your opponent's fighters, choose 1 of your opponent's ships that has SUSTAIN DAMAGE to become damaged. |
 | `reclamation` | Reclamation | winnu | after | TRIGGER (okno reakcji) | produkcja | ✔ | You may place 1 PDS and 1 space dock from your reinforcements on Mecatol Rex. |
 | `researchteam` | Research Team | deepwrought | when | TRIGGER (okno reakcji) | technologie, planety i eksploracja | — | if your units on that planet are not already coexisting, you may choose for your units to coexist. |
-| `riftmeld` | Riftmeld | cabal | when | TRIGGER (okno reakcji) | technologie | — | You may return 1 captured unit of that type to ignore all of the technology's prerequisites. |
+| `riftmeld` | Riftmeld | cabal | when | TRIGGER (okno reakcji) | technologie | ✔ | You may return 1 captured unit of that type to ignore all of the technology's prerequisites. |
 | `scavenge` | Scavenge | saar | after | TRIGGER (okno reakcji) | ekonomia i płatności | ✔ | Gain 1 trade good. |
 | `scheming` | Scheming | yssaril | when | TRIGGER (okno reakcji) | karty | — | Draw 1 additional action card. Then, choose and discard 1 action card from your hand. |
 | `slipstream` | Slipstream | ghost | during | MODIFY (liczba/rzut) | ruch | — | Apply +1 to the move value of each of your ships that starts its movement in your home system or in a system that contains either an alpha … |

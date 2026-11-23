@@ -78,6 +78,9 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   // C-Radium Geometry: Poison of the Nefishh - umysły rywali oddają notki; fioletowy skan
   // i fale psioniczne nad systemami z jednostkami Naalu.
   naaluhero: { dim: 0.45, sweep: "scan", target: "units", mark: "ripple", tone: "185 120 255", ms: 4400 },
+  // Dimensional Anchor: szczeliny Cabal wciągają okręty rywali — plansza tonie w mroku,
+  // a nad systemami z jednostkami Vuil'raith pulsuje karmazynowy wir.
+  cabalhero: { dim: 0.6, target: "units", mark: "ripple", tone: "200 40 70", ms: 4600 },
   // Nova Seed: gwiazda systemu puchnie, korona zapada się w punkt, wybuch supernowej (błysk,
   // promienie dyfrakcyjne, rozszerzająca się powłoka gazu, ejekta), potem pulsująca mgławica.
   // Stary kafel znika pod błyskiem (revealAt); dźwięk niski: pomruk, wsysanie, głuchy huk.

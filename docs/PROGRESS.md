@@ -308,3 +308,33 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
   Pełnego pytest nie puszczałem na tym drzewie: równoległa sesja ma niezacommitowane zmiany (Vuil'raith,
   `transaction.py` — czerwony `test_pride_of_kenara_w_gravity_rift_rzut` to jej zmiana). Build/e2e pominięte
   (bez nowych modułów frontu).
+
+## 2026-11-22 — I1 Przechwytywanie (capture) + B13 The Vuil'raith Cabal (RULES.md 61.5, 62.17)
+
+- **I1 capture** (`core/capture.py`, punkt centralny): `PlayerState.captured_units` (statki/mechy wg pierwotnego
+  właściciela, także własne) i `captured_tokens` (żetony myśliwców/piechoty z puli). Rezerwa właściciela bez
+  przechwyconych (`production.reinforcements_left`), zniszczenie → hook PERMIT `capture.destroyed`
+  (`unit_ops.remove_units`), z rezerwy / z planszy bez zniszczenia, zwrot (pudełko po eliminacji), blokada doku
+  oddaje statki od razu (`step_settle` → `capture.release_blockaded`), zakaz przechwytywania od blokującego,
+  transakcja zwraca statki/mechy tylko właścicielowi (`TransactionSide.captured_units`). Widok: `nombox`
+  w web-data (komponent `Nombox`, teraz z pełną nazwą frakcji). Feed: `ability_notes` „captured …”.
+- **Anomalie z jednostek** (`core/map_anomalies.py`, `HexGrid.sync_extra_anomalies`): Dimensional Tear czyni system
+  gravity rift dla wszystkich; własne statki Cabal nie rzucają (`movement.rift_roll_nodes`, `rolls_at`).
+  Pojemność „Up to N fighters” z tekstu zdolności doku (dane bez `capacityValue`).
+- **Cabal** (`hooks/factions/cabal.py`): Devour, The Terror Between (także po zniszczeniu w tej rundzie),
+  Reanimator, Amalgamation (pole produkcji `captured`, chipy w `ProductionOverlay`), Riftmeld (skip
+  `captured:<właściciel>`, sekcja w `TechnologyOverlay`), Vortex, The Stillness of Stars (oferta po uzupełnieniu
+  commodities; zamiana bez „gain”), That Which Molds Flesh (2 myśliwce/piechota poza limitem, unlock 3 szczeliny),
+  Dimensional Anchor (rzut raz na statek, nadwyżka ładunku przez okno CAPACITY też przechwycona), Crucible
+  (bez rzutów, jedno dodatkowe +1, także z Nav Suite), Al'raith Ix Ianovar (Fracture bez rzutu, przesunięcie
+  2 ingressów do szczelin — Available now, +1 ruchu z The Fracture).
+- Poprawka: oferty „after replenishes” w trakcie primary Trade czekają w oknie secondary
+  (`economy.replenish_commodities(open_window=False)`) — wcześniej blokowały otwarcie okna secondary.
+- Rulingi: `F_vuilraith` + `R_capture` (usunięty z długu, limit 211) z testami (`tests/test_capture.py`,
+  `tests/factions/test_cabal.py`, scenariusze `test_flows_cabal.py`). Statusy: Amalgamation 5 i Stillness 4 (`gap`),
+  Anchor 5 / R_capture notes 4 (`requires` Nekro/Yssaril).
+- ⚠️ Do decyzji użytkownika: Trade primary zbiera wybór graczy z darmowym secondary PRZED primary, więc agent wybiera
+  już po nim (ruling Stillness 4); okno przesunięcia ingressów trwa do końca tury, w której przełom wszedł do gry.
+- Stół transakcji: sekcja „Captured units” (stepper na typ, sylwetka w barwie partnera, tylko statki/mechy
+  partnera z Nombox, tylko gdy wolno kłaść komponenty), podsumowanie „Returns captured …”; scenariusz API
+  `test_transakcja_zwraca_przechwycony_statek`. Przy okazji: brak `hint` w `DecisionFields.test.tsx` (tsc).

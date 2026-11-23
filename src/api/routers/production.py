@@ -177,6 +177,12 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
         "remaining": remaining,
         # Bellum Gloriosum: ładunek do capacity produkowanych statków poza limitem (RULES.md 62.4).
         "freeCargo": production.has_free_cargo(state, player_id) and grant is None,
+        # That Which Molds Flesh: ile myśliwców/piechoty jeszcze poza limitem (RULES.md 62.17).
+        "freeSmallUnits": 0 if grant is not None else production.free_small_left(
+            state, player_id
+        ),
+        # Amalgamation: przechwycone jednostki do zwrotu zamiast zasobów (RULES.md 62.17).
+        "captured": production.captured_view(state, player_id),
         "blockaded": production.is_blockaded(state, player_id, position),
         "producers": producers,
         "groundZones": production.allowed_ground_zones(

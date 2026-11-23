@@ -30,11 +30,16 @@ import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { usePlayerLook } from "@/domains/invasion/invasionUi";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
 import { FleetPoolWarning } from "@/domains/map/components/FleetPoolWarning";
+import { getColorAlias } from "@/entities/lookup/colors";
 import {
   SPACE,
   autoPay,
   bumpCart,
+  capturedFor,
   cartCost,
+  paidCart,
+  trimPicks,
+  type CapturedPick,
   slotsUsed,
   countOf,
   fundsTotal,
@@ -74,6 +79,8 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   const [boardPicks, setBoardPicks] = useState<Record<string, string[]>>({});
   // null = płatność automatyczna (liczona z koszyka); ręczny wybór planet/TG ją zastępuje.
   const [manual, setManual] = useState<Payment | null>(null);
+  // Amalgamation (RULES.md 62.17): sztuki produkowane za przechwycone jednostki zamiast zasobów.
+  const [picks, setPicks] = useState<CapturedPick>({});
 
   const player = view.faction ? look(view.faction) : null;
   const tile = gameData?.tiles?.[view.position];
@@ -97,7 +104,8 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   // tylko gdy gracz świadomie go wyczerpie przełącznikiem.
   const [useAida, setUseAida] = useState(false);
   const aidaOn = useAida && view.aida?.ready === true && queued > 0;
-  const rawCost = cartCost(view.units, cart);
+  const amalgam = trimPicks(picks, cart);
+  const rawCost = cartCost(view.units, paidCart(cart, amalgam));
   const cost =
     queued > 0
       ? Math.max(
@@ -178,8 +186,10 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
         })),
         { planets: payment.planets, tradeGoods: payment.tradeGoods },
         aidaOn,
+        amalgam,
       );
       setCart([]);
+      setPicks({});
       setBoardPicks({});
       setManual(null);
       setUseAida(false);
@@ -194,6 +204,9 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   const readyRes = view.planets
     .filter((p) => !p.exhausted)
     .reduce((n, p) => n + p.payValue, 0);
+
+  // Amalgamation: tylko przechwycone jednostki typów obecnych w koszyku.
+  const amalgamRows = (view.captured ?? []).filter((r) => countOf(cart, r.baseType) > 0);
 
   const unitName = (baseType: string) =>
     view.units.find((u) => u.baseType === baseType)?.name ?? baseType;
@@ -626,6 +639,50 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
               })}
             </div>
           )}
+          {amalgamRows.length > 0 && (
+            <div className={styles.chips} aria-label="Amalgamation">
+              <small>Amalgamation · return captured units instead of resources:</small>
+              {amalgamRows.map((row) => {
+                const used = amalgam[row.baseType]?.[row.owner] ?? 0;
+                const room = countOf(cart, row.baseType) - capturedFor(amalgam, row.baseType);
+                const unit = view.units.find((u) => u.baseType === row.baseType);
+                const label = `${unit?.name ?? row.baseType}${row.owner === "token" ? " token" : ""}`;
+                const bump = (delta: number) =>
+                  setPicks((p) => {
+                    const owners = { ...(p[row.baseType] ?? {}) };
+                    owners[row.owner] = Math.max(0, (owners[row.owner] ?? 0) + delta);
+                    return { ...p, [row.baseType]: owners };
+                  });
+                return (
+                  <span className={styles.chip} key={`${row.baseType}-${row.owner}`}>
+                    <Unit
+                      unitType={unit?.asyncId ?? row.baseType}
+                      colorAlias={getColorAlias(row.color ?? undefined)}
+                      faction={row.faction ?? undefined}
+                      scaleSprite
+                    />
+                    <b>{used}</b>/{row.count} {label}
+                    <button
+                      type="button"
+                      disabled={busy || used <= 0}
+                      onClick={() => bump(-1)}
+                      aria-label={`Return one captured ${label} less`}
+                    >
+                      <IconMinus size={12} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || used >= row.count || room <= 0}
+                      onClick={() => bump(1)}
+                      aria-label={`Return one more captured ${label}`}
+                    >
+                      <IconPlus size={12} aria-hidden="true" />
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </section>
         <div className={styles.costBox} data-state={costState} aria-live="polite">
           <span className={styles.costLabel}>Total cost</span>
@@ -656,6 +713,7 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
             disabled={cart.length === 0 || busy}
             onClick={() => {
               setCart([]);
+              setPicks({});
               setManual(null);
             }}
           >

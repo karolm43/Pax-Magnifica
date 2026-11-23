@@ -29,6 +29,15 @@ export type ProductionUnit = {
   boardSources?: { value: string; label: string }[];
 };
 
+/** Przechwycona jednostka na arkuszu frakcji (RULES.md 61.5) - Amalgamation. */
+export type CapturedUnit = {
+  baseType: string;
+  owner: string;
+  count: number;
+  faction: string | null;
+  color: string | null;
+};
+
 export type ProductionPlanet = {
   planet: string;
   name: string;
@@ -93,6 +102,10 @@ export type ProductionBody = {
   remaining: number;
   /** Bellum Gloriosum: myśliwce i siły naziemne do capacity produkowanych statków poza limitem. */
   freeCargo?: boolean;
+  /** That Which Molds Flesh: ile myśliwców/piechoty jeszcze nie liczy się do limitu PRODUCTION. */
+  freeSmallUnits?: number;
+  /** Amalgamation: przechwycone jednostki do zwrotu zamiast zasobów (owner "token" = żeton). */
+  captured?: CapturedUnit[];
   /** Co już wyprodukowano w tej akcji, wg typu (do rozdziału między osobne zdolności). */
   usedByType: Record<string, number>;
   blockaded: boolean;

@@ -65,7 +65,7 @@ describe("DecisionFields", () => {
     render(
       <Harness
         inputs={[
-          { key: "carry_infantry", kind: "number", label: "Infantry to take along", min: 0, max: 5, auto: 3 },
+          { key: "carry_infantry", kind: "number", label: "Infantry to take along", hint: "", min: 0, max: 5, auto: 3 },
         ]}
       />,
     );

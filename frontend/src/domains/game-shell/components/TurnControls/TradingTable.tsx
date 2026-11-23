@@ -22,9 +22,14 @@ import {
   FragmentIcon,
   TradeCard,
   TradeSummary,
+  capturedCounts,
   isEmptySide,
   planetName,
+  unitName,
+  unitSpriteId,
 } from "./transactionItems";
+import { Unit } from "@/shared/ui/Unit";
+import { getColorAlias } from "@/entities/lookup/colors";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import { playerRgb } from "@/domains/strategy/PlayerChip";
 import { useMapPick } from "@/domains/strategy/mapPick";
@@ -89,6 +94,7 @@ export const EMPTY_SIDE: TransactionSide = {
   relicFragments: [],
   actionCards: [],
   planets: [],
+  capturedUnits: [],
   debtTokens: 0,
   tradeSecondary: false,
   wash: null,
@@ -208,6 +214,24 @@ export function TradingTable({ gameId, me, partner, table, myPlanets }: Props) {
   const tradableRelics = components ? (table.tradableRelics ?? []) : [];
   const planets = table.components ? myPlanets : [];
   const theirsEmpty = isEmptySide(table.theirs);
+  // Przechwycone statki/mechy partnera z mojego arkusza (Nombox). Myśliwców i piechoty nie
+  // wolno zwracać w transakcji (R_capture), więc ich nie pokazujemy.
+  const returnable = components
+    ? capturedCounts(
+        (me.nombox?.[partner.faction] ?? []).flatMap((entry) => {
+          const [baseType, n] = entry.split(",");
+          if (baseType === "fighter" || baseType === "infantry") return [];
+          return Array<string>(parseInt(n, 10) || 0).fill(baseType);
+        }),
+      )
+    : [];
+  const pickedCaptured = new Map(capturedCounts(mine.capturedUnits));
+  const bumpCaptured = (baseType: string, delta: number) => {
+    const list = [...(mine.capturedUnits ?? [])];
+    if (delta > 0) list.push(baseType);
+    else list.splice(list.lastIndexOf(baseType), 1);
+    put({ ...mine, capturedUnits: list });
+  };
 
   const toggleFragment = (id: string) =>
     put({
@@ -395,6 +419,36 @@ export function TradingTable({ gameId, me, partner, table, myPlanets }: Props) {
                       />
                     ))}
                   </div>
+                </div>
+              )}
+              {returnable.length > 0 && (
+                <div className={styles.group}>
+                  <span className={styles.groupLabel}>
+                    Captured units <small>(return to {partnerName})</small>
+                  </span>
+                  {returnable.map(([baseType, held]) => (
+                    <Stepper
+                      key={baseType}
+                      label={unitName(baseType)}
+                      icon={
+                        <span className={styles.unitIcon}>
+                          <Unit
+                            unitType={unitSpriteId(baseType)}
+                            colorAlias={getColorAlias(partner.color)}
+                            faction={partner.faction}
+                            scaleSprite
+                          />
+                        </span>
+                      }
+                      value={pickedCaptured.get(baseType) ?? 0}
+                      max={held}
+                      hint={`${held} captured`}
+                      disabled={busy}
+                      onChange={(v) =>
+                        bumpCaptured(baseType, v - (pickedCaptured.get(baseType) ?? 0))
+                      }
+                    />
+                  ))}
                 </div>
               )}
               {planets.length > 0 && (

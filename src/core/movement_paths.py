@@ -437,9 +437,40 @@ def rift_nodes(
     return [node for node in route[:-1] if _GRAVITY_RIFT in grid.anomalies_at(node)]
 
 
+def rift_bonus(state: GameState, grid: HexGrid, route: list[str], player_id: str) -> int:
+    """Premia ruchu z gravity rift na trasie: +1 za każde wyjście/przelot, plus JEDNO +1, gdy jest
+    choć jedna szczelina i działa efekt Crucible (F_vuilraith Crucible 1-1.5)."""
+    nodes = rift_nodes(state, grid, route, player_id)
+    # Nav Suite zeruje zwykłe +1, ale Crucible nadal daje swoje +1 (F_vuilraith Crucible 6).
+    through = any(_GRAVITY_RIFT in grid.anomalies_at(node) for node in route[:-1])
+    extra = through and rules_hooks.permits(
+        rules_hooks.POINT_MOVEMENT_RIFT_EXTRA_BONUS, state, player_id
+    )
+    return len(nodes) + (1 if extra else 0)
+
+
 def rift_rolls(state: GameState, player_id: str) -> bool:
-    """Czy statki gracza rzucają za szczeliny w tym ruchu (Nav Suite / Circlet: nie)."""
-    return not _ignores_anomalies(state, player_id)
+    """Czy statki gracza rzucają za szczeliny w tym ruchu (Nav Suite / Circlet / Crucible: nie)."""
+    return not _ignores_anomalies(state, player_id) and not rules_hooks.permits(
+        rules_hooks.POINT_MOVEMENT_RIFT_EXTRA_BONUS, state, player_id
+    )
+
+
+def rolls_at(state: GameState, player_id: str, position: str) -> bool:
+    """Czy jednostki gracza rzucają za szczelinę w position (Dimensional Tear własny: nie)."""
+    return rift_rolls(state, player_id) and position not in rules_hooks.forbidden(
+        rules_hooks.POINT_MOVEMENT_RIFT_NO_ROLL, state, player_id
+    )
+
+
+def rift_roll_nodes(
+    state: GameState, grid: HexGrid, route: list[str], player_id: str
+) -> list[str]:
+    """Szczeliny trasy, za które statki gracza RZUCAJĄ (R_gravity_rift; bez własnych Dimensional
+    Tear i bez rzutów pod Nav Suite / Crucible)."""
+    if not rift_rolls(state, player_id):
+        return []
+    return [n for n in rift_nodes(state, grid, route, player_id) if rolls_at(state, player_id, n)]
 
 
 def _rift_route_within(
@@ -459,7 +490,7 @@ def _rift_route_within(
         base_type=base_type,
     )
     for candidate in candidates:
-        if len(candidate) - 1 <= move_value + len(rift_nodes(state, grid, candidate, player_id)):
+        if len(candidate) - 1 <= move_value + rift_bonus(state, grid, candidate, player_id):
             return candidate
     return None
 

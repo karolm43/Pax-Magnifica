@@ -9,6 +9,7 @@ nowy moduł + import poniżej + ``tests/factions/test_<frakcja>.py``.
 from src.core.hooks.factions import (
     arborec,
     argent,
+    cabal,
     hacan,
     jolnar,
     l1z1x,
@@ -26,7 +27,8 @@ from src.core.hooks.factions import (
 )
 
 __all__ = [
-    "arborec", "argent", "hacan", "jolnar", "l1z1x", "letnev", "mentak", "muaat", "naalu", "naaz",
+    "arborec", "argent", "cabal", "hacan", "jolnar", "l1z1x", "letnev", "mentak", "muaat",
+    "naalu", "naaz",
     "saar", "sardakk",
     "sol",
     "winnu", "xxcha", "yin",

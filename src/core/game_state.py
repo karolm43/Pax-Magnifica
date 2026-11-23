@@ -586,6 +586,11 @@ class PlayerState(BaseModel):
     # Relikty gracza (karty z talii reliktów) leżące odkryte w jego strefie. JAWNE.
     # Efekty: ``core/relic_cards.py`` + ``core/hooks/relics_*.py`` (RULES.md 59).
     relics: list[str] = Field(default_factory=list)
+    # Przechwycone jednostki na arkuszu frakcji (RULES.md 61.5, zmiana tylko ``core/capture.py``).
+    # JAWNE. ``captured_units`` = {pierwotny właściciel: {typ bazowy: sztuki}} (statki inne niż
+    # myśliwce i mechy, także własne); ``captured_tokens`` = żetony myśliwców/piechoty z puli.
+    captured_units: dict[str, dict[str, int]] = Field(default_factory=dict)
+    captured_tokens: dict[str, int] = Field(default_factory=dict)
     # Karty frontier leżące odkryte u gracza (Enigmatic Device). JAWNE; w UI w zakładce Action
     # cards, zagrywane jak akcja komponentu (``core/frontier_cards.py``).
     frontier_cards: list[str] = Field(default_factory=list)

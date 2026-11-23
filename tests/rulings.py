@@ -39,6 +39,7 @@ RULING_ATTR = "__rulings__"
 # Moduł hooków frakcji -> plik rulingów, gdy nazwy się różnią.
 _RULINGS_FILE = {
     "jolnar": "F_jol_nar", "l1z1x": "F_lizix", "sardakk": "F_norr", "naaz": "F_naaz_rokha",
+    "cabal": "F_vuilraith",
 }
 
 _BULLET = re.compile(r"^(?P<indent>\s*)- (?P<text>.+)$")

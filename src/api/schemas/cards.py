@@ -22,6 +22,8 @@ class TransactionSideRequest(BaseModel):
     action_cards: list[str] = Field(default_factory=list)
     # Karty planet (Pride of Kenara): ``"<planeta>><planeta docelowa>"``.
     planets: list[str] = Field(default_factory=list)
+    # Przechwycone statki/mechy partnera zwracane mu (typy bazowe, RULES.md 61.5).
+    captured_units: list[str] = Field(default_factory=list)
     # Żetony długu (47.3), darmowe secondary Trade i obietnica „wash −N” (47.4).
     debt_tokens: int = 0
     trade_secondary: bool = False
@@ -64,6 +66,7 @@ class TransactionSideView(BaseModel):
         default_factory=list, serialization_alias="secretObjectives"
     )
     planets: list[str] = Field(default_factory=list)
+    captured_units: list[str] = Field(default_factory=list, serialization_alias="capturedUnits")
     debt_tokens: int = Field(0, serialization_alias="debtTokens")
     trade_secondary: bool = Field(False, serialization_alias="tradeSecondary")
     wash: int | None = None

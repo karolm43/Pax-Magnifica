@@ -319,7 +319,7 @@ def test_pride_of_kenara_z_gravity_rift_rzut(
     previous = board_graph._PROVIDER
     board_graph.bind_grid_provider(lambda: grid)
     monkeypatch.setattr(movement, "is_gravity_rift", lambda g, pos: pos == "000")
-    monkeypatch.setattr(movement, "roll_rift_exit", lambda s, pid, units: {"infantry": 1})
+    monkeypatch.setattr(movement, "roll_rift_exit", lambda s, pid, units, pos=None: {"infantry": 1})
     try:
         side = TransactionSide(planets=(f"mr>{planet20}",))
         done = transaction.resolve_transaction(state, grid, "p2", side, TransactionSide())

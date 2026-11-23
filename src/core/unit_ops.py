@@ -176,6 +176,9 @@ def remove_units(
     set_damaged(system, zone, player_id, base_type, remaining)
     if cause is UnitCause.DESTROYED and min(count, before) > 0:
         _note_combat_loss(state, system.position, zone, player_id, base_type, min(count, before))
+        from src.core import capture  # lokalnie: capture woła ten moduł (from_board)
+
+        capture.on_destroyed(state, system.position, zone, player_id, base_type, min(count, before))
         triggers.fire(
             state, GameEvent.UNIT_DESTROYED, Moment.AFTER, subject=player_id,
             ctx={"player": player_id, "base_type": base_type, "zone": zone,

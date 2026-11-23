@@ -30,6 +30,7 @@ from dataclasses import asdict, dataclass, field, replace
 from typing import Any
 
 from src.core import (
+    capture,
     card_draw,
     chronicle,
     control,
@@ -65,6 +66,9 @@ class TransactionSide:
     # Karty planet (Pride of Kenara): wpisy ``"<planeta>><planeta docelowa>"`` - jednostki
     # oddającego przechodzą z planety na docelową (jego), kontrolę dostaje partner.
     planets: tuple[str, ...] = field(default_factory=tuple)
+    # Przechwycone statki/mechy PARTNERA zwracane mu do rezerwy (typy bazowe, R_capture /
+    # R_transactions: tylko pierwotnemu właścicielowi, bez żetonów myśliwców/piechoty).
+    captured_units: tuple[str, ...] = field(default_factory=tuple)
     # Poza transakcją (RULES.md 47.1b, 47.4): ile SWOICH żetonów długu kładę (pamięć stołu),
     # „darmowe secondary Trade” (tylko posiadacz karty w kroku 3) i obietnica „wash −N”.
     debt_tokens: int = 0
@@ -83,6 +87,7 @@ class TransactionSide:
             and self.promissory_note is None
             and not self.relic_fragments
             and not self.planets
+            and not self.captured_units
             and not self.has_extras()
         )
 
@@ -118,6 +123,7 @@ class TransactionSide:
             action_cards=tuple(str(x) for x in raw.get("action_cards", ())),
             secret_objectives=tuple(str(x) for x in raw.get("secret_objectives", ())),
             planets=tuple(str(x) for x in raw.get("planets", ())),
+            captured_units=tuple(str(x) for x in raw.get("captured_units", ())),
             debt_tokens=int(raw.get("debt_tokens", 0)),
             trade_secondary=bool(raw.get("trade_secondary", False)),
             wash=None if wash is None else int(wash),
@@ -308,7 +314,7 @@ def _rift_losses(
     grid = board_graph.bound_grid()
     if grid is None or not units or not movement.is_gravity_rift(grid, position):
         return {}
-    return movement.roll_rift_exit(state, player_id, units)
+    return movement.roll_rift_exit(state, player_id, units, position)
 
 
 def _apply_side(state: GameState, giver_id: str, receiver_id: str, side: TransactionSide) -> None:
@@ -330,6 +336,8 @@ def _apply_side(state: GameState, giver_id: str, receiver_id: str, side: Transac
     for objective in side.secret_objectives:
         secret_objectives.transfer(state, giver_id, receiver_id, objective)
     _apply_planets(state, giver_id, receiver_id, side)
+    for base_type, count in sorted(Counter(side.captured_units).items()):
+        capture.return_unit(state, giver_id, receiver_id, base_type, count)
 
 
 def can_transact_with(
@@ -481,6 +489,7 @@ def validate_side(
     relikty / cele (Arbiters, Black Market Dealings — efekt którejkolwiek strony wystarcza)."""
     validate_own_side(state, giver_id, side, who)
     _validate_planets(state, giver_id, side, who)
+    _validate_captured(state, giver_id, partner_id, side, who)
     _validate_extras(
         state, giver_id, side, who,
         allowed=extras_allowed(state, giver_id, partner_id),
@@ -488,6 +497,18 @@ def validate_side(
             state, rules_hooks.POINT_TRANSACTION_ACTION_CARDS, giver_id, partner_id
         ),
     )
+
+
+def _validate_captured(
+    state: GameState, giver_id: str, partner_id: str, side: TransactionSide, who: str
+) -> None:
+    """Zwrot przechwyconych jednostek: tylko statki/mechy partnera z arkusza oddającego."""
+    wanted = Counter(side.captured_units)
+    for base_type, count in wanted.items():
+        if capture.is_token(base_type):
+            raise ValueError("Captured fighters and infantry cannot be returned in a transaction.")
+        if capture.held(state, giver_id, base_type).get(partner_id, 0) < count:
+            raise ValueError(f"{who} has not captured that many of the partner's {base_type}.")
 
 
 def _receives_first(state: GameState, active_id: str, partner_id: str) -> str:

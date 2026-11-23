@@ -20,6 +20,7 @@ from src.api.web_tiles import _ring_count
 from src.core import (
     action_budget,
     agenda_phase,
+    capture,
     economy,
     hand_limit,
     legendary_planets,
@@ -473,6 +474,8 @@ def _build_player_data(
                 "exhaustedPlanetAbilities": [],
                 "relics": list(player.relics),
                 "frontierCards": list(player.frontier_cards),
+                # Przechwycone jednostki na arkuszu frakcji (RULES.md 61.5) - komponent Nombox.
+                "nombox": capture.nombox(state, player.player_id),
                 "exhaustedRelics": [r for r in player.exhausted_relics if r in player.relics],
                 # Karty zdolności legendarnych planet gracza (RULES.md 60): tekst z assetów, rodzaj
                 # (ACTION = przycisk w akcji komponentu, reszta = oferty w oknie decyzji).

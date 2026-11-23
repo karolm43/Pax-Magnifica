@@ -505,7 +505,9 @@ def test_pride_of_kenara_w_gravity_rift_rzut(
     state, dest = _pride_state(registry)
     rolled: list[dict[str, int]] = []
 
-    def roll(_s: GameState, _pid: str, units: dict[str, int]) -> dict[str, int]:
+    def roll(
+        _s: GameState, _pid: str, units: dict[str, int], _pos: str | None = None
+    ) -> dict[str, int]:
         rolled.append(dict(units))
         return {"mech": 1}
 

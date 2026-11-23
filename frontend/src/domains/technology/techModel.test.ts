@@ -130,3 +130,20 @@ describe("Inheritance Systems (paid skip)", () => {
     expect(paidSkipValue("is", [], 2)).toBe("paid:is||2");
   });
 });
+
+describe("Riftmeld (RULES.md 62.17)", () => {
+  it("returning a captured unit ignores all prerequisites", () => {
+    const skip = {
+      value: "captured:p2", unit: "cruiser", count: 1, player: "p2", faction: "sol",
+      color: "blue",
+    };
+    const tech = row({
+      missing: { WARFARE: 2, BIOTIC: 1 }, status: "skippable", unitUpgrade: true,
+      capturedSkips: [skip],
+    });
+    const opts = options({});
+    const auto = autoSkips(tech, opts);
+    expect(auto.skips).toEqual(["captured:p2"]);
+    expect(totalMissing(remainingAfter(tech, auto.skips, opts))).toBe(0);
+  });
+});

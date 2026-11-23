@@ -48,6 +48,8 @@ export type TransactionSide = {
   secretObjectives?: string[];
   /** Karty planet (Pride of Kenara): ``"<planeta>><planeta docelowa jednostek>"``. */
   planets?: string[];
+  /** Przechwycone statki/mechy PARTNERA zwracane mu (typy bazowe, RULES.md 61.5). */
+  capturedUnits?: string[];
   /** Ile SWOICH żetonów długu kładę (RULES.md 47.3 — pamięć stołu). */
   debtTokens?: number;
   /** Krok 3 Trade: posiadacz karty daje darmowe secondary (RULES.md 47.4). */
@@ -592,6 +594,7 @@ export function useBoardEditor() {
           relic_fragments: s.relicFragments,
           action_cards: s.actionCards ?? [],
           planets: s.planets ?? [],
+          captured_units: s.capturedUnits ?? [],
           debt_tokens: s.debtTokens ?? 0,
           trade_secondary: s.tradeSecondary ?? false,
           wash: s.wash ?? null,
@@ -701,12 +704,15 @@ export function useBoardEditor() {
       orders: { baseType: string; count: number; zone?: string; sources?: string[] }[],
       spend?: { planets: string[]; tradeGoods: number },
       exhaustAida = false,
+      // Amalgamation (RULES.md 62.17): {typ: {właściciel | "token": sztuki}} zamiast zasobów.
+      captured: Record<string, Record<string, number>> = {},
     ) => {
       await post("/tactical/produce", {
         faction,
         orders,
         spend,
         exhaust_aida: exhaustAida,
+        captured,
       });
       await refresh();
     },

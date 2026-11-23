@@ -58,7 +58,7 @@ describe("fxTargets (RULES.md 64.4)", () => {
   });
 
   it("każdy bohater z silnika ma przepis", () => {
-    const engineHeroes = ["arborechero", "argenthero", "hacanhero", "jolnarhero", "l1z1xhero", "letnevhero", "mentakhero", "muaathero", "naaluhero", "naazhero", "saarhero", "sardakkhero", "solhero", "winnuhero", "xxchahero-te", "yinhero"];
+    const engineHeroes = ["arborechero", "argenthero", "cabalhero", "hacanhero", "jolnarhero", "l1z1xhero", "letnevhero", "mentakhero", "muaathero", "naaluhero", "naazhero", "saarhero", "sardakkhero", "solhero", "winnuhero", "xxchahero-te", "yinhero"];
     expect(Object.keys(HERO_BOARD_FX).sort()).toEqual(engineHeroes);
   });
 });

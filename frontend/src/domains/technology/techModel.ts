@@ -22,7 +22,20 @@ export type TechRow = {
   tokenCost?: number;
   /** Brother Omar: zwrot 1 piechoty ignoruje wszystkie prerekwizyty tej technologii. */
   infantrySkip?: boolean;
+  /** Riftmeld: przechwycone jednostki typu ulepszenia, których zwrot ignoruje prerekwizyty. */
+  capturedSkips?: CapturedSkip[];
 };
+
+/** Riftmeld (RULES.md 62.17): skip `captured:<właściciel | token>` + chip jednostki. */
+export type CapturedSkip = {
+  value: string;
+  unit: string;
+  count: number;
+  player: string;
+  faction: string | null;
+  color: string | null;
+};
+export const CAPTURED_SKIP_PREFIX = "captured:";
 
 /** Brother Omar: skąd zwrócić piechotę (skip = `infantry:<pozycja>|<strefa>`). */
 export type InfantrySkip = { value: string; label: string };
@@ -260,6 +273,10 @@ export function autoSkips(
   if (rest > 0 && row.infantrySkip && options.infantrySkips.length > 0) {
     return { skips: [options.infantrySkips[0].value], left: {} };
   }
+  // Riftmeld: tak samo - zwrot przechwyconej jednostki ignoruje wszystkie prerekwizyty.
+  if (rest > 0 && row.capturedSkips && row.capturedSkips.length > 0) {
+    return { skips: [row.capturedSkips[0].value], left: {} };
+  }
   return { skips, left };
 }
 
@@ -269,7 +286,14 @@ export function remainingAfter(
   skips: string[],
   options: ResearchOptions,
 ): Partial<Record<TechColor, number>> {
-  if (skips.some((s) => s.startsWith(INFANTRY_SKIP_PREFIX) || s.startsWith(PAID_SKIP_PREFIX))) {
+  if (
+    skips.some(
+      (s) =>
+        s.startsWith(INFANTRY_SKIP_PREFIX) ||
+        s.startsWith(PAID_SKIP_PREFIX) ||
+        s.startsWith(CAPTURED_SKIP_PREFIX),
+    )
+  ) {
     return {};
   }
   const left: Partial<Record<TechColor, number>> = { ...row.missing };

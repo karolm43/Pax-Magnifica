@@ -137,6 +137,9 @@ class HexGrid:
         # Wormhole z ŻETONÓW położonych w trakcie gry (np. Gamma Wormhole z eksploracji):
         # typ -> pozycje. Osobno od wbudowanych, żeby Undo/Redo dawało spójną mapę.
         self._token_wormholes: dict[str, set[str]] = {}
+        # Anomalie nadane przez JEDNOSTKI w trakcie gry (Dimensional Tear = gravity rift, RULES.md
+        # 62.17): pozycja -> anomalie. Osobno od kafla; synchronizowane ze stanu przy odczycie.
+        self._extra_anomalies: dict[str, frozenset[str]] = {}
         # Portale The Fracture (RULES.md 50): pozycje z żetonem ingress i z egressem.
         # Każdy ingress sąsiaduje z każdym egressem (ingress–ingress i egress–egress NIE).
         self._ingress: set[str] = set()
@@ -274,6 +277,11 @@ class HexGrid:
             self._token_wormholes = wanted
             self.build_edges()
 
+    def sync_extra_anomalies(self, anomalies: dict[str, set[str]]) -> None:
+        """Ustawia anomalie z jednostek (pozycja -> typy); krawędzie bez zmian (anomalia nie zmienia
+        sąsiedztwa). Wołane przy każdym odczycie stanu (core/map_anomalies.sync_grid)."""
+        self._extra_anomalies = {p: frozenset(a) for p, a in anomalies.items() if a}
+
     # --- Zapytania ------------------------------------------------------
 
     def are_adjacent(self, pos_a: str, pos_b: str) -> bool:
@@ -314,7 +322,7 @@ class HexGrid:
         data = self._systems.get(position)
         if data is None:
             return set()
-        return set(data.anomalies)
+        return set(data.anomalies) | self._extra_anomalies.get(position, frozenset())
 
     def is_impassable(self, position: str) -> bool:
         """Czy system jest BEZWARUNKOWO nieprzejezdny dla ruchu (supernova).

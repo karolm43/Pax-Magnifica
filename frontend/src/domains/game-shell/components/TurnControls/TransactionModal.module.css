@@ -366,6 +366,16 @@ button.tradeCard:hover {
   color: rgb(var(--ds-sig-ability));
 }
 
+/* Sylwetka przechwyconej jednostki przy stepperze (rozmiar przez --unit-fit). */
+.unitIcon {
+  --unit-fit: 18px;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+}
+
 .fragIcon {
   width: 16px;
   height: 16px;

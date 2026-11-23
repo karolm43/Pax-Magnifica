@@ -24,7 +24,7 @@ from src.api.saves import SaveManager
 from src.api.seats import SeatRegistry
 from src.api.serializers import build_map_view
 from src.api.state_service import StateService
-from src.core import board_graph, fracture, nexus, rules_hooks, tile_swap, variants
+from src.core import board_graph, fracture, map_anomalies, nexus, rules_hooks, tile_swap, variants
 from src.core.event_store import EventStore
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -110,6 +110,8 @@ class AppContext:
         nexus.sync_grid(self._grid, state, self.registry)
         # Kafle wymienione w trakcie gry (Nova Seed -> supernowa) - wg stanu (Undo/Redo).
         tile_swap.sync_grid(self._grid, state, self.registry)
+        # Anomalie z jednostek (Dimensional Tear = gravity rift, RULES.md 62.17) - wg stanu.
+        map_anomalies.sync_grid(self._grid, state)
         return self._grid
 
     @current_grid.setter

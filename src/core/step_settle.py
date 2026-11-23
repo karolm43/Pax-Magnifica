@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from src.core import (
     battle,
+    capture,
     game_clock,
     game_end,
     leaders,
@@ -53,6 +54,8 @@ def settle_step(
     # Deklaracje pasu „do końca tury/rundy/agendy”, których czas minął (RULES.md 54.12).
     reaction_prefs.prune(after)
     if not label.startswith(LIMITS_EXEMPT_LABELS):
+        # Blokada doku przechwytującego oddaje właścicielowi jego jednostki od razu (RULES.md 61.5).
+        after = capture.release_blockaded(after)
         # Nadwyżka po DOWOLNYM efekcie otwiera okno usunięcia (RULES.md 42).
         after = limits.enforce_limits(after, registry)
         leaders.refresh_unlocks(after, registry)

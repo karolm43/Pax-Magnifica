@@ -43,8 +43,11 @@ from src.core.movement_paths import can_enter_supernova as can_enter_supernova
 from src.core.movement_paths import can_pass_supernova as can_pass_supernova
 from src.core.movement_paths import legal_routes as legal_routes
 from src.core.movement_paths import passage_blocked as passage_blocked
+from src.core.movement_paths import rift_bonus as rift_bonus
 from src.core.movement_paths import rift_nodes as rift_nodes
+from src.core.movement_paths import rift_roll_nodes as rift_roll_nodes
 from src.core.movement_paths import rift_rolls as rift_rolls
+from src.core.movement_paths import rolls_at as rolls_at
 from src.core.movement_paths import route_error as route_error
 from src.core.movement_paths import route_through as route_through
 from src.core.movement_paths import shortest_legal_path as shortest_legal_path
@@ -196,7 +199,7 @@ def _effective_move_value(
             rules_hooks.POINT_MOVEMENT_MOVE_VALUE, state, player_id, move_value,
             {
                 "base_type": base_type, "boost": boost, "tempesta": tempesta,
-                "imperator": imperator,
+                "imperator": imperator, "from": from_pos,
             },
         )
     )
@@ -294,7 +297,7 @@ def can_move(
         if error is not None:
             return False, error
         # Każda szczelina, z której statek wychodzi lub przez którą przelatuje, daje +1 do ruchu.
-        move_value += len(rift_nodes(state, grid, route, player_id))
+        move_value += rift_bonus(state, grid, route, player_id)
         dist = len(route) - 1
     else:
         dist = _shortest_legal_distance(
@@ -544,14 +547,19 @@ def is_gravity_rift(grid: HexGrid, position: str) -> bool:
     return _GRAVITY_RIFT in grid.anomalies_at(position)
 
 
-def roll_rift_exit(state: GameState, player_id: str, units: dict[str, int]) -> dict[str, int]:
+def roll_rift_exit(
+    state: GameState, player_id: str, units: dict[str, int], position: str | None = None
+) -> dict[str, int]:
     """Rzut d10 za każdą jednostkę wychodzącą z gravity rift POZA ruchem statków (MUTUJE klon).
 
     R_gravity_rift; F_norr: siły naziemne przesuwane G'hom Sek'kus z systemu ze szczeliną rzucają
     na usunięcie. 1–3 = jednostka usunięta. Zwraca ``{typ: ile usuniętych}``; usunięcie z planszy
-    robi wołający (zna strefę). Jeden wpis rzutu „na stół”.
+    robi wołający (zna strefę). Jeden wpis rzutu „na stół”. position = szczelina, z której
+    jednostki wychodzą (własny Dimensional Tear: bez rzutu - RULES.md 62.17).
     """
     if _ignores_anomalies(state, player_id):
+        return {}
+    if position is not None and not rolls_at(state, player_id, position):
         return {}
     rng = next_rng(state)
     rolls: list[int] = []
@@ -598,7 +606,7 @@ def _resolve_rift_losses(
     nadwyżkę ponad pojemność ocalałych usuwamy od ostatnio załadowanego — źródło reguł tego nie
     rozstrzyga, wymaga potwierdzenia.
     """
-    rifts = rift_nodes(state, grid, route, player_id) if rift_rolls(state, player_id) else []
+    rifts = rift_roll_nodes(state, grid, route, player_id)
     if not rifts:
         return ships, cargo
     player = state.players.get(player_id)

@@ -54,7 +54,8 @@ def _primary(
     state: GameState, _ctx: CardContext, owner_id: str, _draft: Draft
 ) -> None:
     economy.gain_trade_goods(state, owner_id, PRIMARY_TRADE_GOODS)
-    economy.replenish_commodities(state, owner_id)
+    # Oferty „after replenishes” czekają w oknie secondary (jak oferty „after primary”).
+    economy.replenish_commodities(state, owner_id, open_window=False)
 
 
 def _secondary(

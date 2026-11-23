@@ -122,7 +122,7 @@ def apply_moves(
                                  "with them.")
             lost: dict[str, int] = {}
             if movement.is_gravity_rift(grid, source):
-                lost = movement.roll_rift_exit(state, player_id, ships)
+                lost = movement.roll_rift_exit(state, player_id, ships, source)
             for bt, n in by_type.items():
                 unit_ops.transfer_units(state, origin, SPACE, target, SPACE, player_id, bt, n)
             for bt, n in lost.items():

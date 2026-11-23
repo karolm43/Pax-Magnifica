@@ -10,6 +10,7 @@ Funkcje CZYSTE (``state -> state`` przez klon). Walidacja twarda: ``ValueError``
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from src.core import floating_structures, timing, unit_ops
@@ -24,6 +25,7 @@ CARGO_TYPES: tuple[str, ...] = ("fighter", "infantry", "mech")
 _FIGHTER = "fighter"
 FIGHTER_II_ALIAS = "ff2"  # alias z technologies/pok.json
 _SPACEDOCK = "spacedock"
+_FIGHTER_ROOM = re.compile(r"Up to (\d+) fighters in this system do not count against", re.I)
 
 
 @dataclass
@@ -101,7 +103,12 @@ def _variant_value(
     if unit is None:
         return 0, 1, 0.0, base_type
     used = unit.capacity_used if unit.capacity_used is not None else 1
-    return max(unit.capacity_value or 0, 0), max(used, 0), float(unit.cost or 0), unit.name
+    capacity = unit.capacity_value
+    if capacity is None and unit.ability:
+        # Dimensional Tear (RULES.md 62.17): dane nie mają capacityValue, liczba jest w tekście.
+        match = _FIGHTER_ROOM.search(unit.ability)
+        capacity = int(match.group(1)) if match is not None else None
+    return max(capacity or 0, 0), max(used, 0), float(unit.cost or 0), unit.name
 
 
 def capacity_report(

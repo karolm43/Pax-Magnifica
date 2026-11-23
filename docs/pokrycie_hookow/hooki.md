@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **425**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **441**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -26,6 +26,10 @@ Razem: **425**. Opis = pierwsza linia docstringu funkcji hooka.
 | `bombardment.ground_units` | FORBID | unit:l1z1x_mech | units:l1z1x_mech | Annihilator: While not participating in ground combat, this unit can use its BOMBARDMENT |
 | `bombardment.ignores_planetary_shield` | PERMIT | leader:l1z1xcommander | leaders:l1z1xcommander | 2RAM: At any time: Units that have PLANETARY SHIELD do not prevent you from using |
 | `bombardment.roll_modifier` | MODIFY | effect:action_cards:bunker | — | — |
+| `breakthrough.fracture_no_roll` | PERMIT | breakthrough:cabalbt | breakthroughs:cabalbt | Al'raith Ix Ianovar: This breakthrough causes The Fracture to enter play without a roll, |
+| `capture.destroyed` | PERMIT | faction:cabal | abilities:devour | Devour: Capture your opponent's non-structure units that are destroyed during combat. |
+| `capture.destroyed` | PERMIT | unit:cabal_flagship | units:cabal_flagship | The Terror Between: Capture all other non-structure units that are destroyed in this |
+| `capture.destroyed` | PERMIT | unit:cabal_mech | units:cabal_mech | Reanimator: When your infantry on this planet are destroyed, place them on your faction |
 | `combat.ability_hit_immune` | FORBID | unit:naaz_voltron | — | It cannot be assigned hits from unit abilities (trafienia na inne jednostki - 2). |
 | `combat.afb_all_ships` | PERMIT | effect:action_cards:waylay | — | — |
 | `combat.afb_extra_dice` | MODIFY | leader:argentcommander | leaders:argentcommander | — |
@@ -174,6 +178,7 @@ Razem: **425**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.decision:after` | TRIGGER | effect:research:reveal_prototype | action_cards:reveal_prototype | — |
 | `event:component.exhausted:after` | TRIGGER | leader:sardakkagent | — | — |
 | `event:component.gained:when` | TRIGGER | relic:bookoflatvinia | — | Book of Latvinia: When you gain this card, research up to 2 technologies that have no |
+| `event:component.gained:when` | TRIGGER | breakthrough:cabalbt | breakthroughs:cabalbt | After this card enters play, move up to 2 ingress tokens into systems that contain gravity |
 | `event:component.gained:when` | TRIGGER | breakthrough:muaatbt | breakthroughs:muaatbt | Stellar Genesis: When you gain this card, place the Avernus planet token into a non-home |
 | `event:component.gained:when` | TRIGGER | unit:naalu_mech_te | units:naalu_mech_te | Iconoclast TE: DEPLOY: When another player gains a relic, place 1 mech on any planet you |
 | `event:component.gained:when` | TRIGGER | leader:naalucommander | — | Talia agend powstaje leniwie - przy odblokowaniu M'aban zasiewamy ją, żeby podgląd |
@@ -182,6 +187,7 @@ Razem: **425**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.gained:when` | TRIGGER | relic:shard | — | Shard of the Throne: When you gain this card, gain 1 victory point. |
 | `event:component.gained:when` | TRIGGER | breakthrough:yinbt | breakthroughs:yinbt | Yin Ascendant: When you gain this card ..., gain the alliance ability of a random, unused |
 | `event:component.readied:when` | TRIGGER | effect:agendas:checks:against | agendas:checks | — |
+| `event:economy.commodities_replenished:after` | TRIGGER | leader:cabalagent | leaders:cabalagent | The Stillness of Stars: After another player replenishes commodities: You may exhaust this |
 | `event:economy.commodities_replenished:after` | TRIGGER | agenda:minister_commerce | agendas:minister_commerce | — |
 | `event:economy.trade_goods_gained:after` | TRIGGER | faction:mentak | abilities:pillage | Pillage: After 1 of your neighbors gains trade goods ... |
 | `event:faction.ability_used:after` | TRIGGER | effect:agendas:redistribution:place | agendas:redistribution | — |
@@ -332,6 +338,7 @@ Razem: **425**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:unit.destroyed:after` | TRIGGER | unit:yin_flagship | units:yin_flagship | Van Hauge: When this ship is destroyed, destroy all ships in this system. |
 | `event:unit.destroyed:after` | TRIGGER | leader:yinagent | leaders:yinagent | Brother Milor Ω: After a player's unit is destroyed during combat: You may exhaust this card |
 | `event:unit.placed:after` | TRIGGER | agenda:minister_industry | agendas:minister_industry | — |
+| `event:unit.removed:after` | TRIGGER | effect:leaders:cabalhero:anchor | leaders:cabalhero | Dimensional Anchor: usunięte siły naziemne / myśliwce (nadwyżka ładunku) są przechwycone. |
 | `event:unit.removed:after` | TRIGGER | unit:naaz_voltron | — | When this unit is destroyed or removed, flip this card and return it to your play area. |
 | `event:unit.sustain_damage:after` | TRIGGER | leader:letnevcommander | leaders:letnevcommander | Rear Admiral Farran: After 1 of your units uses SUSTAIN DAMAGE: You may gain 1 trade good |
 | `event:unit.sustain_damage:after` | TRIGGER | unit:sardakk_mech | units:sardakk_mech | Valkyrie Exoskeleton: After this unit uses its SUSTAIN DAMAGE ability during ground combat, |
@@ -348,6 +355,8 @@ Razem: **425**. Opis = pierwsza linia docstringu funkcji hooka.
 | `invasion.skip_bombardment` | PERMIT | effect:leaders:sardakkhero | — | — |
 | `invasion.strips_planetary_shield` | PERMIT | unit:letnev_flagship | units:letnev_flagship | Arc Secundus: Other player's units in this system lose PLANETARY SHIELD. |
 | `limits.pds_unlimited` | PERMIT | agenda:defense_act | agendas:defense_act | — |
+| `map.gravity_rifts` | FORBID | unit:cabal_spacedock | units:cabal_spacedock | Dimensional Tear: This system is a gravity rift; your ships do not roll for this gravity |
+| `map.gravity_rifts` | FORBID | unit:cabal_spacedock2 | technologies:dt2 | Dimensional Tear: This system is a gravity rift; your ships do not roll for this gravity |
 | `movement.alpha_beta_adjacent` | PERMIT | effect:action_cards:lost_star | — | — |
 | `movement.alpha_beta_adjacent` | PERMIT | agenda:wormhole_recon | agendas:wormhole_recon | — |
 | `movement.enter_asteroids` | PERMIT | technology:amd | technologies:amd | Antimass Deflectors: statki mogą wchodzić do pól asteroid i przez nie przechodzić. |
@@ -363,6 +372,7 @@ Razem: **425**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.move_value` | MODIFY | effect:action_cards:fs2 | — | — |
 | `movement.move_value` | MODIFY | effect:action_cards:fs3 | — | — |
 | `movement.move_value` | MODIFY | effect:action_cards:fs4 | — | — |
+| `movement.move_value` | MODIFY | breakthrough:cabalbt | breakthroughs:cabalbt | Apply +1 to the MOVE value of each of your ships that start their movement in The |
 | `movement.move_value` | MODIFY | technology:gd | technologies:gd | Gravity Drive: po aktywacji +1 do wartości ruchu JEDNEGO statku w tej akcji. |
 | `movement.move_value` | MODIFY | effect:planets:tempesta | planets:tempesta | Ionian Fuel Refinery: +1 do wartości ruchu JEDNEGO statku w tej akcji taktycznej. |
 | `movement.move_value` | MODIFY | breakthrough:winnubt | — | After you activate a system that contains a legendary planet, apply +1 to the move value of 1 |
@@ -370,6 +380,9 @@ Razem: **425**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.pass_foreign_ships` | PERMIT | technology:lwd | technologies:lwd | Light/Wave Deflector: statki mogą przechodzić przez systemy z cudzymi statkami. |
 | `movement.pass_foreign_ships` | PERMIT | unit:mentak_cruiser3 | units:mentak_cruiser3 | Corsair: If the active system contains another player's non-fighter ships, this unit can |
 | `movement.passage_blocked` | PERMIT | technology:ah | technologies:ah | Aerie Hololattice: Other players cannot move ships through systems that contain your |
+| `movement.rift_extra_bonus` | PERMIT | effect:promissory_notes:crucible | — | — |
+| `movement.rift_no_roll` | FORBID | unit:cabal_spacedock | units:cabal_spacedock | Dimensional Tear: This system is a gravity rift; your ships do not roll for this gravity |
+| `movement.rift_no_roll` | FORBID | unit:cabal_spacedock2 | technologies:dt2 | Dimensional Tear: This system is a gravity rift; your ships do not roll for this gravity |
 | `movement.single_ship_value` | MODIFY | effect:leaders:saaragent | — | Wartość ruchu wybranego statku (punkt ``movement.single_ship_value``). |
 | `movement.through_nebula` | PERMIT | agenda:shared_research | agendas:shared_research | — |
 | `movement.through_supernova` | PERMIT | faction:muaat | abilities:gashlai_physiology | Gashlai Physiology: Your ships can move through supernovas (węzeł pośredni trasy). |
@@ -380,6 +393,7 @@ Razem: **425**. Opis = pierwsza linia docstringu funkcji hooka.
 | `payment.flex_spend` | PERMIT | breakthrough:xxchabt | breakthroughs:xxchabt | Archon's Gift: You can spend influence as if it were resources. You can spend resources as if |
 | `payment.trade_good_value` | MODIFY | technology:mc | technologies:mc | Mirror Computing: When you spend trade goods, each trade good is worth 2 resources or |
 | `planet.swap_values` | FORBID | effect:technologies:htp:swap | — | — |
+| `production.captured_free` | PERMIT | faction:cabal | abilities:amalgamation | Amalgamation: When you produce a unit: You may return 1 captured unit of that type to |
 | `production.cost` | MODIFY | effect:action_cards:war_machine | — | — |
 | `production.cost` | MODIFY | effect:leaders:winnuagent:cut | — | — |
 | `production.cost` | MODIFY | technology:st | technologies:st | Sarween Tools: gdy jednostki używają PRODUCTION, łączny koszt jest niższy o 1. |
@@ -387,6 +401,7 @@ Razem: **425**. Opis = pierwsza linia docstringu funkcji hooka.
 | `production.forbids` | FORBID | unit:naaz_voltron | — | Game effects cannot place or produce your mechs. |
 | `production.free` | PERMIT | effect:leaders:hacanhero:free | — | — |
 | `production.free_cargo` | PERMIT | breakthrough:solbt | breakthroughs:solbt | Bellum Gloriosum: When you produce a ship that has capacity, you may also produce any |
+| `production.free_small_units` | MODIFY | leader:cabalcommander | leaders:cabalcommander | That Which Molds Flesh: When you produce fighter or infantry units: Up to 2 of those units |
 | `production.planet_value` | MODIFY | technology:ah | technologies:ah | Aerie Hololattice: Each planet that contains 1 or more of your structures gains the |
 | `production.system_value` | MODIFY | technology:mr | technologies:mr | Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability as if |
 | `production.total_value` | MODIFY | effect:action_cards:war_machine | — | — |
@@ -408,6 +423,7 @@ Razem: **425**. Opis = pierwsza linia docstringu funkcji hooka.
 | `strategy.secondary_as_primary` | PERMIT | faction:jolnar | abilities:brilliant | Brilliant: When you spend a command token to resolve the secondary ability of the |
 | `strategy.secondary_free` | PERMIT | faction:hacan | abilities:master_of_trade | Masters of Trade: You do not have to spend a command token to resolve the secondary |
 | `tactical.activation_blocked` | PERMIT | technology:cm | technologies:cm | Other players cannot activate asteroid fields that contain 1 or more of your ships. |
+| `technology.captured_skip` | PERMIT | faction:cabal | abilities:riftmeld | Riftmeld: When you research a unit upgrade technology: You may return 1 captured unit of |
 | `technology.free_prerequisite_ignores` | MODIFY | faction:jolnar | abilities:analytical | Analytical: When you research a technology that is not a unit upgrade technology: You may |
 | `technology.free_prerequisite_ignores` | MODIFY | agenda:schematics | agendas:schematics | — |
 | `technology.ignore_prerequisite` | FORBID | relic:prophetstears | relics:prophetstears | — |
@@ -451,6 +467,8 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `bombardment.ignores_planetary_shield`
 - `bombardment.roll_modifier`
 - `bombardment.empty_planets`
+- `breakthrough.fracture_no_roll`
+- `capture.destroyed`
 - `combat.ability_hit_immune`
 - `combat.afb_all_ships`
 - `combat.afb_extra_dice`
@@ -487,6 +505,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `invasion.commit_from_planets`
 - `invasion.ground_force_types`
 - `invasion.skip_bombardment`
+- `map.gravity_rifts`
 - `movement.alpha_beta_adjacent`
 - `movement.enter_asteroids`
 - `movement.extra_adjacent`
@@ -498,6 +517,8 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `movement.move_value`
 - `movement.passage_blocked`
 - `movement.pass_foreign_ships`
+- `movement.rift_extra_bonus`
+- `movement.rift_no_roll`
 - `movement.single_ship_value`
 - `movement.through_nebula`
 - `movement.through_supernova`
@@ -510,10 +531,12 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `limits.pds_unlimited`
 - `agenda.planets_ready_limit`
 - `planet.swap_values`
+- `production.captured_free`
 - `production.cost`
 - `production.forbids`
 - `production.free`
 - `production.free_cargo`
+- `production.free_small_units`
 - `production.planet_value`
 - `production.system_value`
 - `production.total_value`
@@ -534,6 +557,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `command_tokens.strategy_from_reinforcements`
 - `invasion.strips_planetary_shield`
 - `tactical.activation_blocked`
+- `technology.captured_skip`
 - `technology.free_prerequisite_ignores`
 - `technology.ignore_prerequisite`
 - `technology.infantry_skip`

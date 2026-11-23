@@ -338,6 +338,31 @@ POINT_INVASION_GROUND_FORCE_TYPES = "invasion.ground_force_types"
 # FORBID (rodzaje podglądu) -> ukryte informacje, które gracz widzi stale (M'aban:
 # ``neighbors_promissory``, ``agenda_top``, ``agenda_bottom``) - ``core/peek.py``.
 POINT_INFO_PEEK = "info.peek"
+# --- Capture (RULES.md 61.5) i Vuil'raith Cabal (62.17) ---
+# PERMIT -> gracz przechwytuje zniszczoną jednostkę (ctx: player = właściciel, base_type,
+# position, zone) - ``capture.on_destroyed`` (Devour, The Terror Between, Reanimator).
+POINT_CAPTURE_DESTROYED = "capture.destroyed"
+# FORBID (pozycje) -> systemy, które jednostki gracza czynią gravity rift (Dimensional Tear) -
+# ``map_anomalies.extra_anomalies`` -> ``HexGrid.sync_extra_anomalies``.
+POINT_MAP_GRAVITY_RIFTS = "map.gravity_rifts"
+# FORBID (pozycje) -> szczeliny, za które statki gracza nie rzucają (Dimensional Tear) -
+# ``movement_paths.rift_roll_nodes``.
+POINT_MOVEMENT_RIFT_NO_ROLL = "movement.rift_no_roll"
+# PERMIT -> w tym ruchu statki gracza nie rzucają za żadną szczelinę i dostają JEDNO dodatkowe +1,
+# gdy trasa wychodzi z/przechodzi przez szczelinę (Crucible) - ``movement_paths.rift_bonus``.
+POINT_MOVEMENT_RIFT_EXTRA_BONUS = "movement.rift_extra_bonus"
+# PERMIT -> gracz produkuje jednostki, zwracając przechwycone tego typu zamiast zasobów
+# (Amalgamation) - ``production.produce`` (``captured``).
+POINT_PRODUCTION_CAPTURED_FREE = "production.captured_free"
+# MODIFY -> ile myśliwców/piechoty w kroku produkcji nie liczy się do limitu PRODUCTION (That Which
+# Molds Flesh: +2) - ``production.free_small_units``.
+POINT_PRODUCTION_FREE_SMALL_UNITS = "production.free_small_units"
+# PERMIT -> zwrot 1 przechwyconej jednostki typu ulepszanej jednostki ignoruje wszystkie
+# prerekwizyty ulepszenia (Riftmeld) - ``technology`` (skip ``captured:<właściciel>``).
+POINT_TECHNOLOGY_CAPTURED_SKIP = "technology.captured_skip"
+# PERMIT -> zdobyty przełom wprowadza The Fracture bez rzutu (Al'raith Ix Ianovar) -
+# ``expeditions.gain_breakthrough``.
+POINT_BREAKTHROUGH_FRACTURE_NO_ROLL = "breakthrough.fracture_no_roll"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"

@@ -20,6 +20,9 @@ import { TechCard } from "@/domains/cards/components/TechCard/TechCard";
 import { PlanetCard } from "@/domains/player/components/PlanetCard";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
+import { Unit } from "@/shared/ui/Unit";
+import { getColorAlias } from "@/entities/lookup/colors";
+import { units as unitData } from "@/entities/data/units";
 import { PaymentPicker, paymentTotal } from "@/domains/strategy/PromptParts";
 import {
   AIDA_SKIP,
@@ -633,6 +636,44 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
                           {option.label}
                         </button>
                       ))}
+                    </>
+                  ) : null}
+
+                  {selected.capturedSkips && selected.capturedSkips.length > 0 ? (
+                    <>
+                      <h4>Riftmeld · return 1 captured unit</h4>
+                      <p className={styles.small}>
+                        Return 1 captured unit of this type to ignore all of the
+                        technology&apos;s prerequisites.
+                      </p>
+                      {selected.capturedSkips.map((option) => {
+                        const asyncId =
+                          unitData.find((u) => u.baseType === option.unit)?.asyncId ??
+                          option.unit;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={styles.toggle}
+                            data-on={skips.includes(option.value) || undefined}
+                            disabled={busy}
+                            aria-label={`Return a captured ${option.unit} (${option.count} held)`}
+                            onClick={() =>
+                              setSkips((cur) =>
+                                cur.includes(option.value) ? [] : [option.value],
+                              )
+                            }
+                          >
+                            <Unit
+                              unitType={asyncId}
+                              colorAlias={getColorAlias(option.color ?? undefined)}
+                              faction={option.faction ?? undefined}
+                              scaleSprite
+                            />{" "}
+                            ×{option.count}
+                          </button>
+                        );
+                      })}
                     </>
                   ) : null}
 

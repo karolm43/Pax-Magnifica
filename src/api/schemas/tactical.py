@@ -246,6 +246,9 @@ class ProduceRequest(BaseModel):
     spend: ProduceSpend | None = None
     # Gracz ŚWIADOMIE wyczerpuje AI Development Algorithm (zniżka = liczba ulepszeń jednostek).
     exhaust_aida: bool = False
+    # Amalgamation (RULES.md 62.17): przechwycone jednostki zwracane zamiast zasobów
+    # {typ: {pierwotny właściciel | "token": sztuki}}.
+    captured: dict[str, dict[str, int]] = Field(default_factory=dict)
 
 class CapturePlanetRequest(BaseModel):
     """Przejęcie kontroli planety po inwazji (E3): planeta + gracz."""

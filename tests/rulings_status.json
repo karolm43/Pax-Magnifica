@@ -208,5 +208,28 @@
   "F_muaat/adjudicator-baal-nova-seed/8": {
     "requires": ["faction:empyrean"],
     "reason": "Agent Empyrean (Acamar) po Nova Seed na systemie z planetami."
+  },
+  "F_vuilraith/devour/3": {
+    "na": "Odsyłacz do R_capture - rulingi capture testuje tests/test_capture.py (RULES.md 61.5)."
+  },
+  "F_vuilraith/amalgamation/5": {
+    "gap": "Alliance commandera Naalu/Yin (dodatkowy myśliwiec/piechota za 1 zasób) + Amalgamation - kombinacja niezweryfikowana testem; aktywne warianty tych commanderów nie dają darmowej sztuki przy produkcji."
+  },
+  "F_vuilraith/crucible/5": {
+    "na": "Umowy między graczami są niewiążące (RULES.md 47) - poza silnikiem."
+  },
+  "F_vuilraith/the-stillness-of-stars/4": {
+    "gap": "Trade primary zbiera wybór graczy z darmowym secondary (krok choose_free_players) PRZED wykonaniem primary - oferta agenta pojawia się po uzupełnieniu commodities, ale już po tym wyborze."
+  },
+  "F_vuilraith/it-feeds-on-carrion-dimensional-anchor/5": {
+    "requires": ["faction:nekro"],
+    "reason": "Valefar Assimilator kopiujący Dimensional Tear II - frakcja Nekro niezaimplementowana."
+  },
+  "R_capture/notes/1": {
+    "na": "Odsyłacz do F_vuilraith - rulingi Cabal testuje tests/factions/test_cabal.py."
+  },
+  "R_capture/notes/4": {
+    "requires": ["faction:nekro", "faction:yssaril"],
+    "reason": "Przechwytywanie skopiowaną zdolnością bez wydawania - frakcje Nekro i Yssaril niezaimplementowane."
   }
 }

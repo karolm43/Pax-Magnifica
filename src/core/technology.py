@@ -221,6 +221,37 @@ def _infantry_skip_ready(state: GameState, player_id: str, tech: TechnologyDef) 
     )
 
 
+CAPTURED_SKIP_PREFIX = "captured:"  # ``captured:<właściciel | token>`` - Riftmeld (RULES.md 62.17)
+
+
+def upgraded_base_type(tech: TechnologyDef) -> str | None:
+    """Typ bazowy jednostki, którą ulepsza ``tech`` (jednostka z danych z ``requiredTechId``)."""
+    if UNIT_UPGRADE not in tech.types:
+        return None
+    registry = rules_hooks.bound_registry()
+    if registry is None:
+        return None
+    for unit in registry.units.values():
+        if unit.required_tech_id == tech.id:
+            return str(unit.base_type)
+    return None
+
+
+def captured_skip_options(
+    state: GameState, player_id: str, tech: TechnologyDef
+) -> dict[str, int]:
+    """``{właściciel | "token": sztuki}`` przechwyconych jednostek typu ulepszanej jednostki, które
+    gracz może zwrócić, by zignorować prerekwizyty (Riftmeld; hook ``technology.captured_skip``)."""
+    from src.core import capture  # lokalnie: capture -> production -> ... (bez cyklu)
+
+    base_type = upgraded_base_type(tech)
+    if base_type is None or not rules_hooks.permits(
+        rules_hooks.POINT_TECHNOLOGY_CAPTURED_SKIP, state, player_id, {"technology": tech.id}
+    ):
+        return {}
+    return capture.held(state, player_id, base_type)
+
+
 def specialty_planets(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> dict[str, list[str]]:
@@ -279,6 +310,8 @@ def _remaining_after_skips(
     """Ile symboli prerekwizytów zostanie po zachłannym użyciu skipów (planety + AIDA)."""
     if _infantry_skip_ready(state, player_id, tech):
         return 0  # zwrot piechoty ignoruje wszystkie prerekwizyty (Brother Omar)
+    if captured_skip_options(state, player_id, tech):
+        return 0  # zwrot przechwyconej jednostki ignoruje wszystkie prerekwizyty (Riftmeld)
     registry = rules_hooks.bound_registry()
     if registry is not None and any(
         _can_afford(state, registry, player_id, cost)
@@ -453,6 +486,9 @@ class ResearchPlan:
     # Karta wyczerpana za zignorowanie wszystkich prerekwizytów i jej OSOBNA zapłata
     # ``(karta, planety, tg)`` (Inheritance Systems, RULES.md 62.12).
     paid_ignore: tuple[str, tuple[str, ...], int] | None = None
+    # Przechwycona jednostka zwracana za zignorowanie prerekwizytów ``(typ, właściciel)``
+    # (Riftmeld, RULES.md 62.17).
+    return_captured: tuple[str, str] | None = None
 
     @property
     def reserved_planets(self) -> tuple[str, ...]:
@@ -499,7 +535,18 @@ def plan_research(
     use_aida = False
     return_infantry: tuple[str, str] | None = None
     paid_ignore: tuple[str, tuple[str, ...], int] | None = None
+    return_captured: tuple[str, str] | None = None
     for skip in skips:
+        if skip.startswith(CAPTURED_SKIP_PREFIX):
+            owner = skip[len(CAPTURED_SKIP_PREFIX):]
+            options = captured_skip_options(state, player_id, tech)
+            if options.get(owner, 0) <= 0:
+                raise ValueError("You have no such captured unit to return for this upgrade.")
+            if return_captured is not None or not +missing:
+                raise ValueError("Returning a captured unit would ignore nothing.")
+            missing = Counter()
+            return_captured = (str(upgraded_base_type(tech)), owner)
+            continue
         if skip.startswith(PAID_SKIP_PREFIX):
             paid_ignore = _plan_paid_ignore(state, registry, player_id, skip, paid_ignore, missing)
             missing = Counter()
@@ -567,7 +614,7 @@ def plan_research(
         raise ValueError("A planet exhausted for its technology specialty cannot also pay.")
     return ResearchPlan(
         tech_id, tuple(used_planets), use_aida, tuple(used_relics), free_ignores=ignored,
-        return_infantry=return_infantry, paid_ignore=paid_ignore,
+        return_infantry=return_infantry, paid_ignore=paid_ignore, return_captured=return_captured,
     )
 
 
@@ -698,6 +745,25 @@ def skip_choices(
     return found
 
 
+def _captured_skip_view(
+    state: GameState, player_id: str, tech: TechnologyDef
+) -> list[dict[str, Any]]:
+    """Opcje Riftmeld dla UI: chip jednostki pierwotnego właściciela (żeton: przechwytujący)."""
+    base_type = upgraded_base_type(tech)
+    out: list[dict[str, Any]] = []
+    for owner, count in captured_skip_options(state, player_id, tech).items():
+        who = state.players.get(owner if owner in state.players else player_id)
+        out.append({
+            "value": f"{CAPTURED_SKIP_PREFIX}{owner}",
+            "unit": base_type,
+            "count": count,
+            "player": owner,
+            "faction": who.faction if who is not None else None,
+            "color": who.color if who is not None else None,
+        })
+    return out
+
+
 def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None:
     """Dodaje technologię i wyczerpuje planety/AIDA z planu (mutuje KLON stanu)."""
     research_ctx = {
@@ -735,6 +801,15 @@ def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None
         ability_notes.note_point(
             state, player_id, rules_hooks.POINT_TECHNOLOGY_INFANTRY_SKIP,
             "returned 1 infantry to ignore prerequisites",
+        )
+    if plan.return_captured is not None:
+        from src.core import ability_notes, capture  # lokalnie: unika cyklu importów
+
+        base_type, owner = plan.return_captured
+        capture.spend_captured(state, player_id, base_type, owner)
+        ability_notes.note_point(
+            state, player_id, rules_hooks.POINT_TECHNOLOGY_CAPTURED_SKIP,
+            f"returned 1 captured {base_type} to ignore all prerequisites",
         )
     for relic_id in plan.exhaust_relics:
         exhaust.exhaust_relic(state, player_id, relic_id)
@@ -827,6 +902,9 @@ def tree_view(
                 "infantrySkip": status == "skippable" and _infantry_skip_ready(
                     state, player_id, tech
                 ),
+                # Riftmeld: przechwycone jednostki do zwrotu (skip ``captured:<właściciel>``).
+                "capturedSkips": _captured_skip_view(state, player_id, tech)
+                if status == "skippable" else [],
             }
         )
     return rows

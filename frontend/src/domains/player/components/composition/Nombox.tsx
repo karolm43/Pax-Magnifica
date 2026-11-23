@@ -5,6 +5,8 @@ import { CapturedUnitsData } from "@/entities/data/types";
 import styles from "./Nombox.module.css";
 import { getColorAlias } from "@/entities/lookup/colors";
 import { useFactionColors } from "@/hooks/useFactionColors";
+import { useGameData } from "@/state/useGameContext";
+import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { Unit } from "@/shared/ui/Unit";
 import { FactionIcon } from "@/shared/ui/FactionIcon";
 
@@ -27,6 +29,12 @@ const parseUnitString = (unitString: string) => {
 
 export function Nombox({ capturedUnits }: Props) {
   const factionColorMap = useFactionColors();
+  const gameData = useGameData();
+  // Pełna nazwa frakcji z danych gracza (nigdy surowe id - RULES.md 61.5).
+  const nameOf = (faction: string) => {
+    const player = gameData?.playerData?.find((p) => p.faction === faction);
+    return player ? getPlayerFactionDisplayName(player) : faction;
+  };
 
   if (!capturedUnits || Object.keys(capturedUnits).length === 0) {
     return null;
@@ -45,7 +53,7 @@ export function Nombox({ capturedUnits }: Props) {
                   faction={factionName}
                   className={styles.compactFactionIcon}
                 />
-                <Text className={styles.compactFactionName}>{factionName}</Text>
+                <Text className={styles.compactFactionName}>{nameOf(factionName)}</Text>
               </Box>
               <Box className={styles.compactUnitsRow}>
                 {unitStrings.map((unitString, index) => {

@@ -5,7 +5,10 @@ import {
   cartCost,
   fitsProducers,
   freeCargo,
+  freeSmall,
   fundsTotal,
+  paidCart,
+  trimPicks,
   maxMore,
   slotsUsed,
   whyNotAdd,
@@ -174,5 +177,36 @@ describe("Bellum Gloriosum (freeCargo)", () => {
     const v = view({ units: [carrier, infantry] });
     expect(freeCargo(v, cart)).toBe(0);
     expect(slotsUsed(v, cart)).toBe(6);
+  });
+});
+
+describe("Vuil'raith Cabal (RULES.md 62.17)", () => {
+  it("Amalgamation: units paid with captured units cost nothing", () => {
+    const cruiser = unit({ baseType: "cruiser", cost: 2 });
+    const fighter = unit({ baseType: "fighter", asyncId: "ff", cost: 0.5, unitsPerCost: 2 });
+    const cart = [
+      { baseType: "cruiser", zone: "space", count: 2 },
+      { baseType: "fighter", zone: "space", count: 2 },
+    ];
+    const picks = { cruiser: { p2: 1 }, fighter: { token: 2 } };
+    expect(paidCart(cart, picks)).toEqual([{ baseType: "cruiser", zone: "space", count: 1 }]);
+    expect(cartCost([cruiser, fighter], paidCart(cart, picks))).toBe(2);
+  });
+
+  it("Amalgamation picks never exceed the order", () => {
+    const cart = [{ baseType: "cruiser", zone: "space", count: 1 }];
+    expect(trimPicks({ cruiser: { p2: 2 }, carrier: { p2: 1 } }, cart)).toEqual({
+      cruiser: { p2: 1 },
+    });
+  });
+
+  it("That Which Molds Flesh: 2 fighters/infantry outside the PRODUCTION limit", () => {
+    const v = view({ freeSmallUnits: 2 });
+    const cart = [
+      { baseType: "fighter", zone: "space", count: 3 },
+      { baseType: "cruiser", zone: "space", count: 1 },
+    ];
+    expect(freeSmall(v, cart)).toBe(2);
+    expect(slotsUsed(v, cart)).toBe(2);
   });
 });

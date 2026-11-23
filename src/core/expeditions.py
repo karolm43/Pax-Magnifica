@@ -19,6 +19,7 @@ from src.core import (
     exhaust,
     fracture,
     payment,
+    rules_hooks,
     secret_objectives,
     unit_ops,
 )
@@ -156,6 +157,10 @@ def gain_breakthrough(
     """
     breakthrough = unlock_breakthrough(state, registry, player_id)
     if breakthrough is None:
+        return
+    if rules_hooks.permits(rules_hooks.POINT_BREAKTHROUGH_FRACTURE_NO_ROLL, state, player_id):
+        # Al'raith Ix Ianovar (RULES.md 62.17): Fracture wchodzi bez rzutu, z synergią przełomu.
+        fracture.put_into_play(state, registry, grid, player_id, breakthrough.id)
         return
     fracture.roll_for_fracture(state, registry, grid, player_id, breakthrough.id)
 

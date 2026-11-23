@@ -12,9 +12,11 @@ jednostki. God-Mode (edit-units) nadal omija (wentyl bez reguł).
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 
 from src.core import (
+    capture,
     control,
     economy,
     entropic_scar,
@@ -531,7 +533,9 @@ def reinforcements_left(
     cap = UNIT_CAP_BY_ASYNC_ID.get(ASYNC_ID_BY_BASE_TYPE.get(base_type, ""))
     if cap is None:
         return None
-    return max(0, cap - deployed_count(state, player_id, base_type))
+    # R_reinforcements: przechwycone jednostki nie są w niczyjej rezerwie (RULES.md 61.5).
+    captured = capture.captured_from(state, player_id, base_type)
+    return max(0, cap - deployed_count(state, player_id, base_type) - captured)
 
 
 def ready_planets(
@@ -666,6 +670,122 @@ def free_cargo_units(
     return min(capacity, cargo)
 
 
+_SMALL = ("fighter", "infantry")
+
+
+def free_small_units(
+    state: GameState, player_id: str, orders: list[ProductionOrder]
+) -> int:
+    """Ile myśliwców/piechoty zamówienia nie liczy się do limitu PRODUCTION (That Which Molds
+    Flesh: „Up to 2 of those units”, RULES.md 62.17). Liczone narastająco w kroku produkcji:
+    sztuki, które już skorzystały w tej akcji, zmniejszają pulę."""
+    allowance = int(rules_hooks.modify(
+        rules_hooks.POINT_PRODUCTION_FREE_SMALL_UNITS, state, player_id, 0
+    ))
+    if allowance <= 0:
+        return 0
+    before = sum(
+        n for zone in state.production_placed.values() for bt, n in zone.items() if bt in _SMALL
+    )
+    now = sum(o.count for o in orders if o.base_type in _SMALL and o.count > 0)
+    return min(allowance, before + now) - min(allowance, before)
+
+
+def free_small_left(state: GameState, player_id: str) -> int:
+    """Ile myśliwców/piechoty w tym kroku jeszcze nie liczy się do limitu (widok produkcji)."""
+    allowance = int(rules_hooks.modify(
+        rules_hooks.POINT_PRODUCTION_FREE_SMALL_UNITS, state, player_id, 0
+    ))
+    before = sum(
+        n for zone in state.production_placed.values() for bt, n in zone.items() if bt in _SMALL
+    )
+    return max(0, allowance - before)
+
+
+def captured_view(state: GameState, player_id: str) -> list[dict[str, object]]:
+    """Przechwycone jednostki do Amalgamation (widok produkcji): typ, właściciel, sztuki."""
+    if not captured_free_allowed(state, player_id):
+        return []
+    player = state.players[player_id]
+    rows: list[dict[str, object]] = []
+    for owner, units in sorted(player.captured_units.items()):
+        who = state.players.get(owner)
+        for base_type, count in sorted(units.items()):
+            rows.append({
+                "baseType": base_type, "owner": owner, "count": count,
+                "faction": who.faction if who is not None else None,
+                "color": who.color if who is not None else None,
+            })
+    for base_type, count in sorted(player.captured_tokens.items()):
+        rows.append({
+            "baseType": base_type, "owner": capture.TOKEN, "count": count,
+            "faction": player.faction, "color": player.color,
+        })
+    return rows
+
+
+CapturedSpend = Mapping[str, Mapping[str, int]]  # {typ: {właściciel | "token": sztuki}}
+
+
+def captured_free_allowed(state: GameState, player_id: str) -> bool:
+    """Czy gracz produkuje, zwracając przechwycone jednostki (Amalgamation, RULES.md 62.17)."""
+    return rules_hooks.permits(rules_hooks.POINT_PRODUCTION_CAPTURED_FREE, state, player_id)
+
+
+def _captured_counts(captured: CapturedSpend | None) -> dict[str, int]:
+    counts = {bt: sum(int(n) for n in owners.values()) for bt, owners in (captured or {}).items()}
+    return {bt: n for bt, n in counts.items() if n > 0}
+
+
+def validate_captured(
+    state: GameState, player_id: str, orders: list[ProductionOrder], captured: CapturedSpend | None
+) -> None:
+    """Zwracane przechwycone jednostki: hook pozwala, typ jest w zamówieniu, sztuki są na arkuszu.
+
+    Raises:
+        ValueError: Przy złamaniu którejkolwiek zasady.
+    """
+    counts = _captured_counts(captured)
+    if not counts:
+        return
+    if not captured_free_allowed(state, player_id):
+        raise ValueError("You cannot produce units by returning captured units.")
+    ordered: dict[str, int] = {}
+    for o in orders:
+        ordered[o.base_type] = ordered.get(o.base_type, 0) + max(o.count, 0)
+    for base_type, owners in (captured or {}).items():
+        if counts.get(base_type, 0) > ordered.get(base_type, 0):
+            raise ValueError(f"Return at most 1 captured unit per produced {base_type}.")
+        held = capture.held(state, player_id, base_type)
+        for owner, count in owners.items():
+            if int(count) < 0 or int(count) > held.get(owner, 0):
+                raise ValueError(f"You have not captured that many {base_type} units.")
+
+
+def paid_orders(
+    orders: list[ProductionOrder], captured: CapturedSpend | None
+) -> list[ProductionOrder]:
+    """Zamówienie, za które gracz PŁACI: bez sztuk wyprodukowanych za przechwycone jednostki
+    (F_vuilraith Amalgamation 3-4: koszt jednostek bez zmian, zmienia się tylko wydatek)."""
+    free = _captured_counts(captured)
+    out: list[ProductionOrder] = []
+    for o in orders:
+        take = min(free.get(o.base_type, 0), o.count)
+        free[o.base_type] = free.get(o.base_type, 0) - take
+        if o.count - take > 0:
+            out.append(replace(o, count=o.count - take))
+    return out
+
+
+def return_captured(state: GameState, player_id: str, captured: CapturedSpend | None) -> None:
+    """Zwraca przechwycone jednostki wydane na produkcję (MUTUJE klon). Własne wracają do rezerwy
+    gracza, więc można je od razu wyprodukować (F_vuilraith Amalgamation 2)."""
+    for base_type, owners in sorted((captured or {}).items()):
+        for owner, count in sorted(owners.items()):
+            if int(count) > 0:
+                capture.return_unit(state, player_id, owner, base_type, int(count))
+
+
 def validate_production(
     state: GameState,
     grid: HexGrid,
@@ -674,6 +794,7 @@ def validate_production(
     orders: list[ProductionOrder],
     *,
     exhaust_aida: bool = False,
+    captured: CapturedSpend | None = None,
 ) -> None:
     """Twardo waliduje zamówienie produkcji (RULES.md 33.2) — nie mutuje stanu.
 
@@ -722,8 +843,10 @@ def validate_production(
 
     # LIMIT: łączna liczba sztuk ≤ suma PRODUCTION w aktywnym systemie (bez ładunku z
     # Bellum Gloriosum - RULES.md 62.4).
-    total_units = sum(o.count for o in orders) - free_cargo_units(
-        state, registry, player_id, orders
+    total_units = (
+        sum(o.count for o in orders)
+        - free_cargo_units(state, registry, player_id, orders)
+        - free_small_units(state, player_id, orders)
     )
     limit = remaining_production(state, grid, registry, player_id)
     if total_units > limit:
@@ -737,7 +860,9 @@ def validate_production(
     for o in orders:
         cumulative[o.base_type] = cumulative.get(o.base_type, 0) + o.count
     # Ładunek Bellum Gloriosum nie zajmuje PRODUCTION żadnego producenta.
-    free = free_cargo_units(state, registry, player_id, orders)
+    free = free_cargo_units(state, registry, player_id, orders) + free_small_units(
+        state, player_id, orders
+    )
     for cargo_type in _CARGO_TYPES:
         take = min(free, cumulative.get(cargo_type, 0))
         if take:
@@ -770,8 +895,12 @@ def validate_production(
                     f"(blockade): {o.base_type}."
                 )
 
-    # BUDŻET: łączny koszt ≤ dostępne zasoby (sprawdzenie, bez wydawania).
-    total_cost = order_cost(state, registry, player_id, orders, exhaust_aida=exhaust_aida)
+    # BUDŻET: łączny koszt ≤ dostępne zasoby (sprawdzenie, bez wydawania). Sztuki za przechwycone
+    # jednostki (Amalgamation) nie kosztują zasobów.
+    validate_captured(state, player_id, orders, captured)
+    total_cost = order_cost(
+        state, registry, player_id, paid_orders(orders, captured), exhaust_aida=exhaust_aida
+    )
     budget = available_budget(state, registry, player_id)
     if total_cost > budget:
         raise ValueError(
@@ -935,6 +1064,7 @@ def produce(
     spend: Spend | None = None,
     *,
     exhaust_aida: bool = False,
+    captured: CapturedSpend | None = None,
 ) -> GameState:
     """Wykonuje produkcję w aktywnym systemie: walidacja → płatność → postawienie jednostek.
 
@@ -950,9 +1080,15 @@ def produce(
     timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     active = production_system(state)
     orders = [o for o in orders if o.count > 0]
-    validate_production(state, grid, registry, player_id, orders, exhaust_aida=exhaust_aida)
+    validate_production(
+        state, grid, registry, player_id, orders, exhaust_aida=exhaust_aida, captured=captured
+    )
     if active is None or not orders:
         return state.clone()
+    if _captured_counts(captured):
+        # Amalgamation: zwrot PRZED sprawdzeniem rezerwy - własna jednostka wraca do rezerwy.
+        state = state.clone()
+        return_captured(state, player_id, captured)
 
     zones = allowed_ground_zones(state, registry, player_id, active)
     wanted: dict[str, int] = {}
@@ -989,7 +1125,9 @@ def produce(
                 )
             board_takes += [(base_type, src) for src in sources[: count - left]]
 
-    cost = order_cost(state, registry, player_id, orders, exhaust_aida=exhaust_aida)
+    cost = order_cost(
+        state, registry, player_id, paid_orders(orders, captured), exhaust_aida=exhaust_aida
+    )
     pay = spend if spend is not None else auto_pay(state, registry, player_id, cost)
     _validate_spend(state, registry, player_id, pay, cost)
 
@@ -1045,6 +1183,7 @@ def produce(
             state.production_used
             + sum(o.count for o in orders)
             - free_cargo_units(state, registry, player_id, orders)
+            - free_small_units(state, player_id, orders)
         )
     placed_now = {zone: dict(by_type) for zone, by_type in state.production_placed.items()}
     for o, zone in placed:

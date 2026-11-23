@@ -44,9 +44,56 @@ export function freeCargo(view: ProductionBody, cart: CartLine[]): number {
   return Math.min(capacity, cargo);
 }
 
-/** Sloty PRODUCTION zajęte przez koszyk (bez ładunku poza limitem). */
+const SMALL_TYPES = ["fighter", "infantry"];
+
+/** That Which Molds Flesh (RULES.md 62.17): myśliwce/piechota koszyka poza limitem PRODUCTION. */
+export function freeSmall(view: ProductionBody, cart: CartLine[]): number {
+  const small = cart
+    .filter((l) => SMALL_TYPES.includes(l.baseType))
+    .reduce((n, l) => n + l.count, 0);
+  return Math.min(view.freeSmallUnits ?? 0, small);
+}
+
+/** Sloty PRODUCTION zajęte przez koszyk (bez ładunku i sztuk poza limitem). */
 export const slotsUsed = (view: ProductionBody, cart: CartLine[]): number =>
-  cartCount(cart) - freeCargo(view, cart);
+  cartCount(cart) - freeCargo(view, cart) - freeSmall(view, cart);
+
+/** Wybór Amalgamation: typ → właściciel ("token" = żeton) → ile zwracanych sztuk. */
+export type CapturedPick = Record<string, Record<string, number>>;
+
+/** Ile sztuk danego typu idzie za przechwycone jednostki. */
+export const capturedFor = (picks: CapturedPick, baseType: string): number =>
+  Object.values(picks[baseType] ?? {}).reduce((n, c) => n + c, 0);
+
+/**
+ * Koszyk, za który się PŁACI: bez sztuk wyprodukowanych za przechwycone jednostki
+ * (Amalgamation - lustro `production.paid_orders`).
+ */
+export function paidCart(cart: CartLine[], picks: CapturedPick): CartLine[] {
+  const left: Record<string, number> = {};
+  for (const type of Object.keys(picks)) left[type] = capturedFor(picks, type);
+  const out: CartLine[] = [];
+  for (const line of cart) {
+    const take = Math.min(left[line.baseType] ?? 0, line.count);
+    left[line.baseType] = (left[line.baseType] ?? 0) - take;
+    if (line.count - take > 0) out.push({ ...line, count: line.count - take });
+  }
+  return out;
+}
+
+/** Wybór Amalgamation obcięty do tego, co jest w koszyku (po zdjęciu sztuk z koszyka). */
+export function trimPicks(picks: CapturedPick, cart: CartLine[]): CapturedPick {
+  const out: CapturedPick = {};
+  for (const [type, owners] of Object.entries(picks)) {
+    let room = countOf(cart, type);
+    for (const [owner, n] of Object.entries(owners)) {
+      const keep = Math.min(n, room);
+      room -= keep;
+      if (keep > 0) out[type] = { ...(out[type] ?? {}), [owner]: keep };
+    }
+  }
+  return out;
+}
 
 /** Zmienia liczbę sztuk w linii (typ + strefa); linia o zerowej liczbie znika. */
 export function bumpCart(
@@ -153,8 +200,8 @@ function demandWithCart(
   for (const line of cart) {
     total[line.baseType] = (total[line.baseType] ?? 0) + line.count;
   }
-  // Ładunek Bellum Gloriosum nie zajmuje PRODUCTION producentów (lustro backendu).
-  let free = freeCargo(view, cart);
+  // Ładunek Bellum Gloriosum i sztuki commandera nie zajmują PRODUCTION (lustro backendu).
+  let free = freeCargo(view, cart) + freeSmall(view, cart);
   for (const type of CARGO_TYPES) {
     const take = Math.min(free, total[type] ?? 0);
     if (take > 0) {

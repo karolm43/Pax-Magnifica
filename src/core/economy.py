@@ -129,15 +129,19 @@ def gain_commodities(state: GameState, player_id: str, amount: int) -> int:
     return gained
 
 
-def replenish_commodities(state: GameState, player_id: str) -> None:
-    """Uzupełnia commodities gracza do wartości z jego arkusza frakcji (nie więcej)."""
+def replenish_commodities(state: GameState, player_id: str, *, open_window: bool = True) -> None:
+    """Uzupełnia commodities gracza do wartości z jego arkusza frakcji (nie więcej).
+
+    ``open_window=False``: oferty „after replenishes” (The Stillness of Stars) nie otwierają
+    własnego okna - czekają w oknie secondary karty strategii (primary Trade, RULES.md 62.9).
+    """
     player = _player(state, player_id)
     player.commodities = max(player.commodities, commodity_value(state, player_id))
     if player_id not in state.last_replenished:
         state.last_replenished = [*state.last_replenished, player_id]
     triggers.fire(
         state, GameEvent.COMMODITIES_REPLENISHED, Moment.AFTER, subject=player_id,
-        ctx={"player": player_id},
+        ctx={"player": player_id}, open_window=open_window,
     )
 
 

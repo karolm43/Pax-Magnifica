@@ -9,7 +9,9 @@ import {
   IconPlanet,
   IconPlus,
   IconRefresh,
+  IconSkull,
 } from "@tabler/icons-react";
+import { units } from "@/entities/data/units";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getActionCard } from "@/entities/lookup/actionCards";
@@ -152,6 +154,31 @@ export function FragmentIcon({ id }: { id: string }) {
 export const planetName = (id: string | undefined): string =>
   (id ? getPlanetData(id)?.name : undefined) ?? id ?? "";
 
+/** Pełne nazwy typów bazowych przechwytywanych jednostek (nigdy id AsyncTI4). */
+const UNIT_NAMES: Record<string, string> = {
+  warsun: "War Sun",
+  flagship: "Flagship",
+  dreadnought: "Dreadnought",
+  carrier: "Carrier",
+  cruiser: "Cruiser",
+  destroyer: "Destroyer",
+  mech: "Mech",
+  fighter: "Fighter",
+  infantry: "Infantry",
+};
+export const unitName = (baseType: string): string => UNIT_NAMES[baseType] ?? baseType;
+
+/** Id sprite'u (AsyncTI4) dla typu bazowego — tylko do komponentu ``Unit``. */
+export const unitSpriteId = (baseType: string): string =>
+  units.find((u) => u.baseType === baseType)?.asyncId ?? baseType;
+
+/** Lista typów bazowych => posortowane pary [typ, sztuki]. */
+export function capturedCounts(list: string[] | undefined): [string, number][] {
+  const counts = new Map<string, number>();
+  for (const t of list ?? []) counts.set(t, (counts.get(t) ?? 0) + 1);
+  return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b));
+}
+
 /** Czy strona stołu jest pusta (nic, także bez długu i umowy Trade). */
 export function isEmptySide(s: TransactionSide): boolean {
   return (
@@ -163,6 +190,7 @@ export function isEmptySide(s: TransactionSide): boolean {
     (s.relics ?? []).length === 0 &&
     (s.secretObjectives ?? []).length === 0 &&
     (s.planets ?? []).length === 0 &&
+    (s.capturedUnits ?? []).length === 0 &&
     !(s.debtTokens ?? 0) &&
     !s.tradeSecondary &&
     s.wash == null
@@ -230,6 +258,13 @@ export function TradeSummary({
           </span>
         );
       })}
+      {capturedCounts(side.capturedUnits).map(([baseType, count]) => (
+        <span key={baseType} className={styles.summaryGoods}>
+          <IconSkull size={13} aria-hidden="true" />
+          Returns captured {unitName(baseType)}
+          {count > 1 ? ` ×${count}` : ""}
+        </span>
+      ))}
       {(side.debtTokens ?? 0) > 0 && (
         <span className={styles.summaryGoods}>
           {issuerColor ? (
