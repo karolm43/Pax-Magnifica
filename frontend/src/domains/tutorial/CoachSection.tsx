@@ -16,15 +16,18 @@ function seated(players: PlayerData[]): PlayerData[] {
 }
 
 /**
- * Gracz PRZY EKRANIE: w sieci moje miejsce (token); lokalnie gracz z turą, jeśli jest
- * człowiekiem, inaczej pierwszy człowiek przy stole (solo z botami).
+ * Gracz PRZY EKRANIE: w sieci moje miejsce (token); lokalnie i w trybie testowym (host bez
+ * miejsca steruje każdym graczem) gracz z turą, jeśli jest człowiekiem, inaczej pierwszy
+ * człowiek przy stole (solo z botami).
  */
 function viewer(
   players: PlayerData[],
   turn: PlayerData | undefined,
-  me: { network?: boolean; player_id?: string | null } | undefined,
+  me: { network?: boolean; host?: boolean; player_id?: string | null } | undefined,
 ): PlayerData | undefined {
-  if (me?.network) return players.find((p) => p.discordId === me.player_id);
+  // Tryb testowy jak lokalny - inaczej coach mówił „Watch the map” w turze gracza (plan U5/Z13).
+  const testMode = me?.network === true && me.host === true && !me.player_id;
+  if (me?.network && !testMode) return players.find((p) => p.discordId === me.player_id);
   if (turn && turn.controlType !== "BOT") return turn;
   return players.find((p) => p.controlType !== "BOT");
 }

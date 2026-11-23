@@ -30,3 +30,15 @@ describe("describeAwaiting — tryb testowy hosta (steruje wszystkimi)", () => {
     expect(res.text).toBe("Your move - Hacan: respond in the timing window, Sol: take a turn");
   });
 });
+
+describe("describeAwaiting — powody wg fazy (U5/Z13)", () => {
+  it("status i agenda nie mówią „take a turn”", () => {
+    expect(describeAwaiting([{ ...sol, reason: "score" }], "p1").text).toBe("Your move - score objectives");
+    expect(describeAwaiting([{ ...sol, reason: "redistribute" }], "p1").text).toBe(
+      "Your move - place command tokens",
+    );
+    expect(describeAwaiting([{ ...hacan, reason: "vote" }], "p1").text).toBe(
+      "Waiting for Hacan (vote on the agenda)",
+    );
+  });
+});

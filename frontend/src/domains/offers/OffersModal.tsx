@@ -148,6 +148,8 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
       onUse={use}
       useLabel={offer.mandatory ? "Confirm" : acceptLabel(offer)}
       onSkip={offer.mandatory ? undefined : skip}
+      // „Nie używam” wprost (punkt 6 planu): para do przycisku użycia, zamiast ogólnego „Skip”.
+      skipLabel="Don't use"
       onNeverAsk={!offer.mandatory && offer.source ? neverAsk : undefined}
     >
       {graphical && (

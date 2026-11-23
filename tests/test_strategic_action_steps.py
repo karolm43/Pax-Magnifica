@@ -144,6 +144,25 @@ def test_leadership_secondary_costs_nothing(registry: StaticDataRegistry) -> Non
     assert state.players["p2"].strategic_cc == pool
 
 
+def test_leadership_secondary_options_flag_dead_end_follow(registry: StaticDataRegistry) -> None:
+    """Follow bez 3 wpływu nic nie da: opcje niosą powód (UI blokuje „Follow”, plan U5/Z7)."""
+    state = _state()
+    state.players["p1"].strategy_cards = [1]
+    state = strategic_action.play_strategy_card(state, registry, "p1", 1)
+    state = strategic_action.submit_primary_step(state, registry, "p1", {})
+    state = strategic_action.submit_primary_step(state, registry, "p1", {"tactical": 3})
+    state.players["p2"].trade_goods = 2
+    prompt = strategic_action.step_options(state, registry, "p2")
+    assert prompt is not None and prompt["kind"] == "secondary"
+    assert "at least 3 influence" in prompt["options"]["follow_blocked"]
+    state.players["p2"].trade_goods = 3
+    prompt = strategic_action.step_options(state, registry, "p2")
+    assert prompt is not None and prompt["options"]["follow_blocked"] is None
+    state.players["p2"].cc_reinf = 0
+    prompt = strategic_action.step_options(state, registry, "p2")
+    assert prompt is not None and "reinforcements" in prompt["options"]["follow_blocked"]
+
+
 def test_trade_solo_without_respondents_opens_no_window(registry: StaticDataRegistry) -> None:
     state = GameState(
         phase=Phase.ACTION,

@@ -12,6 +12,7 @@ import {
   IconEye,
   IconGavel,
   IconHandStop,
+  IconMapPin,
   IconScale,
   IconSparkles,
 } from "@tabler/icons-react";
@@ -22,6 +23,7 @@ import { useActivityFeed, useBoardEditor } from "@/api/useBoardEditor";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { humanHandOwners } from "@/domains/offers/handReactions";
 import { AgendaPassButtons } from "./AgendaPassButtons";
+import { AgendaMapPickBar, isPlanetAgenda, useAgendaMapPick } from "./AgendaMapPick";
 import { TransactionModal } from "@/domains/game-shell/components/TurnControls/TransactionModal";
 import { useAppStore } from "@/state/appStore";
 import { useGameData } from "@/state/useGameContext";
@@ -596,6 +598,8 @@ function Podium({
   const resolved = agenda.step === "RESOLVED" || agenda.step === "COMPLETE";
   const votersFor = (outcome: string) =>
     Object.entries(agenda.votes).filter(([, v]) => v.outcome === outcome);
+  const planetPick = isPlanetAgenda(agenda.kind);
+  const startMapPick = useAgendaMapPick((s) => s.start);
   return (
     <section className={styles.panel} aria-label="Agenda">
       <h3>
@@ -658,6 +662,14 @@ function Podium({
         </p>
       ) : null}
 
+      {card && !agenda.unresolvable && planetPick && canPick ? (
+        // „Elect Planet” (U6): planetę wybiera się WYŁĄCZNIE na mapie - lista niżej to podgląd głosów.
+        <button type="button" className={`${styles.primaryBtn} ${styles.mapPickBtn}`} onClick={startMapPick}>
+          <IconMapPin size={16} aria-hidden="true" />
+          {selected ? "Choose another planet on the map" : "Choose a planet on the map"}
+        </button>
+      ) : null}
+
       {card && !agenda.unresolvable ? (
         <ul className={styles.outcomes} aria-label="Outcomes">
           {agenda.outcomes.map((outcome) => {
@@ -675,7 +687,13 @@ function Podium({
                 <button
                   type="button"
                   className={styles.outcomeBtn}
-                  disabled={!canPick || (agenda.step === "TIEBREAK" && agenda.tied.length > 0 && !isTied)}
+                  // Planety: bez klikania z listy (wybór na mapie) - wiersz to podgląd głosów.
+                  data-preview={planetPick || undefined}
+                  disabled={
+                    planetPick ||
+                    !canPick ||
+                    (agenda.step === "TIEBREAK" && agenda.tied.length > 0 && !isTied)
+                  }
                   onClick={() => onSelect(outcome)}
                   aria-pressed={selected === outcome}
                 >
@@ -930,7 +948,10 @@ function Ballot({
           ) : (
             <>
               Exhaust planets to cast votes equal to their influence. All votes go to{" "}
-              <b>one</b> outcome. Trade goods cannot buy votes. Pick an outcome on the podium.
+              <b>one</b> outcome. Trade goods cannot buy votes.{" "}
+              {isPlanetAgenda(agenda.kind)
+                ? "Choose the planet on the map (button on the podium)."
+                : "Pick an outcome on the podium."}
             </>
           )}
         </p>
@@ -1202,6 +1223,14 @@ function CouncilWindow({
     if (tiebreakClick) run(() => api.agendaDecide(agenda.speakerId ?? "", outcome));
     else setSelected(outcome);
   };
+  // Planeta wskazana na mapie (U6): po powrocie do Rady staje się wybranym wynikiem (przy
+  // remisie - rozstrzygnięciem mówcy). Efekt po zerowaniu wyboru wyżej, więc go nie nadpisze.
+  const takeMapPick = useAgendaMapPick((s) => s.take);
+  useEffect(() => {
+    const planet = takeMapPick();
+    if (planet != null && canPick) pickOutcome(planet);
+    // Tylko przy otwarciu okna (powrót z mapy).
+  }, []);
 
   return createPortal(
     <div
@@ -1300,7 +1329,14 @@ export function AgendaOverlay() {
   const { data: gameState } = useGameState(params.mapid ?? DEFAULT_GAME_ID);
   const hidden = useAppStore((s) => s.agendaHidden);
   const setHidden = useAppStore((s) => s.setAgendaHidden);
+  const mapPicking = useAgendaMapPick((s) => s.picking);
+  const finishMapPick = useAgendaMapPick((s) => s.finish);
   const agenda = gameState?.agendaPhase ?? null;
+  // Koniec agendy / zmiana kroku przerywa wybór na mapie (inaczej pasek zostałby bez celu).
+  const pickKey = `${agenda?.agendaNumber}:${agenda?.card?.id}:${agenda?.step}`;
+  useEffect(() => {
+    if (useAgendaMapPick.getState().picking) finishMapPick(null);
+  }, [pickKey, finishMapPick]);
   const ended = gameState?.winnerId != null;
 
   // Poza fazą agendy okno wraca do stanu otwartego - następna agenda otwiera się sama.
@@ -1309,6 +1345,7 @@ export function AgendaOverlay() {
   }, [agenda, hidden, setHidden]);
 
   if (!agenda || ended) return null;
+  if (mapPicking) return <AgendaMapPickBar agenda={agenda} />;
   if (hidden) {
     return createPortal(
       <button type="button" className={styles.returnPill} onClick={() => setHidden(false)}>

@@ -111,6 +111,7 @@ function playerName(ctx: ActivityContext, id: string | null): string {
   if (!id) return "Someone";
   const p = ctx.players[id];
   if (!p) return prettifyId(id);
+  if (p.faction_name?.trim()) return p.faction_name.trim();
   if (p.display_name.trim()) return p.display_name.trim();
   return p.faction ? prettifyId(p.faction) : prettifyId(id);
 }

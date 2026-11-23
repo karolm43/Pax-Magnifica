@@ -293,3 +293,30 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
 - Akcja komponentu: lista bez kart akcji z ręki (zagrywane przeciągnięciem), nowy wstęp, ⓘ z opisem przy
   liderze/technologii/relikcie/przełomie (Z9).
 - QA: tsc app, eslint (zmienione), vitest (offers, agenda, game-shell). Bez weryfikacji wizualnej w grze.
+
+## Okna decyzji — U5: czytelność i ślepe uliczki (+ pkt 6 planu: czytelne „nie robię”)
+
+- Secondary („Follow”): koszt jako osobna wyraźna linia („Cost: …”, także darmowe z nazwą źródła); silnik
+  podaje `follow_blocked` w opcjach secondary (Leadership: < 3 wpływu albo pusta rezerwa, R30.md 30.7) -
+  „Follow” nieaktywne z powodem (Z7). Respondent „free” nie jest blokowany.
+- Leadership: `base_gain` i `per_token` z silnika w tekstach (bez stałej 3).
+- Teksty zdolności frakcji/liderów: zdania z kropką, okno z dwukropkiem
+  („…infantry. At the start of the status phase: Place…”) - `faction_components._sentence/_windowed` (Z12).
+- Pasek „Your move / Waiting for”: powody wg fazy (`core/actor.awaiting`: `score`, `redistribute`, `vote`
+  zamiast „take a turn” w statusie/agendzie). Coach „What now?” w trybie testowym hosta = jak lokalnie (tura
+  gracza, nie „Watch the map”). Feed/powiadomienia: pełna nazwa frakcji zamiast „Player p1” (Z13).
+- Pkt 6: opcje odmowy („Do not place”, „Decline …”, „- none -”) to osobny wiersz za „or” - kafelek z ⊘
+  i przerywaną ramką, wybrany mówi „Chosen - click again to undo” (`isDeclineOption`, `DeclineRow`; pola
+  zwykłe i mapowe). Oferty: „Don't use” zamiast „Skip”.
+- QA: pytest (pełny, -n auto), ruff, mypy (zmienione), tsc app, eslint (zmienione), vitest (domains, shared,
+  hooks), `npm run build`, `npm run e2e`. Bez weryfikacji wizualnej w grze.
+
+## Okna decyzji — U6: wybór planet tylko na mapie, bez list rozwijanych
+
+- Agenda „Elect Planet” (`domains/agenda/AgendaMapPick.tsx`): przycisk „Choose a planet on the map” na podium
+  chowa Radę do paska; świecą planety-wyniki (remis: tylko remisowe); klik wraca do Rady z wyborem (remis =
+  rozstrzygnięcie mówcy). Lista wyników dla planet = tylko podgląd głosów.
+- `DecisionFields`: bez `Select`/`MultiSelect` - powyżej 18 opcji siatka kafelków przewijana z pomocniczym
+  filtrem (decyzja P2).
+- Przegląd U1–U4: bez błędów do poprawy. Uwaga: dymek mapy schowany nad oknem decyzji wraca po ruchu kursora.
+

@@ -90,11 +90,13 @@ testy + sekcja w `PROGRESS.md` + commit.
 - `Required` czytelną plakietką; tekst zdolności z separatorami (backend: łączenie tekstów) (Z12).
 - Pasek statusu i coach zgodne z fazą i trybem testowym; nazwy frakcji zamiast „Player p1” (Z13).
 - Leadership: `base_gain` z silnika zamiast stałej 3.
+- **Stan (2026-11-23): zrobione** — patrz `PROGRESS.md` (U5); tu też pkt 6 zasad (czytelne „nie robię”).
 
 ### U6 — Wybór planet tylko na mapie (zasady użytkownika)
 - Agenda „Elect Planet”: wybór wyniku klikiem na mapie (podświetlone planety) + lista wyników
   tylko jako podgląd głosów.
 - DecisionFields: zamiast `Select`/`MultiSelect` → siatka dużych chipów, drag/klik zamiast list (decyzja P2).
+- **Stan (2026-11-23): zrobione** — patrz `PROGRESS.md` (U6). Drag&drop w siatce nie dodany (klik wystarcza).
 
 ## Decyzje użytkownika (odpowiedzi na pytania)
 - **P1 — Płatność: ujednolicić, ma być ładna.** Wygląd z Leadership (wiersze/karty planet) NIE podoba się

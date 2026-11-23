@@ -275,5 +275,51 @@ describe("DecisionFields", () => {
     clickOnMap("mr");
     expect(values()).toEqual({ "bio:jord:mr": 2 });
   });
+  it("odmowa („Do not place”) stoi osobno za „or”, wybrana mówi wprost, co się stanie (pkt 6)", () => {
+    render(
+      <Harness
+        inputs={[
+          {
+            key: "pick",
+            kind: "choice",
+            label: "Ship",
+            hint: "",
+            merge: false,
+            options: [
+              { id: "none", value: "none", label: "Do not place" },
+              { id: "p1|cruiser", value: "p1|cruiser", label: "Cruiser I - Barony of Letnev" },
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText("or")).toBeTruthy();
+    const decline = screen.getByRole("button", { name: /Do not place/ });
+    expect(decline.hasAttribute("data-decline")).toBe(true);
+    fireEvent.click(decline);
+    expect(values()).toEqual({ pick: "none" });
+    expect(screen.getByRole("button", { name: /Do not place/ }).textContent).toMatch(/click again to undo/);
+  });
+
+  it("wiele opcji (>18) to nadal kafelki z filtrem, nigdy lista rozwijana (U6, P2)", () => {
+    const options = Array.from({ length: 24 }, (_, i) => ({
+      id: `o${i}`,
+      value: `o${i}`,
+      label: `Option ${i}`,
+    }));
+    render(
+      <Harness
+        inputs={[{ key: "big", kind: "choice", label: "Card", hint: "", merge: false, options }]}
+      />,
+    );
+    expect(screen.queryByRole("combobox")).toBeNull();
+    fireEvent.change(screen.getByRole("searchbox", { name: /Filter Card/ }), {
+      target: { value: "Option 2" },
+    });
+    // „Option 2”, „Option 20”…„Option 23”.
+    expect(screen.getAllByRole("button", { name: /^Option 2/ })).toHaveLength(5);
+    fireEvent.click(screen.getByRole("button", { name: "Option 21" }));
+    expect(values()).toEqual({ big: "o21" });
+  });
 });
 

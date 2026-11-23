@@ -189,8 +189,9 @@ def awaiting(state: GameState) -> list[tuple[str, str]]:
     z trafieniami do pokrycia; inwazja / eksploracja / karta strategii → ich prowadzący;
     w przeciwnym razie gracz z turą (faza akcji/strategii) albo mówca (status/agenda).
     Powody to stałe kody dla UI: ``respond``, ``decide``, ``assign_hits``, ``combat``,
-    ``invasion``, ``explore``, ``strategy``, ``turn``, ``speaker``, a w setupie startowym
-    ``secret`` (wybór tajnego celu) i ``setup`` (mówca: Custodians / odkrycie celów).
+    ``invasion``, ``explore``, ``strategy``, ``turn``, ``speaker``, w fazie statusu ``score``
+    (punktowanie celów) i ``redistribute`` (rozdział żetonów), w agendzie ``vote``; w setupie
+    startowym ``secret`` (wybór tajnego celu) i ``setup`` (mówca: Custodians / odkrycie celów).
     """
     found: list[tuple[str, str]] = []
 
@@ -226,7 +227,26 @@ def awaiting(state: GameState) -> list[tuple[str, str]]:
     if state.pending_strategy is not None:
         add(state.pending_strategy.owner_id, "strategy")
     if not found:
-        add(state.active_player_id, "turn")
+        _phase_turn(state, add)
     if not found:
         add(state.speaker_id, "speaker")
     return found
+
+
+def _phase_turn(state: GameState, add: Callable[[str | None, str], None]) -> None:
+    """Kolej gracza nazwana wg fazy (plan U5/Z13): w statusie/agendzie to nie „tura”."""
+    from src.core.agenda_phase import current_voter  # lokalnie: agenda_phase ciągnie hooki
+    from src.core.game_state import Phase, StatusStep
+
+    if state.phase is Phase.STATUS and state.status is not None:
+        if state.status.step is StatusStep.SCORE_OBJECTIVES:
+            add(state.active_player_id, "score")
+        elif state.status.step is StatusStep.REDISTRIBUTE:
+            for player_id in state.players:
+                if player_id not in state.status.done:
+                    add(player_id, "redistribute")
+        return
+    if state.phase is Phase.AGENDA:
+        add(current_voter(state), "vote")
+        return
+    add(state.active_player_id, "turn")

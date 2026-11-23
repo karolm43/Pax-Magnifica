@@ -150,6 +150,31 @@ def test_awaiting_speaker_when_nobody_has_turn() -> None:
     assert actor_rules.awaiting(state) == [("p2", "speaker")]
 
 
+def test_awaiting_reason_follows_phase() -> None:
+    """Faza statusu/agendy nie mówi „take a turn” (plan U5/Z13)."""
+    from src.core.game_state import (
+        AgendaPhaseState,
+        AgendaStep,
+        StatusPhaseState,
+        StatusStep,
+    )
+
+    state = _state()
+    state.phase = Phase.STATUS
+    state.status = StatusPhaseState()
+    assert actor_rules.awaiting(state) == [("p1", "score")]
+    state.status = StatusPhaseState(step=StatusStep.REDISTRIBUTE, done=["p1"])
+    assert actor_rules.awaiting(state) == [
+        (pid, "redistribute") for pid in state.players if pid != "p1"
+    ]
+    state.phase = Phase.AGENDA
+    state.status = None
+    state.agenda = AgendaPhaseState(step=AgendaStep.VOTE, vote_order=["p2", "p1"])
+    assert actor_rules.awaiting(state) == [("p2", "vote")]
+    state.agenda = AgendaPhaseState(step=AgendaStep.REVEAL)
+    assert actor_rules.awaiting(state) == [("p2", "speaker")]
+
+
 def test_web_data_lists_awaiting(client: TestClient) -> None:
     doc = client.get("/api/public/game/local/web-data").json()
     assert doc["awaiting"][0]["playerId"] == "p1"

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo } from "react";
-import { IconCheck, IconEye } from "@tabler/icons-react";
+import { IconBan, IconCheck, IconEye } from "@tabler/icons-react";
 import type { ActionCardOption } from "@/api/useActionCard";
 import { getColorAlias } from "@/entities/lookup/colors";
 import { Stepper } from "@/shared/ui/Stepper/Stepper";
@@ -9,7 +9,7 @@ import { ComponentInfoButton, type ComponentRef } from "@/domains/cards/componen
 import { useGameData } from "@/state/useGameContext";
 import { clearMapMarks, mapHits, mapRefKeys, showOnMap } from "@/domains/search/mapPeek";
 import type { SearchKey } from "@/domains/search/searchKeys";
-import type { OptionKind } from "./optionKinds";
+import { isDeclineOption, type OptionKind } from "./optionKinds";
 import {
   DescribedOptionBody,
   describeOption,
@@ -152,6 +152,93 @@ export function Tile({
   multi: boolean;
   onClick: () => void;
   /** Rodzaj wyboru (``optionKinds``) i cel tej opcji - graficzna treść kafelka. */
+  kind?: { kind: OptionKind; target: string };
+}) {
+  if (isDeclineOption(option)) {
+    return <DeclineTile option={option} selected={selected} disabled={disabled} onClick={onClick} />;
+  }
+  return <ChoiceTile option={option} selected={selected} disabled={disabled} multi={multi} onClick={onClick} kind={kind} />;
+}
+
+/**
+ * Odmowa („Do not place”, „Decline …”): przerywana ramka i znak ⊘ - wyraźnie „nie robię tego”,
+ * a nie kolejny cel. Wybrana mówi wprost, co się stanie (punkt 6 planu okien decyzji).
+ */
+function DeclineTile({
+  option,
+  selected,
+  disabled,
+  onClick,
+}: {
+  option: ActionCardOption;
+  selected: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const label = /^\s*-\s*none\s*-\s*$/i.test(option.label) ? "None" : option.label;
+  const { title, caption } = splitLabel(label);
+  return (
+    <button
+      type="button"
+      className={styles.tile}
+      data-decline
+      aria-pressed={selected}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <IconBan size={18} aria-hidden="true" className={styles.declineIcon} />
+      <span className={styles.optText}>
+        <b>{title}</b>
+        {selected ? <small>Chosen - click again to undo</small> : caption && <small>{caption}</small>}
+      </span>
+    </button>
+  );
+}
+
+/** Wiersz odmów pod wyborem: separator „or” + kafelki ⊘ (pusty, gdy brak odmów). */
+export function DeclineRow({
+  options,
+  isSelected,
+  disabled,
+  onPick,
+}: {
+  options: ActionCardOption[];
+  isSelected: (id: string) => boolean;
+  disabled: boolean;
+  onPick: (id: string) => void;
+}) {
+  if (options.length === 0) return null;
+  return (
+    <div className={styles.declineRow}>
+      <span className={styles.declineOr} aria-hidden="true">
+        or
+      </span>
+      {options.map((option) => (
+        <DeclineTile
+          key={option.id}
+          option={option}
+          selected={isSelected(option.id)}
+          disabled={disabled}
+          onClick={() => onPick(option.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ChoiceTile({
+  option,
+  selected,
+  disabled,
+  multi,
+  onClick,
+  kind,
+}: {
+  option: ActionCardOption;
+  selected: boolean;
+  disabled: boolean;
+  multi: boolean;
+  onClick: () => void;
   kind?: { kind: OptionKind; target: string };
 }) {
   const meta = metaOf(option);

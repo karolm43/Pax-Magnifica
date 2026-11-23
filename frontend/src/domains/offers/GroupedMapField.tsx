@@ -6,6 +6,7 @@ import { useMapTargets } from "@/domains/strategy/mapPick";
 import { useGameData } from "@/state/useGameContext";
 import {
   planetOf,
+  splitDeclines,
   stackRange,
   stacksOf,
   systemOf,
@@ -14,7 +15,7 @@ import {
   type OptionLookups,
 } from "./optionKinds";
 import { useOptionLookups } from "./DecisionPickers";
-import { FieldHead, Tile, UnitStackStepper } from "./DecisionTiles";
+import { DeclineRow, FieldHead, Tile, UnitStackStepper } from "./DecisionTiles";
 import { MapPickStatus, type MapTarget } from "./MapPickStatus";
 import styles from "./DecisionFields.module.css";
 
@@ -114,6 +115,7 @@ export function GroupedMapField({
     options: g.options,
   }));
 
+  const looseSplit = useMemo(() => splitDeclines(loose), [loose]);
   const multi = input.kind === "multi";
   const picked = multi ? (Array.isArray(value) ? value : []) : typeof value === "string" ? [value] : [];
   const pickedIn = (group: Group) => group.options.filter((o) => picked.includes(o.id)).length;
@@ -252,9 +254,9 @@ export function GroupedMapField({
           </div>
         </section>
       )}
-      {loose.length > 0 && (
+      {looseSplit.regular.length > 0 && (
         <div className={styles.tiles}>
-          {loose.map((option) => (
+          {looseSplit.regular.map((option) => (
             <Tile
               key={option.id}
               option={option}
@@ -266,6 +268,13 @@ export function GroupedMapField({
           ))}
         </div>
       )}
+      {/* „Do not place” / „Decline”: osobno za „or”, nie jako cel (punkt 6 planu okien decyzji). */}
+      <DeclineRow
+        options={looseSplit.declines}
+        isSelected={(id) => picked.includes(id)}
+        disabled={disabled}
+        onPick={toggle}
+      />
     </div>
   );
 }

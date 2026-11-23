@@ -287,3 +287,26 @@ export function stackRange(
   const value = stack.filter((o) => picked.includes(o.id)).length;
   return { value, max: Math.min(stack.length, value + Math.max(0, max - picked.length)) };
 }
+
+/** Etykiety silnika oznaczające „nie rób tego” („Do not place”, „Decline - …”, „- none -”). */
+const DECLINE_LABEL = /^\s*(?:(?:do not|don['’]t|decline|skip|none available)\b|-\s*none\s*-)/i;
+
+/**
+ * Opcja odmowy w polu wyboru (punkt 6 planu okien decyzji): pokazywana osobno, za „or”, jako
+ * wyraźny kafelek „⊘”, a nie jako kolejny cel obok planet/opcji. Silnik oznacza je id/value
+ * ``none`` albo etykietą „Do not …” / „Decline …”.
+ */
+export function isDeclineOption(option: ActionCardOption): boolean {
+  return option.id === "none" || option.value === "none" || DECLINE_LABEL.test(option.label);
+}
+
+/** Opcje zwykłe i opcje odmowy (kolejność w obu grupach bez zmian). */
+export function splitDeclines(options: ActionCardOption[]): {
+  regular: ActionCardOption[];
+  declines: ActionCardOption[];
+} {
+  const regular: ActionCardOption[] = [];
+  const declines: ActionCardOption[] = [];
+  for (const option of options) (isDeclineOption(option) ? declines : regular).push(option);
+  return { regular, declines };
+}

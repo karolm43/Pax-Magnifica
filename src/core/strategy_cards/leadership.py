@@ -87,15 +87,34 @@ def _options(
     player = state.players[player_id]
     if step == "distribute":
         return {"gain": int(draft.get("gain", 0))}
-    return {
-        "planets": ready_planet_values(state, ctx.registry, player_id, "influence"),
+    planets = ready_planet_values(state, ctx.registry, player_id, "influence")
+    tg_value = trade_good_value(state, player_id)
+    options: dict[str, Any] = {
+        "planets": planets,
         "trade_goods": player.trade_goods,
-        "trade_good_value": trade_good_value(state, player_id),
+        "trade_good_value": tg_value,
         "reinforcements": player.cc_reinf,
         "base_gain": BASE_TOKENS if step == "spend_influence" else 0,
         "per_token": INFLUENCE_PER_TOKEN,
         "needs_input": True,  # „follow" wymaga wyboru planet i rozkładu żetonów
     }
+    if step is None:  # secondary: „follow” bez szans na żeton to ślepa uliczka (RULES.md 30.7)
+        options["follow_blocked"] = _follow_blocked(
+            sum(planets.values()) + player.trade_goods * tg_value, player.cc_reinf
+        )
+    return options
+
+
+def _follow_blocked(influence: int, reinforcements: int) -> str | None:
+    """Powód, dla którego „follow” secondary nic nie da (None = da się zdobyć żeton)."""
+    if reinforcements < 1:
+        return "No command tokens left in your reinforcements."
+    if influence < INFLUENCE_PER_TOKEN:
+        return (
+            f"You need at least {INFLUENCE_PER_TOKEN} influence to gain a command token "
+            f"(you have {influence})."
+        )
+    return None
 
 
 SPEC = CardSpec(

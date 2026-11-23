@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import { Button, Group, Stack, Switch, Text } from "@/ds";
-import { IconBolt, IconHandStop } from "@tabler/icons-react";
+import { IconAlertTriangle, IconBolt, IconCoin, IconHandStop } from "@tabler/icons-react";
 import { AppModal } from "@/shared/ui/AppModal";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
@@ -237,6 +237,11 @@ export function SecondaryDecisionModal() {
     !((responder as { exhaustedRelics?: string[] } | undefined)?.exhaustedRelics ?? []).includes(
       "emelpar",
     );
+  // Silnik podaje powód, gdy „follow” nic nie da (np. Leadership < 3 wpływu, RULES.md 30.7);
+  // respondent „free” musi rozpatrzyć, więc go nie blokujemy (inaczej brak wyjścia).
+  const followBlockedRaw = prompt?.kind === "secondary" ? prompt.options.follow_blocked : null;
+  const followBlocked =
+    !isFree && typeof followBlockedRaw === "string" && followBlockedRaw ? followBlockedRaw : null;
   const cannotAfford = fromReinforcements
     ? sheetNeeded && !tokenPool
     : needsToken && (poolTokens ?? 1) < 1 && !(scepterReady && useScepter);
@@ -361,27 +366,32 @@ export function SecondaryDecisionModal() {
           )}
         </div>
 
-        {noCost && !isFree ? (
-          <Text size="sm" fw={600} style={{ color: hue }}>
-            {noCostName ? <b>{noCostName}: </b> : null}
-            you may follow for free — no command token is spent.
+        {/* Koszt follow: osobna, wyraźna linia (plan U5/Z7); kolejność odpowiedzi - drobnym drukiem. */}
+        <Text size="sm" fw={600} data-testid="secondary-cost">
+          <IconCoin size={15} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: 4 }} />
+          {isFree
+            ? "Cost: none - the active player chose you, so you must resolve this ability."
+            : needsToken && fromReinforcements
+              ? `Cost: 1 command token from your reinforcements (Perfect Synthesis)${
+                  reinforcementTokens != null ? ` - you have ${reinforcementTokens}` : ""
+                }${sheetNeeded ? "; none left, so spend one from your command sheet" : ""}.`
+              : needsToken
+                ? `Cost: 1 command token from your strategy pool${
+                    poolTokens != null ? ` - you have ${poolTokens}` : ""
+                  }.`
+                : noCost
+                  ? `Cost: none${noCostName ? ` (${noCostName})` : ""} - no command token is spent; following is optional.`
+                  : "Cost: none - following is optional."}
+        </Text>
+        {followBlocked ? (
+          <Text size="sm" role="status" style={{ color: "var(--ds-sig-warn, #f59f00)" }}>
+            <IconAlertTriangle size={15} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: 4 }} />
+            {followBlocked}
           </Text>
         ) : null}
-
         <Text size="xs" c="dimmed">
-          {isFree
-            ? "The active player chose you: you must resolve this ability and it costs no command token. "
-            : needsToken && fromReinforcements
-              ? `Perfect Synthesis: following costs 1 command token from your reinforcements${
-                  reinforcementTokens != null ? ` (you have ${reinforcementTokens})` : ""
-                }${sheetNeeded ? " - none left, so spend one from your command sheet" : ""}. `
-              : needsToken
-                ? `Following costs 1 command token from your strategy pool${
-                    poolTokens != null ? ` (you have ${poolTokens})` : ""
-                  }. `
-                : "Following is optional. "}
-          Players respond in turn order — the player to the left of the active
-          player first, then clockwise.
+          Players respond in turn order — the player to the left of the active player first, then
+          clockwise.
         </Text>
 
         {sheetNeeded && (
@@ -424,17 +434,18 @@ export function SecondaryDecisionModal() {
             Don't follow
           </Button>
           <Button
-            disabled={busy || cannotAfford}
+            disabled={busy || cannotAfford || !!followBlocked}
             leftSection={<IconBolt size={16} />}
             onClick={() =>
               needsInput ? setComposingCursor(window?.cursor ?? 0) : decide(true)
             }
             title={
-              cannotAfford
+              followBlocked ??
+              (cannotAfford
                 ? sheetNeeded
                   ? "Choose the pool to spend a command token from"
                   : "No command token in your strategy pool"
-                : undefined
+                : undefined)
             }
           >
             Follow

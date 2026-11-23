@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { classifyOptions, stackRange, stacksOf, withStackCount, type OptionLookups } from "./optionKinds";
+import {
+  classifyOptions,
+  isDeclineOption,
+  splitDeclines,
+  stackRange,
+  stacksOf,
+  withStackCount,
+  type OptionLookups,
+} from "./optionKinds";
 
 const look: OptionLookups = {
   isTech: (id) => ["nm", "gd"].includes(id),
@@ -108,5 +116,19 @@ describe("stacksOf / withStackCount", () => {
     expect(withStackCount(["x", "y", "z"], stack, 3, 4)).toEqual(["x", "y", "z", "mjord0"]);
     expect(withStackCount(["mjord0", "mjord1"], stack, 0, 4)).toEqual([]);
     expect(stackRange(["x", "mjord0"], stack, 3)).toEqual({ value: 1, max: 2 });
+  });
+});
+
+describe("isDeclineOption / splitDeclines (pkt 6 planu okien decyzji)", () => {
+  it("rozpoznaje odmowy po id/value „none” i po etykiecie", () => {
+    const opts = [
+      { id: "none", value: "none", label: "Do not place" },
+      { id: "x", value: "", label: "- none -" },
+      { id: "d", value: "d", label: "Decline - that player gains 1 trade good" },
+      { id: "p", value: "p", label: "Mecatol Rex" },
+      { id: "q", value: "q", label: "Nonexistent planet" },
+    ];
+    expect(opts.map(isDeclineOption)).toEqual([true, true, true, false, false]);
+    expect(splitDeclines(opts).regular.map((o) => o.id)).toEqual(["p", "q"]);
   });
 });

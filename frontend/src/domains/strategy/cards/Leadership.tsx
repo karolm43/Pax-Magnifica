@@ -61,7 +61,9 @@ function SpendStep({
   submit,
 }: Pick<PrimaryViewProps, "prompt" | "shell" | "busy" | "submit">) {
   const o = prompt.options;
-  const plan = useInfluencePlan(o, num(o.base_gain));
+  // Bazowy zysk podaje silnik (RULES.md 30.7) - bez stałej 3 w UI.
+  const baseGain = num(o.base_gain);
+  const plan = useInfluencePlan(o, baseGain);
   return (
     <PromptShell
       hue={shell.hue}
@@ -82,7 +84,7 @@ function SpendStep({
       }
     >
       <Hint>
-        You gain <b>3 command tokens</b>. You may also spend influence - planets and trade goods
+        You gain <b>{baseGain} command token{baseGain === 1 ? "" : "s"}</b>. You may also spend influence - planets and trade goods
         (1 trade good = 1 influence) - to gain <b>1 more token for every {plan.perToken}</b>.
       </Hint>
       <PaymentPicker
@@ -95,7 +97,7 @@ function SpendStep({
         busy={busy}
         target={plan.autoTarget}
       />
-      <SpendSummary plan={plan} base={3} />
+      <SpendSummary plan={plan} base={baseGain} />
     </PromptShell>
   );
 }
@@ -203,7 +205,7 @@ export function LeadershipSecondary({
               })
             }
           >
-            {plan.gain === 0 ? "Spend at least 3 influence" : `Gain ${plan.gain} token(s)`}
+            {plan.gain === 0 ? `Spend at least ${plan.perToken} influence` : `Gain ${plan.gain} token(s)`}
           </ConfirmButton>
         </>
       }

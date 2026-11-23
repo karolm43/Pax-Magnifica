@@ -1,11 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { IconCoins } from "@tabler/icons-react";
-import { MultiSelect, Select } from "@/ds";
 import type { ActionCardInput, ActionCardOption, FormValue } from "@/api/useActionCard";
 import { useGameData } from "@/state/useGameContext";
 import {
   classifyOptions,
   slotGroups,
+  splitDeclines,
   stackRange,
   stacksOf,
   withStackCount,
@@ -15,7 +15,7 @@ import { SlotsMapField } from "./SlotsMapField";
 import { describeOption, useOptionLookups } from "./DecisionPickers";
 import { AutoButton } from "@/shared/ui/AutoButton/AutoButton";
 import { Stepper } from "@/shared/ui/Stepper/Stepper";
-import { FieldHead, metaOf, Tile, UnitStackStepper } from "./DecisionTiles";
+import { DeclineRow, FieldHead, metaOf, Tile, UnitStackStepper } from "./DecisionTiles";
 import { PaymentTiles } from "./PaymentTiles";
 import { GroupedMapField } from "./GroupedMapField";
 import { TechPickField } from "./TechPickField";
@@ -32,8 +32,46 @@ import styles from "./DecisionFields.module.css";
  * Płatność (planety + trade goods) to jeden widżet z paskiem „zapłacono X / Y”.
  */
 
-/** Powyżej tylu opcji kafelki byłyby ścianą przycisków — wracamy do listy z wyszukiwaniem. */
+/**
+ * Powyżej tylu opcji kafelki dostają pomocniczy filtr i przewijaną siatkę - nadal kafelki, nigdy
+ * lista rozwijana (U6, decyzja użytkownika P2: klik/drag zamiast list).
+ */
 const MAX_TILES = 18;
+
+/** Filtr pomocniczy dużej siatki kafelków: dopasowanie po etykiecie (bez rozróżniania wielkości). */
+function useTileFilter(options: ActionCardOption[]) {
+  const [query, setQuery] = useState("");
+  const needle = query.trim().toLowerCase();
+  const visible = needle
+    ? options.filter((o) => o.label.toLowerCase().includes(needle))
+    : options;
+  return { query, setQuery, visible, many: options.length > MAX_TILES };
+}
+
+function TileFilter({
+  label,
+  query,
+  onChange,
+  shown,
+  total,
+}: {
+  label: string;
+  query: string;
+  onChange: (query: string) => void;
+  shown: number;
+  total: number;
+}) {
+  return (
+    <input
+      type="search"
+      className={styles.filter}
+      aria-label={`Filter ${label}`}
+      placeholder={`Filter ${total} options…${query ? ` (${shown} shown)` : ""}`}
+      value={query}
+      onChange={(e) => onChange(e.currentTarget.value)}
+    />
+  );
+}
 
 type Payment = { cost: number; valueKind: string; tradeGoods: string };
 type ChoiceInput = Extract<ActionCardInput, { kind: "choice" }>;
@@ -149,14 +187,14 @@ function ChoiceField({
   // Planety i systemy: ZAWSZE wybór na mapie (``GroupedMapField``), nigdy lista - decyzja
   // użytkownika. Technologie: drzewo technologii (``TechPickField``), nigdy lista.
   const grouped = classified?.kind === "planet" || classified?.kind === "system";
-  // Technologie i gracze zawsze jako kafelki (bez listy rozwijanej).
-  const alwaysTiles = classified?.kind === "technology" || classified?.kind === "player";
   // Kafelki z opisem (technologia, cel, karta) są szersze - tekst zasady ma się zmieścić.
   const rich =
     classified?.kind === "technology" ||
     (!classified && options.some((o) => describeOption(o, idMap)));
-  const data = options.map((o) => ({ value: o.id, label: o.label }));
-  const stacks = useMemo(() => stacksOf(options), [options]);
+  // Odmowy („Do not …”, „Decline”) osobno, za „or” - nie jako kolejny kafelek opcji (pkt 6 planu).
+  const { regular, declines } = useMemo(() => splitDeclines(options), [options]);
+  const filter = useTileFilter(regular);
+  const stacks = useMemo(() => stacksOf(filter.visible), [filter.visible]);
 
   if (classified?.kind === "technology") {
     return (
@@ -185,20 +223,6 @@ function ChoiceField({
 
   if (input.kind === "multi") {
     const range = input.min === input.max ? `${input.min}` : `${input.min}–${input.max}`;
-    if (stacks.length > MAX_TILES && !alwaysTiles && !rich) {
-      return (
-        <MultiSelect
-          label={input.label}
-          description={[input.hint, `Pick ${range}.`].filter(Boolean).join(" ")}
-          data={data}
-          value={picked}
-          searchable
-          disabled={disabled}
-          placeholder={data.length ? "Choose…" : "Nothing to choose"}
-          onChange={(next) => onChange(next.slice(0, input.max))}
-        />
-      );
-    }
     const toggle = (id: string) => {
       if (picked.includes(id)) onChange(picked.filter((p) => p !== id));
       else if (input.max === 1) onChange([id]);
@@ -211,7 +235,19 @@ function ChoiceField({
           hint={input.hint}
           note={`${picked.length} selected · pick ${range}`}
         />
-        <div className={styles.tiles} data-rich={rich || undefined}>
+        {filter.many && (
+          <TileFilter
+            label={input.label}
+            query={filter.query}
+            onChange={filter.setQuery}
+            shown={filter.visible.length}
+            total={regular.length}
+          />
+        )}
+        <div
+          className={filter.many ? `${styles.tiles} ${styles.tilesScroll}` : styles.tiles}
+          data-rich={rich || undefined}
+        >
           {stacks.map(({ key, options: stack }) => {
             const [option] = stack;
             if (stack.length > 1) {
@@ -241,14 +277,20 @@ function ChoiceField({
             );
           })}
         </div>
-        {input.max > 1 && options.length > 1 && (
+        <DeclineRow
+          options={declines}
+          isSelected={(id) => picked.includes(id)}
+          disabled={disabled}
+          onPick={toggle}
+        />
+        {input.max > 1 && regular.length > 1 && (
           <div className={styles.quick}>
             <button
               type="button"
-              disabled={disabled || picked.length === Math.min(input.max, options.length)}
-              onClick={() => onChange(options.slice(0, input.max).map((o) => o.id))}
+              disabled={disabled || picked.length === Math.min(input.max, regular.length)}
+              onClick={() => onChange(regular.slice(0, input.max).map((o) => o.id))}
             >
-              {input.max >= options.length ? "All" : `First ${input.max}`}
+              {input.max >= regular.length ? "All" : `First ${input.max}`}
             </button>
             <button type="button" disabled={disabled || picked.length === 0} onClick={() => onChange([])}>
               None
@@ -259,30 +301,25 @@ function ChoiceField({
     );
   }
 
-  if (options.length > MAX_TILES && !alwaysTiles && !rich) {
-    return (
-      <Select
-        label={input.label}
-        description={input.hint || undefined}
-        data={data}
-        value={typeof value === "string" ? value : null}
-        searchable
-        disabled={disabled}
-        placeholder={data.length ? "Choose…" : "Nothing to choose"}
-        onChange={onChange}
-      />
-    );
-  }
   return (
     <div className={styles.field}>
       <FieldHead label={input.label} hint={input.hint} />
+      {filter.many && (
+        <TileFilter
+          label={input.label}
+          query={filter.query}
+          onChange={filter.setQuery}
+          shown={filter.visible.length}
+          total={regular.length}
+        />
+      )}
       <div
-        className={styles.tiles}
+        className={filter.many ? `${styles.tiles} ${styles.tilesScroll}` : styles.tiles}
         data-rich={rich || undefined}
         role="radiogroup"
         aria-label={input.label}
       >
-        {options.map((option) => (
+        {filter.visible.map((option) => (
           <Tile
             key={option.id}
             option={option}
@@ -295,6 +332,12 @@ function ChoiceField({
           />
         ))}
       </div>
+      <DeclineRow
+        options={declines}
+        isSelected={(id) => value === id}
+        disabled={disabled}
+        onPick={(id) => onChange(value === id ? null : id)}
+      />
     </div>
   );
 }

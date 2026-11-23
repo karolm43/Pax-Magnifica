@@ -4,6 +4,7 @@ import { DEFAULT_GAME_ID } from "@/config";
 import { usePlayerData } from "@/api/usePlayerData";
 import type { ActivityPlayer } from "@/api/useBoardEditor";
 import { useGameData } from "@/state/useGameContext";
+import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { getPlanetsByTileId } from "@/entities/lookup/planets";
 import type { PlayerDataResponse } from "@/entities/data/types";
 import { resolveSystemName } from "../GameEventPanel/eventFormatting";
@@ -31,8 +32,15 @@ export function useActivityContext(
       const [pos, systemId] = entry.split(":");
       if (pos && systemId) positionToSystemId[pos] = systemId;
     }
+    // Pełne nazwy frakcji (jak w całym UI), nie nazwy miejsc z setupu („Player p1”; plan U5/Z13).
+    const named: Record<string, ActivityPlayer> = {};
+    for (const [id, player] of Object.entries(players ?? {})) {
+      const web = gameData?.playerData?.find((p) => p.discordId === id);
+      const factionName = web ? getPlayerFactionDisplayName(web)?.trim() : "";
+      named[id] = factionName ? { ...player, faction_name: factionName } : player;
+    }
     return {
-      players: players ?? {},
+      players: named,
       systemName: (pos) => resolveSystemName(pos, positionToSystemId),
       systemHint: (pos) => {
         const systemId = positionToSystemId[pos];
@@ -45,5 +53,5 @@ export function useActivityContext(
       },
       strategyCardIdMap: gameData?.strategyCardIdMap,
     };
-  }, [tilePositions, players, gameData?.strategyCardIdMap]);
+  }, [tilePositions, players, gameData?.strategyCardIdMap, gameData?.playerData]);
 }

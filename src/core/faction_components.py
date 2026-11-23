@@ -137,6 +137,23 @@ def _faction(registry: StaticDataRegistry, state: GameState, player_id: str) -> 
     return registry.factions.get(player.faction or "")
 
 
+def _sentence(text: str | None) -> str:
+    """Zdanie zakończone kropką: dane AsyncTI4 bywają bez niej, a teksty się skleja (U5/Z12)."""
+    text = (text or "").strip()
+    return text if not text or text[-1] in ".!?:" else f"{text}."
+
+
+def _windowed(window: str | None, effect: str | None) -> str:
+    """„<okno>: <efekt>” — okno w danych bywa bez dwukropka („At the start of the status phase”)."""
+    window = (window or "").strip()
+    effect = (effect or "").strip()
+    if not window:
+        return effect
+    if not effect:
+        return window
+    return f"{window} {effect}" if window[-1] in ":," else f"{window}: {effect}"
+
+
 def describe(registry: StaticDataRegistry, kind: str, component: str) -> tuple[str, str]:
     """``(nazwa, pełny tekst)`` komponentu z danych.
 
@@ -145,16 +162,15 @@ def describe(registry: StaticDataRegistry, kind: str, component: str) -> tuple[s
     """
     if kind == LEADER:
         leader = leaders.leader_def(registry, component)
-        window = leader.ability_window or ""
-        return leader.name, f"{window} {leader.ability_text or ''}".strip()
+        return leader.name, _windowed(leader.ability_window, leader.ability_text)
     if kind == ABILITY:
         ability = registry.abilities.get(component)
         if ability is None:
             raise ValueError(f"Unknown faction ability: {component}")
-        parts = [ability.permanent_effect, ability.window, ability.window_effect]
         window = ability.window or ""
         if window.strip().upper().startswith("ACTION"):
-            parts = [ability.permanent_effect, f"ACTION: {ability.window_effect or ''}"]
+            window = "ACTION"
+        parts = [_sentence(ability.permanent_effect), _windowed(window, ability.window_effect)]
         return ability.name, " ".join(p for p in parts if p).strip()
     if kind == TECHNOLOGY:
         tech = registry.technologies.get(component)

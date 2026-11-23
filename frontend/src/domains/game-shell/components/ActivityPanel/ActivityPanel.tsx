@@ -54,6 +54,7 @@ function toneStyle(tone: string): CSSProperties {
 }
 
 function displayName(id: string, player: ActivityPlayer | undefined): string {
+  if (player?.faction_name?.trim()) return player.faction_name.trim();
   if (player?.display_name.trim()) return player.display_name.trim();
   return player?.faction ? prettifyId(player.faction) : prettifyId(id);
 }
@@ -222,8 +223,8 @@ export function ActivityPanel() {
               type="button"
               className={classes.playerButton}
               aria-pressed={playerFilter === id}
-              aria-label={displayName(id, data.players[id])}
-              title={displayName(id, data.players[id])}
+              aria-label={displayName(id, ctx.players[id])}
+              title={displayName(id, ctx.players[id])}
               onClick={() => setPlayerFilter((cur) => (cur === id ? null : id))}
             >
               <CircularFactionIcon faction={data.players[id].faction ?? ""} size={22} />

@@ -917,3 +917,38 @@
   flex: 1;
   min-width: 0;
 }
+
+/* „Elect Planet” (U6): wybór planety tylko na mapie - przycisk na podium i pasek w miejscu Rady. */
+.mapPickBtn {
+  align-self: stretch;
+  width: 100%;
+}
+
+.mapPickBar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--hand-dock-clear, 54px) + 12px);
+  z-index: 2700;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(760px, calc(100vw - 32px));
+  padding: 8px 10px 8px 16px;
+  transform: translateX(-50%);
+  font-size: 14px;
+  color: #fff;
+  border-radius: 999px;
+  border: 1px solid rgba(252, 211, 77, 0.7);
+  background: rgba(30, 24, 8, 0.94);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+}
+
+.mapPickBar > b {
+  white-space: nowrap;
+}
+
+.mapPickBar .ghostBtn {
+  min-height: 34px;
+  padding: 4px 12px;
+  font-size: 13px;
+}

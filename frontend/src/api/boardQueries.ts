@@ -615,6 +615,8 @@ export type ActivityPlayer = {
   color: string | null;
   display_name: string;
   is_bot: boolean;
+  /** Pełna nazwa frakcji (uzupełniana na froncie z web-data; pierwszeństwo przed `display_name`). */
+  faction_name?: string;
 };
 
 export type ActivityFeed = {
