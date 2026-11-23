@@ -11,6 +11,7 @@ from typing import Any
 from src.core import agenda_phase
 from src.core.components import ComponentCategory
 from src.core.game_state import AgendaStep, GameState, Phase
+from src.core.objectives import deck_card_ids
 from src.core.registry import StaticDataRegistry
 
 # Podfaza kontraktu frontendu (``GamePhase``) wg kroku fazy agendy.
@@ -222,7 +223,12 @@ def build_agenda_payload(state: GameState, registry: StaticDataRegistry) -> dict
         "voters": voters,
         "history": list(agenda.history),
         "lawsInPlay": dict(state.decks.agenda_laws),
-        "deckSize": len(state.decks.agenda_deck),
+        # Talia zasiewa się leniwie (pierwsza agenda) - do tego czasu liczymy jej przyszły skład.
+        "deckSize": (
+            len(state.decks.agenda_deck)
+            if state.decks.agenda_deck_seeded
+            else len(deck_card_ids(registry, "agenda", state))
+        ),
         "deckSeeded": state.decks.agenda_deck_seeded,
         "discardSize": len(state.decks.agenda_discard),
     }

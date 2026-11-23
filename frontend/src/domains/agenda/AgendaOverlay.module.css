@@ -245,7 +245,7 @@
 .chamber {
   position: relative;
   width: 100%;
-  aspect-ratio: 600 / 310;
+  aspect-ratio: 624 / 322;
   flex: none;
 }
 
@@ -567,6 +567,7 @@
 }
 
 .outcome {
+  position: relative;
   display: grid;
   gap: 4px;
   padding: 6px 8px;
@@ -607,6 +608,24 @@
 
 .outcomeBtn:disabled {
   cursor: default;
+}
+
+/* Cała karta wyniku jest celem kliknięcia (przycisk rozciągnięty na <li>), nie tylko jej górny
+   wiersz; przyciski w opisie (ⓘ, lokalizator) zostają nad nim. */
+.outcomeBtn:not(:disabled)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.outcome button:not(.outcomeBtn) {
+  position: relative;
+  z-index: 1;
+}
+
+.outcome:has(.outcomeBtn:not(:disabled)):hover {
+  border-color: rgba(252, 211, 77, 0.5);
 }
 
 .outcomeName {

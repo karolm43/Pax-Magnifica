@@ -146,7 +146,7 @@ function outcomeColor(agenda: AgendaPhaseData, outcome: string): string {
   return OUTCOME_PALETTE[idx % OUTCOME_PALETTE.length] ?? "#94a3b8";
 }
 
-const HEMI = { w: 600, h: 310, cx: 300, cy: 300, rIn: 105, rOut: 285 };
+const HEMI = { w: 600, h: 322, cx: 300, cy: 300, rIn: 105, rOut: 285 };
 const MAX_SEATS_PER_PLAYER = 40;
 
 /** Miejsca półkola (jak wykres parlamentu): rzędy łuków, posortowane od lewej do prawej. */
@@ -308,7 +308,7 @@ function Senate({
       <div className={styles.chamber}>
         <svg
           className={styles.hemi}
-          viewBox={`0 0 ${HEMI.w} ${HEMI.h}`}
+          viewBox={`-12 0 ${HEMI.w + 24} ${HEMI.h}`}
           role="img"
           aria-label="Senate seating: one seat per vote"
         >
