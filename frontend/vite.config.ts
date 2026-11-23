@@ -28,13 +28,19 @@ const includeReactWhole: Plugin = {
   },
 };
 
-export default defineConfig({
+/*
+ * React Compiler (Babel) TYLKO w buildzie produkcyjnym. W dev i w Vitest każdy z ~900 modułów
+ * szedłby przez Babel — to najdroższa część pierwszego ładowania strony i testów. Kompilator
+ * jedynie memoizuje (bez zmiany zachowania), więc dev bez niego działa tak samo, tylko bez
+ * automatycznej memoizacji. Wymuszenie w dev: REACT_COMPILER=1 npm run dev.
+ */
+export default defineConfig(({ command }) => ({
   plugins: [
-    react({
-      babel: {
-        plugins: [["babel-plugin-react-compiler", ReactCompilerConfig]],
-      },
-    }),
+    react(
+      command === "build" || process.env.REACT_COMPILER === "1"
+        ? { babel: { plugins: [["babel-plugin-react-compiler", ReactCompilerConfig]] } }
+        : {},
+    ),
     includeReactWhole,
   ],
   resolve: {
@@ -48,6 +54,11 @@ export default defineConfig({
     // weszli na http://<IP-hosta>:5173. Bezpieczne: dopóki host nie otworzy lobby, backend
     // obsługuje WYŁĄCZNIE ten komputer (rozpoznaje go po X-Forwarded-For dopisanym przez proxy).
     host: true,
+    // Rozgrzewka: zaraz po starcie serwera Vite kompiluje punkt wejścia i (przez pre-transform
+    // importów) resztę drzewa modułów — pierwsze wejście w przeglądarce nie czeka na kompilację.
+    warmup: {
+      clientFiles: ["./src/main.tsx"],
+    },
     proxy: {
       // Custodian Engine backend (FastAPI). "/bot/api/..." -> "/api/..." na :8000.
       "/bot": {
@@ -78,4 +89,4 @@ export default defineConfig({
     // nie jest błędem na tym etapie infrastruktury.
     passWithNoTests: true,
   },
-});
+}));

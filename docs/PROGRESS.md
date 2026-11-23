@@ -407,3 +407,11 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
   {"swap": [i, j]}`, tylko host; `setupSync.swapPlayers`). Nieznane kafelki blokują „Choose factions”.
 - Testy: `tests/test_map_string_seats.py`, `test_network_game.py::test_host_swaps_player_numbers_with_owners`,
   `useSetupStore.test.ts` (applySeatFactions, swapPlayers).
+
+## Szybszy dev i testy frontu
+
+- `vite.config.ts`: React Compiler (Babel) tylko w `vite build` (wymuszenie w dev: `REACT_COMPILER=1`). W Vitest
+  transformacja ~10 s → ~1,4 s na próbce, cały zestaw 357 testów ~20 s. `server.warmup` kompiluje drzewo od `main.tsx`
+  zaraz po starcie Vite, więc pierwsze wejście w przeglądarkę nie czeka.
+- Gracze przez ZeroTier: dev-serwer Vite podaje ~900 osobnych modułów (każdy = round-trip przez sieć). Do gry
+  sieciowej lepiej `npm run build` + `uv run python packaging/launcher.py` (jeden serwer, `src/api/bundle.py`, kilka plików).
