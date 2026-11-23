@@ -114,7 +114,8 @@ Więcej: [`docs/ARCHITEKTURA_KODU.md`](docs/ARCHITEKTURA_KODU.md).
 |---|---|
 | [Python ≥ 3.12](https://www.python.org/downloads/) + [uv](https://docs.astral.sh/uv/getting-started/installation/) | backend |
 | [Node.js ≥ 20](https://nodejs.org/) | frontend |
-
+### Exe
+uv run python packaging/build_release.py
 ### Instalacja
 
 ```bash

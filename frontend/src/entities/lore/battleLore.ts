@@ -54,55 +54,82 @@ const POOLS: Record<BattleKind, Record<BattleClass, Pool>> = {
   space: {
     crushing: {
       any: [
-        "{W} tore through the fleet of {L} above {where} and left only debris behind: {lostL} gone, not one ship of {W} lost.",
-        "It was over before the sensors had finished counting. {typesL} of {L} burned above {where}, and {W} did not lose a single hull.",
-        "{L} had expected a battle. What came to {where} was an execution: {lostL} destroyed without a scratch on {W}.",
-        "Above {where} the void filled with the wreckage of {L}. {W} flew through it untouched.",
-        "No flares, no retreat, no mercy. {W} erased {typesL} of {L} at {where} and sailed on with every ship intact.",
-        "The logs of {W} will call it routine. The survivors of {L} will remember {where} for the rest of their lives.",
+        "{W} tore through the fleet of {L} above {where} and left only debris behind: {lostL} gone, while every hull of {W} sailed on unscathed.",
+        "It was over before the sensors had finished counting. {typesL} of {L} burned above {where}, and {W} came away without a single loss.",
+        "{L} had expected a battle at {where} and walked into an execution: {lostL} destroyed without a scratch on {W}.",
+        "Above {where}, the void filled with the wreckage of {L}. {W} flew straight through it untouched.",
+        "No flares, no retreat, no mercy. {W} erased {typesL} of {L} at {where} and held the orbit with every ship intact.",
+        "The logs of {W} will call {where} routine. The survivors of {L} will remember losing {typesL} for the rest of their lives.",
+        "{W}'s gunners treated {where} like a live-fire drill, dismantling {lostL} of {L}'s armada in {rounds} with zero casualties.",
+        "Escape pods lit up the sky above {where} as {W} shredded {L}'s {typesL} without losing a single hull.",
+        "Quartermasters for {W} had nothing to repair after {where}. {L}, meanwhile, wrote off {lostL}.",
+        "Every salvo from {W} found its mark above {where}. When the glare faded, {L} was down {typesL} and {W} stood whole.",
       ],
       attacker: [
         "{A} came out of the dark above {where} already firing. By the time {D} raised shields, {lostL} were lost.",
-        "The assault of {A} on {where} was a hammer on glass: {typesL} of {D} shattered, none of the attackers fell.",
+        "The assault of {A} on {where} hit like a hammer on glass: {typesL} of {D} shattered while every attacker survived.",
+        "{A} broke orbit over {where} in a single sweeping pass, erasing {D}'s {typesL} without a friendly hull scratched.",
       ],
       defender: [
-        "{D} met the invaders of {A} above {where} with a perfect wall of fire. {lostL} of {A} died, {D} lost nothing.",
-        "{A} flew into the guns of {D} at {where} and learned why the locals sleep soundly.",
+        "{D} met the invaders of {A} above {where} with a solid wall of fire. {lostL} of {A} died; {D} lost nothing.",
+        "{A} flew straight into the guns of {D} at {where} and learned why the locals sleep soundly.",
+        "The defense grid of {D} turned {where} into a kill zone, stripping {A} of {typesL} without taking a single loss.",
       ],
     },
     decisive: {
       any: [
-        "{W} broke {L} above {where} in {rounds}, paying {lostW} for {lostL} of the enemy.",
-        "{where} fell silent after {rounds} of fire. {typesL} of {L} were gone; {W} counted its own losses ({lostW}) and held the field.",
+        "{W} broke {L} above {where} in {rounds}, losing {lostW} while destroying {lostL}.",
+        "{where} fell silent after {rounds} of fire. {typesL} of {L} were gone; {W} counted {lostW} lost and held the field.",
         "A clean victory for {W} at {where}: {lostL} destroyed against {lostW} lost.",
-        "The line of {L} buckled above {where} and never recovered. {W} kept the void.",
-        "{W} out-fought {L} at {where} in {rounds}. The wreckage drifts there still.",
-        "Cold, quick and efficient: {W} took {where} from {L}, losing {lostW} and destroying {typesL}.",
+        "The line of {L} buckled above {where} and never recovered. {W} kept the orbit.",
+        "{W} out-fought {L} at {where} in {rounds}, leaving {typesL} drifting dark in the vacuum.",
+        "Cold, quick, and efficient: {W} took {where} from {L}, losing {lostW} and wiping out {typesL}.",
+        "Disciplined broadsides carried {W} through {where}. {L} lost {typesL} before the lane fell quiet.",
+        "{W} outmaneuvered {L} above {where}, punching through their screen and costing them {lostL} in {rounds}.",
+        "The jump-lanes around {where} belong to {W} now. {L} paid {lostL} to learn the border was closed.",
+        "By the end of {rounds}, {L}'s formation at {where} had unraveled, leaving {typesL} dead under {W}'s guns.",
       ],
       attacker: [
-        "{A} forced the approach to {where} and shattered the defence of {D}: {lostL} destroyed, {lostW} lost.",
+        "{A} forced the approach to {where} and shattered the defense of {D}: {lostL} destroyed, {lostW} lost.",
+        "{A} seized the high orbit of {where} in {rounds}, driving {D} out minus {typesL}.",
       ],
       defender: [
         "{D} held {where}. {A} left {typesL} in the void and counted the cost of the attempt.",
+        "{D} turned back {A}'s advance at {where} in {rounds}, costing the attackers {lostL}.",
       ],
     },
     hard_fought: {
       any: [
         "{rounds} of fire above {where}, and neither side gave an inch until {W} finally broke {L}. Losses: {lostW} for {W}, {lostL} for {L}.",
-        "Both fleets bled at {where}. {W} won, but the victory was measured in wreckage: {lostW} lost, {lostL} destroyed.",
-        "It could have gone either way. For {rounds} {W} and {L} traded hits above {where}, until the last shield of {L} failed.",
+        "Both fleets bled at {where}. {W} won, measuring the victory in wreckage: {lostW} lost, {lostL} destroyed.",
+        "It could have gone either way. For {rounds}, {W} and {L} traded hits above {where} until the last shield of {L} failed.",
         "{where} will be remembered as a slugging match. {W} stood at the end, with {lostW} lost and {typesL} of {L} destroyed.",
         "Shields flickered, hulls split, and still they fired. {W} outlasted {L} at {where} by the width of a single volley.",
-        "Neither admiral blinked at {where}. {W} won by refusing to stop firing.",
+        "Neither admiral blinked at {where}. {W} won simply by refusing to stop firing.",
+        "Debris from both fleets still circles {where}. {W} claimed the orbit after {rounds}, though {lostW} never made it home.",
+        "Both commanders earned their scars at {where}. {W} emerged holding the lane, short {lostW} after breaking {L}'s {typesL}.",
+        "Salvage crews will be busy at {where} for months, sorting {W}'s {lostW} from {L}'s {typesL}.",
+        "After {rounds} of point-blank exchanges at {where}, {W}'s surviving captains held the system on battered engines.",
+      ],
+      attacker: [
+        "{A} bled for every kilometer above {where}, losing {lostW} before finally breaking {D}'s {typesL}.",
+      ],
+      defender: [
+        "{D} refused to yield {where}, grinding down {A}'s {typesL} across {rounds} at a cost of {lostW}.",
       ],
     },
     pyrrhic: {
       any: [
-        "{W} holds {where}, but at what price: {lostW} lost, more than {L} could take with it. The victory feels like a defeat.",
-        "The fleet of {W} limped out of {where} with {lostW} gone. {L} lost {lostL}, and still the cost was higher for the victor.",
+        "{W} holds {where}, bought at a brutal price: {lostW} lost, more than {L} could take with it.",
+        "The fleet of {W} limped out of {where} with {lostW} gone. {L} lost {lostL}, yet the heavier bill fell on the victor.",
         "Historians will call {where} a triumph of {W}. The crews who watched {lostW} burn will call it something else.",
-        "{W} won at {where}, if you can call it that. {lostW} destroyed, {lostL} of {L} destroyed, and the void is richer for the wreckage.",
-        "A victory that no one will want to repeat. {W} took {where}; {L} took {lostW} with it.",
+        "{W} won at {where}, if you can call it that: {lostW} lost against {lostL} of {L}, and the void is richer for the wreckage.",
+        "A victory no one will want to repeat. {W} took {where}; {L} took {lostW} with it.",
+        "A few more victories like {where} and {W} will have no navy left. {lostW} burned just to clear {typesL} of {L}.",
+        "{L} yielded {where} knowing they had crippled the victor, leaving {W} to tally {lostW} in the dark.",
+        "Admirals back home toasted the capture of {where}, quietly omitting that {W} traded {lostW} for {L}'s {lostL}.",
+        "Nobody cheered on {W}'s bridges when {where} fell silent. Losing {lostW} to sink {lostL} felt closer to a disaster.",
+        "{W}'s banners fly over {where}, hanging above the wreckage of {lostW} that will take cycles to replace.",
       ],
     },
     skirmish: {
@@ -110,7 +137,13 @@ const POOLS: Record<BattleKind, Record<BattleClass, Pool>> = {
         "A brief exchange of fire above {where}. {W} prevailed against {L} in {rounds}; {lostW} and {lostL} were lost.",
         "Little more than a skirmish at {where}: {W} drove off {L} with minimal loss.",
         "{where} saw a quick, ugly flare of weapons fire. {W} kept the field; the galaxy hardly noticed.",
-        "\nScouts and screens clashed above {where}. {W} came out ahead, and everyone went back to the ledgers.",
+        "Scouts and screens clashed above {where}. {W} came out ahead, and everyone went back to the ledgers.",
+        "A sharp warning shot at {where}: {W} pushed {L} out of the lane at the cost of {lostL}.",
+        "Border pickets collided above {where} for {rounds} before {W} cleared the perimeter.",
+        "A handful of salvos settled {where}. {W} held station while {L} pulled back minus {lostL}.",
+        "The encounter at {where} barely warmed the gun barrels before {W} secured the jump-lane.",
+        "{L} tested {W}'s resolve at {where} and got a quick answer, withdrawing after {rounds}.",
+        "Neither fleet committed its full weight at {where}, yet {W} came away holding the beacons.",
       ],
     },
     annihilation: {
@@ -118,32 +151,49 @@ const POOLS: Record<BattleKind, Record<BattleClass, Pool>> = {
         "Nothing was left above {where}. {A} and {D} destroyed each other utterly: {lostW} against {lostL}, and the void keeps both.",
         "{rounds} of fire, and no flag still flying. The fleets of {A} and {D} died together at {where}.",
         "{where} is now a graveyard for the ships of {A} and {D}. No victor, no survivors, only drifting wreckage.",
-        "They fought until there was nothing left to fight with. {A} and {D} both lost everything at {where}.",
+        "They fought until nothing remained to fight with. {A} and {D} both lost everything at {where}.",
         "Mutual annihilation: the sensors of {where} registered {typesL} destroyed, and then silence.",
+        "Two armadas entered {where}; a debris field came out.",
+        "Every transponder in {where} went dead within {rounds}, leaving only the cooling hulls of {A} and {D}.",
+        "Scavengers from neighboring sectors are the only winners at {where}, where {A} and {D} erased each other.",
+        "Both {A} and {D} refused to sound retreat at {where}. Their final orders echoed through empty bridges.",
+        "Pride killed both fleets at {where}: {A} and {D} dragged each other straight into the void.",
       ],
     },
     standoff: {
       any: [
-        "{A} and {D} circled each other above {where} and neither fleet broke. When the smoke cleared nobody had lost a ship.",
+        "{A} and {D} circled each other above {where} and neither fleet broke. When the smoke cleared, nobody had lost a ship.",
         "A tense standoff at {where}: shields up, guns hot, and nobody willing to be the first to fall.",
         "No ship was lost above {where}. The captains of {A} and {D} would later claim the other blinked first.",
+        "Both admirals counted the odds at {where} and chose to save their steel for another round.",
+        "Targeting locks chimed across {where} before {A} and {D} quietly backed out of range.",
+        "{A} and {D} measured each other across {where} like wary hounds, then slipped back into the dark intact.",
+        "The standoff at {where} ended with a cold salute over open comms as {A} and {D} disengaged.",
+        "A bloodless stare-down above {where} left both {A} and {D} whole and twice as suspicious.",
       ],
     },
   },
   ground: {
     crushing: {
       any: [
-        "The ground of {where} belonged to {W} within the hour: {lostL} of {L} fell, and not one soldier of {W} was lost.",
+        "The ground of {where} belonged to {W} within the hour: {lostL} of {L} fell, while every soldier of {W} walked away whole.",
         "{L} dug in on {where}. It was not enough. {typesL} were swept aside, and {W} counted no dead of its own.",
-        "{W} walked over the defence of {L} on {where}. {lostL} down, no losses on the winning side.",
-        "No trenches, no walls, no luck held against {W} on {where}. {typesL} of {L} were wiped out.",
+        "{W} walked over the defense of {L} on {where}. {lostL} down, zero losses on the winning side.",
+        "No trenches, no walls, and no luck held against {W} on {where}. {typesL} of {L} were wiped out.",
         "The battle for {where} went one way from the first volley. {W} lost nothing and {L} lost {lostL}.",
+        "Drop-pods hit the dirt on {where} and {L}'s line folded on contact, costing them {lostL} while {W} marched in clean.",
+        "Medics for {W} packed away their kits unused on {where}, while {L}'s {typesL} ceased to exist.",
+        "The spaceports of {where} opened their gates to {W} after {L}'s {typesL} were erased without a single friendly loss.",
+        "One disciplined push from {W} broke every garrison on {where}, wiping out {typesL} in {rounds}.",
+        "{L} expected a siege on {where} and got a rout instead. {W} took the surface without losing a soul.",
       ],
       attacker: [
         "{A} landed on {where} like a wave against a sandcastle. The defenders of {D} lost {lostL}; the landing force lost none.",
+        "{A} swept off the drop-ramps on {where} and crushed {D}'s {typesL} before the garrison could even form a line.",
       ],
       defender: [
         "{A} stormed {where} into a wall of fire. {D} threw them back, {lostL} of the invaders dead and no defender fallen.",
+        "{D}'s bunkers on {where} held firm, erasing {A}'s {typesL} without losing a single defender.",
       ],
     },
     decisive: {
@@ -153,29 +203,53 @@ const POOLS: Record<BattleKind, Record<BattleClass, Pool>> = {
         "A decisive victory on {where}: {lostL} of {L} destroyed against {lostW} for {W}.",
         "{L} was driven from the ground of {where} in {rounds}. The banners of {W} now fly there.",
         "The line of {L} broke on {where}. {W} paid {lostW} and gained the world.",
+        "{W} pushed straight through {L}'s perimeter on {where}, neutralizing {typesL} and locking down the spaceports.",
+        "After {rounds} of sharp fighting on {where}, {L}'s survivors laid down their rifles and yielded the world to {W}.",
+        "{L}'s command posts on {where} went dark one by one as {W} cleared {lostL} in {rounds}.",
+        "By the time {W}'s columns reached the capital of {where}, {L}'s {typesL} were already broken.",
+        "The local governors of {where} swore new oaths to {W} before the smoke even cleared from {L}'s {typesL}.",
       ],
       attacker: [
         "{A} fought its way across {where} and broke the defenders of {D}: {lostL} destroyed, {lostW} lost.",
+        "Coordinated drops let {A} flank {D}'s positions on {where}, eliminating {typesL} and taking the high ground.",
       ],
       defender: [
         "{D} held {where} against the landing of {A}. {typesL} of the attackers did not leave the surface.",
+        "{D} pinned {A} down on the landing zones of {where} and broke the assault in {rounds}, costing them {lostL}.",
       ],
     },
     hard_fought: {
       any: [
         "{rounds} of bitter fighting on {where}. {W} won, with {lostW} lost and {lostL} of {L} destroyed. Neither side asked for mercy.",
-        "Every metre of {where} was paid for. {W} prevailed over {L}, but the ground drank {lostW} of its own.",
+        "Every meter of {where} was paid for. {W} prevailed over {L}, though the ground drank {lostW} of its own.",
         "It was a battle of inches and bodies. {W} outlasted {L} on {where} at the cost of {lostW}.",
         "The fighting at {where} went on for {rounds}. When it ended, {W} stood on ground littered with {typesL} of {L}.",
         "Nobody who fought on {where} will describe it kindly. {W} won, and that is all the survivors will say.",
+        "Artillery flattened half the landing zones on {where} before {W} finally broke {L}'s {typesL} in {rounds}.",
+        "The trenches of {where} changed hands twice before {W} outlasted {L}, paying {lostW} for {lostL}.",
+        "Smoke choked the skies of {where} for {rounds}. {W} kept the planet, short {lostW} after grinding down {L}'s {typesL}.",
+        "Veterans of {where} still flinch at the sound of drop-pods. {W} took the ground at the cost of {lostW}.",
+        "By the end of {rounds} on {where}, both sides were down to knives and grit before {W} finally held the ridge.",
+      ],
+      attacker: [
+        "{A} chewed through {D}'s bunkers on {where} meter by meter, paying {lostW} to silence {typesL}.",
+      ],
+      defender: [
+        "{D} bled {lostW} holding the ruins of {where}, refusing to yield until {A}'s {typesL} were broken.",
       ],
     },
     pyrrhic: {
       any: [
-        "{W} holds {where}, but buried {lostW} to do it. Whoever comes next will find the garrison thin.",
+        "{W} holds {where}, having buried {lostW} to do it. Whoever comes next will find the garrison thin.",
         "A bitter win: {L} lost {lostL} on {where}, and {W} lost even more ({lostW}).",
         "{where} is taken, and the victors hardly have anyone left to stand on it. {W} lost {lostW}.",
         "The conquest of {where} was celebrated for about a minute. Then the casualty lists arrived: {lostW} for {W}.",
+        "{L} made {W} pay dearly for every ridge on {where}. The planet fell; {W}'s assault force was gutted.",
+        "Command called the landing on {where} a success, though {lostW} of {W}'s troops never lived to hear the broadcast.",
+        "The occupation of {where} began in heavy silence as {W} buried {lostW} just to oust {lostL}.",
+        "Med-evac shuttles ran nonstop above {where} after {W} bled {lostW} to break {L}'s {typesL}.",
+        "Every hill on {where} bears a marker for {W}'s fallen. Victory rarely looks this expensive.",
+        "{W} raised a tattered banner over {where} after {rounds}, staring at the ruin of {lostW} left along the approach.",
       ],
     },
     skirmish: {
@@ -184,33 +258,100 @@ const POOLS: Record<BattleKind, Record<BattleClass, Pool>> = {
         "Little more than a skirmish on {where}: {W} secured the ground and moved on.",
         "{L} resisted briefly on {where}. {W} did not need long.",
         "A handful of troops, a handful of shots, and {W} owned {where}.",
+        "Rifle fire echoed across {where} for {rounds} before {L} broke off, leaving {lostL} behind.",
+        "A probing raid on {where} ended swiftly with {W} holding the ridge and {L} falling back.",
+        "Patrol squads met outside the spaceport on {where}, and {W} came away owning the ground after {rounds}.",
+        "{W} brushed aside {L}'s forward pickets on {where} with minimal fuss.",
+        "The citizens of {where} barely had time to reach the shelters before {W} wrapped up the firefight.",
+        "Short, sharp, and decisive: {W} cleared {L} off the approach to {where} in {rounds}.",
       ],
     },
     annihilation: {
       any: [
         "No one walked away from {where}. {A} and {D} destroyed each other down to the last soldier: {lostW} against {lostL}.",
         "{rounds} of close fighting, and the ground of {where} was left to the dead of both {A} and {D}.",
-        "{where} swallowed both armies. {A} and {D} left nothing but craters and silence.",
-        "Mutual annihilation on {where}: {typesL} destroyed, no one left to claim the victory.",
+        "{where} swallowed both armies. {A} and {D} left nothing behind save craters and silence.",
+        "Mutual annihilation on {where}: {typesL} destroyed, with no one left to claim the victory.",
+        "The trenches of {where} are empty now. {A} and {D} wiped each other off the surface.",
+        "When orbital scouts swept {where} at dawn, no transponder from {A} or {D} answered.",
+        "The banners of both {A} and {D} lie tangled in the mud of {where}, with nobody left alive to lift them.",
+        "Both commanders ordered their troops on {where} to hold to the death, and both got their wish in {rounds}.",
+        "The final radio call from {where} cut off mid-sentence. Neither {A} nor {D} had a squad left standing.",
+        "{A} and {D} spent everything they landed on {where}, leaving the planet unclaimed and soaked in ash.",
       ],
     },
     standoff: {
       any: [
         "Troops of {A} and {D} faced each other across the ground of {where}. Nobody fired the first decisive shot.",
         "A tense stalemate on {where}: no losses, and no one willing to give the ground.",
+        "Both armies dug in on {where} and held their positions without a single casualty.",
+        "Neither {A} nor {D} risked the open ground on {where}, leaving both garrisons intact.",
+        "Scouts traded a few distant shots on {where}, yet both commanders chose to hold their trenches.",
+        "Rain fell on quiet rifles across {where} as {A} and {D} opted not to bleed for the ridge today.",
+        "Snipers kept watch over the ruins of {where}, though neither {A} nor {D} pushed across the wire.",
+        "The skirmish lines on {where} held steady until nightfall without a single soldier falling.",
       ],
     },
   },
 };
 
 const HEADLINES: Record<BattleClass, string[]> = {
-  crushing: ["A Crushing Victory", "Total Domination", "Without a Scratch"],
-  decisive: ["A Decisive Victory", "The Field Is Taken", "Clean and Quick"],
-  hard_fought: ["A Hard-Fought Victory", "Won by Inches", "Blood on Both Sides"],
-  pyrrhic: ["A Pyrrhic Victory", "A Bitter Win", "Won at Terrible Cost"],
-  skirmish: ["A Brief Skirmish", "A Short Clash", "A Quick Exchange"],
-  annihilation: ["Mutual Annihilation", "Nobody Left", "Two Armies, No Victor"],
-  standoff: ["A Tense Standoff", "Nobody Fired", "The Line Held"],
+  crushing: [
+    "A Crushing Victory",
+    "Total Domination",
+    "Without a Scratch",
+    "Broken on Contact",
+    "A One-Sided Slaughter",
+    "Clean Sweep",
+  ],
+  decisive: [
+    "A Decisive Victory",
+    "The Field Is Taken",
+    "Clean and Quick",
+    "The Line Breaks",
+    "Superior Firepower",
+    "Firmly Secured",
+  ],
+  hard_fought: [
+    "A Hard-Fought Victory",
+    "Won by Inches",
+    "Blood on Both Sides",
+    "Through Fire and Wreckage",
+    "Battered and Standing",
+    "A Brutal Slugfest",
+  ],
+  pyrrhic: [
+    "A Pyrrhic Victory",
+    "A Bitter Win",
+    "Won at Terrible Cost",
+    "A Hollow Triumph",
+    "Bought in Blood",
+    "Too Steep a Price",
+  ],
+  skirmish: [
+    "A Brief Skirmish",
+    "A Short Clash",
+    "A Quick Exchange",
+    "Testing the Line",
+    "Border Clash",
+    "Sharp Contact",
+  ],
+  annihilation: [
+    "Mutual Annihilation",
+    "Nobody Left",
+    "No Victor",
+    "Nothing Survived",
+    "Double Wreckage",
+    "Silence After the Fire",
+  ],
+  standoff: [
+    "A Tense Standoff",
+    "Nobody Fired",
+    "The Line Held",
+    "An Uneasy Truce",
+    "Nobody Blinked",
+    "Deadlock",
+  ],
 };
 
 /** Deterministyczny skrót tekstu → liczba (wybór wariantu bez losowania). */
@@ -226,15 +367,16 @@ function hash(value: string | number): number {
 
 const pick = <T>(items: T[], seed: number): T => items[seed % items.length];
 
-/** „1 ship”, „4 ships” — rzeczownik wg rodzaju walki. */
+/** „no ships”, „1 ship”, „4 ships” — rzeczownik wg rodzaju walki. */
 function count(n: number, kind: BattleKind): string {
   const noun = kind === "space" ? "ship" : "unit";
+  if (n === 0) return `no ${noun}s`;
   return `${n} ${noun}${n === 1 ? "" : "s"}`;
 }
 
 const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight"];
 
-/** „2 dreadnoughts and a carrier” z mapy strat; pusty string, gdy brak danych o typach. */
+/** „two dreadnoughts and a carrier” z mapy strat; pusty string, gdy brak danych o typach. */
 function describeTypes(
   types: Record<string, number> | undefined,
   typeName: ((base: string) => string) | undefined,
@@ -246,8 +388,12 @@ function describeTypes(
     .slice(0, 3)
     .map(([base, n]) => {
       const name = typeName(base).toLowerCase();
-      if (n === 1) return `a ${name}`;
-      return `${NUMBER_WORDS[n] ?? n} ${name}s`;
+      if (n === 1) {
+        const article = /^[aeiou]/.test(name) ? "an" : "a";
+        return `${article} ${name}`;
+      }
+      const plural = name === "infantry" ? name : `${name}s`;
+      return `${NUMBER_WORDS[n] ?? n} ${plural}`;
     });
   if (parts.length === 0) return "";
   if (parts.length === 1) return parts[0];
