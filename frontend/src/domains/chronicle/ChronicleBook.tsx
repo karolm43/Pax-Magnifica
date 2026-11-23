@@ -27,7 +27,8 @@ import { Modal } from "@/ds";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import type { ActivityPlayer } from "@/api/useBoardEditor";
 import type { ChronicleChapter, ChronicleEntry } from "./buildChronicle";
-import type { ChronicleKind } from "./chronicleLore";
+import type { ChronicleKind } from "@/entities/lore/chronicleLore";
+import { attribution, quoted, typeset } from "@/entities/lore/typography";
 import { useChronicle, useChronicleUnread } from "./useChronicle";
 import { useChronicleStore } from "./useChronicleStore";
 import classes from "./ChronicleBook.module.css";
@@ -94,11 +95,11 @@ function Entry({
         {entry.place && <span className={classes.place}>{entry.place}</span>}
         <Actors ids={entry.actors} players={players} />
       </header>
-      <p className={classes.text}>{entry.text}</p>
+      <p className={classes.text}>{typeset(entry.text)}</p>
       {entry.epigraph && (
         <figure className={classes.epigraph}>
-          <blockquote>“{entry.epigraph.text}”</blockquote>
-          <figcaption>— {entry.epigraph.author}</figcaption>
+          <blockquote>{quoted(entry.epigraph.text)}</blockquote>
+          <figcaption>{attribution(entry.epigraph.author)}</figcaption>
         </figure>
       )}
       {entry.facts.length > 0 && (
@@ -140,8 +141,8 @@ function Page({
     <section className={classes.page} key={chapter.round} aria-label={chapter.title}>
       <h3 className={classes.chapterTitle}>{chapter.title}</h3>
       <figure className={classes.opener}>
-        <blockquote>“{chapter.opener.text}”</blockquote>
-        <figcaption>— {chapter.opener.author}</figcaption>
+        <blockquote>{quoted(chapter.opener.text)}</blockquote>
+        <figcaption>{attribution(chapter.opener.author)}</figcaption>
       </figure>
       {entries.length === 0 ? (
         <p className={classes.quiet}>

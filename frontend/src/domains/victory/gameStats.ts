@@ -2,6 +2,11 @@
 // Niczego nie liczy z reguł gry — składa liczby, które backend już policzył w web-data.
 
 import type { PlayerData } from "@/entities/data/types";
+import catalog from "../../../../assets/config/achievements.json";
+
+/** Tytuł z `assets/config/achievements.json` (jedno miejsce edycji osiągnięć). */
+const achievementTitle = (key: keyof typeof catalog.achievements): string =>
+  catalog.achievements[key].title;
 
 export interface PlayerSummary {
   player: PlayerData;
@@ -69,49 +74,49 @@ export function buildAwards(rows: PlayerSummary[]): Award[] {
   }[] = [
     {
       key: "planets",
-      title: "Master of Worlds",
+      title: achievementTitle("planets"),
       value: (r) => r.planets,
       detail: (n) => `${n} planet${n === 1 ? "" : "s"} held`,
     },
     {
       key: "fleet",
-      title: "Admiral of the Fleet",
+      title: achievementTitle("fleet"),
       value: (r) => r.fleet,
       detail: (n) => `${n} fleet strength`,
     },
     {
       key: "ground",
-      title: "Iron Legion",
+      title: achievementTitle("ground"),
       value: (r) => r.ground,
       detail: (n) => `${n} ground strength`,
     },
     {
       key: "techs",
-      title: "Pioneer of Science",
+      title: achievementTitle("techs"),
       value: (r) => r.techs,
       detail: (n) => `${n} technologies`,
     },
     {
       key: "tg",
-      title: "Merchant Prince",
+      title: achievementTitle("tg"),
       value: (r) => r.tradeGoods,
       detail: (n) => `${n} trade goods`,
     },
     {
       key: "economy",
-      title: "Economic Titan",
+      title: achievementTitle("economy"),
       value: (r) => r.resources + r.influence,
       detail: (n) => `${n} resources and influence`,
     },
     {
       key: "relics",
-      title: "Relic Hunter",
+      title: achievementTitle("relics"),
       value: (r) => r.relics,
       detail: (n) => `${n} relic${n === 1 ? "" : "s"}`,
     },
     {
       key: "secrets",
-      title: "Keeper of Secrets",
+      title: achievementTitle("secrets"),
       value: (r) => r.secretsScored,
       detail: (n) => `${n} secret objective${n === 1 ? "" : "s"}`,
     },
@@ -138,7 +143,7 @@ export function buildAwards(rows: PlayerSummary[]): Award[] {
     const gap = first.vp - second.vp;
     awards.push({
       key: "runner_up",
-      title: "The Runner-up",
+      title: achievementTitle("runner_up"),
       detail:
         gap > 0
           ? `${second.vp} VP, ${gap} short of the throne`
@@ -148,10 +153,10 @@ export function buildAwards(rows: PlayerSummary[]): Award[] {
     });
   }
   const last = rows[rows.length - 1];
-  if (rows.length >= 3 && last && second && last.vp < second.vp) {
+  if (rows.length >= catalog.achievements.wooden_spoon.params.min_players && last && second && last.vp < second.vp) {
     awards.push({
       key: "wooden_spoon",
-      title: "The Wooden Spoon",
+      title: achievementTitle("wooden_spoon"),
       detail: `${last.vp} VP, last at the table`,
       player: last.player,
       stat: `${last.vp} VP`,

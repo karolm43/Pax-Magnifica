@@ -183,7 +183,6 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
               }}
             >
               {factionDisplayName}
-              <FactionVoiceBubble playerId={playerData.discordId} />
             </div>
 
             {(playerData.playerName || playerData.userName) && (
@@ -261,12 +260,26 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
               </Group>
             )}
 
-            {playerData.totalVps !== undefined && (
-              <div className={styles.victoryPoints}>
-                {playerData.totalVps} / {vpsToWin} VP
-              </div>
-            )}
+            {/* Punkty + komunikaty frakcji (żeton tylko u własnego gracza) — w środku heksu. */}
+            <div className={styles.victoryRow}>
+              {playerData.totalVps !== undefined && (
+                <div className={styles.victoryPoints}>
+                  {playerData.totalVps} / {vpsToWin} VP
+                </div>
+              )}
+              <FactionVoice
+                playerId={playerData.discordId}
+                faction={faction}
+                factionName={getPlayerFactionDisplayName(playerData)}
+                variant="map"
+              />
+            </div>
           </div>
+          {/* Dymek z kwestią frakcji przy głównym polu (widzą wszyscy); zawsze w oknie. */}
+          <FactionVoiceBubble
+            playerId={playerData.discordId}
+            author={getPlayerFactionDisplayName(playerData)}
+          />
         </div>
       )}
 
@@ -383,8 +396,6 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
               {playerData.influence ?? 0}/{playerData.totInfluence ?? 0}
             </span>
           </div>
-          {/* Komunikaty frakcji: przycisk tylko u własnego gracza, dymek z kwestią u nadawcy. */}
-          <FactionVoice playerId={playerData.discordId} faction={faction} />
           {playerData.isSpeaker && (
             <img
               src={assetUrl("/tokens/token_speaker.png")}

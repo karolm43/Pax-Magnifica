@@ -461,6 +461,7 @@
 }
 
 .flavour {
+  text-wrap: pretty;
   margin: 8px 0 0;
   font-size: 12px;
   font-style: italic;

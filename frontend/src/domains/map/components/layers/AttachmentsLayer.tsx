@@ -24,6 +24,7 @@ export function AttachmentsLayer({ systemId, mapTile }: Props) {
               src={assetUrl(imagePath)}
               alt={`Attachment: ${attachmentId}`}
               title={attachmentId}
+              data-map-object=""
               style={{
                 position: "absolute",
                 left: `${x}px`,

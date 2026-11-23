@@ -6,6 +6,7 @@ import { PlanetTraitIcon } from "@/shared/ui/PlanetTraitIcon";
 import { TechSkipIcon, TechType } from "@/shared/ui/TechSkipIcon";
 import { PlanetActionCardsSection } from "../PlanetAbilityDetailsCard/PlanetActionCardsSection";
 import { getPlanetData } from "@/entities/lookup/planets";
+import { lookupCardLore, lookupLoreOr } from "@/entities/lore/lookupLore";
 import { getAttachmentData } from "@/entities/lookup/attachments";
 import { getAttachmentModifiers } from "@/entities/game/planets";
 import { DetailsCard, type DetailsCardColor } from "@/shared/ui/DetailsCard";
@@ -68,6 +69,7 @@ function Bonus({ value }: { value: number }) {
 function AttachmentRow({ attachmentId }: { attachmentId: string }) {
   const data = getAttachmentData(attachmentId);
   if (!data) return null;
+  const lore = lookupCardLore("attachment", attachmentId);
   const skips = data.techSpeciality?.length
     ? data.techSpeciality.join(", ").toLowerCase()
     : null;
@@ -90,6 +92,7 @@ function AttachmentRow({ attachmentId }: { attachmentId: string }) {
         ) : null}
         {skips && <span>{skips} skip</span>}
       </span>
+      {lore && <p className={classes.attachmentLore}>{lore}</p>}
     </div>
   );
 }
@@ -97,6 +100,7 @@ function AttachmentRow({ attachmentId }: { attachmentId: string }) {
 export function PlanetDetailsCard({ planetId, planetTile }: Props) {
   const planetData = getPlanetData(planetId);
   if (!planetData) return null;
+  const planetLore = lookupLoreOr("planet", planetData.id, planetData.flavourText);
 
   const attachments = planetTile?.attachments ?? [];
   const modifiers = getAttachmentModifiers(
@@ -184,11 +188,7 @@ export function PlanetDetailsCard({ planetId, planetTile }: Props) {
         />
       )}
       <PlanetActionCardsSection actionCards={planetTile?.actionCards} />
-      {planetData.flavourText && (
-        <DetailsCard.Flavor quiet>
-          {planetData.flavourText.replace(/^\*+|\*+$/g, "").trim()}
-        </DetailsCard.Flavor>
-      )}
+      {planetLore && <DetailsCard.Flavor quiet>{planetLore}</DetailsCard.Flavor>}
     </DetailsCard>
   );
 }

@@ -60,12 +60,15 @@ describe("FactionVoice - komunikaty frakcji", () => {
     expect(container.textContent).toBe("");
   });
 
-  it("dymek z nazwy frakcji: tylko NOWA kwestia (nie stara), w portalu", () => {
+  it("dymek nad polem gracza: tylko NOWA kwestia (nie stara), z podpisem frakcji", () => {
     messages = [voice(1, "p2", "old line")];
-    const { rerender } = render(<FactionVoiceBubble playerId="p2" />);
+    const bubble = <FactionVoiceBubble playerId="p2" author="The Emirates of Hacan" />;
+    const { rerender } = render(bubble);
     expect(screen.queryByRole("status")).toBeNull();
     messages = [...messages, voice(2, "p2", "Trade is war by other means.")];
-    rerender(<FactionVoiceBubble playerId="p2" />);
-    expect(screen.getByRole("status").textContent).toContain("Trade is war by other means.");
+    rerender(<FactionVoiceBubble playerId="p2" author="The Emirates of Hacan" />);
+    const status = screen.getByRole("status");
+    expect(status.textContent).toContain("Trade is war by other means.");
+    expect(status.textContent).toContain("The Emirates of Hacan");
   });
 });

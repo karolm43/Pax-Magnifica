@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Tooltip } from "@/ds";
 import { agendas } from "@/entities/data/agendas";
 import { promissoryNotes } from "@/entities/data/promissoryNotes";
+import { lookupCardLore } from "@/entities/lore/lookupLore";
 import { getAbility } from "@/entities/lookup/abilities";
 import { getActionCard } from "@/entities/lookup/actionCards";
 import { getBreakthroughData } from "@/entities/lookup/breakthroughs";
@@ -32,7 +33,7 @@ export type NamedKind =
   | "legendary"
   | "system";
 
-export type Hint = { name: string; meta?: string; lines: string[] };
+export type Hint = { name: string; meta?: string; lines: string[]; lore?: string };
 
 const agendaByAlias = new Map(agendas.map((a) => [a.alias, a]));
 const promissoryByAlias = new Map(promissoryNotes.map((n) => [n.alias, n]));
@@ -41,7 +42,43 @@ function clean(lines: (string | undefined | null)[]): string[] {
   return lines.map((l) => l?.trim() ?? "").filter((l) => l.length > 0);
 }
 
+/** Dokłada przygaszone lore karty (pole z `cardLore.ts`), jeśli jest wpisane. */
+function withLore(hint: Hint | null, ...sources: [Parameters<typeof lookupCardLore>[0], string][]): Hint | null {
+  if (!hint) return hint;
+  for (const [kind, id] of sources) {
+    const lore = lookupCardLore(kind, id);
+    if (lore) return { ...hint, lore };
+  }
+  return hint;
+}
+
 export function hintFor(
+  kind: NamedKind,
+  id: string,
+  extra?: { idMap?: Record<number, string>; systemText?: string },
+): Hint | null {
+  const hint = baseHint(kind, id, extra);
+  switch (kind) {
+    case "agenda":
+      return withLore(hint, ["agenda", id]);
+    case "tech":
+      return withLore(hint, ["technology", id]);
+    case "objective":
+      return withLore(hint, ["publicObjective", id], ["secretObjective", id]);
+    case "leader":
+      return withLore(hint, ["leader", id]);
+    case "promissory":
+      return withLore(hint, ["promissoryNote", id]);
+    case "breakthrough":
+      return withLore(hint, ["breakthrough", id]);
+    case "ability":
+      return withLore(hint, ["ability", id]);
+    default:
+      return hint;
+  }
+}
+
+function baseHint(
   kind: NamedKind,
   id: string,
   extra?: { idMap?: Record<number, string>; systemText?: string },
@@ -199,6 +236,7 @@ export function HintBody({ hint }: { hint: Hint }) {
           {line}
         </p>
       ))}
+      {hint.lore && <p className={classes.lore}>{hint.lore}</p>}
     </div>
   );
 }

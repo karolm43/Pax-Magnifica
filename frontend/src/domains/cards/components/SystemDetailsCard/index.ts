@@ -1,0 +1,1 @@
+export { SystemDetailsCard } from "./SystemDetailsCard";

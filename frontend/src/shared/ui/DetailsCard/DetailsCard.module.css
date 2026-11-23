@@ -144,6 +144,7 @@
 }
 
 .flavor {
+  text-wrap: pretty;
   margin: 0;
   font-size: var(--text-body);
   line-height: var(--lh-body);

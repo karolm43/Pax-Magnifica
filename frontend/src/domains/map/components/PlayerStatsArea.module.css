@@ -83,6 +83,13 @@
   outline-offset: 2px;
 }
 
+.victoryRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
 .victoryPoints {
   font-size: 22px;
   font-weight: var(--weight-rail);

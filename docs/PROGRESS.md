@@ -496,3 +496,12 @@ Warstwa PREZENTACYJNA (nic w regułach). Użytkownik pisze teksty sam; ja dałem
   (`wormholeIconMerge`), `border_anomalies` (reguły one-way adjacency — silnik ich nie ma).
 - `frontend/src/entities/lore/cardLore.ts`: 97/103 lore przywódców z upstreamu. `scripts/sync_card_texts.py` odświeżył teksty kart na froncie.
 - Testy: `@ruling` agentów/notek przesunięte po zmianie podziału zdań (`;` zamiast `:`), `abilities:fabrication#2` scalone w `#1`.
+
+## Typografia lore (cytaty i flavour)
+
+- `frontend/src/entities/lore/typography.ts`: `typeset` (drukarskie cudzysłowy, `--`→`—`, `...`→`…`, twarda spacja przed myślnikiem i po „a”/„I”),
+  `quoted` (cytat z `”` sklejonym z ostatnim słowem przez word joiner), `attribution` (`—` + nbsp + autor). Test: `typography.test.ts`.
+- Wpięte w `lookupCardLore`/`lookupLoreOr` (całe lore kart) oraz w cytaty: dymek `FactionVoice`, `FactionBackdrop`, `GameIntro`, `VictoryScreen`, `ChronicleBook`.
+  Cudzysłowy dymka przeniesione z CSS (`::before/::after`) do tekstu.
+- `text-wrap: pretty` w stylach flavoru (DetailsCard, agendy, notki/cele, bohater, relikt, dossier systemu, kronika) — bez sierot w ostatniej linii.
+- Pominięte: `clean`/`cleanFlavour` w `SystemDetailsCard`/`SystemDossier` zostają (zdejmują `*...*` także z wpisów `cardLore.ts`).

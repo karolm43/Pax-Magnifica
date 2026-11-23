@@ -8,6 +8,7 @@ import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import type { PlotCard } from "@/entities/data/types";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
 import { variantEntry } from "@/entities/lookup/variantData";
+import { lookupCardLore } from "@/entities/lore/lookupLore";
 import { plotCardDescription } from "@/domains/setup/factionComponents";
 
 /** Tekst karty Plot: errata modułu wariantu gry (np. Black Spectrum) albo wersja oficjalna. */
@@ -38,6 +39,10 @@ export function Plot({ plotCard, faction, compact = false }: Props) {
   // Tekst efektu ujawnionego plotu — errata modułu wariantu gry albo wersja oficjalna.
   const effectText =
     isRevealed && plotCard.plotAlias ? plotText(plotCard.plotAlias) : undefined;
+
+  // Lore karty (entities/lore/cardLore.ts) — widoczne tylko po ujawnieniu plotu.
+  const plotLore =
+    isRevealed && plotCard.plotAlias ? lookupCardLore("plot", plotCard.plotAlias.toLowerCase()) : null;
 
   const renderFactionSlots = (): ReactElement[] =>
     Array.from({ length: MAX_PLOT_SLOTS }, (_, i) =>
@@ -195,6 +200,7 @@ export function Plot({ plotCard, faction, compact = false }: Props) {
                 {effectText}
               </Text>
             )}
+            {plotLore && <DetailsCard.Flavor quiet>{plotLore}</DetailsCard.Flavor>}
             {plotCard.factions.length > 0 && (
               <Stack gap="xs">
                 <Text size="sm" fw={600}>

@@ -136,6 +136,7 @@ export function PlanetCirclesLayer({
           isHighlighted && !isPickTarget && classes.highlighted,
           isPickTarget && classes.mapPickPlanet,
         )}
+        data-planet-circle=""
         data-selected={(isPickTarget && planetPick?.selected === planetId) || undefined}
         {...searchTarget(searchKey("planet", planetId), "map")}
         style={{

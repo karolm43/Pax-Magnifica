@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { Tile } from "@/entities/game/types";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import {
   loadStoredChoice,
@@ -178,7 +179,12 @@ function topPick(entries: MapPickEntry[]): MapPick | null {
   return entries.length > 0 ? entries[entries.length - 1].pick : null;
 }
 
+/** Najechany system (dymek z opisem po krótkim zawisie kursora); `coords` = punkt na mapie. */
+export type HoveredSystem = { tile: Tile; coords: { x: number; y: number } };
+
 type AppStore = {
+  hoveredSystem: HoveredSystem | null;
+  setHoveredSystem: (system: HoveredSystem | null) => void;
   hoveredPlanetId: string | null;
   scrollToPlanetId: string | null;
   zoomLevel: number;
@@ -435,6 +441,8 @@ export const useAppStore = create<AppStore>((set) => {
   };
 
   return {
+    hoveredSystem: null,
+    setHoveredSystem: (system) => set({ hoveredSystem: system }),
     hoveredPlanetId: null,
     scrollToPlanetId: null,
     zoomLevel: zoomLevels[zoomIndex],

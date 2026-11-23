@@ -123,6 +123,7 @@ export function ToastCard({
             {hint.lines.map((line, index) => (
               <p key={index}>{line}</p>
             ))}
+            {hint.lore && <p className={classes.lore}>{hint.lore}</p>}
           </div>
         )}
       </div>

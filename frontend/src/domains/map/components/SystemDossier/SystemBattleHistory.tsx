@@ -1,7 +1,7 @@
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getGenericUnitDataByAsyncId } from "@/entities/lookup/units";
 import { BASE_TYPE_BY_ASYNC } from "@/domains/map/components/UnitStack/cargo";
-import { battleSeed, describeBattle } from "@/domains/lore/battleLore";
+import { battleSeed, describeBattle } from "@/entities/lore/battleLore";
 import { useGameData } from "@/state/useGameContext";
 import type { BattleHistoryEntry } from "@/entities/data/types";
 import type { FactionHelpers } from "./useFactionHelpers";

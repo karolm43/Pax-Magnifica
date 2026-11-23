@@ -162,11 +162,11 @@
 }
 
 .line[data-voice] .text::before {
-  content: "C";
+  content: "\201C";
 }
 
 .line[data-voice] .text::after {
-  content: "D";
+  content: "\201D";
 }
 
 .line[data-to-me] {

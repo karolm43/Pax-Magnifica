@@ -140,6 +140,21 @@
   animation: fadeUp 600ms ease 950ms both;
 }
 
+.heroLore {
+  text-wrap: pretty;
+  max-width: 520px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  font-style: italic;
+  color: rgb(255 255 255 / 0.5);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  animation: fadeUp 600ms ease 1100ms both;
+}
+
 .abilityText b {
   color: rgb(var(--gold));
   font-weight: 600;

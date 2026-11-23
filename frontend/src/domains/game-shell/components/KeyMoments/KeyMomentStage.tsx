@@ -4,6 +4,7 @@ import { useActivityFeed, type ActivityPlayer } from "@/api/useBoardEditor";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { useDiceStage } from "@/domains/dice/diceStage";
 import { useSettingsStore } from "@/state/appStore";
+import { lookupCardLore } from "@/entities/lore/lookupLore";
 import { getLeaderById } from "@/entities/lookup/leaders";
 import { breakthroughs } from "@/entities/data/breakthroughs";
 import { assetUrl } from "@/shared/assets/resolveAsset";
@@ -90,6 +91,9 @@ function HeroScene({ moment, player }: { moment: Extract<KeyMoment, { kind: "her
             {leader.abilityWindow ? <b>{leader.abilityWindow.replace(/:\s*$/, "")}: </b> : null}
             {leader.abilityText}
           </p>
+        )}
+        {lookupCardLore("leader", moment.leaderId) && (
+          <p className={styles.heroLore}>{lookupCardLore("leader", moment.leaderId)}</p>
         )}
         <Who player={player} id={moment.player} />
       </div>

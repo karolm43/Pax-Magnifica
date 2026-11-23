@@ -1,146 +1,114 @@
-/* Komunikaty frakcji: przycisk w polu gracza + dymek z kwestią. Wszystko w kolorze gracza
-   (--pc = „r g b” ustawiane w komponencie), tło i obrys jak reszta paneli (ciemne szkło). */
+/* Komunikaty frakcji: żeton-przycisk na polu gracza, karta wyboru (DetailsCard) i dymek z kwestią.
+   Kolor gracza = `--pc` („r g b”), ustawiany w komponencie. */
 
-.wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  margin-top: 6px;
-}
-
-/* Ścięte brzegi jak sześciokąt numeru systemu: warstwa koloru gracza + ciemny wkład 2 px. */
-.btn {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 42px;
-  padding: 0;
-  border: 0;
-  background: rgb(var(--pc) / 0.9);
+/* Żeton w rzędzie punktów głównego pola (wewnątrz heksu): ciemne szkło + pierścień
+   w kolorze gracza, jak żeton leżący na planszy. */
+.mapTrigger {
+  pointer-events: auto;
   color: rgb(var(--pc));
-  cursor: pointer;
-  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
-  transition: filter 120ms ease, color 120ms ease;
-}
-
-.btn::before {
-  content: "";
-  position: absolute;
-  inset: 2px;
   background:
-    radial-gradient(circle at 50% 30%, rgb(var(--pc) / 0.35), transparent 75%),
-    rgb(18 18 20 / 0.96);
-  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+    radial-gradient(circle at 50% 35%, rgb(var(--pc) / 0.28), transparent 70%),
+    linear-gradient(180deg, var(--ds-ground), var(--ds-ground-2));
+  border: 2px solid rgb(var(--pc) / 0.85);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.7);
+  transition:
+    color var(--ds-dur) var(--ds-ease),
+    border-color var(--ds-dur) var(--ds-ease),
+    filter var(--ds-dur) var(--ds-ease);
 }
 
-.btn svg {
-  position: relative;
-}
-
-.btn:hover,
-.btn[aria-expanded="true"] {
+.mapTrigger:hover,
+.mapTrigger[aria-expanded="true"] {
   color: var(--ds-ink-hi);
-  filter: brightness(1.25);
+  border-color: rgb(var(--pc));
+  filter: brightness(1.2);
 }
 
-.btn:focus-visible,
-.line:focus-visible {
-  outline: 2px solid var(--ds-accent);
-  outline-offset: 2px;
-}
-
-/* Panel jak teczka systemu: szyna z nagłówkiem (ds-rail), gniazda (ds-socket), akcent gracza. */
-.list {
-  display: grid;
-  width: 232px;
-  /* Ramka: warstwa koloru gracza + wkład; ścięte rogi. */
-  padding: 1px;
-  background: rgb(var(--pc) / 0.6);
-  color: var(--ds-ink);
-  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
-}
-
-.head {
-  composes: ds-label from global;
-  padding: 8px 14px;
-  background: var(--ds-tex-rail), var(--ds-rail);
-  border-bottom: 1px solid var(--ds-h14);
-  color: rgb(var(--pc));
-}
-
-/* 9 jednakowych przycisków kategorii (siatka 3 × 3) — gniazda jak w teczce systemu. */
+/* Kategorie: jednakowe przyciski ds w siatce 3 × 3 (sekcja karty szczegółów). */
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  padding: 10px;
-  background: rgb(18 18 20 / 0.97);
 }
 
-.cat {
-  height: 40px;
-  padding: 0 4px;
-  border: 0;
-  background: var(--ds-socket);
-  box-shadow: inset 0 0 0 1px var(--ds-h14);
-  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
-  color: var(--ds-ink-hi);
-  font: inherit;
-  font-size: var(--text-data);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 120ms ease, box-shadow 120ms ease;
-}
-
-.cat:hover:not(:disabled) {
-  background: rgb(var(--pc) / 0.2);
-  box-shadow: inset 0 0 0 1px rgb(var(--pc) / 0.8);
-}
-
-.cat:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.cat:focus-visible {
-  outline: 2px solid var(--ds-accent);
-  outline-offset: 2px;
-}
-
-/* Dymek z kwestią: w portalu na body (nad wszystkim), wychodzi znad nazwy frakcji.
-   Ścięte brzegi; ramka w kolorze gracza = zewnętrzna warstwa + wkład. */
+/* ── Dymek ──────────────────────────────────────────────────────────────────
+   Portal na body, position: fixed; pozycję (nad/pod polem gracza, zawsze w oknie) ustawia
+   useFollowAnchor. Powierzchnia karty szczegółów (DetailsCard), ogonek wskazuje pole gracza.
+   Tekst jak cytat frakcji na ekranie wyboru (FactionBackdrop .headQuote/.headAuthor). */
 .bubble {
+  --tail-x: 50%;
   position: fixed;
-  transform: translateX(-50%);
-  z-index: 100000;
+  left: 0;
+  top: 0;
+  z-index: var(--z-phase-banner);
   width: max-content;
-  max-width: 560px;
-  padding: 3px;
-  background: rgb(var(--pc) / 0.95);
-  clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px), 0 16px);
-  filter: drop-shadow(0 8px 24px rgb(0 0 0 / 0.6));
+  max-width: min(460px, calc(100vw - 16px));
+  margin: 0;
+  padding: 14px 22px 12px;
+  color: var(--ds-ink);
+  background: linear-gradient(180deg, var(--ds-ground), var(--ds-ground-2));
+  border: 1px solid rgb(var(--pc) / 0.55);
+  border-radius: var(--ds-radius-lg);
+  box-shadow:
+    var(--ds-shadow-md),
+    inset 0 1px 0 rgb(var(--pc) / 0.35),
+    inset 0 32px 48px -32px rgb(var(--pc) / 0.22);
   pointer-events: none;
-  animation: bubbleIn 200ms ease-out;
+  animation: bubbleIn 240ms var(--ds-ease, ease-out);
 }
 
-.bubbleInner {
-  padding: 18px 28px;
-  background:
-    linear-gradient(rgb(var(--pc) / 0.2), rgb(var(--pc) / 0.2)),
-    rgb(18 18 20 / 0.97);
-  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
-  color: var(--ds-ink-hi);
-  font-size: 26px;
+/* Ogonek: obrócony kwadrat z tym samym tłem i krawędzią, celuje w środek pola gracza. */
+.bubble::after {
+  content: "";
+  position: absolute;
+  left: var(--tail-x);
+  bottom: -8px;
+  width: 14px;
+  height: 14px;
+  transform: translateX(-50%) rotate(45deg);
+  background: var(--ds-ground-2);
+  border-right: 1px solid rgb(var(--pc) / 0.55);
+  border-bottom: 1px solid rgb(var(--pc) / 0.55);
+}
+
+/* Dymek pod polem (pole przy górnej krawędzi okna): ogonek u góry. */
+.bubble[data-side="below"]::after {
+  top: -8px;
+  bottom: auto;
+  background: var(--ds-ground);
+  border: 0;
+  border-left: 1px solid rgb(var(--pc) / 0.55);
+  border-top: 1px solid rgb(var(--pc) / 0.55);
+}
+
+.quote {
+  margin: 0;
+  font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
   font-style: italic;
-  line-height: 1.35;
+  font-size: 18px;
+  line-height: 1.4;
   text-align: center;
+  text-wrap: balance;
+  color: color-mix(in oklab, rgb(var(--pc)) 14%, #f1e7d3);
+}
+
+.author {
+  margin-top: 6px;
+  font-family: Georgia, "Palatino Linotype", "Book Antiqua", serif;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-align: center;
+  color: rgb(var(--pc));
+  filter: brightness(1.25);
+}
+
+.author::before {
+  content: "\2014\00a0";
 }
 
 @keyframes bubbleIn {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(6px);
   }
 }
 

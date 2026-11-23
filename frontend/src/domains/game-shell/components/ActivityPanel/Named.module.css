@@ -19,6 +19,14 @@
   color: var(--ds-ink-lo);
 }
 
+.lore {
+  margin: 2px 0 0;
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  font-style: italic;
+  color: var(--ds-ink-lo);
+}
+
 .line {
   margin: 0;
   font-size: var(--text-data);

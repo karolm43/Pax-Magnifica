@@ -1,4 +1,5 @@
 import { getTileById } from "@/entities/lookup/systems";
+import { lookupCardLore } from "@/entities/lore/lookupLore";
 import { getTokenData } from "@/entities/lookup/tokens";
 import type { Tile } from "@/entities/game/types";
 
@@ -19,6 +20,8 @@ type SystemFeature = {
   /** Single glyph drawn as a medallion (wormhole letters). */
   glyph?: string;
   rule: string;
+  /** Przygaszone lore cechy (pole `feature` z `cardLore.ts`); brak wpisu = brak. */
+  lore?: string;
   /** Supplementary line — wormhole link positions, border edge, etc. */
   detail?: string;
 };
@@ -164,15 +167,17 @@ type AnomalyId = (typeof SYSTEM_ANOMALY_FLAGS)[number][1];
 /** Opis reguły żetonu mapy (frontier, custodians…) — dla dymka na mapie i dossier. */
 export function getTokenRule(
   tokenId: string,
-): { name: string; rule: string; imagePath?: string } | undefined {
+): { name: string; rule: string; imagePath?: string; lore?: string } | undefined {
   const known = TOKEN_RULES[tokenId];
-  if (known) return known;
+  const lore = lookupCardLore("feature", tokenId) ?? undefined;
+  if (known) return { ...known, lore };
   // Żeton wormhole (Creuss, Gamma Wormhole…): ta sama reguła co nadruk w dossier.
   const wormholes = getTokenData(tokenId)?.wormholes ?? [];
   if (wormholes.length === 0) return undefined;
   return {
     name: wormholes.map(wormholeName).join(" / "),
     rule: WORMHOLE_RULE,
+    lore: lookupCardLore("feature", `wormhole_${wormholes[0].toLowerCase()}`) ?? undefined,
   };
 }
 
@@ -196,6 +201,19 @@ export function systemAnomalies(tile: Tile): AnomalyId[] {
   return [...new Set([...printed, ...fromTokens].map(([, id]) => id))];
 }
 
+/** Klucz pola lore anomalii (id żetonu w assetach). */
+const ANOMALY_LORE_KEY: Record<string, string> = {
+  asteroidField: "asteroids",
+  nebula: "nebula",
+  supernova: "supernova",
+  gravityRift: "gravityrift",
+  entropicScar: "entropicscar",
+};
+
+function featureLore(key: string): string | undefined {
+  return lookupCardLore("feature", key) ?? undefined;
+}
+
 export function getSystemFeatures(
   tile: Tile,
   allTiles: Record<string, Tile>,
@@ -205,11 +223,15 @@ export function getSystemFeatures(
 
   for (const [flag, anomalyId] of SYSTEM_ANOMALY_FLAGS) {
     if (tileData?.[flag]) {
-      features.push({ id: anomalyId, ...ANOMALY_RULES[anomalyId] });
+      features.push({
+        id: anomalyId,
+        ...ANOMALY_RULES[anomalyId],
+        lore: featureLore(ANOMALY_LORE_KEY[anomalyId]),
+      });
     }
   }
   if (tileData?.hasEgress) {
-    features.push({ id: "egress", ...TOKEN_RULES.egress });
+    features.push({ id: "egress", ...TOKEN_RULES.egress, lore: featureLore("egress") });
   }
 
   for (const wormholeType of wormholesOnTile(tile)) {
@@ -220,6 +242,7 @@ export function getSystemFeatures(
       glyph,
       name: wormholeName(wormholeType),
       rule: WORMHOLE_RULE,
+      lore: featureLore(`wormhole_${wormholeType.toLowerCase()}`),
       detail:
         links.length > 0
           ? `Linked to ${links.join(" · ")}`
@@ -240,6 +263,7 @@ export function getSystemFeatures(
         id: tokenId,
         imagePath: tokenData.imagePath,
         ...ANOMALY_RULES[tokenAnomaly[1]],
+        lore: featureLore(ANOMALY_LORE_KEY[tokenAnomaly[1]]),
       });
       continue;
     }
@@ -250,6 +274,7 @@ export function getSystemFeatures(
         id: tokenId,
         name: known.name,
         rule: known.rule,
+        lore: featureLore(tokenId),
         imagePath: known.imagePath ?? tokenData?.imagePath,
       });
       continue;
@@ -262,6 +287,7 @@ export function getSystemFeatures(
         id: tokenId,
         name: titleCaseFromId(tokenId),
         rule: "",
+        lore: featureLore(tokenId),
         imagePath: tokenData.imagePath,
       });
     }
@@ -275,6 +301,7 @@ export function getSystemFeatures(
       rule:
         known?.rule ??
         "A border anomaly on this edge alters adjacency with the neighboring system.",
+      lore: featureLore(border.type.toLowerCase()),
       detail: `${EDGE_NAMES[border.direction] ?? border.direction} edge`,
     });
   }

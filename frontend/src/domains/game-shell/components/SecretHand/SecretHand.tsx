@@ -10,6 +10,7 @@ import { ActionCardDetailsCard } from "@/domains/cards/components/ActionCardDeta
 import { SecretObjectiveCard } from "@/domains/cards/components/SecretObjectiveCard";
 import { PromissoryNoteCard } from "@/domains/cards/components/PromissoryNoteCard";
 import { getActionCard } from "@/entities/lookup/actionCards";
+import { lookupCardLore } from "@/entities/lore/lookupLore";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import { useFactionColors } from "@/hooks/useFactionColors";
@@ -76,6 +77,7 @@ function FaceUpRow({
   name,
   tag,
   text,
+  lore,
   tinted = false,
 }: {
   tone: string;
@@ -83,6 +85,8 @@ function FaceUpRow({
   name: string;
   tag?: string;
   text: string;
+  /** Przygaszone lore karty — widoczne dopiero po rozwinięciu. */
+  lore?: string | null;
   /** Kolor właściciela (nie sygnał obiektu) — karta dostaje wyraźniejszy odcień. */
   tinted?: boolean;
 }) {
@@ -107,6 +111,7 @@ function FaceUpRow({
           {tag && <span className={classes.when}>{tag}</span>}
         </b>
         <p data-expanded={expanded || undefined}>{text}</p>
+        {expanded && lore && <p className={classes.acardLore}>{lore}</p>}
       </span>
     </button>
   );
@@ -122,6 +127,7 @@ function SecretRow({ id }: { id: string }) {
       name={secret.name}
       tag={`${secret.phase} · ${secret.points} VP`}
       text={secret.text}
+      lore={lookupCardLore("secretObjective", id)}
     />
   );
 }
@@ -145,6 +151,7 @@ function NoteRow({ id }: { id: string }) {
         note,
         gameData?.playerData,
       )}
+      lore={lookupCardLore("promissoryNote", note.noteData.alias)}
     />
   );
 }

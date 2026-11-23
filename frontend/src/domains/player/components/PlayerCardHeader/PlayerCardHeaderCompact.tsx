@@ -40,6 +40,7 @@ type Props = {
 /** Speaker and tyrant markers followed by the player's strategy cards. */
 function HeaderTokens({
   faction,
+  factionDisplayName,
   playerId,
   isSpeaker = false,
   isTyrant = false,
@@ -47,7 +48,7 @@ function HeaderTokens({
   exhaustedSCs = [],
 }: Pick<
   Props,
-  "faction" | "playerId" | "isSpeaker" | "isTyrant" | "scs" | "exhaustedSCs"
+  "faction" | "factionDisplayName" | "playerId" | "isSpeaker" | "isTyrant" | "scs" | "exhaustedSCs"
 >) {
   // Żeton „0” Naalu leży na najniższej karcie posiadacza (inicjatywa 0).
   const zeroCard = useGameData()?.initiativeZero === faction && scs.length ? Math.min(...scs) : null;
@@ -63,7 +64,9 @@ function HeaderTokens({
           zeroToken={scNumber === zeroCard}
         />
       ))}
-      {playerId && <FactionVoice playerId={playerId} faction={faction} />}
+      {playerId && (
+        <FactionVoice playerId={playerId} faction={faction} factionName={factionDisplayName} />
+      )}
     </>
   );
 }
@@ -134,6 +137,7 @@ export function PlayerCardHeaderCompact({
       <Group gap={8} className={styles.rightGroup}>
         <HeaderTokens
           faction={faction}
+          factionDisplayName={factionDisplayName}
           playerId={playerId}
           isSpeaker={isSpeaker}
           isTyrant={isTyrant}
@@ -200,6 +204,7 @@ export function PlayerCardHeaderFull({
       <Group gap="xs" align="center">
         <HeaderTokens
           faction={faction}
+          factionDisplayName={factionDisplayName}
           playerId={playerId}
           isSpeaker={isSpeaker}
           isTyrant={isTyrant}
@@ -314,6 +319,7 @@ export function PlayerCardHeaderMobile({
       >
         <HeaderTokens
           faction={faction}
+          factionDisplayName={factionDisplayName}
           playerId={playerId}
           isSpeaker={isSpeaker}
           isTyrant={isTyrant}

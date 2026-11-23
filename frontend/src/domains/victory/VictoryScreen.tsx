@@ -22,6 +22,7 @@ import {
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { IconCheck, IconCrown, IconTrophy } from "@tabler/icons-react";
+import { attribution, quoted } from "@/entities/lore/typography";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { useGameState } from "@/api/useGameState";
@@ -527,10 +528,10 @@ function ChronicleStage({
             </p>
           ))}
           {epilogue.quote && (
-            <blockquote className={styles.epilogueQuote}>“{epilogue.quote}”</blockquote>
+            <blockquote className={styles.epilogueQuote}>{quoted(epilogue.quote)}</blockquote>
           )}
           {(epilogue.author || !epilogue.quote) && (
-            <p className={styles.author}>— {epilogue.author ?? DEFAULT_EPILOGUE_AUTHOR}</p>
+            <p className={styles.author}>{attribution(epilogue.author ?? DEFAULT_EPILOGUE_AUTHOR)}</p>
           )}
           <div className={styles.outro}>
             <p className={styles.motto}>Pax Magnifica</p>

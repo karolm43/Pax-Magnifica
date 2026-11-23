@@ -135,7 +135,7 @@ function TokenWithInfo({
   frameStyle,
   children,
 }: {
-  rule: { name: string; rule: string };
+  rule: { name: string; rule: string; lore?: string };
   link?: WormholeHover;
   imagePath: string;
   frameStyle: CSSProperties;
@@ -160,6 +160,7 @@ function TokenWithInfo({
           role="button"
           tabIndex={0}
           aria-label={rule.name}
+          data-map-object=""
           style={{ ...frameStyle, pointerEvents: "auto" }}
           onMouseEnter={() => {
             if (link) setHovered(link);
@@ -205,6 +206,7 @@ function TokenWithInfo({
             }
           />
           <DetailsCard.Section title="Rule" content={rule.rule} />
+          {rule.lore && <DetailsCard.Flavor quiet>{rule.lore}</DetailsCard.Flavor>}
         </DetailsCard>
       </SmoothPopover.Dropdown>
     </SmoothPopover>

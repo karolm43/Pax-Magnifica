@@ -13,7 +13,8 @@ import {
   getFactionLore,
   loreToBlocks,
   type LoreBlock,
-} from "./factionLore";
+} from "@/entities/lore/factionLore";
+import { attribution, quoted } from "@/entities/lore/typography";
 import { DecodedText, useDecode } from "./GlyphText";
 import styles from "./FactionBackdrop.module.css";
 
@@ -229,9 +230,9 @@ export function FactionHeader({ faction }: { faction: FactionInfo }) {
         <div className={styles.headText}>
           <h2 className={styles.headName}>{faction.name}</h2>
           {quote && (
-            <blockquote className={styles.headQuote}>“{quote}”</blockquote>
+            <blockquote className={styles.headQuote}>{quoted(quote)}</blockquote>
           )}
-          {quote && author && <p className={styles.headAuthor}>— {author}</p>}
+          {quote && author && <p className={styles.headAuthor}>{attribution(author)}</p>}
         </div>
       </div>
     </header>

@@ -8,5 +8,5 @@ import DetailsCardFlavor from "./DetailsCardFlavor";
  */
 export function CardLore({ kind, id }: { kind: LoreKind; id: string | null | undefined }) {
   const text = lookupCardLore(kind, id);
-  return text ? <DetailsCardFlavor>{text}</DetailsCardFlavor> : null;
+  return text ? <DetailsCardFlavor quiet>{text}</DetailsCardFlavor> : null;
 }

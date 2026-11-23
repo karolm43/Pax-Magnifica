@@ -159,6 +159,7 @@ export function UnitStack({
   const states = unitStates(stack);
   const galvanizedCount = states[2] + states[3];
   const handlers = {
+    "data-map-object": "", // jednostka: nad nią nie pokazujemy dymku systemu
     onMouseEnter: isUnit && onUnitMouseOver ? handleMouseEnter : undefined,
     onMouseLeave: isUnit && onUnitMouseLeave ? handleMouseLeave : undefined,
     onMouseDown:

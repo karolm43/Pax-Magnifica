@@ -127,6 +127,11 @@
   white-space: pre-line;
 }
 
+.hint p.lore {
+  font-style: italic;
+  color: var(--ds-ink-lo);
+}
+
 .toggle,
 .close {
   flex: none;

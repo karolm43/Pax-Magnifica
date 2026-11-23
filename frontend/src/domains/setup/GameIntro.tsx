@@ -20,7 +20,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { portraitCandidates, useFactionAccent } from "./FactionBackdrop";
-import { getFactionLore } from "./factionLore";
+import { getFactionLore } from "@/entities/lore/factionLore";
+import { attribution, quoted } from "@/entities/lore/typography";
 import type { IntroPlayer } from "./introPlayers";
 import styles from "./GameIntro.module.css";
 
@@ -379,8 +380,8 @@ function RosterCard({ player, index }: { player: IntroPlayer; index: number }) {
         <h2 className={styles.cardFaction}>{player.faction.name}</h2>
         {quote && (
           <blockquote className={styles.cardQuote}>
-            “{quote}”
-            {author && <footer className={styles.cardAuthor}>— {author}</footer>}
+            {quoted(quote)}
+            {author && <footer className={styles.cardAuthor}>{attribution(author)}</footer>}
           </blockquote>
         )}
         <p className={styles.cardPlayer}>

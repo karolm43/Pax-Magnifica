@@ -3,6 +3,7 @@ import { explorations } from "@/entities/data/explorations";
 import { isInActiveDeck, isOfficialSource } from "@/entities/data/officialSources";
 import type { CardPoolData } from "@/entities/data/types";
 import { actionCardPool, type PoolEntry, type PoolGroup } from "./cardPoolBrowser";
+import { lookupLoreOr } from "@/entities/lore/lookupLore";
 
 /*
  * Stan TALII w panelu General: co zostało w talii, co leży na stosie odrzuconych i co
@@ -85,7 +86,7 @@ export function entriesFromIds(
             ? (card as { resolution?: string }).resolution
             : (card as { window?: string }).window,
         copies: 1,
-        flavor: card.flavorText,
+        flavor: lookupLoreOr(kind === "explore" ? "exploration" : "actionCard", id, card.flavorText),
         ids: [id],
       });
     }

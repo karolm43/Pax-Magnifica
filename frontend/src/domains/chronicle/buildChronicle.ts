@@ -6,7 +6,7 @@
 
 import type { ActivityEntry, ActivityFact, ActivityPlayer } from "@/api/useBoardEditor";
 import { getPlanetData } from "@/entities/lookup/planets";
-import { getFactionLore } from "../setup/factionLore";
+import { getFactionLore } from "@/entities/lore/factionLore";
 import { getLeaderById } from "@/entities/lookup/leaders";
 import {
   prettifyId,
@@ -17,7 +17,7 @@ import {
   resolveTechName,
   resolveUnitName,
 } from "../game-shell/components/GameEventPanel/eventFormatting";
-import { describeBattle } from "../lore/battleLore";
+import { describeBattle } from "@/entities/lore/battleLore";
 import {
   CHRONICLERS,
   OPENERS,
@@ -31,7 +31,8 @@ import {
   type OpenerTheme,
   type ChronicleKind,
   type Pool,
-} from "./chronicleLore";
+} from "@/entities/lore/chronicleLore";
+import { lookupLoreOr } from "@/entities/lore/lookupLore";
 
 /** Cytat pod wpisem wraz z autorem — zawsze wiadomo, kto to mówi. */
 export type ChronicleQuote = { text: string; author: string };
@@ -214,7 +215,7 @@ function entriesFrom(entry: ActivityEntry, ctx: Ctx, seenLeaders: Set<string>): 
     const planet = ground ? getPlanetData(a.subject) : undefined;
     push("battle", lore.text, {
       place,
-      epigraph: planetQuote(planet?.flavourText) ?? ctx.quoteOf(winnerId ?? a.actor_id),
+      epigraph: planetQuote(lookupLoreOr("planet", planet?.id, planet?.flavourText)) ?? ctx.quoteOf(winnerId ?? a.actor_id),
       actors: [a.actor_id, a.target_id],
       facts: [
         `${ground ? "Ground battle for" : "Space battle of"} ${place} (round ${a.round})`,
@@ -248,7 +249,7 @@ function entriesFrom(entry: ActivityEntry, ctx: Ctx, seenLeaders: Set<string>): 
     };
     push(kind, fill(POOLS[kind], seed(`${kind}|${planetId}`), vars), {
       place: planetName,
-      epigraph: planetQuote(planet?.flavourText) ?? ctx.quoteOf(taker),
+      epigraph: planetQuote(lookupLoreOr("planet", planet?.id, planet?.flavourText)) ?? ctx.quoteOf(taker),
       actors: [taker, loss?.player_id].filter((x): x is string => !!x),
       facts: [
         loss

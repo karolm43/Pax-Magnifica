@@ -35,6 +35,7 @@ import { useFactionHelpers, type FactionHelpers } from "./useFactionHelpers";
 import { UnitSheetContext, useUnitSheet, type SheetUnit } from "./unitSheet";
 import { SystemBattleHistory } from "./SystemBattleHistory";
 import styles from "./SystemDossier.module.css";
+import { lookupLoreOr } from "@/entities/lore/lookupLore";
 
 /** Fits the 345px tile into the art column's 222px well. */
 const TILE_SCALE = 0.64;
@@ -125,6 +126,7 @@ function NavigationBand({ features }: { features: SystemFeature[] }) {
             )}
           </div>
           {feature.rule && <p className={styles.featureRule}>{feature.rule}</p>}
+          {feature.lore && <p className={styles.featureLore}>{feature.lore}</p>}
         </div>
       ))}
     </section>
@@ -360,14 +362,14 @@ function Flavour({
   systemId: string;
   planetIds: string[];
 }) {
-  const systemLore = cleanFlavour(getTileById(systemId)?.flavourText ?? "");
+  const systemLore = cleanFlavour(lookupLoreOr("system", systemId, getTileById(systemId)?.flavourText) ?? "");
   const entries = planetIds
     .map((id) => getPlanetData(id))
-    .filter((planet) => !!planet?.flavourText)
     .map((planet) => ({
-      name: planet!.name,
-      text: cleanFlavour(planet!.flavourText!),
-    }));
+      name: planet?.name ?? "",
+      text: cleanFlavour(lookupLoreOr("planet", planet?.id, planet?.flavourText) ?? ""),
+    }))
+    .filter((entry) => !!entry.text);
   if (!systemLore && entries.length === 0) return null;
   const named = entries.length > 1 || (!!systemLore && entries.length > 0);
   return (

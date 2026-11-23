@@ -18,6 +18,7 @@ import {
   type ExplorationView,
 } from "./useExploration";
 import styles from "./ExplorationOverlay.module.css";
+import { lookupLoreOr } from "@/entities/lore/lookupLore";
 
 const DECK_LABEL: Record<string, string> = {
   frontier: "Frontier",
@@ -37,6 +38,7 @@ const planetName = (id: string) => getPlanetData(id)?.name ?? id;
 
 /** Karta eksploracji: kolor talii, nazwa, treść i cytat (karta jest jawna dla wszystkich). */
 function CardFace({ card, planet }: { card: ExploreCard; planet?: string }) {
+  const flavor = lookupLoreOr("exploration", card.cardId, card.flavorText);
   return (
     <article className={styles.card} data-deck={card.deck.toLowerCase()}>
       <header className={styles.cardHead}>
@@ -47,7 +49,7 @@ function CardFace({ card, planet }: { card: ExploreCard; planet?: string }) {
       </header>
       <h3 className={styles.cardName}>{card.name}</h3>
       <p className={styles.cardText}>{card.text}</p>
-      {card.flavorText && <p className={styles.flavor}>{card.flavorText}</p>}
+      {flavor && <p className={styles.flavor}>{flavor}</p>}
     </article>
   );
 }

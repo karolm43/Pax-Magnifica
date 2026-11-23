@@ -47,6 +47,7 @@ import {
 } from "@tabler/icons-react";
 import type { Icon } from "@tabler/icons-react";
 import styles from "./AchievementCard.module.css";
+import catalog from "../../../../assets/config/achievements.json";
 
 export type AchievementTag = "War" | "Treachery" | "Peace" | "Race" | "Empire" | "Table";
 
@@ -68,57 +69,55 @@ export interface AchievementData {
   players: AchievementPlayer[];
 }
 
-/** Znaczek i kategoria na klucz osiągnięcia (klucze z `core/chronicle.py` i `gameStats.ts`). */
-const META: Record<string, { icon: Icon; tag: AchievementTag }> = {
-  greatest_battle: { icon: IconSwords, tag: "War" },
-  longest_battle: { icon: IconHourglass, tag: "War" },
-  crushing_victory: { icon: IconBolt, tag: "War" },
-  unbreakable_wall: { icon: IconShield, tag: "War" },
-  pyrrhic_victory: { icon: IconSkull, tag: "War" },
-  mutual_destruction: { icon: IconFlame, tag: "War" },
-  lord_of_the_void: { icon: IconRocket, tag: "War" },
-  ground_master: { icon: IconTarget, tag: "War" },
-  undefeated: { icon: IconMedal, tag: "War" },
-  rivalry: { icon: IconInfinity, tag: "War" },
-  warmonger: { icon: IconFlame, tag: "War" },
-  besieged: { icon: IconShield, tag: "War" },
-  conqueror: { icon: IconFlag, tag: "War" },
-  torn_world: { icon: IconPlanet, tag: "War" },
-  first_blood: { icon: IconDroplet, tag: "War" },
-  blitzkrieg: { icon: IconTargetArrow, tag: "War" },
-  capital_sacker: { icon: IconCrownOff, tag: "War" },
-  home_sweet_home: { icon: IconHomeShield, tag: "War" },
-  pacifist: { icon: IconPeace, tag: "Peace" },
-  lead_changes: { icon: IconArrowsExchange, tag: "Race" },
-  photo_finish: { icon: IconStopwatch, tag: "Race" },
-  betrayal: { icon: IconSkull, tag: "Treachery" },
-  quiet_victory: { icon: IconPeace, tag: "Peace" },
-  peaceful_galaxy: { icon: IconPeace, tag: "Peace" },
-  diplomat: { icon: IconHeartHandshake, tag: "Table" },
-  hermit: { icon: IconMoodSad, tag: "Table" },
-  benefactor: { icon: IconGift, tag: "Table" },
-  comeback: { icon: IconTrendingUp, tag: "Race" },
-  fallen_favorite: { icon: IconTrendingDown, tag: "Race" },
-  round_to_remember: { icon: IconStar, tag: "Race" },
-  wire_to_wire: { icon: IconCrown, tag: "Race" },
-  throne_room: { icon: IconBuildingCastle, tag: "Empire" },
-  legend_collector: { icon: IconDiamond, tag: "Empire" },
-  homeworld_hunter: { icon: IconHome, tag: "Empire" },
-  exile: { icon: IconHomeOff, tag: "Empire" },
-  master_builder: { icon: IconBuilding, tag: "Empire" },
-  everywhere: { icon: IconCompass, tag: "Empire" },
-  // Nagrody statystyczne (gameStats.ts)
-  planets: { icon: IconWorld, tag: "Empire" },
-  fleet: { icon: IconRocket, tag: "War" },
-  ground: { icon: IconTarget, tag: "War" },
-  techs: { icon: IconBolt, tag: "Empire" },
-  tg: { icon: IconCoins, tag: "Empire" },
-  economy: { icon: IconCoins, tag: "Empire" },
-  relics: { icon: IconDiamond, tag: "Empire" },
-  secrets: { icon: IconUsers, tag: "Race" },
-  runner_up: { icon: IconTrophy, tag: "Race" },
-  wooden_spoon: { icon: IconMoodSad, tag: "Race" },
+/**
+ * Znaczek i kategoria na klucz osiągnięcia — z `assets/config/achievements.json` (jedno miejsce
+ * edycji). Nazwa ikony z JSON musi być w `ICONS`; pilnuje tego `achievements.test.ts`.
+ */
+export const ICONS: Record<string, Icon> = {
+  ArrowsExchange: IconArrowsExchange,
+  Bolt: IconBolt,
+  Building: IconBuilding,
+  BuildingCastle: IconBuildingCastle,
+  Coins: IconCoins,
+  Compass: IconCompass,
+  Crown: IconCrown,
+  CrownOff: IconCrownOff,
+  Diamond: IconDiamond,
+  Droplet: IconDroplet,
+  Flag: IconFlag,
+  Flame: IconFlame,
+  Gift: IconGift,
+  HeartHandshake: IconHeartHandshake,
+  Home: IconHome,
+  HomeOff: IconHomeOff,
+  HomeShield: IconHomeShield,
+  Hourglass: IconHourglass,
+  Infinity: IconInfinity,
+  Medal: IconMedal,
+  MoodSad: IconMoodSad,
+  Peace: IconPeace,
+  Planet: IconPlanet,
+  Rocket: IconRocket,
+  Shield: IconShield,
+  Skull: IconSkull,
+  Star: IconStar,
+  Stopwatch: IconStopwatch,
+  Swords: IconSwords,
+  Target: IconTarget,
+  TargetArrow: IconTargetArrow,
+  TrendingDown: IconTrendingDown,
+  TrendingUp: IconTrendingUp,
+  Trophy: IconTrophy,
+  Users: IconUsers,
+  World: IconWorld,
 };
+
+const META: Record<string, { icon: Icon; tag: AchievementTag }> = Object.fromEntries(
+  Object.entries(catalog.achievements).map(([key, entry]) => [
+    key,
+    { icon: ICONS[entry.icon] ?? IconAward, tag: entry.tag as AchievementTag },
+  ]),
+);
 
 const FALLBACK = { icon: IconAward, tag: "Table" as AchievementTag };
 

@@ -537,6 +537,14 @@
   color: var(--ds-ink);
 }
 
+.agendaCard p.agendaLore {
+  text-wrap: pretty;
+  margin-top: 4px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ds-ink-lo);
+}
+
 .agendaType {
   font-size: 10.5px;
   font-weight: 800;

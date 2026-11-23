@@ -263,6 +263,7 @@
 }
 
 .flavour {
+  text-wrap: pretty;
   display: grid;
   gap: 6px;
 }
@@ -785,6 +786,15 @@
   font-size: var(--text-data);
   line-height: var(--lh-body);
   color: var(--ds-ink);
+}
+
+.featureLore {
+  text-wrap: pretty;
+  margin: 2px 0 0;
+  font-size: var(--text-meta);
+  line-height: var(--lh-body);
+  font-style: italic;
+  color: var(--ds-ink-lo);
 }
 
 /* Wormhole letters as instrument medallions. */

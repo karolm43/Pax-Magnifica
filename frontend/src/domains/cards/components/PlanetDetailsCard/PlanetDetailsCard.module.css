@@ -28,6 +28,16 @@
   border-radius: var(--ds-radius-sm);
 }
 
+.attachmentLore {
+  text-wrap: pretty;
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  font-style: italic;
+  color: var(--ds-ink-lo);
+}
+
 .attachmentName {
   font-size: var(--text-body);
   font-weight: 500;

@@ -1,4 +1,4 @@
-import React, { type CSSProperties } from "react";
+import React, { useEffect, useRef, type CSSProperties } from "react";
 import { Tile } from "./Tile";
 import classes from "./MapTile.module.css";
 import { useSettingsStore, useAppStore } from "@/state/appStore";
@@ -37,6 +37,9 @@ import {
   useContextMenu,
 } from "@/shared/ui/ContextMenu/ContextMenu";
 import { useBoardEditor } from "@/api/useBoardEditor";
+
+/** Zawis kursora nad kaflem, po którym pokazujemy dymek systemu (jak przy planecie). */
+const SYSTEM_HOVER_DELAY_MS = 1000;
 
 type Props = {
   mapTile: TileType;
@@ -177,6 +180,37 @@ export const MapTile = React.memo<Props>(
        tap would otherwise raise one over it. */
     const tapOpensDossier = dossierEligible && isMobileDevice();
 
+    // Dymek systemu: po krótkim zawisie kursora nad kaflem (jak dymek planety); nie na telefonie.
+    const setHoveredSystem = useAppStore((state) => state.setHoveredSystem);
+    const systemHoverTimer = useRef<number | undefined>(undefined);
+    const clearSystemHover = () => {
+      window.clearTimeout(systemHoverTimer.current);
+      systemHoverTimer.current = undefined;
+      if (useAppStore.getState().hoveredSystem?.tile.position === mapTile.position) {
+        setHoveredSystem(null);
+      }
+    };
+    const startSystemHover = () => {
+      if (!dossierEligible || tapOpensDossier || mapPick || moveMode || activateMode) return;
+      if (systemHoverTimer.current !== undefined) return; // zawis już odliczany
+      systemHoverTimer.current = window.setTimeout(() => {
+        systemHoverTimer.current = undefined;
+        setHoveredSystem({
+          tile: mapTile,
+          coords: { x: position.x + TILE_WIDTH / 2, y: position.y + TILE_HEIGHT / 2 },
+        });
+      }, SYSTEM_HOVER_DELAY_MS);
+    };
+    useEffect(() => () => window.clearTimeout(systemHoverTimer.current), []);
+    // Nad planetą, jednostką, żetonem i attachmentem pokazujemy tylko ich własny dymek: dymek systemu znika i nie wraca, póki kursor
+    // nie zjedzie z planety na resztę kafla.
+    const handleTileMouseOver = (event: React.MouseEvent) => {
+      if ((event.target as HTMLElement).closest("[data-planet-circle], [data-map-object]")) clearSystemHover();
+      else if (useAppStore.getState().hoveredSystem?.tile.position !== mapTile.position) {
+        startSystemHover();
+      }
+    };
+
     const controllingFaction = mapTile.controlledBy;
 
     const getTileOpacity = () => {
@@ -236,6 +270,8 @@ export const MapTile = React.memo<Props>(
               : undefined,
         }}
         onContextMenu={dossierEligible ? openDossierByRightClick : undefined}
+        onMouseOver={handleTileMouseOver}
+        onMouseLeave={clearSystemHover}
       >
         {tileMenuItems.length > 0 && (
           <ContextMenu

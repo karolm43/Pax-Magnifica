@@ -6,6 +6,7 @@ import { relics } from "@/entities/data/relics";
 import { explorations } from "@/entities/data/explorations";
 import { promissoryNotes } from "@/entities/data/promissoryNotes";
 import { isInGameDeck, isOfficialSource } from "@/entities/data/officialSources";
+import { lookupCardLore, lookupLoreOr } from "@/entities/lore/lookupLore";
 import { variantDeck, withVariantList } from "@/entities/lookup/variantData";
 
 /** Jedna pozycja listy w przeglądarce puli kart. */
@@ -74,6 +75,7 @@ export function agendaPool(): PoolGroup[] {
       name: a.name,
       text: body,
       meta: a.type,
+      flavor: lookupCardLore("agenda", a.alias) ?? undefined,
       source: a.source,
     };
     if ((a.type || "").toLowerCase() === "law") laws.push(entry);
@@ -109,7 +111,7 @@ export function actionCardPool(): PoolGroup[] {
         text: c.text,
         meta: c.window,
         copies: 1,
-        flavor: c.flavorText,
+        flavor: lookupLoreOr("actionCard", c.alias, c.flavorText),
         source: c.source,
       });
     }
@@ -143,6 +145,7 @@ export function publicObjectivePool(stage: 1 | 2): PoolGroup[] {
       name: o.name,
       text: o.text,
       meta: `${o.phase} phase`,
+      flavor: lookupCardLore("publicObjective", o.alias) ?? undefined,
       source: o.source,
     }))
     .sort(byName);
@@ -162,6 +165,7 @@ export function secretObjectivePool(): PoolGroup[] {
       name: o.name,
       text: o.text,
       meta: `${o.phase} phase`,
+      flavor: lookupCardLore("secretObjective", o.alias) ?? undefined,
       source: o.source,
     }))
     .sort(byName);
@@ -181,7 +185,7 @@ export function relicPool(): PoolGroup[] {
       alias: r.alias,
       name: r.name,
       text: r.text,
-      flavor: r.flavourText,
+      flavor: lookupLoreOr("relic", r.alias, r.flavourText),
       source: r.source,
     }))
     .sort(byName);
@@ -223,7 +227,7 @@ export function explorationPool(type: string): PoolGroup[] {
         text: card.text,
         meta: card.resolution,
         copies: 1,
-        flavor: card.flavorText,
+        flavor: lookupLoreOr("exploration", card.id, card.flavorText),
       });
     }
   }

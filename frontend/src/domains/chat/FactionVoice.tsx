@@ -1,6 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import cx from "clsx";
 import { IconMessageCircle2 } from "@tabler/icons-react";
+import { ActionIcon, Button } from "@/ds";
 import { useBoardEditor, useActivityFeed, useChat } from "@/api/useBoardEditor";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { humanHandOwners } from "@/domains/offers/handReactions";
@@ -12,17 +14,24 @@ import {
   VOICE_CATEGORIES,
   type VoiceCategoryId,
 } from "@/entities/lore/factionVoiceLines";
+import { quoted } from "@/entities/lore/typography";
+import { DetailsCard } from "@/shared/ui/DetailsCard";
+import { FactionIcon } from "@/shared/ui/FactionIcon";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import styles from "./FactionVoice.module.css";
 
-/** Jak długo dymek z kwestią wisi nad nazwą frakcji. */
+/** Jak długo dymek z kwestią wisi nad polem gracza. */
 export const BUBBLE_MS = 9000;
 
-/** Kolor gracza jako trójka „r g b” do `rgb(var(--pc) / a)` — przycisk, panel i dymek w jego barwie. */
+/**
+ * Kolor gracza jako trójka „r g b”: `--pc` dla przycisku i dymku, `--k` dla `DetailsCard`
+ * (karta szczegółów barwi nim nagłówek i etykiety — jak każda inna karta w grze).
+ */
 function usePlayerTint(playerId: string): CSSProperties {
   const color = useGameData()?.playerData?.find((p) => p.discordId === playerId)?.color;
   const rgb = color ? resolvePrimaryRgb(color) : undefined;
-  return { "--pc": rgb ? `${rgb.red} ${rgb.green} ${rgb.blue}` : "148 163 184" } as CSSProperties;
+  const triplet = rgb ? `${rgb.red} ${rgb.green} ${rgb.blue}` : "148 163 184";
+  return { "--pc": triplet, "--k": triplet } as CSSProperties;
 }
 
 /** Id gracza, który siedzi przy tym ekranie (w sieci z tokenu). */
@@ -64,39 +73,91 @@ function useLatestVoice(playerId: string): string | null {
   return shown?.text ?? null;
 }
 
+/** Odstęp dymka od pola gracza i od krawędzi okna (px ekranu). */
+const GAP = 14;
+const EDGE = 8;
+
 /**
- * DYMEK z kwestią: wychodzi z NAZWY FRAKCJI w polu gracza. Wstaw go obok nazwy; sam rysuje się
- * w portalu na `body` (nad całą planszą i oknami), przypięty nad nazwą.
+ * Ustawia dymek (position: fixed) przy elemencie `anchor`: nad nim, a gdy brak miejsca — pod nim;
+ * w poziomie zawsze w oknie. Śledzi kotwicę co klatkę (mapa się przesuwa i skaluje), pisząc
+ * styl wprost do DOM, bez re-renderów.
  */
-export function FactionVoiceBubble({ playerId }: { playerId: string }) {
+function useFollowAnchor(
+  active: boolean,
+  anchor: RefObject<HTMLElement | null>,
+  bubble: RefObject<HTMLElement | null>,
+) {
+  useLayoutEffect(() => {
+    if (!active) return;
+    let frame = 0;
+    const place = () => {
+      const a = anchor.current;
+      const b = bubble.current;
+      if (a && b) {
+        const r = a.getBoundingClientRect();
+        const w = b.offsetWidth;
+        const h = b.offsetHeight;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const below = r.top - GAP - h < EDGE && r.bottom + GAP + h <= vh - EDGE;
+        const cx = r.left + r.width / 2;
+        const left = Math.min(Math.max(cx - w / 2, EDGE), Math.max(EDGE, vw - w - EDGE));
+        const rawTop = below ? r.bottom + GAP : r.top - GAP - h;
+        const top = Math.min(Math.max(rawTop, EDGE), Math.max(EDGE, vh - h - EDGE));
+        b.style.left = `${left}px`;
+        b.style.top = `${top}px`;
+        b.dataset.side = below ? "below" : "above";
+        // Ogonek celuje w środek pola, także gdy dymek dosunięto do krawędzi okna.
+        const tail = Math.min(Math.max(cx - left, 20), w - 20);
+        b.style.setProperty("--tail-x", `${tail}px`);
+        b.style.visibility = "visible";
+      }
+      frame = window.requestAnimationFrame(place);
+    };
+    place();
+    return () => window.cancelAnimationFrame(frame);
+  }, [active, anchor, bubble]);
+}
+
+/**
+ * DYMEK z kwestią przy głównym polu gracza (kółko z frakcją). Wstaw go W TYM polu: niewidoczna
+ * kotwica bierze prostokąt rodzica, a sam dymek rysuje się w portalu na `body`, więc nigdy nie
+ * jest ucięty przez krawędź mapy (nad polem, a przy górnej krawędzi okna — pod nim).
+ * Wygląd = cytat frakcji z ekranu wyboru: szeryfowa kursywa + podpis frakcji w jej kolorze.
+ */
+export function FactionVoiceBubble({
+  playerId,
+  author,
+}: {
+  playerId: string;
+  /** Podpis pod kwestią (nazwa frakcji). */
+  author: string;
+}) {
   const text = useLatestVoice(playerId);
   const tint = usePlayerTint(playerId);
-  const anchor = useRef<HTMLSpanElement | null>(null);
-  const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
-
+  const marker = useRef<HTMLSpanElement | null>(null);
+  const anchor = useRef<HTMLElement | null>(null);
+  const bubble = useRef<HTMLElement | null>(null);
   useLayoutEffect(() => {
-    if (!text || !anchor.current) {
-      setPos(null);
-      return;
-    }
-    const rect = anchor.current.parentElement?.getBoundingClientRect() ?? anchor.current.getBoundingClientRect();
-    setPos({ left: rect.left + rect.width / 2, bottom: window.innerHeight - rect.top + 10 });
-  }, [text]);
+    anchor.current = marker.current?.parentElement ?? null;
+  });
+  useFollowAnchor(!!text, anchor, bubble);
 
   return (
     <>
-      <span ref={anchor} aria-hidden="true" />
+      <span ref={marker} hidden />
       {text &&
-        pos &&
         createPortal(
-          <div
+          <figure
+            ref={bubble}
             className={styles.bubble}
-            style={{ ...tint, left: pos.left, bottom: pos.bottom }}
+            style={{ ...tint, visibility: "hidden" }}
             role="status"
             aria-label="Faction voice line"
           >
-            <div className={styles.bubbleInner}>“{text}”</div>
-          </div>,
+            <blockquote className={styles.quote}>{quoted(text)}</blockquote>
+            <figcaption className={styles.author}>{author}</figcaption>
+          </figure>,
           document.body,
         )}
     </>
@@ -104,12 +165,28 @@ export function FactionVoiceBubble({ playerId }: { playerId: string }) {
 }
 
 /**
- * KOMUNIKATY FRAKCJI: przycisk w polu własnego gracza otwiera 9 jednakowych kategorii
+ * KOMUNIKATY FRAKCJI: przycisk przy polu własnego gracza otwiera kartę z jednakowymi kategoriami
  * (`entities/lore/factionVoiceLines.ts`, kwestie wpisuje użytkownik). Klik wysyła losową kwestię
  * kategorii przez czat jako publiczną wiadomość z flagą `voice`; dymek widzą wszyscy
  * (`FactionVoiceBubble`). Niczego nie zmienia w regułach. U cudzych graczy nic się nie renderuje.
+ *
+ * `variant="map"` = okrągły żeton w rzędzie punktów w głównym polu na planszy; `"header"` = mała ikona
+ * w nagłówku panelu gracza.
  */
-export function FactionVoice({ playerId, faction }: { playerId: string; faction: string }) {
+export function FactionVoice({
+  playerId,
+  faction,
+  factionName,
+  variant = "header",
+  className,
+}: {
+  playerId: string;
+  faction: string;
+  /** Pełna nazwa frakcji do nagłówka karty; domyślnie id. */
+  factionName?: string;
+  variant?: "map" | "header";
+  className?: string;
+}) {
   const me = useMe();
   const { sendChat } = useBoardEditor();
   const [opened, setOpened] = useState(false);
@@ -127,44 +204,53 @@ export function FactionVoice({ playerId, faction }: { playerId: string; faction:
       .finally(() => setBusy(false));
   };
 
+  const onMap = variant === "map";
+
   return (
-    <span className={styles.wrap} style={tint}>
-      <SmoothPopover opened={opened} onChange={setOpened} position="bottom">
-        <SmoothPopover.Target>
-          <button
-            type="button"
-            className={styles.btn}
-            aria-label="Faction voice lines"
-            aria-expanded={opened}
+    <SmoothPopover opened={opened} onChange={setOpened} position={onMap ? "right" : "bottom"}>
+      <SmoothPopover.Target>
+        <ActionIcon
+          variant={onMap ? "default" : "subtle"}
+          size={onMap ? 34 : 28}
+          radius="50%"
+          className={cx(onMap && styles.mapTrigger, className)}
+          style={tint}
+          aria-label="Faction voice lines"
+          aria-expanded={opened}
+          title="Say something"
+          onClick={() => setOpened((o) => !o)}
+        >
+          <IconMessageCircle2 size={onMap ? 19 : 18} stroke={1.8} aria-hidden="true" />
+        </ActionIcon>
+      </SmoothPopover.Target>
+      <SmoothPopover.Dropdown>
+        <DetailsCard width={300} style={tint}>
+          <DetailsCard.Title
+            icon={<FactionIcon faction={faction} w={40} h={40} fit="contain" alt="" />}
             title="Say something"
-            onClick={() => setOpened((o) => !o)}
-          >
-            <IconMessageCircle2 size={22} stroke={1.8} aria-hidden="true" />
-          </button>
-        </SmoothPopover.Target>
-        <SmoothPopover.Dropdown p={0}>
-          <div className={styles.list} style={tint}>
-            <div className={styles.head}>Say as your faction</div>
-            <div className={styles.grid}>
-              {VOICE_CATEGORIES.map(({ id, label }) => {
-                const empty = voiceLinesFor(faction, id).length === 0;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    className={styles.cat}
-                    disabled={busy || empty}
-                    title={empty ? "No lines yet" : undefined}
-                    onClick={() => say(id)}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+            type={factionName ?? faction}
+            meta={["Seen by all players"]}
+          />
+          <div className={styles.grid}>
+            {VOICE_CATEGORIES.map(({ id, label }) => {
+              const empty = voiceLinesFor(faction, id).length === 0;
+              return (
+                <Button
+                  key={id}
+                  variant="default"
+                  size="sm"
+                  fullWidth
+                  disabled={busy || empty}
+                  title={empty ? "No lines yet" : undefined}
+                  onClick={() => say(id)}
+                >
+                  {label}
+                </Button>
+              );
+            })}
           </div>
-        </SmoothPopover.Dropdown>
-      </SmoothPopover>
-    </span>
+        </DetailsCard>
+      </SmoothPopover.Dropdown>
+    </SmoothPopover>
   );
 }

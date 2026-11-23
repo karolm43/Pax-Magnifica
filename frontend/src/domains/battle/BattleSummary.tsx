@@ -3,7 +3,7 @@ import type { BattleLogEntry, BattleView } from "@/api/useBoardEditor";
 import { getGenericUnitDataByAsyncId, lookupUnit } from "@/entities/lookup/units";
 import { BASE_TYPE_BY_ASYNC } from "@/domains/map/components/UnitStack/cargo";
 import { Unit } from "@/shared/ui/Unit";
-import { battleSeed, describeBattle } from "@/domains/lore/battleLore";
+import { battleSeed, describeBattle } from "@/entities/lore/battleLore";
 import styles from "./BattleOverlay.module.css";
 
 /* baseType → asyncId (odwrotność wspólnej mapy ruchu; jedno źródło tłumaczenia). */

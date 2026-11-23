@@ -17,6 +17,7 @@ import {
   IconSparkles,
 } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
+import { lookupCardLore } from "@/entities/lore/lookupLore";
 import { useGameState } from "@/api/useGameState";
 import { usePlayerData } from "@/api/usePlayerData";
 import { useActivityFeed, useBoardEditor } from "@/api/useBoardEditor";
@@ -566,6 +567,12 @@ function OutcomeInfo({
   );
 }
 
+/** Przygaszone lore agendy pod tekstem karty (pole z `cardLore.ts`); brak wpisu = nic. */
+function AgendaLore({ id }: { id: string }) {
+  const lore = lookupCardLore("agenda", id);
+  return lore ? <p className={styles.agendaLore}>{lore}</p> : null;
+}
+
 function Podium({
   agenda,
   lookOf,
@@ -616,6 +623,7 @@ function Podium({
           </header>
           {text1 ? <p>{text1}</p> : null}
           {text2 ? <p>{text2}</p> : null}
+          <AgendaLore id={card.id} />
         </article>
       ) : (
         <div className={styles.emptyCard}>
@@ -643,6 +651,7 @@ function Podium({
               </header>
               {covertCard.text1 ? <p>{covertCard.text1}</p> : null}
               {covertCard.text2 ? <p>{covertCard.text2}</p> : null}
+              <AgendaLore id={covertCard.id} />
             </article>
           ) : null}
         </div>

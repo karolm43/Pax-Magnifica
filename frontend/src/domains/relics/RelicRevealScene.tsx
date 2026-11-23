@@ -9,6 +9,7 @@ import {
   revealHeadline,
 } from "./relicReveal";
 import styles from "./RelicReveal.module.css";
+import { lookupLoreOr } from "@/entities/lore/lookupLore";
 
 type Props = {
   reveal: RelicReveal;
@@ -35,6 +36,7 @@ const SPARKS = Array.from({ length: 18 }, (_, i) => ({
  */
 export function RelicRevealScene({ reveal, who, rgb, names, onClose }: Props) {
   const relic = reveal.relicId ? getRelicData(reveal.relicId) : undefined;
+  const relicLore = lookupLoreOr("relic", relic?.alias, relic?.flavourText);
   const relicName = relic?.name ?? reveal.relicId ?? "";
   const face = reveal.relicId ? relicFaceImage(reveal.relicId) : null;
   const back = assetUrl(RELIC_BACK);
@@ -135,7 +137,7 @@ export function RelicRevealScene({ reveal, who, rgb, names, onClose }: Props) {
                 {line}
               </p>
             ))}
-            {relic?.flavourText && <p className={styles.flavour}>{relic.flavourText}</p>}
+            {relicLore && <p className={styles.flavour}>{relicLore}</p>}
           </>
         )}
         <button type="button" className={styles.ok} onClick={onClose} autoFocus>

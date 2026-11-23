@@ -3,6 +3,7 @@ import type { ComponentProps, CSSProperties } from "react";
 import { ExpeditionLayer } from "@/domains/map/components/ExpeditionLayer";
 import { MapTilesRenderer } from "./MapTilesRenderer";
 import { MapUnitDetailsCard } from "@/domains/map/components/tooltips/MapUnitDetailsCard";
+import { MapSystemDetailsCard } from "@/domains/map/components/tooltips/MapSystemDetailsCard";
 import { MapPlanetDetailsCard } from "@/domains/map/components/tooltips/MapPlanetDetailsCard";
 import type { GameData, Tile } from "@/entities/game/types";
 import classes from "@/shared/ui/map/MapUI.module.css";
@@ -82,6 +83,13 @@ export function MapRenderLayer({
         mapZoom={mapZoom}
         mapLayout={mapLayout}
       />
+      {!tooltipPlanet && !tooltipUnit && (
+        <MapSystemDetailsCard
+          mapPadding={mapPadding}
+          mapZoom={mapZoom}
+          mapLayout={mapLayout}
+        />
+      )}
       <MapPlanetDetailsCard
         tooltipPlanet={tooltipPlanet}
         mapPadding={mapPadding}
