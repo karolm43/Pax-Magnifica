@@ -26,6 +26,7 @@ from src.core import (
     action_adjacency,
     battle,
     capacity,
+    chronicle_log,
     entropic_scar,
     exhaust,
     extra_dice,
@@ -802,6 +803,9 @@ def assign_hits(
         if count > 0
     ]
 
+    chronicle_log.record_fire(
+        new_state, pending.roller, target_id, "space_cannon", battle.losses_of(units, plan)
+    )
     log = read_log(new_state)
     if log:
         log[-1]["destroyed"] = battle.losses_of(units, plan)

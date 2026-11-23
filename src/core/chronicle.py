@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from src.core import achievements, chronicle_awards, objectives
+from src.core import achievements, chronicle_awards, chronicle_feats, objectives
 from src.core.game_state import ActiveCombat, GameState
 from src.core.registry import StaticDataRegistry
 
@@ -108,8 +108,21 @@ def record_battle(state: GameState, combat: ActiveCombat) -> None:
             "lost_types": lost_types,
             "pact": (pact := pact_between(state, combat.attacker, combat.defender)),
             "betrayal": pact is not None,
+            "retreated": sorted(combat.retreated),
+            "survivors": _survivors(state, combat),
         }
     )
+
+
+def _survivors(state: GameState, combat: ActiveCombat) -> int:
+    """Ile jednostek zwycięzcy zostało na polu bitwy (bez struktur na planecie)."""
+    system = state.systems.get(combat.position)
+    if combat.winner is None or system is None:
+        return 0
+    if combat.kind == "ground" and combat.planet:
+        units = system.planet_units.get(combat.planet, {}).get(combat.winner, {})
+        return sum(n for bt, n in units.items() if bt not in _STRUCTURES)
+    return sum(system.space_units.get(combat.winner, {}).values())
 
 
 def battle_history(state: GameState) -> list[dict[str, Any]]:
@@ -624,6 +637,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
     _race_highlights(state, who, add)
     _board_highlights(state, registry, who, add)
     chronicle_awards.extra_highlights(state, registry, who, add)
+    chronicle_feats.feats(state, registry, who, add)
 
     if not battles and state.winner_id:
         add(

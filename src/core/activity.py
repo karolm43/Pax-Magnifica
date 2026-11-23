@@ -144,7 +144,7 @@ def _is_quiet(label: str) -> bool:
     return any(label == p or label.startswith(p) for p in _QUIET_PREFIXES)
 
 
-def _is_godmode(label: str) -> bool:
+def is_godmode(label: str) -> bool:
     return any(label == p or label.startswith(p) for p in _GODMODE_PREFIXES)
 
 
@@ -460,7 +460,7 @@ def _facts(before: GameState | None, after: GameState) -> list[ActivityFact]:
         for planet in old.controlled_planets:
             if planet not in new.controlled_planets:
                 facts.append(ActivityFact(type="planet_lost", player_id=pid, value=planet))
-    facts.extend(_public_card_facts(before, after))
+    facts.extend(public_card_facts(before, after))
     facts.extend(_resource_facts(before, after))
     facts.extend(_unit_facts(before, after))
     facts.extend(_table_facts(before, after))
@@ -521,7 +521,7 @@ def _resource_facts(before: GameState, after: GameState) -> list[ActivityFact]:
     (to pokazuje już fakt ``action_card``).
     """
     facts: list[ActivityFact] = []
-    played = {f.player_id for f in _public_card_facts(before, after) if f.type == "action_card"}
+    played = {f.player_id for f in public_card_facts(before, after) if f.type == "action_card"}
     for pid, new in after.players.items():
         old = before.players.get(pid)
         if old is None:
@@ -744,7 +744,7 @@ def _faction_token_facts(before: GameState, after: GameState) -> list[ActivityFa
     return facts
 
 
-def _public_card_facts(before: GameState, after: GameState) -> list[ActivityFact]:
+def public_card_facts(before: GameState, after: GameState) -> list[ActivityFact]:
     """Karty i cele JAWNE, które zmieniły się między migawkami.
 
     Czytamy WYŁĄCZNIE miejsca publiczne (stosy odrzuconych, strefa gracza, odkryte cele,
@@ -824,7 +824,7 @@ def derive_activity(label: str, before: GameState | None, after: GameState) -> A
     facts = _facts(before, after)
     base = {"round": after.round_number, "phase": after.phase.value}
 
-    if _is_godmode(label):
+    if is_godmode(label):
         # Korekta operatora: pokazujemy tylko, gdy realnie coś zmieniła u graczy.
         if not facts:
             return None

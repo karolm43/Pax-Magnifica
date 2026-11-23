@@ -894,6 +894,23 @@ class GameChronicle(BaseModel):
     deals: list[dict[str, Any]] = Field(default_factory=list)
     # Migawki VP po punktowaniu każdej rundy: ``{"round": n, "vp": {player_id: punkty}}``.
     rounds: list[dict[str, Any]] = Field(default_factory=list)
+    # Rozstrzygnięte agendy: ``{"round", "outcome", "votes": {pid: {"outcome", "votes"}}}``.
+    agendas: list[dict[str, Any]] = Field(default_factory=list)
+    # Straty spoza walki (Space Cannon / bombardowanie): ``{"round", "by", "victim", "kind",
+    # "units"}`` (``core/chronicle_log.py``).
+    fire: list[dict[str, Any]] = Field(default_factory=list)
+    # Pasy w fazie akcji w kolejności: ``{"round", "player"}``.
+    passes: list[dict[str, Any]] = Field(default_factory=list)
+    # Mówca w fazie strategii każdej rundy: ``{"<runda>": player_id}``.
+    speakers: dict[str, str] = Field(default_factory=dict)
+    # Zagrane karty akcji (id kart) per gracz.
+    cards_played: dict[str, list[str]] = Field(default_factory=dict)
+    # Liczba eksploracji (ujawnionych kart eksploracji) per gracz.
+    explorations: dict[str, int] = Field(default_factory=dict)
+    # Zmiany kontroli Mecatol Rex: ``{"round", "player", "gained": bool}``.
+    mecatol: list[dict[str, Any]] = Field(default_factory=list)
+    # Najwięcej War Sunów naraz na planszy per gracz (szczyt w trakcie partii).
+    peak_warsuns: dict[str, int] = Field(default_factory=dict)
 
 
 class EpilogueState(BaseModel):

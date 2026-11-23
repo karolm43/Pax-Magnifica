@@ -451,5 +451,5 @@ def apply_and_settle(state: GameState, ctx: EngineContext, action: Action) -> Ga
     odblokowania liderów, zegar. Symulacje bota używają TEJ funkcji, nie samego ``apply``.
     """
     return step_settle.settle_step(
-        apply_action(state, ctx, action), ctx.registry, ctx.now, step_label(action)
+        apply_action(state, ctx, action), ctx.registry, ctx.now, step_label(action), before=state
     )

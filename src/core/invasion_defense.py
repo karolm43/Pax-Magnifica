@@ -9,6 +9,7 @@ from typing import Any
 
 from src.core import (
     battle,
+    chronicle_log,
     rules_hooks,
     space_cannon,
     triggers,
@@ -227,6 +228,9 @@ def assign_defense_hits(
         if entry.get("phase") == "DEFENSE" and entry.get("planet") == planet:
             entry["losses"] = battle.losses_of(units, plan)
             entry["sustained"] = battle.sustained_of(plan, sustain)
+            chronicle_log.record_fire(
+                new_state, entry.get("defender"), new_inv.attacker, "defense", entry["losses"]
+            )
             break
     _sustain_events(new_state, new_inv.attacker, battle.sustained_of(plan, sustain))
     del new_inv.defense_pending[planet]

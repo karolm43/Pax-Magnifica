@@ -27,6 +27,7 @@ from typing import Any
 from src.core import (
     active_effects,
     card_draw,
+    chronicle_log,
     economy,
     exhaust,
     objective_events,
@@ -613,6 +614,7 @@ def _resolve(
             },
         }
     )
+    chronicle_log.record_agenda(state, outcome, agenda.history[-1]["votes"])
     state.active_player_id = state.speaker_id or state.active_player_id
     agenda.resolving = card
     effect_ctx = {**resolve_ctx, "previous": previous or ""}

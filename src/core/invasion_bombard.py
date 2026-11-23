@@ -9,6 +9,7 @@ from typing import Any
 
 from src.core import (
     battle,
+    chronicle_log,
     entropic_scar,
     exploration,
     extra_dice,
@@ -379,6 +380,9 @@ def assign_bombard_hits(
             entry["losses"] = battle.losses_of(units, plan)
             entry["sustained"] = battle.sustained_of(plan, sustain)
             break
+    chronicle_log.record_fire(
+        new_state, new_inv.attacker, defender, "bombardment", battle.losses_of(units, plan)
+    )
     _sustain_events(new_state, defender, battle.sustained_of(plan, sustain))
     del new_inv.bombard_pending[planet]
     return new_state

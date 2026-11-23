@@ -12,6 +12,7 @@ from __future__ import annotations
 from src.core import (
     battle,
     capture,
+    chronicle_log,
     game_clock,
     game_end,
     leaders,
@@ -42,12 +43,18 @@ LIMITS_EXEMPT_LABELS = (
 
 
 def settle_step(
-    state: GameState, registry: StaticDataRegistry, now: float, label: str
+    state: GameState,
+    registry: StaticDataRegistry,
+    now: float,
+    label: str,
+    *,
+    before: GameState | None = None,
 ) -> GameState:
     """Zwraca stan po regułach „po każdym kroku” (wejście nie jest mutowane).
 
     ``label`` = etykieta kroku (jak w historii); etykiety z ``LIMITS_EXEMPT_LABELS`` pomijają
     limity, liderów i pauzę reakcji. ``now`` = zegar serwera (wstrzykiwany, nigdy ``time``).
+    ``before`` = stan sprzed kroku — dopisuje skutki kroku do kroniki partii (osiągnięcia).
     """
     # Wormhole Nexus odwraca się na stronę aktywną, gdy pojawi się w nim jednostka/kontrola.
     after = game_end.apply_victory(nexus.activate_nexus(state.clone()))
@@ -67,4 +74,6 @@ def settle_step(
             after = limits.enforce_limits(resumed, registry)
             leaders.refresh_unlocks(after, registry)
             reaction_pause.sync(after, registry, now)
+    if before is not None:
+        chronicle_log.record_step(before, after, label)
     return game_clock.settle(after, now)

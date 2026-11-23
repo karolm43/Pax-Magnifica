@@ -3,14 +3,12 @@
 // tytuł, opis oraz stopka z uczestnikami (herb frakcji, nazwa, gracz). Kolor zależy od
 // kategorii, nie od gracza, więc rząd kart czyta się jak legenda.
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import {
   IconAward,
   IconBolt,
   IconBuilding,
   IconBuildingCastle,
-  IconChevronLeft,
-  IconChevronRight,
   IconCoins,
   IconTargetArrow,
   IconStopwatch,
@@ -43,6 +41,26 @@ import {
   IconTrendingUp,
   IconTrophy,
   IconUsers,
+  IconArrowBackUp,
+  IconBandage,
+  IconBomb,
+  IconBuildingBank,
+  IconCards,
+  IconChessKing,
+  IconClockPause,
+  IconFeather,
+  IconHeartBroken,
+  IconLockOpen,
+  IconLuggage,
+  IconMeteor,
+  IconPlant,
+  IconRoute,
+  IconShieldHalf,
+  IconSpeakerphone,
+  IconSun,
+  IconSword,
+  IconTelescope,
+  IconThumbDown,
   IconWorld,
 } from "@tabler/icons-react";
 import type { Icon } from "@tabler/icons-react";
@@ -109,6 +127,26 @@ export const ICONS: Record<string, Icon> = {
   TrendingUp: IconTrendingUp,
   Trophy: IconTrophy,
   Users: IconUsers,
+  ArrowBackUp: IconArrowBackUp,
+  Bandage: IconBandage,
+  Bomb: IconBomb,
+  BuildingBank: IconBuildingBank,
+  Cards: IconCards,
+  ChessKing: IconChessKing,
+  ClockPause: IconClockPause,
+  Feather: IconFeather,
+  HeartBroken: IconHeartBroken,
+  LockOpen: IconLockOpen,
+  Luggage: IconLuggage,
+  Meteor: IconMeteor,
+  Plant: IconPlant,
+  Route: IconRoute,
+  ShieldHalf: IconShieldHalf,
+  Speakerphone: IconSpeakerphone,
+  Sun: IconSun,
+  Sword: IconSword,
+  Telescope: IconTelescope,
+  ThumbDown: IconThumbDown,
   World: IconWorld,
 };
 
@@ -121,11 +159,20 @@ const META: Record<string, { icon: Icon; tag: AchievementTag }> = Object.fromEnt
 
 const FALLBACK = { icon: IconAward, tag: "Table" as AchievementTag };
 
-export function AchievementCard({ item }: { item: AchievementData }) {
+export function achievementTag(key: string): AchievementTag {
+  return (META[key] ?? FALLBACK).tag;
+}
+
+export function AchievementCard({ item, index = 0 }: { item: AchievementData; index?: number }) {
   const meta = META[item.key] ?? FALLBACK;
   const Glyph = meta.icon;
   return (
-    <li className={styles.card} data-tag={meta.tag} data-key={item.key}>
+    <li
+      className={styles.card}
+      data-tag={meta.tag}
+      data-key={item.key}
+      style={{ "--i": index } as CSSProperties}
+    >
       <header className={styles.head}>
         <span className={styles.badge} aria-hidden>
           <Glyph size={22} stroke={1.8} />
@@ -164,78 +211,126 @@ export function AchievementCard({ item }: { item: AchievementData }) {
 }
 
 
+
+/** Kolejność kategorii w filtrze i w siatce. */
+const TAG_ORDER: AchievementTag[] = ["War", "Treachery", "Table", "Race", "Empire", "Peace"];
+
 /**
- * Sekcja z poziomo przewijanym rzędem kart (swipe/kółko/strzałki). Karty mają stałą
- * szerokość i zatrzymują się na początku karty (scroll-snap); strzałki pokazują się tylko,
- * gdy jest dokąd przewijać.
+ * Tablica osiągnięć: chipy kategorii (z liczbą) nad responsywną siatką kart — wszystko
+ * widoczne naraz, bez przewijania w bok. ``playerId`` zawęża karty do jednego gracza
+ * (wybór na podium).
  */
-export function AchievementRow({
+export function AchievementBoard({
   title,
   items,
+  players,
+  playerId,
+  onSelectPlayer,
 }: {
   title: string;
   items: AchievementData[];
+  /** Wszyscy gracze partii — każdy może podejrzeć swoje osiągnięcia. */
+  players: AchievementPlayer[];
+  playerId: string | null;
+  onSelectPlayer: (playerId: string | null) => void;
 }) {
-  const listRef = useRef<HTMLUListElement>(null);
-  const [edge, setEdge] = useState({ left: false, right: false });
-
-  const update = useCallback(() => {
-    const el = listRef.current;
-    if (!el) return;
-    setEdge({
-      left: el.scrollLeft > 4,
-      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
-    });
-  }, []);
-
-  useEffect(() => {
-    update();
-    const el = listRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [update, items.length]);
-
-  const page = (direction: -1 | 1) => {
-    const el = listRef.current;
-    if (el) el.scrollBy({ left: direction * el.clientWidth * 0.85, behavior: "smooth" });
-  };
+  const [tag, setTag] = useState<AchievementTag | null>(null);
+  const forPlayer = useMemo(
+    () =>
+      playerId === null
+        ? items
+        : items.filter((item) => item.players.some((p) => p.id === playerId)),
+    [items, playerId],
+  );
+  const sorted = useMemo(
+    () =>
+      [...forPlayer].sort(
+        (a, b) =>
+          TAG_ORDER.indexOf(achievementTag(a.key)) - TAG_ORDER.indexOf(achievementTag(b.key)),
+      ),
+    [forPlayer],
+  );
+  const counts = useMemo(() => {
+    const out = new Map<AchievementTag, number>();
+    for (const item of forPlayer) {
+      const t = achievementTag(item.key);
+      out.set(t, (out.get(t) ?? 0) + 1);
+    }
+    return out;
+  }, [forPlayer]);
+  const shown = tag === null ? sorted : sorted.filter((item) => achievementTag(item.key) === tag);
 
   if (items.length === 0) return null;
   return (
-    <section className={styles.row} aria-label={title}>
-      <h2 className={styles.rowTitle}>
+    <section className={styles.board} aria-label={title}>
+      <h2 className={styles.boardTitle}>
         {title}
-        <span className={styles.count}>{items.length}</span>
+        <span className={styles.count}>{forPlayer.length}</span>
       </h2>
-      <div className={styles.scroller}>
-        {edge.left && (
+      <div className={styles.filters} role="group" aria-label="Filter by player">
+        <button
+          type="button"
+          className={styles.filter}
+          aria-pressed={playerId === null}
+          onClick={() => onSelectPlayer(null)}
+        >
+          All players
+        </button>
+        {players.map((p) => (
           <button
+            key={p.id}
             type="button"
-            className={`${styles.arrow} ${styles.arrowLeft}`}
-            onClick={() => page(-1)}
-            aria-label={`${title}: previous`}
+            className={`${styles.filter} ${styles.filterPlayer}`}
+            style={p.swatch ? ({ "--player": p.swatch } as CSSProperties) : undefined}
+            aria-pressed={playerId === p.id}
+            onClick={() => onSelectPlayer(playerId === p.id ? null : p.id)}
           >
-            <IconChevronLeft size={22} />
+            <img
+              src={`/static/factions/${p.faction}.png`}
+              alt=""
+              width={20}
+              height={20}
+              className={styles.crest}
+              onError={(e) => {
+                e.currentTarget.style.visibility = "hidden";
+              }}
+            />
+            {p.factionName}
+            <b>{items.filter((item) => item.players.some((q) => q.id === p.id)).length}</b>
           </button>
-        )}
-        <ul ref={listRef} className={styles.track} onScroll={update}>
-          {items.map((item) => (
-            <AchievementCard key={item.key} item={item} />
+        ))}
+      </div>
+      <div className={styles.filters} role="group" aria-label="Filter by category">
+        <button
+          type="button"
+          className={styles.filter}
+          aria-pressed={tag === null}
+          onClick={() => setTag(null)}
+        >
+          All <b>{forPlayer.length}</b>
+        </button>
+        {TAG_ORDER.filter((t) => counts.has(t)).map((t) => (
+          <button
+            key={t}
+            type="button"
+            className={styles.filter}
+            data-tag={t}
+            aria-pressed={tag === t}
+            onClick={() => setTag(tag === t ? null : t)}
+          >
+            {t} <b>{counts.get(t)}</b>
+          </button>
+        ))}
+      </div>
+      {shown.length > 0 ? (
+        <ul className={styles.grid} key={`${tag ?? "all"}:${playerId ?? "all"}`}>
+          {shown.map((item, i) => (
+            <AchievementCard key={item.key} item={item} index={i} />
           ))}
         </ul>
-        {edge.right && (
-          <button
-            type="button"
-            className={`${styles.arrow} ${styles.arrowRight}`}
-            onClick={() => page(1)}
-            aria-label={`${title}: next`}
-          >
-            <IconChevronRight size={22} />
-          </button>
-        )}
-      </div>
+      ) : (
+        <p className={styles.empty}>No achievements here.</p>
+      )}
     </section>
   );
 }

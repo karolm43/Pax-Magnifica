@@ -95,7 +95,9 @@ class StateService:
         )
         # Reguły „po każdym kroku” (koniec gry, Nexus, limity, liderzy, pauza reakcji, zegar
         # szachowy) leżą w core - ta sama ścieżka dla bota (RULES.md 65.1).
-        after = step_settle.settle_step(state, rules_hooks.bound_registry(), self._now(), label)
+        after = step_settle.settle_step(
+            state, rules_hooks.bound_registry(), self._now(), label, before=before
+        )
         entry = activity.derive_activity(label, before, after)
         self._store.commit(
             after,

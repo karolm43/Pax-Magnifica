@@ -505,3 +505,23 @@ Warstwa PREZENTACYJNA (nic w regułach). Użytkownik pisze teksty sam; ja dałem
   Cudzysłowy dymka przeniesione z CSS (`::before/::after`) do tekstu.
 - `text-wrap: pretty` w stylach flavoru (DetailsCard, agendy, notki/cele, bohater, relikt, dossier systemu, kronika) — bez sierot w ostatniej linii.
 - Pominięte: `clean`/`cleanFlavour` w `SystemDetailsCard`/`SystemDossier` zostają (zdejmują `*...*` także z wpisów `cardLore.ts`).
+
+## Ekran końcowy: podium, tablica osiągnięć, 20 nowych osiągnięć (2026-11-23)
+
+- **Podium** (`domains/victory/Podium.tsx`): miejsca 2 · 1 · 3 z portretami frakcji (`portraitCandidates`), ostry środek
+  i rozmyte boki, cokoły złoto/srebro/brąz. Klik zawęża osiągnięcia do gracza. Tabela wyników zostaje pod podium.
+- **Hall of honors** (`AchievementBoard` w `AchievementCard.tsx`): siatka kart zamiast przewijanego rzędu, filtry
+  wszystkich graczy (każdy widzi swoje) i kategorii. Kronika + wyróżnienia statystyczne w jednej tablicy.
+- **Nowe osiągnięcia** (`core/chronicle_feats.py`, katalog `assets/config/achievements.json`): oathbreaker, vulture,
+  kingmaker, saboteur, voice_of_council, senate_master, dissident, staller, silk_road, giant_slayer, last_stand,
+  punching_bag, tactical_retreat, rain_of_fire, first_to_throne, mecatol_tourist, void_walker, card_shark, sun_forger,
+  late_bloomer.
+- **Zapisy kroniki** (`core/chronicle_log.py`, nowe pola `GameChronicle`): agendy (`agenda_phase._resolve`), ostrzał
+  spoza walki (Space Cannon, bombardowanie, Space Cannon Defense), oraz z różnicy stanów w `step_settle.settle_step(before=)`
+  — ta sama ścieżka dla serwera i bota (`engine/actions.apply_and_settle`): pasy, mówca, karty akcji, eksploracje,
+  Mecatol, szczyt War Sunów. Bitwy: `retreated`, `survivors`. God-Mode nie trafia do kroniki.
+- ⚠️ ZAŁOŻENIA (prezentacja, nie reguły): Oathbreaker = atak na głównego partnera handlowego; Kingmaker = SftT u
+  zwycięzcy albo atak na wicelidera w ostatniej rundzie; Staller = ostatni pas w rundzie; Last Stand = 1 jednostka
+  (bez struktur); Late Bloomer od 4 graczy.
+- Testy: `tests/test_chronicle_feats.py`, `AchievementBoard.test.tsx`. Pełny pytest, ruff, mypy, tsc, eslint, vitest OK.
+  Pominięte: `npm run build` (przerwany — długi), e2e. Restart backendu (nowe pola kroniki).

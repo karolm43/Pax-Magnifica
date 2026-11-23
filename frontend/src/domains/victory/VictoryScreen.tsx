@@ -40,7 +40,8 @@ import {
   useFactionAccent,
 } from "@/domains/setup/FactionBackdrop";
 import { getEpilogue, DEFAULT_EPILOGUE_AUTHOR } from "./factionEpilogues";
-import { AchievementRow, type AchievementData, type AchievementPlayer } from "./AchievementCard";
+import { AchievementBoard, type AchievementData, type AchievementPlayer } from "./AchievementCard";
+import { Podium, type PodiumPlace } from "./Podium";
 import { buildAwards, summarize } from "./gameStats";
 import styles from "./VictoryScreen.module.css";
 
@@ -613,6 +614,25 @@ function SummaryStage({
       })),
     [awards, toPlayer],
   );
+  // Jedna tablica: kronika wojny + wyróżnienia statystyczne (te drugie po kronice).
+  const honors = useMemo(
+    () => [...highlightCards, ...awardCards],
+    [highlightCards, awardCards],
+  );
+  const [focus, setFocus] = useState<string | null>(null);
+  const places = useMemo<PodiumPlace[]>(
+    () =>
+      rows.slice(0, 3).map((row) => ({
+        row,
+        factionName:
+          factionById.get(row.player.faction)?.name ?? getPlayerFactionDisplayName(row.player),
+        playerName: isBot(row.player) ? "Bot" : playerName(row.player),
+        swatch: COLOR_SWATCH[row.player.color],
+        honors: honors.filter((h) => h.players.some((p) => p.id === row.player.discordId))
+          .length,
+      })),
+    [rows, factionById, honors],
+  );
   const columns: { key: string; label: string; value: (i: number) => number }[] = [
     { key: "vp", label: "VP", value: (i) => rows[i].vp },
     { key: "planets", label: "Planets", value: (i) => rows[i].planets },
@@ -632,6 +652,8 @@ function SummaryStage({
         </p>
         <h1 className={styles.summaryTitle}>Final standings</h1>
       </header>
+
+      <Podium places={places} factionById={factionById} selected={focus} onSelect={setFocus} />
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>
@@ -685,8 +707,14 @@ function SummaryStage({
         </table>
       </div>
 
-      <AchievementRow title="Chronicle of the war" items={highlightCards} />
-      <AchievementRow title="Distinctions" items={awardCards} />
+
+      <AchievementBoard
+        title="Hall of honors"
+        items={honors}
+        players={rows.map((r) => toPlayer(r.player))}
+        playerId={focus}
+        onSelectPlayer={setFocus}
+      />
 
       <div className={styles.footer}>
         <button type="button" className={styles.secondary} onClick={onReview}>

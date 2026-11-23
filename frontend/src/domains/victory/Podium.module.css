@@ -1,0 +1,235 @@
+/*
+ * Podium: trzy kolumny (2 · 1 · 3). Każda = portret (ostry środek, rozmyte boki) + cokół
+ * z miejscem, frakcją, graczem i punktami. Kolor cokołu: złoto / srebro / brąz.
+ */
+
+.podium {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: min(100%, 64rem);
+  display: grid;
+  grid-template-columns: 1fr 1.18fr 1fr;
+  align-items: end;
+  gap: clamp(8px, 1.4vw, 20px);
+}
+
+.place {
+  --metal: #c9ced6;
+  --portrait-h: clamp(13rem, 30vh, 20rem);
+  --plinth-h: 7.5rem;
+  min-width: 0;
+  animation: rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--delay, 0s) both;
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+.place[data-place="1"] {
+  --metal: #ffd34a;
+  --portrait-h: clamp(16rem, 38vh, 25rem);
+  --plinth-h: 9.5rem;
+}
+
+.place[data-place="3"] {
+  --metal: #d08a52;
+  --portrait-h: clamp(11.5rem, 26vh, 17rem);
+  --plinth-h: 6.5rem;
+}
+
+.place[data-dim] {
+  opacity: 0.45;
+  filter: saturate(0.4);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hit {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.hit:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 4px;
+}
+
+/* ── Portret: rozmyta kopia pod spodem, ostra postać wygaszana ku lewej i prawej ── */
+
+.portrait {
+  position: relative;
+  height: var(--portrait-h);
+  overflow: hidden;
+  isolation: isolate;
+  /* Góra i boki całej kolumny gasną w tło sceny. */
+  mask-image:
+    linear-gradient(180deg, transparent 0, #000 22%),
+    linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+  mask-composite: intersect;
+}
+
+.blur {
+  position: absolute;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  object-fit: cover;
+  object-position: center 30%;
+  filter: blur(10px) saturate(1.15) brightness(0.7);
+  opacity: 0.5;
+  z-index: 0;
+}
+
+.figure {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  z-index: 1;
+  /* Ostry tylko środek — boki przechodzą w rozmycie pod spodem. */
+  mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+  transition: transform 0.4s ease;
+}
+
+.portrait[data-icon] .figure {
+  inset: 18% 22%;
+  width: 56%;
+  height: 64%;
+  object-fit: contain;
+  mask-image: none;
+  filter: drop-shadow(0 0 18px var(--metal));
+}
+
+.hit:hover .figure {
+  transform: scale(1.04);
+}
+
+/* ── Cokół ── */
+
+.plinth {
+  position: relative;
+  z-index: 2;
+  min-height: var(--plinth-h);
+  margin-top: -1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 10px 12px;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--metal) 22%, rgb(12 10 8 / 0.95)), rgb(9 8 7 / 0.96) 70%);
+  box-shadow:
+    inset 0 2px 0 color-mix(in oklab, var(--metal) 85%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--metal) 40%, transparent),
+    0 -10px 30px color-mix(in oklab, var(--metal) 18%, transparent);
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%, 0 10px);
+}
+
+.hit[aria-pressed="true"] .plinth {
+  box-shadow:
+    inset 0 2px 0 var(--metal),
+    inset 0 0 0 2px var(--metal),
+    0 -10px 40px color-mix(in oklab, var(--metal) 40%, transparent);
+}
+
+.rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: -2px;
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-weight: 700;
+  font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+  line-height: 1;
+  color: var(--metal);
+  text-shadow: 0 0 18px color-mix(in oklab, var(--metal) 60%, transparent);
+}
+
+.place[data-place="1"] .rank {
+  font-size: clamp(2.2rem, 4.2vw, 3.2rem);
+}
+
+.name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  font-family: "Handel Gothic", "Ambroise Firmin", var(--ds-font-display), sans-serif;
+  font-size: clamp(0.78rem, 1.05vw, 1rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f6ead0;
+  line-height: 1.2;
+}
+
+.crest {
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.player {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: rgb(246 234 208 / 0.65);
+}
+
+.dot {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-right: 0.45em;
+  border-radius: 50%;
+  background: var(--player, #aaa);
+  box-shadow: 0 0 6px var(--player, transparent);
+}
+
+.numbers {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 0.82rem;
+  color: rgb(246 234 208 / 0.75);
+  font-variant-numeric: tabular-nums;
+}
+
+.numbers b {
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-size: 1.25rem;
+  color: #fff3d6;
+}
+
+.honors {
+  margin-left: 6px;
+  padding: 1px 8px;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--metal);
+  border: 1px solid color-mix(in oklab, var(--metal) 55%, transparent);
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .place {
+    animation: none;
+  }
+}
