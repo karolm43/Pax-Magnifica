@@ -1,15 +1,15 @@
-// Krok setupu: miejsce przy stole i kolor (Step_SeatColor) — ostatni krok kreatora.
+// Krok setupu: kolor (Step_SeatColor) — ostatni krok kreatora.
 //
 // Kolor wybieramy PO frakcji, bo każda frakcja ma listę preferowanych kolorów
-// (`preferred_colours` z danych AsyncTI4). Scena w tym samym języku co pozostałe kroki:
+// (`preferred_colours` z danych AsyncTI4). Miejsce przy stole NIE jest tu wybierane —
+// ustala je lobby (krok 1, `Step_Players`); tu widać je tylko w opisie gracza.
 //   - pasek górny: ← Back · tytuł · przycisk „Start game";
 //   - lewa kolumna: gracze (frakcja, miejsce, kolor) — klik wybiera, kogo konfigurujemy;
-//   - prawy panel: miejsce przy stole, kolory preferowane przez frakcję oraz pełna
-//     paleta AsyncTI4 (zwykłe, split, specjalne).
+//   - prawy panel: kolory preferowane przez frakcję oraz pełna paleta AsyncTI4.
 //
-// Duplikatów nie da się zrobić: wybór koloru lub miejsca zajętego przez innego gracza
-// ZAMIENIA oba (`swapColor` / `swapSeat`). Gracz z losową frakcją nie ma jeszcze
-// preferencji (frakcję dobiera backend przy starcie gry).
+// Duplikatów nie da się zrobić: wybór koloru zajętego przez innego gracza ZAMIENIA oba
+// (`swapColor`). Gracz z losową frakcją nie ma jeszcze preferencji (frakcję dobiera
+// backend przy starcie gry).
 
 import { canEditSlot, useLobbyRole } from "@/domains/network/setupSync";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
@@ -31,8 +31,6 @@ import {
   colorSwatchBackground,
   preferredColorsOf,
 } from "../playerColors";
-import { useMapSeatInfo } from "../useMapSeatInfo";
-import { SeatBoard } from "./SeatBoard";
 import base from "./Step_Players.module.css";
 import styles from "./Step_SeatColor.module.css";
 
@@ -107,12 +105,9 @@ function Swatch({
 export default function Step_SeatColor({ factions, factionById, stage }: SetupStepProps) {
   const slots = useSetupStore((s) => s.slots);
   const swapColor = useSetupStore((s) => s.swapColor);
-  const swapSeat = useSetupStore((s) => s.swapSeat);
   const shuffleColors = useSetupStore((s) => s.shuffleColors);
   const applyPreferredColors = useSetupStore((s) => s.applyPreferredColors);
   const rollRandomFactions = useSetupStore((s) => s.rollRandomFactions);
-  // Gotowa mapa: ikona frakcji domu na miejscu (przesiadka = zmiana frakcji, SetupWizard).
-  const { seatFactions } = useMapSeatInfo();
 
   // Lobby sieciowe (RULES.md 44.5a): gość ustawia tylko swój kolor i miejsce; losowanie
   // frakcji „Random" robi host (jedno źródło — inaczej każdy klient losowałby co innego).
@@ -163,7 +158,7 @@ export default function Step_SeatColor({ factions, factionById, stage }: SetupSt
 
         <div className={base.titleBlock}>
           <span className={base.kicker}>New game · Step 3 of 3</span>
-          <h1 className={base.title}>Seat &amp; color</h1>
+          <h1 className={base.title}>Color</h1>
         </div>
 
         {stage?.message && <span className={base.topMessage}>{stage.message}</span>}
@@ -244,39 +239,28 @@ export default function Step_SeatColor({ factions, factionById, stage }: SetupSt
               </button>
             </div>
             <p className={base.hint}>
-              Picking a color or seat held by another player swaps the two.
+              Picking a color held by another player swaps the two.
             </p>
           </section>
           )}
           {isGuest && (
             <section className={base.section}>
               <p className={base.hint}>
-                Pick a free seat and color. Everyone sees the choices live; the host starts
+                Pick a free color. Everyone sees the choices live; the host starts
                 the game.
               </p>
             </section>
           )}
         </aside>
 
-        {/* Prawy panel: miejsce + kolory aktywnego gracza. */}
-        <section className={styles.panel} aria-label="Seat and color">
+        {/* Prawy panel: kolory aktywnego gracza (miejsce wybiera lobby, krok 1). */}
+        <section className={styles.panel} aria-label="Color">
           <header className={styles.panelHead}>
             <h2 className={styles.panelTitle}>
               {active.name.trim() || `Player ${activeSlotIndex + 1}`}
             </h2>
             <span className={styles.panelSub}>{factionName(active, factionById)}</span>
           </header>
-
-          <div className={styles.block}>
-            <h3 className={base.sectionTitle}>Seat at the table</h3>
-            <SeatBoard
-              slots={slots}
-              activeIndex={activeSlotIndex}
-              onPickSeat={(seat) => swapSeat(activeSlotIndex, seat)}
-              seatFactions={seatFactions}
-              factionName={(id) => factionById.get(id)?.name ?? id}
-            />
-          </div>
 
           <div className={styles.block}>
             <h3 className={base.sectionTitle}>

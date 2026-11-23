@@ -365,7 +365,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
               ? stage?.submitting
                 ? "Starting…"
                 : "Start game"
-              : "Seat & color"}
+              : "Choose colors"}
             <span className={styles.startArrow} aria-hidden>
               →
             </span>

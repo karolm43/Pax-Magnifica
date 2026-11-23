@@ -62,7 +62,7 @@ export async function startSoloGame(page: Page, faction = "The Federation of Sol
   await page.getByRole("option", { name: faction }).click();
   await page.getByRole("button", { name: "Choose for player 1" }).click();
   await expect(page.getByRole("tab").first()).toContainText(faction);
-  await page.getByRole("button", { name: "Seat & color" }).click();
+  await page.getByRole("button", { name: "Choose colors" }).click();
   await page.getByRole("button", { name: "Start game" }).click();
   await page.getByRole("button", { name: "Skip" }).click();
   await expect(page).toHaveURL(/\/game$/);

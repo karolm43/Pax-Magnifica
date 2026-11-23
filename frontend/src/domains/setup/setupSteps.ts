@@ -57,7 +57,7 @@ export interface SetupStepDef {
 export const SETUP_STEPS: SetupStepDef[] = [
   { id: "players", order: 1, label: "Players & map" },
   { id: "faction", order: 2, label: "Faction & starting technologies" },
-  { id: "seat-color", order: 3, label: "Seat & color" },
+  { id: "seat-color", order: 3, label: "Color" },
 ];
 
 /**

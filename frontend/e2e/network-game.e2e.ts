@@ -49,7 +49,7 @@ test("host + gość: lobby na żywo, każdy wybiera frakcję, wspólny start i t
   await expect(host.getByRole("tab").nth(1)).toContainText("The Emirates of Hacan");
 
   // Start: tylko host prowadzi kreator dalej.
-  await host.getByRole("button", { name: "Seat & color" }).click();
+  await host.getByRole("button", { name: "Choose colors" }).click();
   await host.getByRole("button", { name: "Start game" }).click();
 
   // Obaj dostają intro i trafiają do wyboru tajnych celów — równocześnie, każdy swoje karty.
