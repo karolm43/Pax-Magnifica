@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
+import { CardLore } from "@/shared/ui/DetailsCard/CardLore";
 import { FactionIcon } from "@/shared/ui/FactionIcon";
 import { getBreakthroughData } from "@/entities/lookup/breakthroughs";
 
@@ -59,6 +60,7 @@ export function BreakthroughCard({ breakthroughId }: Props) {
         title="Effect"
         content={data.text?.replace(/\n/g, "\n\n") || "No description available."}
       />
+      <CardLore kind="breakthrough" id={breakthroughId} />
     </DetailsCard>
   );
 }

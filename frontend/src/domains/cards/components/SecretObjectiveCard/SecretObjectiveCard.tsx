@@ -1,5 +1,6 @@
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
+import { CardLore } from "@/shared/ui/DetailsCard/CardLore";
 import { SecretObjectiveIcon } from "@/shared/ui/SecretObjectiveIcon";
 
 type Props = {
@@ -25,6 +26,7 @@ export function SecretObjectiveCard({ secretId }: Props) {
         }
       />
       <DetailsCard.Section title="Objective" content={secretData.text} />
+      <CardLore kind="secretObjective" id={secretId} />
     </DetailsCard>
   );
 }

@@ -51,6 +51,7 @@ function Line({ m, me }: { m: ChatMessage; me: string | null }) {
       data-hidden={m.text == null || undefined}
       data-mine={mine || undefined}
       data-to-me={toMe || undefined}
+      data-voice={m.voice || undefined}
     >
       <span className={styles.meta}>
         <time className={styles.time} title={new Date(m.at * 1000).toLocaleString()}>

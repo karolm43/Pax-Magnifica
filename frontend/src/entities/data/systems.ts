@@ -832,7 +832,7 @@ export const systems: TileData[] = [
   {
     "id": "113",
     "name": "Beta Rift",
-    "flavourText": "",
+    "flavourText": "A violent convergence where a hungry singularity tugs relentlessly at a nearby Wormhole. Exiting the rift requires nerves of steel, as a fraction of a degree separates a rapid flank from a crushing void.",
     "aliases": [
       "te07",
       "betarift"
@@ -850,7 +850,7 @@ export const systems: TileData[] = [
   {
     "id": "114",
     "name": "Entropic Scar",
-    "flavourText": "",
+    "flavourText": "A jagged wound in spacetime where matter slowly unravels into cold, silent dust. Conventional physics falter within its borders, drawing eccentric scholars who risk annihilation to study its decaying energy.",
     "aliases": [
       "te27",
       "scar",
@@ -1207,7 +1207,7 @@ export const systems: TileData[] = [
   {
     "id": "17",
     "name": "Creuss Gate - Creuss",
-    "flavourText": "",
+    "flavourText": "A blinding tear in the fabric of reality leaking faint, radioactive light. To most navigators it is a dread accounts told to fellow sailors in the humming darkness of long-haul freighters, but for the Ghosts of Creuss it serves as the sole threshold to their hidden realm.",
     "aliases": [
       "17",
       "deltawh",
@@ -2177,7 +2177,7 @@ export const systems: TileData[] = [
   {
     "id": "39",
     "name": "Alpha Wormhole",
-    "flavourText": "",
+    "flavourText": "A quiet stretch of deep space torn open by a shimmering orange aperture. Though devoid of worlds, its stable transit corridor makes it a fiercely contested tollgate for interstellar trade convoys.",
     "aliases": [
       "39",
       "alphawh",
@@ -2221,7 +2221,7 @@ export const systems: TileData[] = [
   {
     "id": "40",
     "name": "Beta Wormhole",
-    "flavourText": "",
+    "flavourText": "Swirling bands of ionized dust orbit this ancient spatial rift. Automated navigation buoys left by the Lazax still broadcast warnings, yet smugglers and raiders rely on its unpredictable currents to evade imperial patrols.",
     "aliases": [
       "40",
       "betawh",
@@ -2265,7 +2265,7 @@ export const systems: TileData[] = [
   {
     "id": "41",
     "name": "Gravity Rift",
-    "flavourText": "",
+    "flavourText": "The invisible remnant of a collapsed star that warps light and shreds careless hulls. Daring admirals still slingshot their fleets along its event horizon, trading structural integrity for impossible speed.",
     "aliases": [
       "41",
       "gravityrift",
@@ -2306,7 +2306,7 @@ export const systems: TileData[] = [
   {
     "id": "42",
     "name": "Nebula",
-    "flavourText": "",
+    "flavourText": "A sprawling nursery of dense, luminescent gas clouds that blinds long-range sensors and slows engines to a crawl. While a nightmare for fleet logistics, it offers an unmatched sanctuary for damaged vessels seeking cover.",
     "aliases": [
       "42",
       "nebula",
@@ -2345,7 +2345,7 @@ export const systems: TileData[] = [
   {
     "id": "43",
     "name": "Supernova",
-    "flavourText": "",
+    "flavourText": "A blinding maelstrom of incandescent plasma and lethal radiation. No conventional hull can survive its fury, yet distant research outposts harvest its escaping neutrinos to power experimental reactors.",
     "aliases": [
       "43",
       "supernova1",
@@ -2388,7 +2388,7 @@ export const systems: TileData[] = [
   {
     "id": "44",
     "name": "Asteroids",
-    "flavourText": "",
+    "flavourText": "A dense belt of iron-rich rock and shattered moonlets tumbling in chaotic orbits. Navigation is treacherous for capital ships, but automated mining drones tirelessly strip its boulders for hull-grade alloys.",
     "aliases": [
       "44",
       "asteroids1",
@@ -2432,7 +2432,7 @@ export const systems: TileData[] = [
   {
     "id": "45",
     "name": "Asteroids",
-    "flavourText": "",
+    "flavourText": "The jagged graveyard of a planetoid torn apart during the Twilight Wars. Beneath the constant threat of hull-breaching collisions, Mentak corsairs carve hidden drydocks into the largest drifting stones.",
     "aliases": [
       "45",
       "asteroids2",
@@ -2472,7 +2472,7 @@ export const systems: TileData[] = [
   {
     "id": "46",
     "name": "Empty System",
-    "flavourText": "",
+    "flavourText": "A vast, featureless gulf of interstellar darkness miles from any habitable star. Though lacking resources of its own, its position along major hyperlanes makes it a frequent graveyard of decisive fleet engagements.",
     "aliases": [
       "46",
       "void1",
@@ -2516,7 +2516,7 @@ export const systems: TileData[] = [
   {
     "id": "47",
     "name": "Empty System",
-    "flavourText": "",
+    "flavourText": "Dead space littered only with micro-meteorites and the faint static of ancient Lazax beacons. Hacan merchant guilds pay handsomely for updated charts of its quiet, pirate-free transit lanes.",
     "aliases": [
       "47",
       "void2",
@@ -2556,7 +2556,7 @@ export const systems: TileData[] = [
   {
     "id": "48",
     "name": "Empty System",
-    "flavourText": "",
+    "flavourText": "An unremarkable void where nothing orbits and no sun shines. Intelligence agencies prize its absolute isolation, deploying cloaked listening posts to intercept encrypted transmissions from neighboring sectors.",
     "aliases": [
       "48",
       "void3",
@@ -2596,7 +2596,7 @@ export const systems: TileData[] = [
   {
     "id": "49",
     "name": "Empty System",
-    "flavourText": "",
+    "flavourText": "A cold stretch of nothingness scarred by the faint ion trails of a thousand passing armadas. There are no worlds to claim here, yet controlling this empty crossroads often decides the fate of entire empires.",
     "aliases": [
       "49",
       "void4",
@@ -2636,7 +2636,7 @@ export const systems: TileData[] = [
   {
     "id": "50",
     "name": "Empty System",
-    "flavourText": "",
+    "flavourText": "A silent expanse of deep space bathed in the dim glow of a distant nebula. Navigators welcome the monotonous calm, using the empty sector to recalibrate jump drives and vent excess reactor heat.",
     "aliases": [
       "50",
       "void5",
@@ -3916,7 +3916,7 @@ export const systems: TileData[] = [
   {
     "id": "77",
     "name": "Empty System",
-    "flavourText": "",
+    "flavourText": "A barren frontier sector far removed from the bustling core of Mecatol Rex. Though officially charted as uninhabited, black-market brokers routinely use its unmonitored void for discreet cargo transfers.",
     "aliases": [
       "77",
       "void6",
@@ -3956,7 +3956,7 @@ export const systems: TileData[] = [
   {
     "id": "78",
     "name": "Void",
-    "flavourText": "",
+    "flavourText": "An endless, starless pocket of the galaxy where only long-range sensors break the silence. Devoid of mineral wealth, it serves instead as a clean proving ground for testing experimental propulsion drives.",
     "aliases": [
       "78",
       "void7",
@@ -3996,7 +3996,7 @@ export const systems: TileData[] = [
   {
     "id": "79",
     "name": "Asteroids Alpha Wormhole",
-    "flavourText": "",
+    "flavourText": "A treacherous labyrinth of tumbling debris guarding a coveted Wormhole. Captains who master the narrow, shifting lanes between the rocks gain a vital shortcut—while those who miscalculate become part of the belt.",
     "aliases": [
       "79",
       "asteroidsalphawh",
@@ -4042,7 +4042,7 @@ export const systems: TileData[] = [
   {
     "id": "80",
     "name": "Supernova",
-    "flavourText": "",
+    "flavourText": "The violent death throes of a red supergiant, casting an eerie glare across neighboring sectors. Its expanding shockwave has vaporized every planet in the system, leaving behind an impassable barrier of pure fire.",
     "aliases": [
       "80",
       "supernova2",
@@ -4082,7 +4082,7 @@ export const systems: TileData[] = [
   {
     "id": "81",
     "name": "Nova Seed",
-    "flavourText": "",
+    "flavourText": "An artificially ignited star burning with the wrath of the Embers of Muaat. Where other races see an absolute wall of annihilation, the Gashlai find a familiar forge capable of sheltering their massive War Suns.",
     "aliases": [
       "81",
       "novaseed",
@@ -7445,7 +7445,7 @@ export const systems: TileData[] = [
   {
     "id": "94",
     "name": "Sorrow (Crimson)",
-    "flavourText": "",
+    "flavourText": "A weeping fissure of crimson energy surrounded by the drifting husks of forgotten warships. Few dare approach its eerie gravitational pull, though whispers claim no ship that enters it ever returns.",
     "aliases": [
       "te04",
       "epsilonwh",
@@ -15629,7 +15629,7 @@ export const systems: TileData[] = [
   {
     "id": "fracture2",
     "name": "Fracture Egress Left",
-    "flavourText": "",
+    "flavourText": "A frayed boundary where the twisted physics of the Fracture finally yield to normal space. Exhausted expeditions treat this threshold as a lifeline, though rival fleets often lie in wait for whatever emerges.",
     "aliases": [
       "fracture2",
       "egressleft"
@@ -15643,7 +15643,7 @@ export const systems: TileData[] = [
   {
     "id": "fracture3",
     "name": "Fracture Void Left",
-    "flavourText": "",
+    "flavourText": "A sterile expanse of splintered space where starlight bends at unnatural angles. Seemingly devoid of value, its deadened sensor profiles make it a favored staging ground for covert operations.",
     "aliases": [
       "fracture3"
     ],
@@ -15673,7 +15673,7 @@ export const systems: TileData[] = [
   {
     "id": "fracture5",
     "name": "Fracture Void Right",
-    "flavourText": "",
+    "flavourText": "Cold, lightless void laced with faint echoes of broken dimensions. Crews passing through report unsettling temporal skips, yet the sheer emptiness ensures an unobstructed highway for massive war fleets.",
     "aliases": [
       "fracture5"
     ],
@@ -15685,7 +15685,7 @@ export const systems: TileData[] = [
   {
     "id": "fracture6",
     "name": "Fracture Egress Right",
-    "flavourText": "",
+    "flavourText": "A shimmering exit corridor framed by drifting shards of crystallized energy. It offers the only reliable escape from the deep Fracture, turning an otherwise barren sector into a vital strategic chokepoint.",
     "aliases": [
       "fracture6",
       "egressright"

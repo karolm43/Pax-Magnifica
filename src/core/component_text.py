@@ -44,6 +44,59 @@ SCOPE_LABELS = {
 }
 
 
+# Efekty, które NIE są kartą (żetony, znaczniki silnika): klucz -> (nazwa, rodzaj, tekst).
+# Źródła: R_initiative_order + F_naalu (żeton „0”), C_agendas (Classified Document Leaks),
+# F_jolnar (Doctor Sucaban). Nazwa ma być krótka - leży pod żetonem na tacy.
+SYSTEM_EFFECTS: dict[str, tuple[str, str, str]] = {
+    "initiative.zero_token": (
+        "\"0\" Token",
+        "Naalu token",
+        "The Naalu player's initiative number is 0 instead of the number on their strategy "
+        "card, so they act before every other player in initiative order. The token returns "
+        "to the Naalu player at the end of the status phase.",
+    ),
+    "objectives:retired": (
+        "Retired objective",
+        "Objective",
+        "This public objective stays in play but can no longer be scored by anyone.",
+    ),
+    "promissory_notes:tekklar:penalty": (
+        "Tekklar Legion",
+        "Promissory note",
+        "Apply -1 to the result of each of this player's unit's combat rolls during this combat "
+        "(Tekklar Legion was played against the N'orr player).",
+    ),
+    "technology:research_discount": (
+        "Research discount",
+        "Bonus",
+        "The cost of this player's next paid technology research is reduced. "
+        "The discount is used up by that research.",
+    ),
+}
+
+# Klucze efektów, które w katalogu mają inne id niż w silniku (kopie karty: war_machine1/2,
+# notki z kolorem: <color>_cf).
+_CATALOG_ALIASES = {
+    "action_cards:war_machine": "action_cards:war_machine1",
+    "promissory_notes:ceasefire": "promissory_notes:<color>_cf",
+    "promissory_notes:political_secret": "promissory_notes:<color>_ps",
+}
+
+# Znaczniki wewnętrzne silnika (otwarta decyzja, „już użyte w tym kroku”) - gracz nie ma
+# co z nimi zrobić, więc nie trafiają na tacę efektów.
+_HIDDEN_KEYS = {
+    "action_cards:dp_give",
+    "agenda_phase:dp_target",
+    "production:commander_trade_good",
+}
+_HIDDEN_PREFIXES = ("research:",)
+
+
+def is_hidden_effect(key: str) -> bool:
+    """Czy efekt to wewnętrzny znacznik silnika (bez znaczenia dla gracza)."""
+    return key in _HIDDEN_KEYS or key.startswith(_HIDDEN_PREFIXES)
+
+
 def describe_component(registry: StaticDataRegistry, covers: str | None) -> tuple[str, str, str]:
     """``(nazwa, tekst, rodzaj)`` komponentu hooka z assetów; pusto, gdy brak danych.
 
@@ -51,6 +104,10 @@ def describe_component(registry: StaticDataRegistry, covers: str | None) -> tupl
     """
     from src.core import faction_components  # lokalnie: faction_components -> ... -> offers
 
+    system = SYSTEM_EFFECTS.get(covers or "")
+    if system is not None:
+        return system[0], system[2], system[1]
+    covers = _CATALOG_ALIASES.get(covers or "", covers)
     if not covers or ":" not in covers:
         return "", "", ""
     # Klucz efektu może mieć dopisek po drugim dwukropku (``leaders:letnevagent:die``).
@@ -102,8 +159,19 @@ def active_effects_view(state: GameState, registry: StaticDataRegistry) -> list[
 
     rows: list[dict[str, Any]] = []
     for effect in state.active_effects:
+        if is_hidden_effect(effect.key):
+            continue
         name, text, kind = describe_component(registry, effect.key)
         details: list[str] = []
+        objective_id = effect.data.get("objective")
+        if isinstance(objective_id, str) and objective_id:
+            from src.core import objectives  # lokalnie: objectives importuje rejestr
+
+            found = objectives.objective_def(registry, objective_id)
+            details.append(found.name if found is not None and found.name else objective_id)
+        discount = effect.data.get("amount")
+        if effect.key == "technology:research_discount" and isinstance(discount, int):
+            details.append(f"next research costs {discount} less")
         base_type = effect.data.get("base_type")
         if isinstance(base_type, str) and base_type:
             owner = effect.owner or state.active_player_id or ""
@@ -133,4 +201,4 @@ def _fallback_name(key: str) -> str:
     """Nazwa z klucza, gdy komponentu nie ma w assetach (``foo:bar_baz`` -> „Bar baz”)."""
     parts = key.split(":")
     raw = parts[1] if len(parts) > 1 else parts[0]
-    return raw.replace("_", " ").capitalize()
+    return raw.replace("_", " ").replace(".", " ").capitalize()

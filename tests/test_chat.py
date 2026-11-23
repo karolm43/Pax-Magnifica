@@ -93,3 +93,18 @@ def test_endpoint_szept_i_undo_nie_kasuje(client: TestClient) -> None:
     client.post("/turn/pass")
     client.post("/undo")
     assert len(client.get("/chat?player=p2").json()["messages"]) == 2
+
+
+def test_komunikat_frakcji_to_publiczna_wiadomosc_z_flaga() -> None:
+    """``voice``: kwestia z pola gracza — publiczna, przeżywa JSON, nie bywa szeptem."""
+    log = chat.post(chat.ChatLog(), PLAYERS, "p1", "For the Federation!", now=5.0, voice=True)
+    log = chat.post(log, PLAYERS, "p2", "plain", now=6.0)
+    assert [m.voice for m in log.messages] == [True, False]
+    view = chat.visible(log, "p3", sees_everything=False)
+    assert [(m["text"], m["voice"]) for m in view] == [
+        ("For the Federation!", True),
+        ("plain", False),
+    ]
+    assert chat.ChatLog.from_json(log.to_json()).messages == log.messages
+    with pytest.raises(ValueError, match="cannot be a whisper"):
+        chat.post(log, PLAYERS, "p1", "psst", now=7.0, to="p2", voice=True)

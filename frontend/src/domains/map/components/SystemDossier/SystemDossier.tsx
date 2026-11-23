@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGameState } from "@/api/useGameState";
+import { DEFAULT_GAME_ID } from "@/config";
 import { useIsHost } from "@/domains/network/useNetworkMe";
 import { Button, CloseButton, Image } from "@/ds";
 import { IconPencil, IconSwords } from "@tabler/icons-react";
@@ -32,6 +33,7 @@ import { EconomicFigure, PlanetBand } from "./PlanetBand";
 import { SystemEditor } from "./SystemEditor";
 import { useFactionHelpers, type FactionHelpers } from "./useFactionHelpers";
 import { UnitSheetContext, useUnitSheet, type SheetUnit } from "./unitSheet";
+import { SystemBattleHistory } from "./SystemBattleHistory";
 import styles from "./SystemDossier.module.css";
 
 /** Fits the 345px tile into the art column's 222px well. */
@@ -428,7 +430,7 @@ export function SystemDossier({
   const gameData = useGameData();
   const helpers = useFactionHelpers();
   const { mapid } = useParams<{ mapid: string }>();
-  const { data: gameState } = useGameState(mapid ?? "");
+  const { data: gameState } = useGameState(mapid ?? DEFAULT_GAME_ID);
   const attacker = findAttacker(tile, gameState, gameData?.playerData ?? []);
   const [sheetUnit, setSheetUnit] = useState<SheetUnit | null>(null);
   const [editing, setEditing] = useState(false);
@@ -497,6 +499,11 @@ export function SystemDossier({
             <TileWell tile={tile} helpers={helpers} />
             <SystemFacts tile={tile} features={features} />
             <Flavour systemId={tile.systemId} planetIds={planetIds} />
+            <SystemBattleHistory
+              position={tile.position}
+              helpers={helpers}
+              history={gameState?.battleHistory}
+            />
           </aside>
 
           <div className={styles.zones}>

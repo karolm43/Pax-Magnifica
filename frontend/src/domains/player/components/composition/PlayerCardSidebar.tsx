@@ -86,6 +86,7 @@ export default function PlayerCardSidebar(props: Props) {
     >
       <PlayerCardHeaderCompact
         userName={player.userName}
+        playerId={props.playerData.discordId}
         faction={player.faction}
         factionDisplayName={player.factionDisplayName}
         color={player.color}

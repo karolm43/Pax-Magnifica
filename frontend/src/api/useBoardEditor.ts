@@ -640,8 +640,8 @@ export function useBoardEditor() {
 
   // Czat i szepty (RULES.md 47.6): to nie stan gry - odświeżamy tylko dziennik czatu.
   const sendChat = useCallback(
-    async (playerId: string, text: string, to: string | null) => {
-      await post("/chat/send", { player_id: playerId, text, to });
+    async (playerId: string, text: string, to: string | null, voice = false) => {
+      await post("/chat/send", { player_id: playerId, text, to, voice });
       await queryClient.invalidateQueries({ queryKey: ["chat"] });
     },
     [queryClient],

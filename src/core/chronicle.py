@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from src.core import objectives
+from src.core import chronicle_awards, objectives
 from src.core.game_state import ActiveCombat, GameState
 from src.core.registry import StaticDataRegistry
 
@@ -85,10 +85,16 @@ def _ranks(vp: dict[str, int]) -> dict[str, int]:
 def record_battle(state: GameState, combat: ActiveCombat) -> None:
     """Zapisuje zakończoną walkę (kosmiczną/naziemną). Mutuje stan."""
     losses = {combat.attacker: 0, combat.defender: 0}
+    lost_types: dict[str, dict[str, int]] = {combat.attacker: {}, combat.defender: {}}
     for entry in combat.log:
         for pid, lost in (entry.get("losses") or {}).items():
             if pid in losses:
                 losses[pid] += sum(int(n) for n in lost.values())
+                for base_type, n in lost.items():
+                    if int(n) > 0:
+                        lost_types[pid][str(base_type)] = (
+                            lost_types[pid].get(str(base_type), 0) + int(n)
+                        )
     state.chronicle.battles.append(
         {
             "round": state.round_number,
@@ -100,10 +106,38 @@ def record_battle(state: GameState, combat: ActiveCombat) -> None:
             "winner": combat.winner,
             "rounds": combat.round,
             "losses": losses,
+            "lost_types": lost_types,
             "pact": (pact := pact_between(state, combat.attacker, combat.defender)),
             "betrayal": pact is not None,
         }
     )
+
+
+def battle_history(state: GameState) -> list[dict[str, Any]]:
+    """Historia bitew dla UI („co się tu wydarzyło”): ``camelCase``, kolejność chronologiczna.
+
+    Warstwa PREZENTACYJNA — dane do narracji (``battleLore.ts``) i listy w teczce systemu.
+    ``id`` = numer bitwy w partii (stabilny, od 0); ``lostTypes`` = straty wg typu bazowego.
+    """
+    out: list[dict[str, Any]] = []
+    for i, b in enumerate(state.chronicle.battles):
+        out.append(
+            {
+                "id": i,
+                "round": b["round"],
+                "kind": b["kind"],
+                "position": b["position"],
+                "planet": b["planet"],
+                "attacker": b["attacker"],
+                "defender": b["defender"],
+                "winner": b["winner"],
+                "rounds": b["rounds"],
+                "losses": dict(b["losses"]),
+                "lostTypes": {pid: dict(t) for pid, t in b.get("lost_types", {}).items()},
+                "betrayal": bool(b.get("betrayal")),
+            }
+        )
+    return out
 
 
 def record_conquest(state: GameState, by: str, from_player: str, planet: str) -> None:
@@ -480,7 +514,9 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
                 stat=f"{pair_fights[rivalry]} clashes",
             )
 
-        mutual = [b for b in battles if b["winner"] is None]
+        mutual = [
+            b for b in battles if b["winner"] is None and sum(b["losses"].values()) > 0
+        ]
         if mutual:
             m = max(mutual, key=lambda b: sum(b["losses"].values()))
             add(
@@ -603,6 +639,7 @@ def highlights(state: GameState, registry: StaticDataRegistry) -> list[dict[str,
 
     _race_highlights(state, who, add)
     _board_highlights(state, registry, who, add)
+    chronicle_awards.extra_highlights(state, registry, who, add)
 
     if not battles and state.winner_id:
         add(

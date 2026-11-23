@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ActiveEffectData } from "@/entities/data/types";
 import type { GameData } from "@/entities/game/types";
 import { TILE_HEIGHT, TILE_WIDTH, calculateSingleTilePosition } from "@/entities/geometry/tilePositioning";
-import { BoardEffectsZone } from "./BoardEffectsZone";
+import { BoardEffectsZone, BoardLawsZone } from "./BoardEffectsZone";
 import { ZONE_GAP, effectsZoneAnchor, zoneCells } from "./effectsZoneAnchor";
 
 const effectsRef: { current: ActiveEffectData[] } = { current: [] };
@@ -69,6 +69,13 @@ describe("effectsZoneAnchor", () => {
     expect(zoneCells(7)).toEqual([{ x: 0, y: 0 }, { x: 260, y: 150 }]);
   });
 
+  it("lewa strona: taca leży na lewo od środka planszy, kolejne heksy w lewo", () => {
+    const right = effectsZoneAnchor(SIX_PLAYERS, 3, [])!;
+    const left = effectsZoneAnchor(SIX_PLAYERS, 3, [], [], "left")!;
+    expect(left.x).toBeLessThan(right.x);
+    expect(zoneCells(7, "left")).toEqual([{ x: 0, y: 0 }, { x: -260, y: 150 }]);
+  });
+
   it("bez pól graczy nie ma gdzie położyć tacy", () => {
     expect(effectsZoneAnchor({}, 3, [])).toBeNull();
   });
@@ -101,5 +108,19 @@ describe("BoardEffectsZone", () => {
     expect(screen.getByRole("button", { name: /Darktalon Treilla/ })).toHaveAttribute("aria-expanded", "true");
     expect(await screen.findByText(/more ships than your fleet pool/)).toBeInTheDocument();
     expect(screen.getByText("this game round")).toBeInTheDocument();
+  });
+});
+
+describe("BoardLawsZone", () => {
+  it("lewa taca praw: pusta i napis wyjaśnia, co pokazuje", async () => {
+    render(
+      <MemoryRouter>
+        <BoardLawsZone gameData={gameData as unknown as GameData} tiles={[]} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("region", { name: "Laws in play" })).toBeInTheDocument();
+    expect(screen.getByText("No laws in play")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Laws - what is this/ }));
+    expect(await screen.findByText(/passed in the Agenda phase/)).toBeInTheDocument();
   });
 });

@@ -416,3 +416,34 @@ def test_bez_bohatera_brak_faktow_obszaru() -> None:
     after.systems["102"] = _system("102", space_units={"p1": {"dreadnought": 1}})
     entry = derive_activity("tactical:produce", before, after)
     assert entry is None or not [f for f in entry.facts if f.type == "area"]
+
+
+def test_ruch_floty_i_desant_maja_cel_i_liczby() -> None:
+    """Ruch i desant nie zmieniają sum jednostek — osobne fakty ``moved`` i ``landed``."""
+    before = _state()
+    after = _state()
+    def system(pos: str, cruisers: int = 0) -> SystemState:
+        units = {"p1": {"cruiser": cruisers}} if cruisers else {}
+        return SystemState(position=pos, system_id="27", space_units=units)
+
+    before.systems["101"], before.systems["102"] = system("101", 2), system("102")
+    after.systems["101"], after.systems["102"] = system("101", 1), system("102", 1)
+    after.active_system = "102"
+    move = derive_activity("tactical:move:101", before, after)
+    assert move is not None
+    assert [(f.type, f.value, f.delta, f.detail) for f in move.facts if f.type == "moved"] == [
+        ("moved", "cruiser", 1, "102")
+    ]
+
+    land_before = _state()
+    land_after = _state()
+    land_after.active_system = "102"
+    land_before.systems["102"] = SystemState(position="102", system_id="28")
+    land_after.systems["102"] = SystemState(
+        position="102", system_id="28", planet_units={"lodor": {"p1": {"infantry": 3}}}
+    )
+    land = derive_activity("invasion:commit", land_before, land_after)
+    assert land is not None
+    assert [(f.value, f.delta, f.detail) for f in land.facts if f.type == "landed"] == [
+        ("infantry", 3, "lodor")
+    ]

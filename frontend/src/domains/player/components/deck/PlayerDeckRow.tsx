@@ -1,4 +1,5 @@
 import { memo, type CSSProperties, type ReactNode } from "react";
+import { StatusInfo } from "@/shared/ui/StatusInfo/StatusInfo";
 import cx from "clsx";
 import type { PlayerData } from "@/entities/data/types";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
@@ -125,16 +126,23 @@ function Seat({
       <span />
       <span className={styles.stamps}>
         {player.passed && !player.active && (
-          <span className={styles.passed}>Passed</span>
+          <StatusInfo status="passed">
+            <span className={styles.passed}>Passed</span>
+          </StatusInfo>
         )}
-        {player.isTyrant && <span className={styles.tyrant}>Tyrant</span>}
+        {player.isTyrant && (
+          <StatusInfo status="tyrant">
+            <span className={styles.tyrant}>Tyrant</span>
+          </StatusInfo>
+        )}
         {player.isSpeaker && (
-          <img
-            className={styles.speaker}
-            src={assetUrl("/tokens/token_speaker.png")}
-            alt="Speaker"
-            title="Speaker"
-          />
+          <StatusInfo status="speaker">
+            <img
+              className={styles.speaker}
+              src={assetUrl("/tokens/token_speaker.png")}
+              alt=""
+            />
+          </StatusInfo>
         )}
       </span>
     </div>
@@ -142,7 +150,11 @@ function Seat({
 }
 
 function ActiveMark({ active }: { active: boolean }) {
-  return active ? <span className={styles.activeDot} title="Active" /> : null;
+  return active ? (
+    <StatusInfo status="active">
+      <span className={styles.activeDot} />
+    </StatusInfo>
+  ) : null;
 }
 
 /**

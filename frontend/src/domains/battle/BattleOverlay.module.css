@@ -1428,6 +1428,19 @@
   color: var(--ds-ink-lo);
 }
 
+.summaryStory {
+  margin: 0;
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--ds-ink);
+}
+
+.summaryStory b {
+  font-style: normal;
+  color: var(--ds-ink-hi);
+}
+
 .summarySide {
   display: grid;
   gap: 4px;

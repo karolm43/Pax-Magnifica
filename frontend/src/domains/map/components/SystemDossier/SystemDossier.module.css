@@ -282,6 +282,55 @@
   color: var(--ds-ink);
 }
 
+/* ---------- Kronika bitew systemu ---------- */
+
+.chronicle {
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ds-hair, rgba(255, 255, 255, 0.08));
+}
+
+.chronicleHead {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.chronicleList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.chronicleItem p {
+  margin: 2px 0 0;
+  font-size: var(--text-data);
+  font-style: italic;
+  line-height: var(--lh-body);
+  color: var(--ds-ink-lo);
+}
+
+.chronicleItem b {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--ds-ink);
+}
+
+.chronicleMeta {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
 /* ---------- Zones ---------- */
 
 .zones {

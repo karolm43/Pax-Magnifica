@@ -1,0 +1,12 @@
+/* Opakowanie statusu: klikalne, bez własnego wyglądu - wygląd daje dziecko. */
+.target {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.target:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 4px;
+}

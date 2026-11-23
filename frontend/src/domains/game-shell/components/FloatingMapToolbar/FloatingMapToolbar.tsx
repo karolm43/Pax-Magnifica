@@ -6,6 +6,7 @@ import { EventsHub, useActivityUnread } from "@/domains/game-shell/components/Ac
 import { SecretHand } from "@/domains/game-shell/components/SecretHand";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
 import { useSecretHandAccess } from "@/domains/game-shell/components/SecretHand/useSecretHandAccess";
+import { ChronicleBook, ChronicleButton } from "@/domains/chronicle";
 import { AudioSettingsButton } from "@/shared/audio/AudioSettingsButton";
 import { assetUrl } from "@/shared/assets/resolveAsset";
 import type { PlayerHandData } from "@/shared/types/playerHand";
@@ -194,6 +195,7 @@ export function FloatingMapToolbar({
         panelId={panelId}
         onClick={() => togglePanel("events")}
       />
+      <ChronicleButton />
       <AudioSettingsButton />
     </>
   );
@@ -210,6 +212,8 @@ export function FloatingMapToolbar({
           <div className={classes.float}>{eventsButton}</div>
         )}
       </div>
+
+      <ChronicleBook />
 
       {canViewSecretHand && (
         <HandButton

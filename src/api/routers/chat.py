@@ -29,6 +29,8 @@ class ChatSendRequest(BaseModel):
     player_id: str
     text: str = Field(max_length=chat.MAX_LENGTH * 2)
     to: str | None = None
+    voice: bool = False
+    """Komunikat frakcji: gotowa kwestia z pola gracza (publiczna, z bąbelkiem w UI)."""
 
 
 class ChatMessageView(BaseModel):
@@ -42,6 +44,7 @@ class ChatMessageView(BaseModel):
     whisper: bool
     text: str | None
     at: float
+    voice: bool = False
 
 
 class ChatResponse(BaseModel):
@@ -88,7 +91,7 @@ async def post_chat(
     try:
         log = chat.post(
             _log(ctx), list(state.players), body.player_id, body.text, ctx.service.now(),
-            to=body.to,
+            to=body.to, voice=body.voice,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

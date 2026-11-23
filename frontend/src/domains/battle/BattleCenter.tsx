@@ -24,6 +24,7 @@ import type {
 import { HoldRollButton, type HoldState } from "@/domains/dice/HoldRollButton";
 import { BattleRelicTools } from "./BattleRelicTools";
 import { BattleSummary } from "./BattleSummary";
+import { getPlanetData } from "@/entities/lookup/planets";
 import styles from "./BattleOverlay.module.css";
 
 type Step = NonNullable<BattleView["step"]>;
@@ -545,7 +546,16 @@ export function BattleCenter({
               <span>No units remain on either side</span>
             </>
           )}
-          <BattleSummary view={view} nameOf={nameOf} colorOf={colorOf} />
+          <BattleSummary
+            view={view}
+            nameOf={nameOf}
+            colorOf={colorOf}
+            where={
+              (view.kind === "ground" && view.planet
+                ? getPlanetData(view.planet)?.name
+                : undefined) ?? systemLabel(view.position ?? "")
+            }
+          />
           <button
             type="button"
             className={styles.primary}

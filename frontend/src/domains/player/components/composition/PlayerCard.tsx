@@ -30,6 +30,7 @@ export default function PlayerCard(props: Props) {
     >
       <PlayerCardHeaderFull
         userName={player.userName}
+        playerId={props.playerData.discordId}
         faction={player.faction}
         factionDisplayName={player.factionDisplayName}
         color={player.color}

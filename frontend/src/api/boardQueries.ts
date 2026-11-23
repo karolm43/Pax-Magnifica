@@ -649,6 +649,8 @@ export type ChatMessage = {
   text: string | null;
   /** Czas wysłania (s UNIX, zegar serwera). */
   at: number;
+  /** Komunikat frakcji: gotowa kwestia z pola gracza (publiczna, z dymkiem). */
+  voice?: boolean;
 };
 
 /** Dziennik czatu oglądającego ``player`` (w sieci serwer i tak bierze gracza z tokenu). */

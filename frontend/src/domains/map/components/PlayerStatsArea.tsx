@@ -17,6 +17,8 @@ import {
   SC_COLORS,
   SC_NUMBER_COLORS,
 } from "@/entities/data/strategyCardColors";
+import InfluenceIcon from "@/shared/ui/InfluenceIcon";
+import { FactionVoice, FactionVoiceBubble } from "@/domains/chat/FactionVoice";
 import { CommandTokenStack } from "./CommandTokenStack";
 import { PlayerStatsHex, buildStatHexagons } from "./PlayerStatsHex";
 import styles from "./PlayerStatsArea.module.css";
@@ -181,6 +183,7 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
               }}
             >
               {factionDisplayName}
+              <FactionVoiceBubble playerId={playerData.discordId} />
             </div>
 
             {(playerData.playerName || playerData.userName) && (
@@ -366,6 +369,22 @@ export const PlayerStatsArea = memo(function PlayerStatsArea({
               </Text>
             </div>
           </Group>
+          {/* Ekonomia planet: dostępne / łącznie (nie „optimal”). */}
+          <div
+            className={styles.economyRow}
+            title="Resources and influence: available / total"
+          >
+            <span className={styles.economyItem}>
+              <img src="/pa_resources.png" alt="Resources" />
+              {playerData.resources ?? 0}/{playerData.totResources ?? 0}
+            </span>
+            <span className={styles.economyItem}>
+              <InfluenceIcon size={18} />
+              {playerData.influence ?? 0}/{playerData.totInfluence ?? 0}
+            </span>
+          </div>
+          {/* Komunikaty frakcji: przycisk tylko u własnego gracza, dymek z kwestią u nadawcy. */}
+          <FactionVoice playerId={playerData.discordId} faction={faction} />
           {playerData.isSpeaker && (
             <img
               src={assetUrl("/tokens/token_speaker.png")}

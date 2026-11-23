@@ -99,6 +99,10 @@
   position: absolute;
   z-index: 10;
   transform: translate(-50%, -50%);
+  /* Żetony Speaker/Tyrant pod rzędem TG/commodities/AC leżą na jego osi. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .playerStatusText {
@@ -125,6 +129,30 @@
 .tradeGoodsGroup {
   min-width: 170px;
   justify-content: center;
+}
+
+/* Mniejszy i przygaszony względem TG/commodities — to stan, nie główna liczba. */
+.economyRow {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.economyItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.economyItem img {
+  height: 18px;
+  width: auto;
 }
 
 .tradeGoodsContainer {

@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { StatusInfo } from "@/shared/ui/StatusInfo/StatusInfo";
 import { Chip } from "@/shared/ui/primitives/Chip";
 import styles from "./StatusIndicator.module.css";
 
@@ -14,11 +15,13 @@ export const StatusIndicator = memo(function StatusIndicator({
   if (!passed && !active) return null;
 
   return (
-    <Chip
-      accent={passed ? "red" : "green"}
-      title={passed ? "PASSED" : "ACTIVE"}
-      size="xs"
-      className={styles.indicator}
-    />
+    <StatusInfo status={passed ? "passed" : "active"}>
+      <Chip
+        accent={passed ? "red" : "green"}
+        title={passed ? "PASSED" : "ACTIVE"}
+        size="xs"
+        className={styles.indicator}
+      />
+    </StatusInfo>
   );
 });

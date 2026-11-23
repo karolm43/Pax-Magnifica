@@ -1,0 +1,151 @@
+/* Komunikaty frakcji: przycisk w polu gracza + dymek z kwestią. Wszystko w kolorze gracza
+   (--pc = „r g b” ustawiane w komponencie), tło i obrys jak reszta paneli (ciemne szkło). */
+
+.wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+}
+
+/* Ścięte brzegi jak sześciokąt numeru systemu: warstwa koloru gracza + ciemny wkład 2 px. */
+.btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  background: rgb(var(--pc) / 0.9);
+  color: rgb(var(--pc));
+  cursor: pointer;
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+  transition: filter 120ms ease, color 120ms ease;
+}
+
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  background:
+    radial-gradient(circle at 50% 30%, rgb(var(--pc) / 0.35), transparent 75%),
+    rgb(18 18 20 / 0.96);
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+
+.btn svg {
+  position: relative;
+}
+
+.btn:hover,
+.btn[aria-expanded="true"] {
+  color: var(--ds-ink-hi);
+  filter: brightness(1.25);
+}
+
+.btn:focus-visible,
+.line:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
+}
+
+/* Panel jak teczka systemu: szyna z nagłówkiem (ds-rail), gniazda (ds-socket), akcent gracza. */
+.list {
+  display: grid;
+  width: 232px;
+  /* Ramka: warstwa koloru gracza + wkład; ścięte rogi. */
+  padding: 1px;
+  background: rgb(var(--pc) / 0.6);
+  color: var(--ds-ink);
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+}
+
+.head {
+  composes: ds-label from global;
+  padding: 8px 14px;
+  background: var(--ds-tex-rail), var(--ds-rail);
+  border-bottom: 1px solid var(--ds-h14);
+  color: rgb(var(--pc));
+}
+
+/* 9 jednakowych przycisków kategorii (siatka 3 × 3) — gniazda jak w teczce systemu. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 10px;
+  background: rgb(18 18 20 / 0.97);
+}
+
+.cat {
+  height: 40px;
+  padding: 0 4px;
+  border: 0;
+  background: var(--ds-socket);
+  box-shadow: inset 0 0 0 1px var(--ds-h14);
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+  color: var(--ds-ink-hi);
+  font: inherit;
+  font-size: var(--text-data);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+.cat:hover:not(:disabled) {
+  background: rgb(var(--pc) / 0.2);
+  box-shadow: inset 0 0 0 1px rgb(var(--pc) / 0.8);
+}
+
+.cat:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.cat:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
+}
+
+/* Dymek z kwestią: w portalu na body (nad wszystkim), wychodzi znad nazwy frakcji.
+   Ścięte brzegi; ramka w kolorze gracza = zewnętrzna warstwa + wkład. */
+.bubble {
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 100000;
+  width: max-content;
+  max-width: 560px;
+  padding: 3px;
+  background: rgb(var(--pc) / 0.95);
+  clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px), 0 16px);
+  filter: drop-shadow(0 8px 24px rgb(0 0 0 / 0.6));
+  pointer-events: none;
+  animation: bubbleIn 200ms ease-out;
+}
+
+.bubbleInner {
+  padding: 18px 28px;
+  background:
+    linear-gradient(rgb(var(--pc) / 0.2), rgb(var(--pc) / 0.2)),
+    rgb(18 18 20 / 0.97);
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+  color: var(--ds-ink-hi);
+  font-size: 26px;
+  font-style: italic;
+  line-height: 1.35;
+  text-align: center;
+}
+
+@keyframes bubbleIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble {
+    animation: none;
+  }
+}

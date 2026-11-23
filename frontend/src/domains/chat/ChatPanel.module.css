@@ -156,6 +156,19 @@
   color: var(--ds-ink-lo);
 }
 
+/* Komunikat frakcji (gotowa kwestia z pola gracza): cytat kursywą, bez tła szeptu. */
+.line[data-voice] .text {
+  font-style: italic;
+}
+
+.line[data-voice] .text::before {
+  content: "C";
+}
+
+.line[data-voice] .text::after {
+  content: "D";
+}
+
 .line[data-to-me] {
   background: rgb(var(--ds-sig-law) / 0.14);
 }

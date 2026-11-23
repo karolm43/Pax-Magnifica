@@ -21,7 +21,6 @@
 
 /* Dno slotu: ciemny gradient + cień, krawędź jak frez w blacie. */
 .floor {
-  fill: url(#effects-tray-floor);
   fill-opacity: 0.88;
   stroke: rgb(150 172 205 / 0.34);
   stroke-width: 3;
@@ -38,10 +37,35 @@
 }
 
 /* Napis wybity u góry heksa, jak „Player p1” na polach graczy. */
-.plate {
+.plateWrap {
   position: absolute;
-  top: 30px;
-  left: 0;
+  width: 345px;
+  pointer-events: none;
+}
+
+.plateButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  text-shadow: inherit;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  cursor: help;
+  pointer-events: auto;
+}
+
+.plateButton:hover {
+  color: rgb(214 225 240 / 0.95);
+}
+
+.plate {
+  margin-top: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -68,8 +92,6 @@
 
 .empty {
   position: absolute;
-  top: 132px;
-  left: 0;
   width: 345px;
   margin: 0;
   font-size: 22px;
@@ -94,13 +116,13 @@
 
 .token {
   position: absolute;
-  left: -40px;
+  left: -44px;
   top: -34px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  width: 80px;
+  width: 88px;
   padding: 0;
   color: inherit;
   background: none;
@@ -132,15 +154,18 @@
     0 4px 10px rgb(0 0 0 / 0.7);
 }
 
+/* Nazwa do dwóch linii (np. „Research discount”), dopiero potem ucinana. */
 .label {
-  max-width: 80px;
+  max-width: 88px;
   overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   font-size: 15px;
   font-weight: 600;
   line-height: 1.1;
   text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   color: rgb(214 225 240 / 0.85);
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.9);
 }

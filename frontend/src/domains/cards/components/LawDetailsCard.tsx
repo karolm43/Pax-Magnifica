@@ -2,6 +2,7 @@ import { IconScale } from "@tabler/icons-react";
 import { LawInPlay } from "@/entities/data/types";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
+import { CardLore } from "@/shared/ui/DetailsCard/CardLore";
 import styles from "./cardText.module.css";
 
 type Props = {
@@ -44,6 +45,7 @@ export function LawDetailsCard({ law }: Props) {
           }
         />
       )}
+      <CardLore kind="agenda" id={law.id} />
     </DetailsCard>
   );
 }

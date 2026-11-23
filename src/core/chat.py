@@ -7,6 +7,9 @@ w metadanych). R_deals: gracze negocjują i zawierają umowy w dowolnej chwili, 
 * Wiadomość publiczna (``to is None``) — treść widzą wszyscy.
 * Szept (``to = player_id``) — treść widzą TYLKO nadawca i adresat; pozostali widzą sam fakt
   „X szepcze do Y” (decyzja użytkownika: „gracze widzą, że whisperujesz”).
+* Komunikat frakcji (``voice``) — gotowa kwestia klikana z pola gracza (tekst wpisuje użytkownik
+  w ``factionVoiceLines.ts``). To zwykła publiczna wiadomość z flagą dla UI (bąbelek, kursywa);
+  niczego nie zmienia w regułach i nigdy nie bywa szeptem.
 
 Funkcje CZYSTE; czas wstrzykiwany (``now``), nigdy ``time.time()`` w ``core/``.
 """
@@ -33,6 +36,7 @@ class ChatMessage:
     text: str
     at: float
     to: str | None = None
+    voice: bool = False
 
 
 @dataclass(frozen=True)
@@ -64,6 +68,7 @@ class ChatLog:
                     text=str(m["text"]),
                     at=float(m["at"]),
                     to=None if m.get("to") is None else str(m["to"]),
+                    voice=bool(m.get("voice", False)),
                 )
                 for m in items
                 if isinstance(m, dict)
@@ -78,6 +83,7 @@ def post(
     text: str,
     now: float,
     to: str | None = None,
+    voice: bool = False,
 ) -> ChatLog:
     """Dopisuje wiadomość ``sender`` (szept, gdy ``to``); zwraca nowy dziennik.
 
@@ -92,12 +98,16 @@ def post(
             raise ValueError(f"Unknown player: {to}")
         if to == sender:
             raise ValueError("You cannot whisper to yourself.")
+    if voice and to is not None:
+        raise ValueError("A faction voice line is public and cannot be a whisper.")
     body = text.strip()
     if not body:
         raise ValueError("The message is empty.")
     if len(body) > MAX_LENGTH:
         raise ValueError(f"The message is too long (max {MAX_LENGTH} characters).")
-    message = ChatMessage(seq=log.last_seq + 1, sender=sender, text=body, at=now, to=to)
+    message = ChatMessage(
+        seq=log.last_seq + 1, sender=sender, text=body, at=now, to=to, voice=voice
+    )
     return ChatLog((*log.messages, message)[-MAX_MESSAGES:])
 
 
@@ -117,6 +127,7 @@ def visible(log: ChatLog, viewer: str | None, *, sees_everything: bool) -> list[
                 "whisper": m.to is not None,
                 "text": None if private else m.text,
                 "at": m.at,
+                "voice": m.voice,
             }
         )
     return out

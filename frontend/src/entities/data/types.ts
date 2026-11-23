@@ -643,6 +643,30 @@ export type GameState = {
   epilogue?: EpilogueData | null;
   /** Wnioski z przebiegu partii (największa bitwa, zdrady…) — puste, dopóki gra trwa. */
   highlights?: GameHighlight[];
+  /** Historia zakończonych bitew (teczka systemu, narracja wyniku) — kolejność chronologiczna. */
+  battleHistory?: BattleHistoryEntry[];
+};
+
+/** Zakończona bitwa z kroniki partii (``core/chronicle.battle_history``). */
+export type BattleHistoryEntry = {
+  /** Numer bitwy w partii (od 0). */
+  id: number;
+  round: number;
+  kind: "space" | "ground";
+  /** Pozycja systemu na mapie. */
+  position: string;
+  /** Id planety (walka naziemna) albo null. */
+  planet: string | null;
+  /** player_id stron i zwycięzcy (null = remis/odwrót). */
+  attacker: string;
+  defender: string;
+  winner: string | null;
+  rounds: number;
+  /** Liczba zniszczonych jednostek wg player_id. */
+  losses: Record<string, number>;
+  /** Straty wg player_id → typ bazowy → liczba. */
+  lostTypes: Record<string, Record<string, number>>;
+  betrayal: boolean;
 };
 
 export type GameHighlight = {

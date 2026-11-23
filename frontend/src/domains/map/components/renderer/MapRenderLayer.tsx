@@ -11,7 +11,7 @@ import { MapUnitTransitionLayer } from "../layers/MapUnitTransitionLayer";
 import { EffectMoveLayer, MoveRouteLayer } from "../layers/MoveRouteLayer";
 import { WormholeLinkLayer } from "../layers/WormholeLinkLayer";
 import { HeroBoardFxLayer } from "../layers/HeroBoardFxLayer";
-import { BoardEffectsZone } from "@/domains/effects/BoardEffectsZone";
+import { BoardEffectsZone, BoardLawsZone } from "@/domains/effects/BoardEffectsZone";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 
 type Props = {
@@ -72,6 +72,8 @@ export function MapRenderLayer({
         <HeroBoardFxLayer tiles={tilesList} contentSize={contentSize} />
         {/* Taca efektów trwałych po prawej, między polami graczy 2 i 3 (RULES.md 54). */}
         <BoardEffectsZone gameData={gameData} tiles={tilesList} />
+        {/* Lustrzana taca praw w grze po lewej. */}
+        <BoardLawsZone gameData={gameData} tiles={tilesList} />
       </Box>
 
       <MapUnitDetailsCard

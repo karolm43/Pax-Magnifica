@@ -1,5 +1,6 @@
 import { Image } from "@/ds";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
+import { CardLore } from "@/shared/ui/DetailsCard/CardLore";
 import { FactionIcon } from "@/shared/ui/FactionIcon";
 import styles from "./TechCard.module.css";
 import {
@@ -103,6 +104,7 @@ export function TechCard({ techId, fluid = false }: Props) {
           techData.text?.replace(/\n/g, "\n\n") || "No description available."
         }
       />
+      <CardLore kind="technology" id={techId} />
     </DetailsCard>
   );
 }

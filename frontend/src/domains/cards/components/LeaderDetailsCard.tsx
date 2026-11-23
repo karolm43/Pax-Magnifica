@@ -1,6 +1,7 @@
 import { Image } from "@/ds";
 import { getLeaderById } from "@/entities/lookup/leaders";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
+import { CardLore } from "@/shared/ui/DetailsCard/CardLore";
 import { showLeader } from "@/entities/lookup/showLeader";
 import { useIsTwilightsFallMode } from "@/hooks/useIsTwilightsFallMode";
 
@@ -49,6 +50,7 @@ export function LeaderDetailsCard({ leaderId }: Props) {
         title={displayAbilityWindow}
         content={displayAbilityText}
       />
+      <CardLore kind="leader" id={leaderId} />
     </DetailsCard>
   );
 }

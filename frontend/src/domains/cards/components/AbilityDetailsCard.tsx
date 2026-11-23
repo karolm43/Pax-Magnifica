@@ -1,5 +1,6 @@
 import { getAbility, getAbilityKind } from "@/entities/lookup/abilities";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
+import { CardLore } from "@/shared/ui/DetailsCard/CardLore";
 import { ABILITY_KIND_LABEL, AbilityMark } from "./AbilityMark";
 
 type Props = {
@@ -35,6 +36,7 @@ export function AbilityDetailsCard({ abilityId }: Props) {
       {ability.windowEffect && (
         <DetailsCard.Section title="Effect" content={ability.windowEffect} />
       )}
+      <CardLore kind="ability" id={abilityId} />
     </DetailsCard>
   );
 }

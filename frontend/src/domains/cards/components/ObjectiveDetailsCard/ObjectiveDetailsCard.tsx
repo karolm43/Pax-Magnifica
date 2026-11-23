@@ -4,6 +4,7 @@ import { publicObjectives } from "@/entities/data/publicObjectives";
 import { PlayerData } from "@/entities/data/types";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
+import { CardLore } from "@/shared/ui/DetailsCard/CardLore";
 import classes from "./ObjectiveDetailsCard.module.css";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 
@@ -115,6 +116,7 @@ export function ObjectiveDetailsCard({
           content={<FactionProgress rows={rows} threshold={progressThreshold} />}
         />
       )}
+      <CardLore kind="publicObjective" id={objectiveKey} />
     </DetailsCard>
   );
 }

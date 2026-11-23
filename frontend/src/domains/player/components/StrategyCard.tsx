@@ -9,6 +9,7 @@ import { useGameData } from "@/state/useGameContext";
 import { StrategyCardDetailsCard } from "@/domains/cards/components/StrategyCardDetailsCard";
 import { StrategyCardSheet } from "@/domains/cards/components/StrategyCardSheet";
 import type { ColorKey } from "@/shared/ui/gradientClasses";
+import { StatusInfo } from "@/shared/ui/StatusInfo/StatusInfo";
 import { searchKey, searchTarget } from "@/domains/search/searchKeys";
 import classes from "./StrategyCard.module.css";
 
@@ -86,9 +87,9 @@ export function StrategyCard({
     >
       <span className={classes.disc}>{initiative}</span>
       {zeroToken && (
-        <span className={classes.zero} title={'Naalu "0" token: initiative 0'}>
-          0
-        </span>
+        <StatusInfo status="initiativeZero">
+          <span className={classes.zero}>0</span>
+        </StatusInfo>
       )}
       <span className={classes.name}>{name}</span>
       {tradeGoods > 0 && (

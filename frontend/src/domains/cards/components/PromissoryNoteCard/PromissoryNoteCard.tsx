@@ -4,6 +4,7 @@ import { getAllianceCommander } from "@/entities/lookup/leaders";
 import { useFactionColors } from "@/hooks/useFactionColors";
 import { useGameData } from "@/state/useGameContext";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
+import { CardLore } from "@/shared/ui/DetailsCard/CardLore";
 import { FactionIcon } from "@/shared/ui/FactionIcon";
 import { FanSourceBadge } from "@/shared/ui/FanSourceBadge";
 import { showLeader } from "@/entities/lookup/showLeader";
@@ -93,6 +94,7 @@ export function PromissoryNoteCard({ promissoryNoteId }: Props) {
         />
       )}
       <DetailsCard.Section content={displayText} />
+      <CardLore kind="promissoryNote" id={noteData.noteData.alias} />
     </DetailsCard>
   );
 }

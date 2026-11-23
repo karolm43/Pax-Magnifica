@@ -44,6 +44,22 @@ def test_battle_losses_are_summed_and_recorded() -> None:
     assert battle["rounds"] == 3 and battle["betrayal"] is False
 
 
+def test_battle_history_exposes_ui_view_with_lost_types() -> None:
+    """Historia bitew dla teczki systemu: camelCase, id = numer bitwy, straty wg typu."""
+    state = _state()
+    chronicle.record_battle(state, _combat("p2", "p3", "p2", {"p2": 1, "p3": 4}))
+    chronicle.record_battle(state, _combat("p3", "p2", None, {"p2": 2, "p3": 2}))
+    history = chronicle.battle_history(state)
+    assert [b["id"] for b in history] == [0, 1]
+    first = history[0]
+    assert (first["position"], first["kind"], first["winner"], first["rounds"]) == (
+        "101", "space", "p2", 3
+    )
+    assert first["losses"] == {"p2": 1, "p3": 4}
+    assert first["lostTypes"] == {"p2": {"fighter": 1}, "p3": {"fighter": 4}}
+    assert history[1]["winner"] is None
+
+
 def test_attack_despite_pact_note_is_a_betrayal() -> None:
     state = _state()
     # p3 trzyma Alliance wystawiony przez p2 (kolor p2 = "p2").
@@ -134,3 +150,59 @@ def test_board_achievements(registry: StaticDataRegistry) -> None:
 def test_galaxy_at_peace(registry: StaticDataRegistry) -> None:
     keys = {h["key"] for h in chronicle.highlights(_state(), registry)}
     assert "peaceful_galaxy" in keys
+
+
+def test_battle_awards_first_blood_home_and_capital(registry: StaticDataRegistry) -> None:
+    state = _state()
+    chronicle.record_battle(state, _combat("p2", "p3", "p2", {"p2": 0, "p3": 2}))
+    home = _combat("p2", "p1", "p1", {"p1": 1, "p2": 2})
+    home.kind, home.planet = "ground", "jord"  # Jord = planeta-dom Sol (p1)
+    chronicle.record_battle(state, home)
+    chronicle.record_conquest(state, "p3", "p1", "jord")
+    found = {h["key"]: h for h in chronicle.highlights(state, registry)}
+    assert found["first_blood"]["players"] == ["p2"]
+    assert found["home_sweet_home"]["players"] == ["p1"]
+    assert found["capital_sacker"]["players"] == ["p3", "p1"]
+
+
+def test_blitzkrieg_needs_three_conquests_in_one_round(registry: StaticDataRegistry) -> None:
+    state = _state()
+    for planet in ("a", "b"):
+        chronicle.record_conquest(state, "p2", "p3", planet)
+    assert "blitzkrieg" not in {h["key"] for h in chronicle.highlights(state, registry)}
+    chronicle.record_conquest(state, "p2", "p3", "c")
+    found = {h["key"]: h for h in chronicle.highlights(state, registry)}
+    assert found["blitzkrieg"]["players"] == ["p2"]
+    assert found["blitzkrieg"]["stat"] == "3 planets in a round"
+
+
+def test_lead_changes_and_photo_finish(registry: StaticDataRegistry) -> None:
+    state = _state()
+    for rnd, vp in ((1, (2, 1, 0)), (2, (2, 3, 0)), (3, (4, 3, 2)), (4, (4, 3, 5))):
+        state.round_number = rnd
+        for pid, v in zip(("p1", "p2", "p3"), vp, strict=True):
+            state.players[pid].victory_points = v
+        chronicle.snapshot_round(state)
+    state.round_number = 5
+    for pid, v in zip(("p1", "p2", "p3"), (10, 9, 8), strict=True):
+        state.players[pid].victory_points = v
+    found = {h["key"]: h for h in chronicle.highlights(state, registry)}
+    assert found["lead_changes"]["stat"] == "4 lead changes"
+    assert found["photo_finish"]["players"] == ["p1", "p2"]
+    assert found["photo_finish"]["stat"] == "+1 VP"
+
+
+def test_pacifist_trades_while_others_fight(registry: StaticDataRegistry) -> None:
+    state = _state()
+    for _ in range(3):
+        chronicle.record_battle(state, _combat("p1", "p2", "p1", {"p1": 0, "p2": 2}))
+    chronicle.record_deal(state, "p3", "p2")
+    chronicle.record_deal(state, "p3", "p1")
+    found = {h["key"]: h for h in chronicle.highlights(state, registry)}
+    assert found["pacifist"]["players"] == ["p3"]
+
+
+def test_scuffle_without_losses_is_not_mutual_annihilation(registry: StaticDataRegistry) -> None:
+    state = _state()
+    chronicle.record_battle(state, _combat("p2", "p3", None, {"p2": 0, "p3": 0}))
+    assert "mutual_destruction" not in {h["key"] for h in chronicle.highlights(state, registry)}

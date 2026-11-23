@@ -1,8 +1,9 @@
 import { IconShieldHalfFilled, IconSkull, IconTargetArrow } from "@tabler/icons-react";
 import type { BattleLogEntry, BattleView } from "@/api/useBoardEditor";
-import { lookupUnit } from "@/entities/lookup/units";
+import { getGenericUnitDataByAsyncId, lookupUnit } from "@/entities/lookup/units";
 import { BASE_TYPE_BY_ASYNC } from "@/domains/map/components/UnitStack/cargo";
 import { Unit } from "@/shared/ui/Unit";
+import { battleSeed, describeBattle } from "@/domains/lore/battleLore";
 import styles from "./BattleOverlay.module.css";
 
 /* baseType → asyncId (odwrotność wspólnej mapy ruchu; jedno źródło tłumaczenia). */
@@ -29,6 +30,12 @@ export function battleTotals(log: BattleLogEntry[], key: string): SideTotals {
   return totals;
 }
 
+const sumLosses = (losses: Record<string, number>) =>
+  Object.values(losses).reduce((a, b) => a + b, 0);
+
+/** Pełna nazwa jednostki z typu bazowego (nigdy id AsyncTI4). */
+const unitFullName = (base: string) => getGenericUnitDataByAsyncId(ASYNC_BY_BASE[base] ?? base)?.name ?? base;
+
 /**
  * Proste podsumowanie zakończonej walki (ekran wyniku): liczba rund i dla każdej strony
  * zadane trafienia, Sustain Damage oraz zniszczone jednostki (ikony jak na polu bitwy).
@@ -37,20 +44,56 @@ export function BattleSummary({
   view,
   nameOf,
   colorOf,
+  where,
 }: {
   view: BattleView;
   nameOf: (key: string) => string;
   colorOf: (key: string) => string;
+  /** Nazwa miejsca walki (system albo planeta) do opisu fabularnego. */
+  where?: string;
 }) {
   const sides = [view.attacker?.faction, view.defender?.faction].filter(
     (k): k is string => !!k,
   );
   const rounds = view.round;
+  const attackerKey = view.attacker?.faction;
+  const defenderKey = view.defender?.faction;
+  let story: ReturnType<typeof describeBattle> | null = null;
+  if (attackerKey && defenderKey && where) {
+    const att = battleTotals(view.log, attackerKey);
+    const def = battleTotals(view.log, defenderKey);
+    const attackerLost = sumLosses(att.losses);
+    const defenderLost = sumLosses(def.losses);
+    story = describeBattle({
+      kind: view.kind ?? "space",
+      where,
+      attacker: nameOf(attackerKey),
+      defender: nameOf(defenderKey),
+      winner:
+        view.outcome === "winner" && view.winner
+          ? view.winner === attackerKey
+            ? "attacker"
+            : "defender"
+          : null,
+      rounds,
+      attackerLost,
+      defenderLost,
+      attackerTypes: att.losses,
+      defenderTypes: def.losses,
+      typeName: unitFullName,
+      seed: battleSeed(view.position, view.planet, rounds, attackerLost, defenderLost),
+    });
+  }
   return (
     <section className={styles.summary} aria-label="Battle summary">
       <header className={styles.summaryHead}>
         Battle summary · {rounds} round{rounds === 1 ? "" : "s"}
       </header>
+      {story && (
+        <p className={styles.summaryStory}>
+          <b>{story.headline}.</b> {story.text}
+        </p>
+      )}
       {sides.map((key) => {
         const t = battleTotals(view.log, key);
         const lost = Object.entries(t.losses);

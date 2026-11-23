@@ -185,6 +185,28 @@ function detailSystem(a: Activity, ctx: ActivityContext): ReactNode {
   return <Named kind="system" id={a.detail} name={ctx.systemName(a.detail)} systemText={ctx.systemHint(a.detail)} />;
 }
 
+/** Czasownik do nagłówka wpisu `update` wg jego pierwszego skutku. */
+const UPDATE_VERB: Record<string, string> = {
+  tech: "researched a technology",
+  tech_lost: "lost a technology",
+  planet_gained: "gained a planet",
+  planet_lost: "lost a planet",
+  units: "changed the forces on the board",
+  moved: "moved ships",
+  landed: "landed ground forces",
+  relic: "changed their relics",
+  objective_scored: "scored an objective",
+  secret_scored: "scored a secret objective",
+  vp: "changed their victory points",
+  tg: "changed their trade goods",
+  commodities: "changed their commodities",
+  cc: "changed their command tokens",
+  action_card: "played an action card",
+  leader: "changed a leader",
+  law_enacted: "enacted a law",
+  explore_card: "explored",
+};
+
 function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
   const actor = name(ctx, a.actor_id);
   const target = name(ctx, a.target_id);
@@ -247,24 +269,42 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
           {actor} played <Named kind="strategy" id={a.subject ?? ""} idMap={ctx.strategyCardIdMap} name={strategyCardName(ctx, a.subject)} />
         </>
       );
-    case "strategy.secondary":
+    case "strategy.secondary": {
+      // ``subject`` = inicjatywa karty (z okna secondary); starsze wpisy: brak nazwy.
+      const card = a.subject ? strategyCardName(ctx, a.subject) : null;
       return a.detail === "exec" ? (
-        <>{actor} used the secondary ability</>
+        <>
+          {actor} used the secondary{card && <> of <b>{card}</b></>}
+        </>
       ) : (
-        <>{actor} declined the secondary ability</>
+        <>
+          {actor} declined the secondary{card && <> of <b>{card}</b></>}
+        </>
       );
+    }
     case "tactical.activate":
       return (
         <>
           {actor} activated {sysNode}
         </>
       );
-    case "tactical.move":
+    case "tactical.move": {
+      const moved = a.facts.filter((f) => f.type === "moved");
+      const total = moved.reduce((sum, f) => sum + (f.delta ?? 0), 0);
+      const to = moved[0]?.detail;
       return (
         <>
-          {actor} moved ships out of {sysNode}
+          {actor} moved {total > 0 ? `${total} ship${total === 1 ? "" : "s"}` : "ships"} from{" "}
+          {sysNode}
+          {to && (
+            <>
+              {" "}to{" "}
+              <Named kind="system" id={to} name={ctx.systemName(to)} systemText={ctx.systemHint(to)} />
+            </>
+          )}
         </>
       );
+    }
     case "tactical.produce":
       return (
         <>
@@ -404,8 +444,22 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
           {actor} began an invasion of {sysNode}
         </>
       );
-    case "invasion.commit":
-      return <>{actor} landed ground forces</>;
+    case "invasion.commit": {
+      const landed = a.facts.filter((f) => f.type === "landed");
+      const total = landed.reduce((sum, f) => sum + (f.delta ?? 0), 0);
+      const planets = [...new Set(landed.map((f) => f.detail).filter((p): p is string => !!p))];
+      return (
+        <>
+          {actor} landed {total > 0 ? `${total} ground force${total === 1 ? "" : "s"}` : "ground forces"}
+          {planets.map((planet, i) => (
+            <span key={planet}>
+              {i === 0 ? " on " : ", "}
+              <Named kind="planet" id={planet} name={resolvePlanetName(planet)} />
+            </span>
+          ))}
+        </>
+      );
+    }
     case "spacecannon.fire":
       return <>{actor} fired Space Cannon</>;
     case "transaction":
@@ -498,8 +552,12 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
       );
     case "godmode.edit":
       return <>Manual correction (God-Mode)</>;
-    case "update":
-      return a.actor_id ? <>Result of {actor}'s action</> : <>State updated</>;
+    case "update": {
+      // Wpis bez własnej etykiety: nazwij go po pierwszym skutku, zamiast „Result of … action”.
+      const verb = UPDATE_VERB[a.facts[0]?.type ?? ""];
+      if (a.actor_id && verb) return <>{actor} {verb}</>;
+      return a.actor_id ? <>Result of {actor}&apos;s action</> : <>State updated</>;
+    }
     default:
       return prettifyId(a.action.replace(/[._]/g, " "));
   }
@@ -731,6 +789,37 @@ function describeFact(
         ),
       };
     }
+    case "moved": {
+      const to = fact.detail;
+      return {
+        key,
+        tone: "info",
+        text: (
+          <>
+            {prefix}
+            {delta} {resolveUnitName(fact.value ?? "")}
+            {to && (
+              <>
+                {" "}→{" "}
+                <Named kind="system" id={to} name={ctx.systemName(to)} systemText={ctx.systemHint(to)} />
+              </>
+            )}
+          </>
+        ),
+      };
+    }
+    case "landed":
+      return {
+        key,
+        tone: "info",
+        text: (
+          <>
+            {prefix}
+            {delta} {resolveUnitName(fact.value ?? "")} landed on{" "}
+            <Named kind="planet" id={fact.detail ?? ""} name={resolvePlanetName(fact.detail ?? "")} />
+          </>
+        ),
+      };
     case "system_token":
       return {
         key,

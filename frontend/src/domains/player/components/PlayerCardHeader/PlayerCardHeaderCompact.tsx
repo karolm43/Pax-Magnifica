@@ -6,6 +6,7 @@ import { StatusIndicator } from "../StatusIndicator";
 import { SpeakerToken } from "../SpeakerToken";
 import { TyrantToken } from "../TyrantToken";
 import { StrategyCard } from "../StrategyCard";
+import { FactionVoice } from "@/domains/chat/FactionVoice";
 import { useGameData } from "@/state/useGameContext";
 import { NeedsToFollow } from "../NeedsToFollow";
 import { Neighbors } from "../Neighbors";
@@ -18,6 +19,8 @@ import rail from "./HeaderRail.module.css";
 
 type Props = {
   userName: string;
+  /** player_id (discordId) — włącza przycisk komunikatów frakcji i dymek. */
+  playerId?: string;
   faction: string;
   factionDisplayName: string;
   color: string;
@@ -37,13 +40,14 @@ type Props = {
 /** Speaker and tyrant markers followed by the player's strategy cards. */
 function HeaderTokens({
   faction,
+  playerId,
   isSpeaker = false,
   isTyrant = false,
   scs = [],
   exhaustedSCs = [],
 }: Pick<
   Props,
-  "faction" | "isSpeaker" | "isTyrant" | "scs" | "exhaustedSCs"
+  "faction" | "playerId" | "isSpeaker" | "isTyrant" | "scs" | "exhaustedSCs"
 >) {
   // Żeton „0” Naalu leży na najniższej karcie posiadacza (inicjatywa 0).
   const zeroCard = useGameData()?.initiativeZero === faction && scs.length ? Math.min(...scs) : null;
@@ -59,6 +63,7 @@ function HeaderTokens({
           zeroToken={scNumber === zeroCard}
         />
       ))}
+      {playerId && <FactionVoice playerId={playerId} faction={faction} />}
     </>
   );
 }
@@ -87,6 +92,7 @@ const MOBILE_BREAKTHROUGH_WIDTH = 194;
 
 export function PlayerCardHeaderCompact({
   userName,
+  playerId,
   faction,
   factionDisplayName,
   color,
@@ -128,6 +134,7 @@ export function PlayerCardHeaderCompact({
       <Group gap={8} className={styles.rightGroup}>
         <HeaderTokens
           faction={faction}
+          playerId={playerId}
           isSpeaker={isSpeaker}
           isTyrant={isTyrant}
           scs={scs}
@@ -140,6 +147,7 @@ export function PlayerCardHeaderCompact({
 
 export function PlayerCardHeaderFull({
   userName,
+  playerId,
   faction,
   factionDisplayName,
   color,
@@ -192,6 +200,7 @@ export function PlayerCardHeaderFull({
       <Group gap="xs" align="center">
         <HeaderTokens
           faction={faction}
+          playerId={playerId}
           isSpeaker={isSpeaker}
           isTyrant={isTyrant}
           scs={scs}
@@ -204,6 +213,7 @@ export function PlayerCardHeaderFull({
 
 export function PlayerCardHeaderMobile({
   userName,
+  playerId,
   faction,
   factionDisplayName,
   color,
@@ -304,6 +314,7 @@ export function PlayerCardHeaderMobile({
       >
         <HeaderTokens
           faction={faction}
+          playerId={playerId}
           isSpeaker={isSpeaker}
           isTyrant={isTyrant}
           scs={scs}

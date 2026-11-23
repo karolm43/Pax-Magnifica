@@ -1,0 +1,344 @@
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 4px 18px;
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #e9c46a;
+}
+
+.book {
+  --gold: #e9c46a;
+  --ink: #e8e0cf;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 22px 18px;
+  max-height: 78vh;
+  overflow-y: auto;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(233, 196, 106, 0.08), transparent 60%),
+    linear-gradient(180deg, rgba(20, 16, 10, 0.55), rgba(10, 10, 14, 0.2));
+  color: var(--ink);
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -22px;
+  padding: 12px 22px;
+  background: rgba(14, 12, 10, 0.92);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(233, 196, 106, 0.25);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip,
+.nav {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgba(233, 196, 106, 0.3);
+  border-radius: 6px;
+  background: rgba(233, 196, 106, 0.05);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chip[aria-selected="true"] {
+  background: rgba(233, 196, 106, 0.25);
+  border-color: var(--gold);
+  color: #fff3d0;
+}
+
+.nav {
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  opacity: 0.85;
+  cursor: pointer;
+  user-select: none;
+}
+
+.page {
+  animation: turn 0.45s ease both;
+}
+
+.chapterTitle {
+  margin: 4px 0 6px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--gold);
+}
+
+.opener {
+  max-width: 640px;
+  margin: 0 auto 18px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.6;
+  text-align: center;
+  opacity: 0.9;
+}
+
+.opener blockquote {
+  margin: 0;
+}
+
+.opener figcaption {
+  margin-top: 6px;
+  font-size: 12px;
+  font-style: normal;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+}
+
+.timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-left: 34px;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(233, 196, 106, 0.55) 8%,
+    rgba(233, 196, 106, 0.55) 92%,
+    transparent
+  );
+}
+
+.entry {
+  position: relative;
+  padding: 10px 14px;
+  border: 1px solid rgba(233, 196, 106, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  animation: rise 0.5s ease both;
+}
+
+.minor {
+  opacity: 0.75;
+  padding-block: 6px;
+}
+
+.node {
+  position: absolute;
+  left: -34px;
+  top: 10px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #1b160c;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+}
+
+.entry[data-kind="battle"] .node,
+.entry[data-kind="conquest"] .node,
+.entry[data-kind="homeworld"] .node,
+.entry[data-kind="fall"] .node {
+  border-color: #e5645c;
+  color: #e5645c;
+}
+
+.entry[data-kind="victory"] {
+  border-color: var(--gold);
+  background: rgba(233, 196, 106, 0.1);
+  box-shadow: 0 0 24px rgba(233, 196, 106, 0.18);
+}
+
+.entryHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.kind {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.place {
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.actors {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.text {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.epigraph {
+  margin: 10px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid rgba(233, 196, 106, 0.4);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
+.epigraph blockquote {
+  margin: 0;
+}
+
+.epigraph figcaption {
+  margin-top: 3px;
+  font-size: 11px;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+
+.factsBox {
+  margin-top: 6px;
+}
+
+.factsToggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gold);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-decoration: underline dotted;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.facts {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.closing {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(233, 196, 106, 0.25);
+  text-align: center;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 14px;
+}
+
+.standings {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 8px;
+  font-style: normal;
+}
+
+.standing {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+}
+
+.quiet {
+  padding: 28px 22px;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.colophon {
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.45;
+}
+
+@keyframes turn {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page,
+  .entry {
+    animation: none;
+  }
+}

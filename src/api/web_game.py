@@ -357,6 +357,8 @@ def _build_game_state(
         "highlights": (
             chronicle_core.highlights(state, registry) if state.winner_id is not None else []
         ),
+        # Historia zakończonych bitew (teczka systemu + narracja wyniku) — warstwa prezentacyjna.
+        "battleHistory": chronicle_core.battle_history(state),
         "agenda": None,
         # Stan fazy agendy (RULES.md 51: ujawnienie, głosowanie, wynik) - None poza zainicjowaną
         # fazą agendy. Nasze rozszerzenie kontraktu (kontraktowe ``agenda`` AsyncTI4 zostaje None).

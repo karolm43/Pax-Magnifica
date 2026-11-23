@@ -62,6 +62,9 @@ class ActivityFact(BaseModel):
     # delta = liczba rund), "rider" (value = karta, detail = przewidziany wynik agendy),
     # "tile_replaced" (value = pozycja, detail = "<stary kafel>><nowy kafel>"; Nova Seed),
     # "faction_token" / "faction_token_removed" (value = rodzaj żetonu, detail = planeta / space),
+    # "moved" (ruch floty: player_id, value = typ jednostki, delta = liczba, detail = pozycja celu —
+    # ruch sam się znosi w sumach, więc dopisujemy go osobno), "landed" (desant: value = typ,
+    # delta = liczba, detail = id planety).
     # "area" (TYLKO we wpisie z użyciem bohatera: value = pozycja systemu, detail = "gain" / "loss"
     # jednostek gracza albo "token_removed" jego żetonu dowodzenia — miejsce efektu na planszy,
     # RULES.md 64.4; feed go nie wypisuje).
@@ -588,6 +591,50 @@ def _unit_facts(before: GameState, after: GameState) -> list[ActivityFact]:
     return facts
 
 
+def _movement_facts(
+    action: str, subject: str | None, actor: str | None, before: GameState | None, after: GameState
+) -> list[ActivityFact]:
+    """Ruch i desant: jednostki zmieniają miejsce, więc sumy na planszy (``_unit_facts``) są równe.
+
+    ``tactical.move`` (subject = system źródłowy): ubytek statków aktora w źródle ->
+    ``moved`` z celem = aktywny system. ``invasion.commit``: przyrost jednostek aktora na
+    planetach aktywnego systemu -> ``landed``.
+    """
+    if before is None or actor is None:
+        return []
+    facts: list[ActivityFact] = []
+    if action == "tactical.move" and subject:
+        old = before.systems.get(subject)
+        new = after.systems.get(subject)
+        old_ships = old.space_units.get(actor, {}) if old else {}
+        new_ships = new.space_units.get(actor, {}) if new else {}
+        for unit in sorted(old_ships):
+            gone = old_ships[unit] - new_ships.get(unit, 0)
+            if gone > 0:
+                facts.append(
+                    ActivityFact(
+                        type="moved", player_id=actor, value=unit, delta=gone,
+                        detail=after.active_system,
+                    )
+                )
+    elif action == "invasion.commit":
+        old = before.systems.get(after.active_system or "")
+        new = after.systems.get(after.active_system or "")
+        if old is not None and new is not None:
+            for planet, owners in sorted(new.planet_units.items()):
+                before_units = old.planet_units.get(planet, {}).get(actor, {})
+                for unit, count in sorted(owners.get(actor, {}).items()):
+                    gain = count - before_units.get(unit, 0)
+                    if gain > 0:
+                        facts.append(
+                            ActivityFact(
+                                type="landed", player_id=actor, value=unit, delta=gain,
+                                detail=planet,
+                            )
+                        )
+    return facts
+
+
 def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
     """Skutki wspólne dla stołu: prawa, przyczepione karty, cele publiczne, żetony, mówca."""
     facts: list[ActivityFact] = []
@@ -810,6 +857,12 @@ def derive_activity(label: str, before: GameState | None, after: GameState) -> A
             **base,  # type: ignore[arg-type]
         )
     kind, action, actor, target, subject, detail = parsed
+    facts = [*facts, *_movement_facts(action, subject, actor, before, after)]
+    if action == "strategy.secondary" and subject is None:
+        # Numer karty (inicjatywa) siedzi w kontekście okna secondary — do nazwy w feedzie.
+        window = (before.pending_window if before is not None else None) or after.pending_window
+        if window is not None and window.context.get("initiative") is not None:
+            subject = str(window.context["initiative"])
     if action == "explore.resolve" and after.exploration and after.exploration.log:
         # Rozstrzygnięta karta eksploracji jest jawna: id karty + skrót skutku z logu okna.
         last = after.exploration.log[-1]
