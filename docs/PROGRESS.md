@@ -437,3 +437,12 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
   (`domains/dice/tableRolls.ts`), każdy w kolorze rzucającego. Dotyczy każdego efektu z kilkoma rzutami.
 - Test: `test_bohater_rzuty_kazdego_przeciwnika_widoczne`, `tableRolls.test.ts`.
 - QA: pełny pytest, ruff, mypy (zmienione), tsc app, eslint, vitest `domains/dice`. Bez build/e2e.
+
+## Poprawka: okno inwazji Yin (Quantum Dissemination) po animacji i bez pustej inwazji
+
+- Błąd: okno inwazji komponentu otwierało się od razu, przed sceną i efektem bohatera na planszy, nawet gdy
+  nie było wojsk przeciwnika (brak walki, SCD, bombardowania).
+- `InvasionOverlay`: okno czeka na koniec kolejki momentów (`useHeroFx.stageBusy`); inwazja komponentu bez
+  spornych planet przechodzi Commit/Establish sama (klient atakującego, jedno wywołanie na krok). Gdy krok
+  się nie uda (np. eksploracja), okno zostaje z komunikatem. Backend bez zmian (reakcje po zaangażowaniu).
+- QA: tsc app, eslint, vitest `domains/invasion`. Bez testu jednostkowego, bez build/e2e.

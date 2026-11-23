@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   defaultPicks,
   extraByGroup,
@@ -38,6 +38,8 @@ import { useDiceHold } from "@/domains/dice/useDiceHold";
 import { CustodiansClaim } from "./CustodiansClaim";
 import { InvasionPlanetCard } from "./InvasionPlanetCard";
 import { usePlayerLook } from "./invasionUi";
+import { useHeroFx } from "@/domains/game-shell/components/KeyMoments/heroBoardFx";
+import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import {
   bombardList,
   bumpStage,
@@ -630,7 +632,34 @@ export function InvasionOverlay() {
     if (active) void queryClient.invalidateQueries({ queryKey: ["invasion"] });
   }, [gameState, active, queryClient]);
 
-  if (!active || !view?.active || view.simple) return null;
+  // Scena bohatera i jej efekt na planszy (Quantum Dissemination) idą PRZED oknem inwazji.
+  const stageBusy = useHeroFx((s) => s.stageBusy);
+  const actions = useInvasionActions();
+  const desk = useDeskPlayer();
+  // Inwazja komponentu bez wojsk przeciwnika (brak walki, SCD i bombardowania): okno nic nie
+  // wnosi - atakujący przechodzi je sam (Commit -> Establish -> koniec). Gdy krok się nie uda
+  // (np. eksploracja zdobytej planety), okno zostaje i pokazuje powód.
+  const trivial =
+    !!view?.active &&
+    !!view.source &&
+    !view.inCombat &&
+    view.combatPlanets.length === 0 &&
+    view.defense.length === 0 &&
+    view.bombard.pending.length === 0 &&
+    (view.phase === "COMMIT" || view.phase === "ESTABLISH");
+  const [skipFailed, setSkipFailed] = useState<string | null>(null);
+  const skipKey = `${view?.position}|${view?.phase}`;
+  const mine = !!desk && !!view?.attacker && desk.faction === view.attacker;
+  const skipSent = useRef<string | null>(null);
+  useEffect(() => {
+    if (!trivial || stageBusy || !mine || skipFailed === skipKey) return;
+    if (skipSent.current === skipKey) return; // jedno wywołanie na krok
+    skipSent.current = skipKey;
+    actions.next().catch(() => setSkipFailed(skipKey));
+  }, [trivial, stageBusy, mine, skipKey, skipFailed]);
+
+  if (!active || !view?.active || view.simple || stageBusy) return null;
+  if (trivial && skipFailed !== skipKey && mine) return null;
   return <InvasionWindow key={view.position} view={view} />;
 }
 
