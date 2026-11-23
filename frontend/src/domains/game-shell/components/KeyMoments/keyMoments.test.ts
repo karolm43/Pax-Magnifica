@@ -62,6 +62,16 @@ describe("momentsForEntry (RULES.md 64)", () => {
     ]);
   });
 
+  it("Geoform: bohater dołączony do planety (bez purge) = moment z planetą", () => {
+    const e = entry([
+      fact({ type: "attached", value: "titanshero", detail: "elysium" }),
+      fact({ type: "attached", value: "dmz", detail: "elysium" }),
+    ]);
+    expect(momentsForEntry(e, isHero)).toEqual([
+      { kind: "hero", seq: 7, player: "p1", leaderId: "titanshero", planets: ["elysium"] },
+    ]);
+  });
+
   it("odblokowanie bohatera nie jest użyciem", () => {
     const e = entry([fact({ type: "leader", player_id: "p1", value: "solhero", detail: "unlocked" })]);
     expect(momentsForEntry(e, isHero)).toEqual([]);

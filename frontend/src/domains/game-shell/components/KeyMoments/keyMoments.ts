@@ -7,7 +7,15 @@ import type { ActivityEntry } from "@/api/useBoardEditor";
 
 export type KeyMoment =
   /** Bohater frakcji użyty (purge po rozpatrzeniu — R_leaders). */
-  | { kind: "hero"; seq: number; player: string; leaderId: string; replaced?: ReplacedTile[] }
+  | {
+      kind: "hero";
+      seq: number;
+      player: string;
+      leaderId: string;
+      replaced?: ReplacedTile[];
+      /** Planety, do których bohater dołączył swoją kartę (Ul the Progenitor -> Elysium). */
+      planets?: string[];
+    }
   /** The Fracture weszła do gry (`player` = kto ją wprowadził). */
   | { kind: "fracture"; seq: number; player: string | null }
   /** Przełom frakcji zdobyty. */
@@ -46,6 +54,12 @@ export function momentsForEntry(entry: ActivityEntry, isHero: IsHero): KeyMoment
       if (!out.some((m) => m.kind === "hero" && m.leaderId === heroId)) {
         out.push({ kind: "hero", seq, player: f.player_id, leaderId: heroId });
       }
+    } else if (f.type === "attached" && f.value && isHero(f.value) && a.actor_id) {
+      // Bohater dołączony do planety zamiast purge (Geoform: karta zostaje przy Elysium).
+      const planets = f.detail ? [f.detail] : [];
+      const known = out.find((m) => m.kind === "hero" && m.leaderId === f.value);
+      if (known?.kind === "hero") known.planets = [...(known.planets ?? []), ...planets];
+      else out.push({ kind: "hero", seq, player: f.player_id ?? a.actor_id, leaderId: f.value, planets });
     } else if (f.type === "breakthrough_unlocked" && f.player_id) {
       out.push({ kind: "breakthrough", seq, player: f.player_id });
     } else if (f.type === "custodians_removed") {

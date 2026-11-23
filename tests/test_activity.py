@@ -374,3 +374,16 @@ def test_component_use_by_non_active_player() -> None:
     after = _state()
     entry = derive_activity("component-use:ability:quash:p2", before, after)
     assert entry is not None and entry.actor_id == "p2"
+
+
+def test_bohater_dolaczony_do_planety_ma_sprawce_i_fakt_attached() -> None:
+    """Geoform (Ul the Progenitor) nie purge'uje karty - scena bohatera (RULES.md 64) startuje
+    z faktu ``attached`` i sprawcy wpisu."""
+    before = _state()
+    after = _state()
+    after.planet_attachments["elysium"] = ["titanshero"]
+    entry = derive_activity("component-use:leader:titanshero", before, after)
+    assert entry is not None
+    assert entry.actor_id == "p1"
+    facts = {(f.type, f.value, f.detail) for f in entry.facts}
+    assert ("attached", "titanshero", "elysium") in facts

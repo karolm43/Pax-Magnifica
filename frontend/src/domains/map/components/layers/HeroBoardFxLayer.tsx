@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties, type RefObject } from "react";
 import { useParams } from "react-router-dom";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
@@ -9,86 +9,38 @@ import { Unit } from "@/shared/ui/Unit";
 import { playBattleSound, preloadBattleSounds } from "@/domains/battle/battleSound";
 import {
   fxTargets,
+  neighborTiles,
   useHeroFx,
-  type FxMark,
+  type HeroFxRecipe,
 } from "@/domains/game-shell/components/KeyMoments/heroBoardFx";
+import { Mark, MarkDefs } from "./HeroFxMarks";
 import classes from "./HeroBoardFxLayer.module.css";
 
-/** Elementy jednego znacznika w systemie (liczba odłamków/monet/pnączy). */
-const PARTS: Record<FxMark, number> = {
-  bloom: 8,
-  beam: 1,
-  coins: 10,
-  ripple: 3,
-  slash: 3,
-  seal: 3,
-  pulse: 2,
-  aegis: 3,
-  nova: 0, // własny rysunek: `NovaMark`
-};
-
-function Mark({ mark, tile, index }: { mark: FxMark; tile: Tile; index: number }) {
-  const cx = tile.properties.x + TILE_WIDTH / 2;
-  const cy = tile.properties.y + TILE_HEIGHT / 2;
-  return (
-    <g
-      className={classes.mark}
-      data-mark={mark}
-      // Kolejne systemy odpalają z lekkim przesunięciem — fala zamiast jednego błysku.
-      style={{ "--d": `${Math.min(index, 12) * 90}ms` } as CSSProperties}
-    >
-      <path
-        className={classes.hex}
-        d={HEX_PATH}
-        transform={`translate(${tile.properties.x} ${tile.properties.y})`}
-      />
-      <g transform={`translate(${cx} ${cy})`}>
-        {Array.from({ length: PARTS[mark] }, (_, i) => (
-          <g key={i} className={classes.part} style={{ "--i": i, "--n": PARTS[mark] } as CSSProperties}>
-            <MarkPart mark={mark} />
-          </g>
-        ))}
-      </g>
-    </g>
-  );
-}
-
-/** Kształt jednego elementu znacznika (w układzie środka systemu). */
-function MarkPart({ mark }: { mark: FxMark }) {
-  switch (mark) {
-    case "bloom":
-      // Pnącze: zakrzywiona łodyga z liściem na końcu.
-      return (
-        <>
-          <path className={classes.vine} d="M 0 0 C 18 -30 -12 -60 8 -96" pathLength={100} />
-          <ellipse className={classes.leaf} cx={8} cy={-96} rx={9} ry={4} />
-        </>
-      );
-    case "beam":
-      return <rect className={classes.beam} x={-26} y={-900} width={52} height={900} />;
-    case "coins":
-      return <circle className={classes.coin} r={9} />;
-    case "ripple":
-    case "pulse":
-      return <circle className={classes.ring} r={60} />;
-    case "slash":
-      return <path className={classes.claw} d="M -70 -60 Q -10 -10 60 70" pathLength={100} />;
-    case "aegis":
-      // Kopuła tarczy: półkula nad środkiem systemu + pierścień u podstawy.
-      return (
-        <>
-          <path className={classes.dome} d="M -92 18 A 92 92 0 0 1 92 18 Z" />
-          <ellipse className={classes.domeBase} cx={0} cy={18} rx={92} ry={22} />
-        </>
-      );
-    case "seal":
-      return (
-        <>
-          <circle className={classes.sealRing} r={120} />
-          <circle className={classes.sealInner} r={86} />
-        </>
-      );
-  }
+/**
+ * Wstrząsy planszy (przebudzenie tytana, wir Cabal, supernowa): kontener kafli drga przez
+ * właściwość `translate` (składa się z jego `transform` zoomu, nie nadpisuje go).
+ */
+function useQuake(
+  ref: RefObject<HTMLDivElement | null>,
+  quake: HeroFxRecipe["quake"],
+  runId: number | undefined,
+) {
+  useEffect(() => {
+    const board = ref.current?.parentElement;
+    if (!board || !quake?.length || typeof board.animate !== "function") return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const shakes = quake.map(({ at, px, ms }) => {
+      // Stała sekwencja drgań (bez losowania - ten sam obraz u wszystkich), wygasająca.
+      const frames = Array.from({ length: 11 }, (_, k) => {
+        const fade = 1 - k / 10;
+        const x = (k % 2 ? 1 : -1) * px * fade * (0.6 + ((k * 7) % 5) / 10);
+        const y = (k % 3 ? -1 : 1) * px * 0.7 * fade;
+        return { translate: k === 10 ? "0 0" : `${x.toFixed(1)}px ${y.toFixed(1)}px` };
+      });
+      return board.animate(frames, { duration: ms, delay: at, easing: "linear" });
+    });
+    return () => shakes.forEach((a) => a.cancel());
+  }, [ref, quake, runId]);
 }
 
 /** Stałe pseudolosowe (bez `Math.random` w renderze — ten sam wygląd u wszystkich). */
@@ -279,6 +231,8 @@ export function HeroBoardFxLayer({
   contentSize: { width: number; height: number };
 }) {
   const run = useHeroFx((s) => s.run);
+  const layerRef = useRef<HTMLDivElement>(null);
+  useQuake(layerRef, run?.recipe.quake, run?.id);
   const uncover = useHeroFx((s) => s.uncover);
   const params = useParams<{ mapid: string }>();
   const { data: gameState } = useGameState(params.mapid ?? DEFAULT_GAME_ID);
@@ -310,6 +264,7 @@ export function HeroBoardFxLayer({
   return (
     <div
       key={run.id}
+      ref={layerRef}
       className={classes.layer}
       style={
         {
@@ -340,12 +295,18 @@ export function HeroBoardFxLayer({
         </div>
       )}
       <svg className={classes.svg} width={contentSize.width} height={contentSize.height}>
-        {recipe.mark === "nova" && <NovaDefs />}
+        {recipe.mark === "nova" ? <NovaDefs /> : <MarkDefs />}
         {targets.map((tile, index) =>
           recipe.mark === "nova" ? (
             <NovaMark key={tile.position} tile={tile} />
           ) : (
-            <Mark key={tile.position} mark={recipe.mark} tile={tile} index={index} />
+            <Mark
+              key={tile.position}
+              mark={recipe.mark}
+              tile={tile}
+              index={index}
+              neighbors={recipe.mark === "maw" ? neighborTiles(tiles, tile) : undefined}
+            />
           ),
         )}
       </svg>

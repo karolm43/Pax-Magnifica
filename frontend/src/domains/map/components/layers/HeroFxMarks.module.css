@@ -1,0 +1,703 @@
+/*
+ * Znaczniki bohaterów w systemach (RULES.md 64.4) — rysunki z `HeroFxMarks.tsx`.
+ * Zmienne: --tone (rgb), --fx-ms (czas efektu), --d (opóźnienie systemu), --i/--n (kopia).
+ * Elementy wyśrodkowane w (0, 0) układu systemu: transformacje CSS liczą się od tego punktu
+ * (domyślny transform-origin w układzie lokalnym), więc obroty/skalowanie idą wokół środka.
+ */
+
+/* --- Arborec: pnącza i zarodniki ---------------------------------------------------------- */
+.vine {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 6px rgb(var(--tone) / 0.8));
+  animation: draw 1400ms cubic-bezier(0.3, 0.7, 0.3, 1) calc(var(--d) + var(--i) * 60ms) both,
+    fadeLate var(--fx-ms) ease both;
+}
+.leaf {
+  fill: rgb(var(--tone));
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lockPop 500ms ease calc(var(--d) + 1100ms + var(--i) * 60ms) both,
+    fadeLate var(--fx-ms) ease both;
+}
+.vineArm {
+  scale: 1;
+}
+g:nth-child(odd) > .vineArm {
+  scale: 0.7 -0.8;
+}
+g:nth-child(3n) > .vineArm {
+  scale: 1.25 1.15;
+}
+.spore {
+  fill: rgb(220 255 170);
+  filter: drop-shadow(0 0 5px rgb(var(--tone)));
+  opacity: 0;
+  animation: sporeRise 2600ms ease-out calc(var(--d) + 900ms + var(--i) * 90ms) both;
+}
+
+/* --- Sol: rdzeń słupa i fala u podstawy ---------------------------------------------------- */
+.beamCore {
+  fill: rgb(255 250 220 / 0.9);
+  filter: blur(3px);
+  transform-origin: 0 0;
+  opacity: 0;
+  animation: beamCore 1600ms ease calc(var(--d) + 650ms) both;
+}
+.beamFoot {
+  fill: none;
+  stroke: rgb(255 240 200);
+  stroke-width: 4;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+  opacity: 0;
+  animation: footRing 1400ms cubic-bezier(0.2, 0.7, 0.3, 1) calc(var(--d) + 900ms) both;
+}
+
+/* --- Sardakk: przesunięte cięcia ----------------------------------------------------------- */
+.clawRow {
+  translate: calc((var(--i) - 1) * 46px) 0;
+}
+
+/* --- Winnu / Naaz: obracający się glif ----------------------------------------------------- */
+.sealGlyph {
+  fill: rgb(var(--tone));
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  opacity: 0;
+  animation: glyphSpin 2600ms ease-out calc(var(--d) + 700ms) both;
+}
+
+/* --- Xxcha: siatka tarczy ------------------------------------------------------------------ */
+.domeHex {
+  fill: none;
+  stroke: rgb(var(--tone) / 0.7);
+  stroke-width: 2;
+  opacity: 0;
+  animation: flicker 2200ms ease calc(var(--d) + 1100ms) both;
+}
+
+/* --- Letnev: celownik ---------------------------------------------------------------------- */
+.reticle {
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+}
+.bracket {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 7;
+  stroke-linejoin: miter;
+  opacity: 0;
+  animation: bracketClose 1100ms cubic-bezier(0.6, 0, 0.2, 1) calc(var(--d) + 400ms) both,
+    lockBlink 240ms steps(2) calc(var(--d) + 1500ms) 4,
+    fadeLate var(--fx-ms) ease both;
+}
+.reticleRing {
+  fill: none;
+  stroke: rgb(var(--tone) / 0.85);
+  stroke-width: 3;
+  stroke-dasharray: 14 10;
+  opacity: 0;
+  animation: spinIn 1400ms ease-out calc(var(--d) + 300ms) both, fadeLate var(--fx-ms) ease both;
+}
+.crosshair {
+  stroke: rgb(var(--tone) / 0.9);
+  stroke-width: 2;
+  opacity: 0;
+  animation: crossIn 900ms ease calc(var(--d) + 600ms) both, fadeLate var(--fx-ms) ease both;
+}
+.lockDot {
+  fill: rgb(255 220 210);
+  opacity: 0;
+  animation: lockPop 700ms cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--d) + 1500ms) both,
+    fadeLate var(--fx-ms) ease both;
+}
+
+/* --- Jol-Nar: obwody ----------------------------------------------------------------------- */
+.trace {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 4;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+  animation: draw 900ms cubic-bezier(0.4, 0, 0.2, 1) calc(var(--d) + 500ms + var(--i) * 70ms) both,
+    fadeLate var(--fx-ms) ease both;
+}
+.node {
+  fill: rgb(200 235 255);
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  opacity: 0;
+  animation: nodeBlink 420ms ease calc(var(--d) + 1300ms + var(--i) * 70ms) 3 alternate both;
+}
+.chip,
+.chipCore {
+  rotate: 45deg;
+  opacity: 0;
+}
+.chip {
+  fill: rgb(var(--tone) / 0.2);
+  stroke: rgb(var(--tone));
+  stroke-width: 3;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+  animation: chipIn 700ms cubic-bezier(0.3, 1.5, 0.5, 1) calc(var(--d) + 250ms) both, fadeLate var(--fx-ms) ease both;
+}
+.chipCore {
+  fill: rgb(230 245 255);
+  animation: chipPulse 500ms ease calc(var(--d) + 900ms) 4 alternate both;
+}
+
+/* --- Mentak: haki abordażowe --------------------------------------------------------------- */
+.chain {
+  fill: none;
+  stroke: rgb(200 190 180 / 0.9);
+  stroke-width: 3;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 3px rgb(0 0 0));
+  animation: draw 420ms cubic-bezier(0.6, 0, 0.9, 0.6) calc(var(--d) + 300ms + var(--i) * 110ms) both,
+    fadeLate var(--fx-ms) ease both;
+}
+.hook {
+  fill: none;
+  stroke: rgb(255 230 200);
+  stroke-width: 5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+  opacity: 0;
+  animation: hookIn 420ms cubic-bezier(0.6, 0, 0.9, 0.6) calc(var(--d) + 300ms + var(--i) * 110ms) both,
+    fadeLate var(--fx-ms) ease both;
+}
+.hookArm {
+  animation: hookPull 900ms cubic-bezier(0.5, 0, 0.3, 1) calc(var(--d) + 1500ms) both;
+}
+.spark {
+  fill: rgb(255 220 150);
+  filter: blur(2px) drop-shadow(0 0 10px rgb(var(--tone)));
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sparkPop 500ms ease-out calc(var(--d) + 720ms + var(--i) * 110ms) both;
+}
+.plunder {
+  fill: rgb(var(--tone) / 0.25);
+  stroke: rgb(255 200 120);
+  stroke-width: 4;
+  filter: drop-shadow(0 0 12px rgb(var(--tone)));
+  opacity: 0;
+  animation: plunder 1200ms ease-out calc(var(--d) + 1900ms) both;
+}
+
+/* --- Argent: spirala ----------------------------------------------------------------------- */
+.helix {
+  animation: helixTurn var(--fx-ms) linear both;
+}
+.strand {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  animation: draw 1300ms cubic-bezier(0.3, 0, 0.3, 1) calc(var(--d) + 300ms) both,
+    fadeLate var(--fx-ms) ease both;
+}
+.strand[data-b] {
+  stroke: rgb(255 230 190);
+  animation-delay: calc(var(--d) + 450ms), 0ms;
+}
+.chevron {
+  fill: none;
+  stroke: rgb(255 240 210);
+  stroke-width: 5;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  opacity: 0;
+  animation: chevronUp 1300ms cubic-bezier(0.3, 0, 0.6, 1) calc(var(--d) + 1000ms + var(--i) * 260ms) both;
+}
+
+/* --- Yin: kapsuły z klonami ---------------------------------------------------------------- */
+.pod {
+  opacity: 0;
+  animation: podFall 650ms cubic-bezier(0.7, 0, 1, 0.8) calc(var(--d) + 250ms + var(--i) * 130ms) both;
+}
+.podTrail {
+  stroke: rgb(255 255 255 / 0.7);
+  stroke-width: 3;
+  stroke-linecap: round;
+  filter: blur(1px);
+}
+.podBody {
+  fill: rgb(245 245 250);
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+}
+.podImpact {
+  fill: none;
+  stroke: rgb(255 255 255);
+  stroke-width: 3;
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: podImpact 800ms ease-out calc(var(--d) + 900ms + var(--i) * 130ms) both;
+}
+.yinYang {
+  fill: rgb(20 20 26);
+  opacity: 0;
+  animation: yinSpin 2600ms ease-out calc(var(--d) + 1500ms) both;
+}
+.yinRing {
+  fill: rgb(245 245 250 / 0.85);
+  opacity: 0;
+  animation: yinSpin 2600ms ease-out calc(var(--d) + 1500ms) both;
+}
+
+/* --- L1Z1X: siatka materializacji i zakłócenia --------------------------------------------- */
+.warpHex {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  opacity: 0;
+  animation: warpIn 900ms cubic-bezier(0.6, 0, 0.3, 1) calc(var(--d) + 200ms + var(--i) * 220ms) both;
+}
+.glitch {
+  fill: rgb(var(--tone) / 0.55);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: glitch 160ms steps(2) calc(var(--d) + 400ms + var(--i) * 90ms) 9 alternate both;
+}
+.harrowEye {
+  fill: rgb(255 70 60);
+  filter: drop-shadow(0 0 10px rgb(255 40 40)) drop-shadow(0 0 24px rgb(var(--tone)));
+  opacity: 0;
+  animation: lockPop 600ms cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--d) + 1300ms) both, fadeLate var(--fx-ms) ease both;
+}
+
+/* --- Saar: fala uderzeniowa ---------------------------------------------------------------- */
+.relay {
+  fill: rgb(var(--tone) / 0.15);
+  stroke: rgb(255 210 150);
+  stroke-width: 4;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+  opacity: 0;
+  animation: relayCharge 700ms ease-in calc(var(--d)) both;
+}
+.blastCore {
+  fill: rgb(255 230 180);
+  filter: blur(6px) drop-shadow(0 0 20px rgb(var(--tone))) drop-shadow(0 0 50px rgb(var(--tone)));
+  opacity: 0;
+  animation: blastCore 900ms ease-out calc(var(--d) + 650ms) both;
+}
+.shock {
+  fill: rgb(var(--tone) / 0.12);
+  stroke: rgb(255 220 170);
+  stroke-width: 10;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+  opacity: 0;
+  animation: shock 1800ms cubic-bezier(0.1, 0.6, 0.3, 1) calc(var(--d) + 700ms) both;
+}
+.shock[data-late] {
+  stroke-width: 3;
+  animation-delay: calc(var(--d) + 950ms);
+}
+.debris {
+  fill: rgb(255 200 130);
+  filter: drop-shadow(0 0 4px rgb(var(--tone)));
+  opacity: 0;
+  animation: debris 1500ms cubic-bezier(0.1, 0.7, 0.4, 1) calc(var(--d) + 720ms) both;
+}
+
+/* --- Naalu: oko i fale psioniczne ---------------------------------------------------------- */
+.psiWave {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 4;
+  stroke-dasharray: 6 12;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  opacity: 0;
+  animation: psiWave 2000ms ease-out calc(var(--d) + 900ms + var(--i) * 420ms) both;
+}
+.eye {
+  opacity: 0;
+  filter: drop-shadow(0 0 14px rgb(var(--tone)));
+  animation: eyeOpen 900ms cubic-bezier(0.3, 1.3, 0.5, 1) calc(var(--d) + 300ms) both, fadeLate var(--fx-ms) ease both;
+}
+.eyeLid {
+  fill: rgb(var(--tone) / 0.25);
+  stroke: rgb(230 210 255);
+  stroke-width: 4;
+}
+.iris {
+  fill: rgb(var(--tone));
+}
+.pupil {
+  fill: rgb(10 0 25);
+  animation: pupilNarrow 1400ms ease calc(var(--d) + 1200ms) both;
+}
+
+/* --- Cabal: Event Horizon ------------------------------------------------------------------ */
+.victimHex {
+  fill: rgb(var(--tone) / 0.12);
+  stroke: rgb(var(--tone));
+  stroke-width: 4;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+  opacity: 0;
+  animation: victim 3400ms ease calc(var(--d) + 1000ms + var(--k) * 80ms) both;
+}
+.tendril,
+.tendrilGlow {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: tendril 3600ms cubic-bezier(0.5, 0, 0.3, 1) calc(var(--d) + 700ms + var(--k) * 90ms) both;
+}
+.tendril {
+  stroke: rgb(255 120 140);
+  stroke-width: 5;
+}
+.tendrilGlow {
+  stroke: rgb(var(--tone) / 0.7);
+  stroke-width: 22;
+  filter: blur(6px);
+}
+.prey {
+  fill: rgb(255 190 200);
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+  opacity: 0;
+  animation: prey 1100ms cubic-bezier(0.7, 0, 0.9, 0.5) calc(var(--d) + 1700ms + var(--k) * 90ms + var(--j) * 180ms) both;
+}
+.mawHalo {
+  opacity: 0;
+  animation: mawHalo var(--fx-ms) ease both;
+}
+.vortex {
+  opacity: 0;
+  animation: vortex var(--fx-ms) cubic-bezier(0.4, 0, 0.6, 1) both;
+}
+.arm {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+}
+.accretion {
+  fill: none;
+  stroke: rgb(255 140 150);
+  stroke-width: 5;
+  stroke-dasharray: 30 14 6 14;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+  opacity: 0;
+  animation: accretion 900ms linear calc(var(--d) + 300ms) 5 both, fadeLate var(--fx-ms) ease both;
+}
+.hole {
+  fill: rgb(0 0 0);
+  opacity: 0;
+  animation: hole var(--fx-ms) ease both;
+}
+.horizon {
+  fill: none;
+  stroke: rgb(255 80 110);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px rgb(var(--tone))) drop-shadow(0 0 22px rgb(var(--tone)));
+  opacity: 0;
+  animation: hole var(--fx-ms) ease both;
+}
+.snap {
+  fill: none;
+  stroke: rgb(255 200 210);
+  stroke-width: 8;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  animation: snap 900ms ease-out calc(var(--d) + 2600ms) both;
+}
+
+/* --- Titans: przebudzenie Elysium ---------------------------------------------------------- */
+.crack {
+  fill: none;
+  stroke: rgb(255 170 210);
+  stroke-width: 5;
+  stroke-linejoin: bevel;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 6px rgb(var(--tone))) drop-shadow(0 0 16px rgb(var(--tone)));
+  animation: draw 1300ms cubic-bezier(0.5, 0, 0.5, 1) calc(var(--d) + var(--i) * 80ms) both,
+    fadeLate var(--fx-ms) ease both;
+}
+.burst {
+  fill: none;
+  stroke: rgb(255 225 240);
+  stroke-width: 8;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 14px rgb(var(--tone)));
+  opacity: 0;
+  animation: shock 1600ms cubic-bezier(0.1, 0.6, 0.3, 1) calc(var(--d) + 1500ms) both;
+}
+.titanHalo {
+  opacity: 0;
+  animation: titanHalo 4600ms ease calc(var(--d) + 1500ms) both;
+}
+.titan {
+  opacity: 0;
+  animation: titanRise 1500ms cubic-bezier(0.2, 1.2, 0.4, 1) calc(var(--d) + 1550ms) both, fadeLate var(--fx-ms) ease both;
+}
+.plate {
+  fill: rgb(150 60 110);
+  stroke: rgb(255 210 230);
+  stroke-width: 4;
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+  animation: plateLock 900ms cubic-bezier(0.3, 1.4, 0.5, 1) calc(var(--d) + 1700ms + var(--i) * 70ms) both;
+}
+.titanCore {
+  filter: drop-shadow(0 0 18px rgb(var(--tone))) drop-shadow(0 0 40px rgb(var(--tone)));
+  animation: chipPulse 600ms ease calc(var(--d) + 2400ms) 6 alternate both;
+}
+.titanEye {
+  fill: #fff;
+  filter: drop-shadow(0 0 8px #fff);
+}
+.lance {
+  fill: rgb(255 235 245);
+  filter: drop-shadow(0 0 8px rgb(var(--tone))) drop-shadow(0 0 20px rgb(var(--tone)));
+  transform-origin: 0 -50px;
+  opacity: 0;
+  animation: lance 900ms cubic-bezier(0.1, 0.8, 0.3, 1) calc(var(--d) + 2900ms + var(--i) * 350ms) both;
+}
+
+/* --- Keyframes ----------------------------------------------------------------------------- */
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes fadeLate {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes flicker {
+  0% { opacity: 0; }
+  10%, 30% { opacity: 1; }
+  20% { opacity: 0.2; }
+  80% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+@keyframes sporeRise {
+  0% { opacity: 0; translate: 0 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0; translate: 0 -90px; }
+}
+@keyframes beamCore {
+  0% { opacity: 0; scale: 1 0; }
+  25% { opacity: 1; scale: 1 1; }
+  100% { opacity: 0; scale: 0.2 1; }
+}
+@keyframes footRing {
+  0% { opacity: 0; scale: 0.2; }
+  20% { opacity: 1; }
+  100% { opacity: 0; scale: 2.4; }
+}
+@keyframes glyphSpin {
+  0% { opacity: 0; rotate: -60deg; scale: 1.6; }
+  30% { opacity: 1; rotate: 0deg; scale: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; rotate: 40deg; }
+}
+@keyframes bracketClose {
+  0% { opacity: 0; translate: 0 -90px; }
+  30% { opacity: 1; }
+  100% { opacity: 1; translate: 0 30px; }
+}
+@keyframes lockBlink {
+  0% { stroke: rgb(var(--tone)); }
+  100% { stroke: rgb(255 230 220); }
+}
+@keyframes spinIn {
+  0% { opacity: 0; rotate: -120deg; scale: 1.8; }
+  100% { opacity: 1; rotate: 60deg; scale: 1; }
+}
+@keyframes crossIn {
+  0% { opacity: 0; scale: 1.6; }
+  100% { opacity: 1; scale: 1; }
+}
+@keyframes lockPop {
+  0% { opacity: 0; scale: 0; }
+  100% { opacity: 1; scale: 1; }
+}
+@keyframes nodeBlink {
+  from { opacity: 0.2; scale: 0.6; }
+  to { opacity: 1; scale: 1.3; }
+}
+@keyframes chipIn {
+  0% { opacity: 0; scale: 0; }
+  100% { opacity: 1; scale: 1; }
+}
+@keyframes chipPulse {
+  from { opacity: 0.55; scale: 0.9; }
+  to { opacity: 1; scale: 1.08; }
+}
+@keyframes hookIn {
+  0% { opacity: 0; translate: 0 -400px; }
+  15% { opacity: 1; }
+  100% { opacity: 1; translate: 0 0; }
+}
+@keyframes hookPull {
+  0% { translate: 0 0; }
+  30% { translate: 0 10px; }
+  100% { translate: 0 -46px; }
+}
+@keyframes sparkPop {
+  0% { opacity: 0; scale: 0.2; }
+  25% { opacity: 1; scale: 1.2; }
+  100% { opacity: 0; scale: 2; }
+}
+@keyframes plunder {
+  0% { opacity: 0; scale: 0.3; }
+  30% { opacity: 1; scale: 1.1; }
+  100% { opacity: 0; scale: 0.2; }
+}
+@keyframes helixTurn {
+  from { rotate: -8deg; }
+  to { rotate: 8deg; }
+}
+@keyframes chevronUp {
+  0% { opacity: 0; translate: 0 220px; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; translate: 0 -260px; }
+}
+@keyframes podFall {
+  0% { opacity: 0; translate: 0 -600px; }
+  15% { opacity: 1; }
+  95% { opacity: 1; translate: 0 0; }
+  100% { opacity: 0; translate: 0 0; }
+}
+@keyframes podImpact {
+  0% { opacity: 0; scale: 0.2; }
+  20% { opacity: 1; }
+  100% { opacity: 0; scale: 2.2; }
+}
+@keyframes yinSpin {
+  0% { opacity: 0; rotate: 0deg; scale: 0.3; }
+  25% { opacity: 0.95; scale: 1; }
+  80% { opacity: 0.95; }
+  100% { opacity: 0; rotate: 540deg; scale: 1; }
+}
+@keyframes warpIn {
+  0% { opacity: 0; scale: 1.9; }
+  40% { opacity: 1; }
+  100% { opacity: 0; scale: 0.3; }
+}
+@keyframes glitch {
+  from { opacity: 0; translate: -18px 0; }
+  to { opacity: 1; translate: 22px 0; }
+}
+@keyframes relayCharge {
+  0% { opacity: 0; scale: 1.6; rotate: 0deg; }
+  80% { opacity: 1; scale: 0.6; rotate: 90deg; }
+  100% { opacity: 0; scale: 0.2; rotate: 120deg; }
+}
+@keyframes blastCore {
+  0% { opacity: 0; scale: 0.1; }
+  15% { opacity: 1; scale: 1.2; }
+  100% { opacity: 0; scale: 1.6; }
+}
+@keyframes shock {
+  0% { opacity: 0; scale: 0.3; }
+  10% { opacity: 1; }
+  100% { opacity: 0; scale: 4.2; }
+}
+@keyframes debris {
+  0% { opacity: 0; translate: 0 0; }
+  10% { opacity: 1; }
+  100% { opacity: 0; translate: 0 var(--dist); rotate: 220deg; }
+}
+@keyframes psiWave {
+  0% { opacity: 0; scale: 0.5; rotate: 0deg; }
+  20% { opacity: 1; }
+  100% { opacity: 0; scale: 3.6; rotate: 90deg; }
+}
+@keyframes eyeOpen {
+  0% { opacity: 0; scale: 1 0; }
+  100% { opacity: 1; scale: 1 1; }
+}
+@keyframes pupilNarrow {
+  0% { scale: 2.4 0.7; }
+  40% { scale: 0.6 1; }
+  100% { scale: 1 1; }
+}
+@keyframes victim {
+  0% { opacity: 0; }
+  25% { opacity: 1; }
+  45% { opacity: 0.4; }
+  60% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes tendril {
+  /* Macka wysuwa się do sąsiada, trzyma, a potem cofa do wiru (offset rośnie z powrotem). */
+  0% { stroke-dashoffset: 100; opacity: 0; }
+  8% { opacity: 1; }
+  35% { stroke-dashoffset: 0; }
+  60% { stroke-dashoffset: 0; opacity: 1; }
+  85% { stroke-dashoffset: 100; opacity: 0.6; }
+  100% { stroke-dashoffset: 100; opacity: 0; }
+}
+@keyframes prey {
+  0% { opacity: 0; translate: var(--dx) var(--dy); scale: 1; }
+  15% { opacity: 1; }
+  100% { opacity: 0; translate: 0 0; scale: 0.2; }
+}
+@keyframes mawHalo {
+  0% { opacity: 0; scale: 0.3; }
+  15% { opacity: 1; scale: 1; }
+  45% { scale: 1.25; }
+  50% { scale: 0.9; }
+  85% { opacity: 1; scale: 1; }
+  100% { opacity: 0; scale: 0.2; }
+}
+@keyframes vortex {
+  0% { opacity: 0; rotate: 0deg; scale: 0.2; }
+  12% { opacity: 1; scale: 1; }
+  45% { scale: 1.2; }
+  88% { opacity: 1; scale: 0.9; }
+  100% { opacity: 0; rotate: -1080deg; scale: 0.1; }
+}
+@keyframes accretion {
+  from { rotate: 0deg; opacity: 1; }
+  to { rotate: 360deg; opacity: 1; }
+}
+@keyframes hole {
+  0% { opacity: 0; scale: 0; }
+  12% { opacity: 1; scale: 1; }
+  43% { scale: 1.3; }
+  47% { scale: 0.85; }
+  88% { opacity: 1; scale: 1; }
+  100% { opacity: 0; scale: 0; }
+}
+@keyframes snap {
+  0% { opacity: 0; scale: 2.6; }
+  20% { opacity: 1; }
+  100% { opacity: 0; scale: 0.3; }
+}
+@keyframes titanHalo {
+  0% { opacity: 0; scale: 0.4; }
+  20% { opacity: 1; scale: 1.1; }
+  80% { opacity: 0.8; scale: 1.25; }
+  100% { opacity: 0; scale: 1.3; }
+}
+@keyframes titanRise {
+  0% { opacity: 0; scale: 0.2; translate: 0 40px; }
+  100% { opacity: 1; scale: 1; translate: 0 0; }
+}
+@keyframes plateLock {
+  0% { translate: 0 -140px; opacity: 0; }
+  60% { opacity: 1; }
+  100% { translate: 0 0; opacity: 1; }
+}
+@keyframes lance {
+  0% { opacity: 0; scale: 1 0; }
+  15% { opacity: 1; scale: 1 1; }
+  60% { opacity: 0.9; scale: 0.6 1; }
+  100% { opacity: 0; scale: 0.1 1; }
+}

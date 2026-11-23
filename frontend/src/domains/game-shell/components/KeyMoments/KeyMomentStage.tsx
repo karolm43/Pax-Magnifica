@@ -256,6 +256,7 @@ export function KeyMomentStage() {
       faction: owner?.faction ?? null,
       color: owner?.color ?? null,
       replaced: current.replaced,
+      planets: current.planets,
     });
     return () => stopFx();
     // Zależności celowo tylko [shown, current]: jeden start na wejście w „board”.

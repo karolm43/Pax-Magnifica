@@ -2,7 +2,8 @@
  * Efekty bohaterów NA PLANSZY (RULES.md 64.4) — po scenie bohatera mapa „reaguje” na jego
  * zdolność. Dane (który bohater -> jaki przepis) + czyste wyliczenie celów z kafelków mapy.
  * Rysuje `HeroBoardFxLayer` (warstwa w treści mapy, więc idzie za przesuwaniem i zoomem).
- * Nowy bohater w silniku => dopisz przepis tutaj (inaczej zostaje sama scena).
+ * Nowy bohater w silniku => dopisz przepis tutaj (inaczej zostaje sama scena). Każdy bohater
+ * ma WŁASNY znacznik pasujący do frakcji i zdolności — nie generyczny pierścień.
  */
 import { create } from "zustand";
 import type { Tile } from "@/entities/game/types";
@@ -17,16 +18,35 @@ export type FxTarget =
   | "units" // systemy z dowolnymi jednostkami bohatera
   | "active" // aktywny system (produkcja / walka / inwazja), inaczej „units”
   | "mecatol" // Mecatol Rex
-  | "nova"; // kafel supernowej Muaat (Nova Seed) — po wymianie kafla
+  | "nova" // kafel supernowej Muaat (Nova Seed) — po wymianie kafla
+  | "docks" // systemy z dokami bohatera (Dimensional Tear Cabal, przekaźnik Saar)
+  | "planet"; // system planety, do której bohater dołączył kartę (Geoform -> Elysium)
 
-/** Wygląd efektu w systemie docelowym. */
-export type FxMark = "bloom" | "beam" | "coins" | "ripple" | "slash" | "seal" | "pulse" | "aegis" | "nova";
+/** Wygląd efektu w systemie docelowym (każdy bohater ma własny, pasujący do frakcji). */
+export type FxMark =
+  | "bloom" // Arborec: pnącza i zarodniki
+  | "beam" // Sol: orbitalne słupy światła
+  | "coins" // Hacan: deszcz trade goods
+  | "slash" // Sardakk N'orr: szpony
+  | "seal" // Winnu / Naaz-Rokha: pieczęć
+  | "aegis" // Xxcha: kopuła tarczy
+  | "nova" // Muaat: supernowa
+  | "reticle" // Letnev: namierzanie floty
+  | "circuit" // Jol-Nar: ścieżki obwodu i węzły danych
+  | "grapple" // Mentak: haki abordażowe
+  | "helix" // Argent Flight: podwójna spirala skrzydeł
+  | "drop" // Yin: kapsuły z piechotą-klonami
+  | "warp" // L1Z1X: wyjście z ciemnej przestrzeni (siatka materializacji)
+  | "blast" // Saar: fala Armageddon Relay
+  | "psi" // Naalu: fale psioniczne i oko
+  | "maw" // Cabal: wir Event Horizon wciągający sąsiednie systemy
+  | "awaken"; // Titans: przebudzenie Elysium
 
 export type HeroFxRecipe = {
   /** Przyciemnienie całej planszy (0–1). */
   dim?: number;
-  /** Fala przez całą planszę (lewa -> prawa). */
-  sweep?: "scan" | "dawn";
+  /** Fala przez całą planszę: skan (lewa -> prawa), świt, zakłócenia obrazu, mgła. */
+  sweep?: "scan" | "dawn" | "static" | "mist";
   /** Cienie statków przepływające nad planszą (typy jednostek AsyncTI4). */
   shadows?: string[];
   target: FxTarget;
@@ -41,49 +61,236 @@ export type HeroFxRecipe = {
   flashAt?: number;
   /** Chwila (ms), w której wymieniony kafel odsłania nowy (pod błyskiem); domyślnie od razu. */
   revealAt?: number;
+  /** Wstrząsy planszy: chwila (ms od startu), siła (px), czas (ms). */
+  quake?: { at: number; px: number; ms: number }[];
 };
 
 /** Bohaterowie zaimplementowani w silniku (`core/hooks/factions/*`). */
 export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
-  // Void Transference: brak limitu floty — plansza ciemnieje pod cieniami okrętów.
-  letnevhero: { dim: 0.6, shadows: ["dn", "fs", "dn", "ca", "dn"], target: "ships", mark: "pulse", tone: "255 70 60", ms: 5200 },
-  // Overgrowth: produkcja wszędzie, gdzie są siły naziemne — zieleń wyrasta z planet.
-  arborechero: { dim: 0.25, target: "ground", mark: "bloom", tone: "120 230 110", ms: 4400 },
+  // Void Transference: brak limitu floty — plansza ciemnieje pod cieniami okrętów, a nad
+  // flotami Letnev zaciskają się czerwone celowniki baronii.
+  letnevhero: {
+    dim: 0.6,
+    shadows: ["dn", "fs", "dn", "ca", "dn"],
+    target: "ships",
+    mark: "reticle",
+    tone: "255 70 60",
+    ms: 5200,
+    sounds: [
+      { at: 0, name: "fleetEnter", gain: 0.7, rate: 0.7 },
+      { at: 1400, name: "arriveHeavy", gain: 0.6, rate: 0.8 },
+    ],
+  },
+  // Overgrowth: produkcja wszędzie, gdzie są siły naziemne — zieleń i zarodniki wyrastają z planet.
+  arborechero: {
+    dim: 0.25,
+    target: "ground",
+    mark: "bloom",
+    tone: "120 230 110",
+    ms: 4400,
+    sounds: [{ at: 200, name: "fleetEnter", gain: 0.35, rate: 0.5 }],
+  },
   // Twilight Directive: żetony dowodzenia wracają — złota fala zmierzchu i słupy światła.
-  solhero: { dim: 0.3, sweep: "dawn", target: "units", mark: "beam", tone: "255 205 90", ms: 4400 },
-  // Brilliance of the Hylar: wymiana technologii — skan danych przez całą planszę.
-  jolnarhero: { dim: 0.3, sweep: "scan", target: "units", mark: "pulse", tone: "90 180 255", ms: 4200 },
+  solhero: {
+    dim: 0.3,
+    sweep: "dawn",
+    target: "units",
+    mark: "beam",
+    tone: "255 205 90",
+    ms: 4400,
+    sounds: [{ at: 600, name: "sunfire", gain: 0.35, rate: 0.8 }],
+  },
+  // Brilliance of the Hylar: wymiana technologii — skan danych i obwody rozrastające się
+  // po systemach Jol-Nar.
+  jolnarhero: {
+    dim: 0.35,
+    sweep: "scan",
+    target: "units",
+    mark: "circuit",
+    tone: "90 180 255",
+    ms: 4400,
+    sounds: [
+      { at: 200, name: "laser", gain: 0.35, rate: 1.6 },
+      { at: 900, name: "plasma", gain: 0.3, rate: 1.4 },
+    ],
+  },
   // Sanction of the Quieron: darmowa produkcja — deszcz trade goods nad systemem.
-  hacanhero: { dim: 0.3, target: "active", mark: "coins", tone: "255 200 70", ms: 4000 },
-  // Insurrection: zniszczone statki wroga wracają jako Mentak — fale w systemie walki.
-  mentakhero: { dim: 0.35, target: "active", mark: "ripple", tone: "255 120 60", ms: 4000 },
+  hacanhero: {
+    dim: 0.3,
+    target: "active",
+    mark: "coins",
+    tone: "255 200 70",
+    ms: 4000,
+    sounds: [
+      { at: 300, name: "diceThrow", gain: 0.5, rate: 1.3 },
+      { at: 1100, name: "diceThrow", gain: 0.4, rate: 1.5 },
+    ],
+  },
+  // Sleeper Cell: zniszczone statki wroga wracają jako Mentak — haki abordażowe wbijają się
+  // w system walki i ściągają łup.
+  mentakhero: {
+    dim: 0.4,
+    target: "active",
+    mark: "grapple",
+    tone: "255 140 60",
+    ms: 4200,
+    sounds: [
+      { at: 300, name: "missile", gain: 0.5, rate: 1.2 },
+      { at: 900, name: "impact", gain: 0.6 },
+      { at: 1100, name: "impact", gain: 0.5, rate: 0.8 },
+    ],
+  },
   // Brood Swarm: prosto do lądowania — szpony uderzają w system inwazji.
-  sardakkhero: { dim: 0.35, target: "active", mark: "slash", tone: "255 60 50", ms: 3800 },
+  sardakkhero: {
+    dim: 0.35,
+    target: "active",
+    mark: "slash",
+    tone: "255 60 50",
+    ms: 3800,
+    sounds: [
+      { at: 500, name: "impact", gain: 0.6, rate: 1.3 },
+      { at: 620, name: "impact", gain: 0.6, rate: 1.1 },
+      { at: 740, name: "groundBlast", gain: 0.6 },
+    ],
+  },
   // Sins of the Father: dowolna karta strategii — pieczęć imperium nad Mecatol Rex.
-  winnuhero: { dim: 0.35, target: "mecatol", mark: "seal", tone: "255 210 90", ms: 4400 },
+  winnuhero: {
+    dim: 0.35,
+    target: "mecatol",
+    mark: "seal",
+    tone: "255 210 90",
+    ms: 4400,
+    sounds: [{ at: 300, name: "arriveHeavy", gain: 0.6, rate: 0.7 }],
+  },
   // Planetary Defense Nexus - Aegis: PDS i mechy na planetach — kopuły tarcz wznoszą się nad nimi.
-  "xxchahero-te": { dim: 0.3, target: "defense", mark: "aegis", tone: "110 230 190", ms: 4400 },
-  // Helix Protocol: skrzydła Argent przeskakują do systemów z żetonami — cienie niszczycieli i słupy światła.
-  argenthero: { dim: 0.4, shadows: ["dd", "dd", "fs", "dd"], target: "ships", mark: "beam", tone: "255 150 60", ms: 4400 },
-  // Quantum Dissemination: piechota z rezerwy ląduje na planetach — impulsy nad systemami walk.
-  yinhero: { dim: 0.4, target: "ground", mark: "pulse", tone: "235 235 245", ms: 4200 },
-  // Dark Space Navigation: flagowiec i pancerniki wychodzą z mroku w jednym systemie — cienie i słupy.
-  l1z1xhero: { dim: 0.5, shadows: ["dn", "fs", "dn"], target: "ships", mark: "beam", tone: "210 60 60", ms: 4400 },
-  // Armageddon Relay: sygnał z doków Saar — fala przechodzi przez systemy z ich jednostkami
-  // (cel to system sąsiedni do doku; piechota i myśliwce innych graczy giną).
-  saarhero: { dim: 0.45, target: "units", mark: "ripple", tone: "200 150 70", ms: 4200 },
+  "xxchahero-te": {
+    dim: 0.3,
+    target: "defense",
+    mark: "aegis",
+    tone: "110 230 190",
+    ms: 4400,
+    sounds: [{ at: 300, name: "sustain", gain: 0.5, rate: 0.8 }],
+  },
+  // Helix Protocol: skrzydła Argent przeskakują do systemów z żetonami — cienie niszczycieli
+  // i podwójna spirala nad flotami.
+  argenthero: {
+    dim: 0.4,
+    shadows: ["dd", "dd", "fs", "dd"],
+    target: "ships",
+    mark: "helix",
+    tone: "255 150 60",
+    ms: 4600,
+    sounds: [
+      { at: 0, name: "fleetEnter", gain: 0.6, rate: 1.2 },
+      { at: 1300, name: "arrive", gain: 0.5 },
+    ],
+  },
+  // Quantum Dissemination: piechota z rezerwy spada na planety — klony w kapsułach.
+  yinhero: {
+    dim: 0.4,
+    sweep: "mist",
+    target: "ground",
+    mark: "drop",
+    tone: "235 235 245",
+    ms: 4400,
+    sounds: [
+      { at: 300, name: "dropPod", gain: 0.6 },
+      { at: 1050, name: "podLand", gain: 0.6 },
+    ],
+  },
+  // Dark Space Navigation: flagowiec i pancerniki wychodzą z mroku — zakłócony obraz, siatka
+  // materializacji i cienie okrętów.
+  l1z1xhero: {
+    dim: 0.55,
+    sweep: "static",
+    shadows: ["dn", "fs", "dn"],
+    target: "ships",
+    mark: "warp",
+    tone: "210 60 60",
+    ms: 4600,
+    sounds: [
+      { at: 0, name: "warSunEnter", gain: 0.5, rate: 1.3 },
+      { at: 1200, name: "arriveHeavy", gain: 0.7 },
+    ],
+  },
+  // Armageddon Relay: sygnał z doków Saar — fala uderzeniowa i odłamki w systemach z dokami
+  // (cel bohatera to system sąsiedni do doku; piechota i myśliwce innych graczy giną).
+  saarhero: {
+    dim: 0.45,
+    target: "docks",
+    mark: "blast",
+    tone: "230 150 60",
+    ms: 4400,
+    quake: [{ at: 700, px: 6, ms: 700 }],
+    sounds: [
+      { at: 200, name: "missile", gain: 0.5, rate: 0.8 },
+      { at: 700, name: "explosionHeavy", gain: 0.8, rate: 0.8 },
+    ],
+  },
   // Perfect Synthesis: relikt i dwie karty strategii naraz — skan archeologów i pieczęcie nad
   // systemami z jednostkami Naaz-Rokha.
-  naazhero: { dim: 0.35, sweep: "scan", target: "units", mark: "seal", tone: "110 220 160", ms: 4400 },
-  // C-Radium Geometry: Poison of the Nefishh - umysły rywali oddają notki; fioletowy skan
-  // i fale psioniczne nad systemami z jednostkami Naalu.
-  naaluhero: { dim: 0.45, sweep: "scan", target: "units", mark: "ripple", tone: "185 120 255", ms: 4400 },
-  // Dimensional Anchor: szczeliny Cabal wciągają okręty rywali — plansza tonie w mroku,
-  // a nad systemami z jednostkami Vuil'raith pulsuje karmazynowy wir.
-  cabalhero: { dim: 0.6, target: "units", mark: "ripple", tone: "200 40 70", ms: 4600 },
-  // Geoform: Elysium budzi się jako tytan - nad systemami z Hel-Titanami (PDS) i mechami Ul
-  // wznosi się różowa tarcza, a plansza drży jak przy przebudzeniu.
-  titanshero: { dim: 0.4, target: "defense", mark: "aegis", tone: "255 120 170", ms: 4400 },
+  naazhero: {
+    dim: 0.35,
+    sweep: "scan",
+    target: "units",
+    mark: "seal",
+    tone: "110 220 160",
+    ms: 4400,
+    sounds: [{ at: 400, name: "sustain", gain: 0.45, rate: 1.2 }],
+  },
+  // C-Radium Geometry: Poison of the Nefishh - umysły rywali oddają notki; fioletowa mgła,
+  // psioniczne oko i fale nad systemami Naalu.
+  naaluhero: {
+    dim: 0.5,
+    sweep: "mist",
+    target: "units",
+    mark: "psi",
+    tone: "185 120 255",
+    ms: 4600,
+    sounds: [
+      { at: 0, name: "warSunEnter", gain: 0.35, rate: 1.6 },
+      { at: 900, name: "sustain", gain: 0.4, rate: 0.6 },
+    ],
+  },
+  // Dimensional Anchor: Event Horizon — z każdego doku Cabal (Dimensional Tear) otwiera się
+  // wir, macki sięgają do SĄSIEDNICH systemów i wciągają ich okręty; plansza tonie w mroku i drży.
+  cabalhero: {
+    dim: 0.7,
+    target: "docks",
+    mark: "maw",
+    tone: "200 30 70",
+    ms: 6000,
+    quake: [
+      { at: 400, px: 3, ms: 900 },
+      { at: 2600, px: 5, ms: 700 },
+    ],
+    sounds: [
+      { at: 0, name: "warSunEnter", gain: 0.7, rate: 0.45 },
+      { at: 900, name: "explosionHeavy", gain: 0.6, rate: 0.5, reverse: true, endIn: 1700 },
+      { at: 2600, name: "arriveHeavy", gain: 0.9, rate: 0.6 },
+    ],
+  },
+  // Geoform: Elysium budzi się jako tytan — plansza drży, z planety wychodzą szczeliny magmy,
+  // rdzeń tytana wznosi się w pancernych płytach, a trzy strzały SPACE CANNON 5 (x3) mkną w niebo.
+  titanshero: {
+    dim: 0.5,
+    target: "planet",
+    mark: "awaken",
+    tone: "255 110 170",
+    ms: 6200,
+    quake: [
+      { at: 0, px: 3, ms: 1300 },
+      { at: 1500, px: 7, ms: 800 },
+    ],
+    sounds: [
+      { at: 0, name: "mechStep", gain: 0.8, rate: 0.5 },
+      { at: 700, name: "mechStep", gain: 0.9, rate: 0.45 },
+      { at: 1500, name: "explosionHeavy", gain: 0.7, rate: 0.55 },
+      { at: 2900, name: "assaultCannon", gain: 0.6 },
+      { at: 3250, name: "assaultCannon", gain: 0.55, rate: 1.1 },
+      { at: 3600, name: "assaultCannon", gain: 0.5, rate: 1.2 },
+    ],
+  },
   // Nova Seed: gwiazda systemu puchnie, korona zapada się w punkt, wybuch supernowej (błysk,
   // promienie dyfrakcyjne, rozszerzająca się powłoka gazu, ejekta), potem pulsująca mgławica.
   // Stary kafel znika pod błyskiem (revealAt); dźwięk niski: pomruk, wsysanie, głuchy huk.
@@ -95,6 +302,7 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
     ms: 9000,
     flashAt: 2850,
     revealAt: 3000,
+    quake: [{ at: 2850, px: 6, ms: 900 }],
     sounds: [
       { at: 0, name: "warSunEnter", gain: 0.7, rate: 0.55 },
       { at: 400, name: "explosionHeavy", gain: 0.85, rate: 0.6, reverse: true, endIn: 2450 },
@@ -108,9 +316,12 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
 
 const GROUND = new Set(["gf", "mf"]);
 const DEFENSE = new Set(["pd", "mf"]);
+const DOCK = "sd";
 const MECATOL_SYSTEM_IDS = new Set(["18", "112"]);
 /** Kafel „Nova Seed” (supernowa Muaat, `assets/systems/81.json`) — jeden w grze. */
 const NOVA_SEED_SYSTEM_ID = "81";
+/** Odległość środków sąsiednich kafli (rozstaw siatki: 260 poziomo, 300 pionowo). */
+const NEIGHBOR_DISTANCE = 300;
 
 /** Jednostki gracza w kafelku (klucz `unitsByFaction` = frakcja; zapasowo kolor). */
 function unitsOf(tile: Tile, keys: string[]) {
@@ -121,31 +332,43 @@ function unitsOf(tile: Tile, keys: string[]) {
   return { space, planets };
 }
 
+/** Właściciel efektu: frakcja/kolor (klucze jednostek) i planety z karty bohatera. */
+export type FxOwner = { faction: string | null; color: string | null; planets?: string[] };
+
 /** Pozycje systemów, w których dzieje się efekt. */
 export function fxTargets(
   recipe: HeroFxRecipe,
   tiles: Tile[],
-  owner: { faction: string | null; color: string | null },
+  owner: FxOwner,
   activeSystem: string | null,
 ): string[] {
   const keys = [owner.faction, owner.color].filter((k): k is string => !!k);
   const pick = (test: (t: Tile) => boolean) => tiles.filter(test).map((t) => t.position);
+  const has = (units: { entityId: string; count: number }[], ids: Set<string>) =>
+    units.some((u) => ids.has(u.entityId) && u.count > 0);
   switch (recipe.target) {
     case "mecatol":
       return pick((t) => MECATOL_SYSTEM_IDS.has(t.systemId)).slice(0, 1);
     case "nova":
       return pick((t) => t.systemId === NOVA_SEED_SYSTEM_ID).slice(0, 1);
+    case "planet": {
+      const planets = new Set(owner.planets ?? []);
+      return pick((t) => Object.keys(t.planets).some((p) => planets.has(p)));
+    }
+    case "docks": {
+      const docks = new Set([DOCK]);
+      return pick((t) => {
+        const u = unitsOf(t, keys);
+        return has(u.space, docks) || has(u.planets, docks);
+      });
+    }
     case "active":
       if (activeSystem && tiles.some((t) => t.position === activeSystem)) return [activeSystem];
       return fxTargets({ ...recipe, target: "units" }, tiles, owner, null);
     case "ground":
-      return pick((t) =>
-        unitsOf(t, keys).planets.some((u) => GROUND.has(u.entityId) && u.count > 0),
-      );
+      return pick((t) => has(unitsOf(t, keys).planets, GROUND));
     case "defense":
-      return pick((t) =>
-        unitsOf(t, keys).planets.some((u) => DEFENSE.has(u.entityId) && u.count > 0),
-      );
+      return pick((t) => has(unitsOf(t, keys).planets, DEFENSE));
     case "ships":
       return pick((t) => unitsOf(t, keys).space.some((u) => !GROUND.has(u.entityId) && u.count > 0));
     case "units":
@@ -156,6 +379,19 @@ export function fxTargets(
   }
 }
 
+/**
+ * Kafle sąsiednie (geometrycznie) do systemu — strefa „in or adjacent” Dimensional Anchor.
+ * Tylko do wizualizacji: hiperlinie i wormhole liczy silnik, tu wystarcza siatka heksów.
+ */
+export function neighborTiles(tiles: Tile[], center: Tile): Tile[] {
+  const { x, y } = center.properties;
+  return tiles.filter((t) => {
+    if (t.position === center.position) return false;
+    const d = Math.hypot(t.properties.x - x, t.properties.y - y);
+    return d > NEIGHBOR_DISTANCE * 0.8 && d < NEIGHBOR_DISTANCE * 1.15;
+  });
+}
+
 export type HeroFxRun = {
   id: number;
   heroId: string;
@@ -164,6 +400,8 @@ export type HeroFxRun = {
   color: string | null;
   /** Kafle wymienione przez bohatera (odsłaniane w `recipe.revealAt`). */
   replaced?: ReplacedTile[];
+  /** Planety, do których bohater dołączył kartę (cel „planet”). */
+  planets?: string[];
 };
 
 type HeroFxStore = {

@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { Tile } from "@/entities/game/types";
-import { HERO_BOARD_FX, coversForQueue, fxTargets, useHeroFx } from "./heroBoardFx";
+import { HERO_BOARD_FX, coversForQueue, fxTargets, neighborTiles, useHeroFx } from "./heroBoardFx";
 
-function tile(position: string, systemId: string, space: Record<string, string[]>, ground: Record<string, string[]> = {}): Tile {
+function tile(
+  position: string,
+  systemId: string,
+  space: Record<string, string[]>,
+  ground: Record<string, string[]> = {},
+  at: { x: number; y: number; planet?: string } = { x: 0, y: 0 },
+): Tile {
   const units = (m: Record<string, string[]>) =>
     Object.fromEntries(
       Object.entries(m).map(([k, ids]) => [k, ids.map((entityId) => ({ entityId, entityType: "unit" as const, count: 1 }))]),
@@ -11,8 +17,8 @@ function tile(position: string, systemId: string, space: Record<string, string[]
     position,
     systemId,
     unitsByFaction: units(space),
-    planets: { p: { unitsByFaction: units(ground) } },
-    properties: { x: 0, y: 0 },
+    planets: { [at.planet ?? "p"]: { unitsByFaction: units(ground) } },
+    properties: { x: at.x, y: at.y },
   } as unknown as Tile;
 }
 
@@ -43,6 +49,36 @@ describe("fxTargets (RULES.md 64.4)", () => {
   it("Nova Seed: kafel supernowej Muaat (po wymianie kafla), jeden", () => {
     const board = [tile("301", "81", { muaat: ["ws"] }), tile("302", "43", { muaat: ["ws"] })];
     expect(fxTargets(HERO_BOARD_FX.muaathero, board, { faction: "muaat", color: "orange" }, "302")).toEqual(["301"]);
+  });
+
+  it("Dimensional Anchor: wir w systemach z dokami Cabal (Dimensional Tear), nie z jednostkami", () => {
+    const board = [
+      tile("401", "30", { cabal: ["cv"] }),
+      tile("402", "31", {}, { cabal: ["sd", "gf"] }),
+      tile("403", "32", { cabal: ["sd"] }),
+    ];
+    expect(HERO_BOARD_FX.cabalhero.mark).toBe("maw");
+    expect(fxTargets(HERO_BOARD_FX.cabalhero, board, { faction: "cabal", color: "red" }, null)).toEqual(["402", "403"]);
+  });
+
+  it("macki Cabal: sąsiedzi z siatki heksów (rozstaw 260/300)", () => {
+    const mid = tile("000", "18", {}, {}, { x: 500, y: 500 });
+    const board = [
+      mid,
+      tile("101", "1", {}, {}, { x: 500, y: 200 }),
+      tile("102", "2", {}, {}, { x: 760, y: 350 }),
+      tile("201", "3", {}, {}, { x: 500, y: -100 }),
+    ];
+    expect(neighborTiles(board, mid).map((t) => t.position)).toEqual(["101", "102"]);
+  });
+
+  it("Geoform: system planety z kartą bohatera (Elysium)", () => {
+    const board = [
+      tile("501", "4", {}, { titans: ["pd"] }),
+      tile("502", "5", {}, {}, { x: 0, y: 0, planet: "elysium" }),
+    ];
+    const owner = { faction: "titans", color: "pink", planets: ["elysium"] };
+    expect(fxTargets(HERO_BOARD_FX.titanshero, board, owner, null)).toEqual(["502"]);
   });
 
   it("zasłony kafli: z kolejki momentów, odsłonięcie po jednej pozycji", () => {

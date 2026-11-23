@@ -36,6 +36,33 @@
   filter: blur(14px);
 }
 
+/* Zakłócony obraz (L1Z1X): poziome pasy szumu migoczą przez planszę. */
+.sweep[data-sweep="static"] {
+  width: auto;
+  left: 0;
+  right: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgb(var(--tone) / 0.14) 0 3px,
+    transparent 3px 9px,
+    rgb(255 255 255 / 0.05) 9px 11px,
+    transparent 11px 23px
+  );
+  mix-blend-mode: screen;
+  animation: staticFlicker 120ms steps(3) 0ms 18 alternate both;
+}
+
+/* Mgła (Naalu, Yin): miękkie kłęby dryfują przez planszę. */
+.sweep[data-sweep="mist"] {
+  width: 70%;
+  left: -70%;
+  background:
+    radial-gradient(ellipse 40% 30% at 30% 40%, rgb(var(--tone) / 0.22), transparent 70%),
+    radial-gradient(ellipse 35% 25% at 70% 65%, rgb(var(--tone) / 0.18), transparent 70%);
+  filter: blur(24px);
+  animation: mistDrift var(--fx-ms, 4000ms) ease-in-out both;
+}
+
 .sweep[data-sweep="scan"] {
   width: 14%;
   left: -16%;
@@ -94,46 +121,6 @@
   animation: hexGlow calc(var(--fx-ms, 4000ms) * 0.8) ease var(--d) both;
 }
 
-.part {
-  --i: 0;
-  --n: 1;
-}
-
-/* Overgrowth: pnącza rosną promieniście z planet. */
-.mark[data-mark="bloom"] .part {
-  rotate: calc(var(--i) * 360deg / var(--n) + 12deg);
-}
-
-/* Pnącza różnej długości i skrętu — mniej regularne, bardziej organiczne. */
-.mark[data-mark="bloom"] .part:nth-child(odd) {
-  scale: 0.7 -0.8;
-}
-
-.mark[data-mark="bloom"] .part:nth-child(3n) {
-  scale: 1.25 1.15;
-}
-
-.vine {
-  fill: none;
-  stroke: rgb(var(--tone));
-  stroke-width: 5;
-  stroke-linecap: round;
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  filter: drop-shadow(0 0 6px rgb(var(--tone) / 0.8));
-  animation: grow 1400ms cubic-bezier(0.3, 0.7, 0.3, 1) calc(var(--d) + var(--i) * 60ms) both,
-    fadeLate var(--fx-ms, 4000ms) ease both;
-}
-
-.leaf {
-  fill: rgb(var(--tone));
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: pop 500ms ease calc(var(--d) + 1100ms + var(--i) * 60ms) both,
-    fadeLate var(--fx-ms, 4000ms) ease both;
-}
-
 /* Twilight Directive: słupy światła z systemów. */
 .beam {
   fill: rgb(var(--tone) / 0.5);
@@ -153,23 +140,6 @@
   opacity: 0;
   translate: calc((var(--i) - 4.5) * 22px) -260px;
   animation: coinFall 1300ms cubic-bezier(0.5, 0, 0.7, 1) calc(var(--d) + var(--i) * 110ms) both;
-}
-
-/* Insurrection / pulse: rozchodzące się pierścienie. */
-.ring {
-  fill: none;
-  stroke: rgb(var(--tone));
-  stroke-width: 6;
-  filter: drop-shadow(0 0 10px rgb(var(--tone)));
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: ringOut 1600ms cubic-bezier(0.2, 0.6, 0.3, 1) calc(var(--d) + var(--i) * 380ms) 2 both;
-}
-
-/* Brood Swarm: trzy cięcia szponów. */
-.mark[data-mark="slash"] .part {
-  translate: calc((var(--i) - 1) * 46px) 0;
 }
 
 .claw {
@@ -369,6 +339,16 @@
   80% { opacity: 1; }
   100% { opacity: 0; }
 }
+@keyframes staticFlicker {
+  from { opacity: 0.35; translate: 0 0; }
+  to { opacity: 1; translate: 0 6px; }
+}
+@keyframes mistDrift {
+  0% { left: -70%; opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
 @keyframes sweepMove {
   from { left: -40%; }
   to { left: 110%; }
@@ -405,11 +385,6 @@
   20% { opacity: 1; }
   80% { opacity: 1; translate: calc((var(--i) - 4.5) * 12px) 0; }
   100% { opacity: 0; translate: calc((var(--i) - 4.5) * 12px) 0; scale: 1.8; }
-}
-@keyframes ringOut {
-  0% { opacity: 0; scale: 0.3; }
-  25% { opacity: 1; }
-  100% { opacity: 0; scale: 2.6; }
 }
 @keyframes slash { to { stroke-dashoffset: 0; } }
 @keyframes domeRise {

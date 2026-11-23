@@ -373,3 +373,19 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
 - ⚠️ ZAŁOŻENIA (do potwierdzenia): Awaken – każdy żeton osobno, „Auto” = PDS; Tungstantus – „Auto” = włączone;
   Slumberstate – prośba w dowolnej chwili fazy akcji, bez akcji; Tellurian nie anuluje AFB (brak kroku przypisania).
 
+
+## Efekty bohaterów na planszy — przegląd i nowe znaczniki frakcji (RULES.md 64.4)
+
+- Ul the Progenitor (Titans) nie miał sceny ani efektu: Geoform nie purge'uje karty (dołącza ją do Elysium),
+  więc feed nie miał faktu `leader purged`. `momentsForEntry` rozpoznaje teraz fakt `attached` z kartą bohatera
+  (sprawca = `actor_id`, planeta w `planets`); cel efektu `planet` = system Elysium. Test backendu w
+  `tests/test_activity.py`, testy frontu w `keyMoments.test.ts`.
+- Cabal (Dimensional Anchor): wir startuje z systemów z dokami Cabal (Dimensional Tear, cel `docks`), macki sięgają
+  do SĄSIEDNICH systemów (`neighborTiles` — siatka heksów, tylko wizualizacja) i wciągają ich okręty.
+- Każdy bohater ma własny znacznik (`layers/HeroFxMarks.tsx` + `.module.css`): Letnev celowniki, Jol-Nar obwody,
+  Mentak haki abordażowe, Argent podwójna spirala, Yin kapsuły z klonami, L1Z1X siatka materializacji + zakłócenia,
+  Saar fala Armageddon Relay z doków, Naalu oko psioniczne + mgła, Titans szczeliny magmy / rdzeń tytana w płytach /
+  3× SPACE CANNON, Cabal Event Horizon. Arborec dostał zarodniki, Sol rdzeń słupa, Xxcha siatkę tarczy.
+- Nowe w przepisie: `quake` (wstrząs planszy przez `translate` kontenera kafli — nie psuje zoomu; wyłączone przy
+  prefers-reduced-motion), przejścia `static` i `mist`, dźwięki dla wszystkich bohaterów.
+- QA: vitest (KeyMoments, map), tsc app, eslint, pytest `test_activity`; zrzuty animacji (puppeteer) obejrzane.
