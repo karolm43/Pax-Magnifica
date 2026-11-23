@@ -652,6 +652,7 @@ def _apply_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
     }
     losses: dict[str, dict[str, int]] = {}
     waylay_hits: dict[str, int] = {}  # trafienia przeciw WSZYSTKIM statkom (karta Waylay)
+    fighter_hits: dict[str, int] = {}  # zwykłe trafienia AFB - tylko myśliwce
     zone = _zone(combat.kind, combat.planet)
     if not any(e.get("kind") == _AFB_INFANTRY for e in combat.effects):
         # Strike Wing Alpha II: koniec kroku rzutu - piechota ginie przed przypisaniem (F_argent).
@@ -688,19 +689,11 @@ def _apply_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
         fighters = _units_map(new_state.systems.get(combat.position), zone, opponent).get(
             _FIGHTER, 0
         )
-        destroyed = min(hits_by[pid], fighters)  # nadwyżka przepada (W4)
-        if destroyed:
-            hits_on = next(
-                (
-                    u.base_hits_on
-                    for u in side_units(new_state, grid, registry, opponent)
-                    if u.base_type == _FIGHTER
-                ),
-                0,
-            )
-            _remove_units(new_state, combat, opponent, _FIGHTER, destroyed)
-            losses.setdefault(opponent, {})[_FIGHTER] = destroyed
-            note_destroyed(combat, opponent, _FIGHTER, destroyed, hits_on)
+        landed = min(hits_by[pid], fighters)  # nadwyżka przepada (W4)
+        if landed:
+            # Trafienia AFB przypisuje właściciel myśliwców w kroku ASSIGN (wybór + „Auto”),
+            # więc przed przypisaniem można je anulować (Shields Holding, Tellurian - 62.18).
+            fighter_hits[opponent] = landed
     log_entry: dict[str, Any] = {
         "round": combat.round, "phase": "AFB", "rolls": afb, "hits": hits_by,
         "losses": losses, "sustained": {},
@@ -708,12 +701,17 @@ def _apply_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
     if raid:
         log_entry["raidDamaged"] = raid  # Raid Formation: statki uszkodzone (nie Sustain Damage)
     combat.log.append(log_entry)
-    if waylay_hits:
-        # Waylay: przeciwnik sam przypisuje trafienia (Sustain Damage, wybór statków) w kroku
-        # ASSIGN; po nim ``_after_losses`` kończy krok AFB (``afb_assign``).
+    if waylay_hits or fighter_hits:
+        # Przeciwnik sam przypisuje trafienia AFB w kroku ASSIGN: Waylay - dowolne statki
+        # (Sustain Damage), zwykłe AFB - tylko myśliwce (wymagany cel ``hit_targets``). Po nim
+        # ``_after_losses`` kończy krok AFB (``afb_assign``).
         combat.afb_assign = True
-        combat.pending_hits = dict(waylay_hits)
-        for pid in waylay_hits:
+        combat.pending_hits = {**fighter_hits, **waylay_hits}
+        for opponent, landed in fighter_hits.items():
+            combat.hit_targets[opponent] = {
+                "types": [_FIGHTER], "count": landed, "label": "Anti-Fighter Barrage",
+            }
+        for pid in combat.pending_hits:
             if pid == NEUTRAL_PLAYER_ID:
                 _auto_assign_neutral(new_state, grid, registry, pid)
         queue = [

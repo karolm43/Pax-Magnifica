@@ -63,16 +63,22 @@ def choice(
     hint: str = "",
     *,
     always: bool = False,
+    auto: Any = None,
 ) -> Input:
     """Wejście „wybierz jedną opcję”.
 
     ``always=True`` - gracz widzi decyzję NAWET przy jednej legalnej opcji (efekt obowiązkowy,
     o którym ma wiedzieć, np. trafienie Magen Defense Grid), zamiast cichego zastosowania.
+    ``auto`` = wartość opcji „Auto” (decyzja użytkownika: wybór zawsze z opcją Auto): UI pokazuje
+    przycisk „Auto”, brak odpowiedzi (bot, pominięte pole) = ta opcja. Musi być wśród opcji.
     """
-    return {
+    item: Input = {
         "key": key, "kind": "choice", "label": label, "options": options,
         "merge": False, "hint": hint, "always": always,
     }
+    if auto is not None and any(o["value"] == auto for o in options):
+        item["auto"] = auto
+    return item
 
 
 def multi(
@@ -216,6 +222,8 @@ def validate_params(inputs: list[Input], params: Mapping[str, Any]) -> dict[str,
         label = str(item.get("label", key))
         if kind == "choice":
             allowed = [o["value"] for o in item.get("options", [])]
+            if key not in params and "auto" in item:
+                params = {**params, key: item["auto"]}  # pominięte pole = wartość „Auto”
             if key not in params or params[key] not in allowed:
                 raise ValueError(f"Choose a valid option for: {label}.")
             cleaned[key] = params[key]

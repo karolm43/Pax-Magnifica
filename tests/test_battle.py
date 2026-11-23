@@ -77,6 +77,23 @@ def _seek(
     raise AssertionError("no seed produced the expected outcome")
 
 
+def _afb_assigned(state: GameState, registry: StaticDataRegistry) -> GameState:
+    """AFB i przypisanie jego trafień przez właścicieli myśliwców (krok ASSIGN, RULES.md 39 W4)."""
+    out = battle.resolve_afb(state, _grid(), registry)
+    while (
+        out.active_combat is not None
+        and out.active_combat.step is CombatStep.ASSIGN
+        and out.pending_window is not None
+    ):
+        pid = out.pending_window.current_responder
+        assert pid is not None
+        need = battle.required_hits(out, _grid(), registry, pid)
+        out = battle.assign_combat_hits(
+            out, _grid(), registry, pid, sustain={}, destroy={"fighter": need}, destroy_damaged={}
+        )
+    return out
+
+
 def _units(state: GameState, pid: str) -> dict[str, int]:
     return state.systems["000"].space_units.get(pid, {})
 
@@ -128,7 +145,7 @@ def test_afb_destroys_only_fighters_and_can_end_combat(registry: StaticDataRegis
     started = battle.start_combat(state, _grid(), registry)
     done = _seek(
         started,
-        lambda s: battle.resolve_afb(s, _grid(), registry),
+        lambda s: _afb_assigned(s, registry),
         lambda s: s.active_combat is not None and s.active_combat.step is CombatStep.DONE,
     )
     combat = done.active_combat
@@ -143,7 +160,7 @@ def test_afb_excess_hits_wasted_and_next_step_roll(registry: StaticDataRegistry)
     started = battle.start_combat(state, _grid(), registry)
     after = _seek(
         started,
-        lambda s: battle.resolve_afb(s, _grid(), registry),
+        lambda s: _afb_assigned(s, registry),
         lambda s: _units(s, "p2").get("fighter", 0) == 0,
     )
     assert after.active_combat is not None

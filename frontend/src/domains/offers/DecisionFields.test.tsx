@@ -74,6 +74,31 @@ describe("DecisionFields", () => {
     expect(values().carry_infantry).toBe(3);
   });
 
+  it("wybór z listy z Auto: przycisk Auto wybiera opcję podpowiedzianą przez silnik", () => {
+    render(
+      <Harness
+        inputs={[
+          {
+            key: "sleeper:wellon",
+            kind: "choice",
+            label: "Sleeper on Wellon",
+            hint: "",
+            merge: false,
+            auto: "pds",
+            options: [
+              { id: "pds", value: "pds", label: "Replace with a Hel-Titan (PDS)" },
+              { id: "keep", value: "keep", label: "Keep the sleeper token" },
+            ],
+          },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Keep the sleeper/ }));
+    expect(values()).toEqual({ "sleeper:wellon": "keep" });
+    fireEvent.click(screen.getByRole("button", { name: /auto/i }));
+    expect(values()).toEqual({ "sleeper:wellon": "pds" });
+  });
+
   it("płatność: kafelki planet + licznik TG w jednym widżecie z paskiem", () => {
     render(
       <Harness

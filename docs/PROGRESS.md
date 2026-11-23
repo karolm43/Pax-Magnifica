@@ -402,3 +402,16 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
   zmian; reakcje (Hacan, Mentak, Sardakk, Muaat) — aktywny system / Nova Seed.
 - Testy: `tests/test_activity.py` (fakty `area`), `tests/factions/test_hero_area_feed.py` (Sol/Saar/L1Z1X przez
   API), vitest `keyMoments`/`heroBoardFx`; zrzut efektu Sol obejrzany.
+
+## 2026-11-23 — AFB przez krok przypisania (Shields Holding, Tellurian) + „Auto” w wyborach z listy
+
+- Decyzja użytkownika: trafienia zwykłego AFB przypisuje właściciel myśliwców w kroku ASSIGN (jak Waylay;
+  `afb_assign`, wymagany cel `hit_targets` = myśliwce, wybór + „Auto”), więc przed przypisaniem anulują je
+  Shields Holding (C_action_cards 4.1) i Tellurian (RULES.md 39 W4, 53, 62.18).
+- Shields Holding: audyt rulingów C_action_cards (1–5, 4.1) z testami, karta zdjęta z długu (limit 210).
+  Naprawiony błąd: drugą Shields Holding gracz mógł zagrać na ten sam rzut (ślad w `combat.effects`).
+- `oi.choice(auto=...)`: przycisk „Auto” w wyborach z listy (`DecisionFields`), pominięte pole = opcja Auto.
+  Titans: Awaken = PDS, źródło żetonu = pula, Tellurian = trafienie we własne jednostki, Ouranos = pierwszy PDS,
+  Terraform = planeta o najwyższej sumie wartości, Slumberstate: kontroler „Auto” = odmowa.
+- QA: pytest całość ✓, ruff/mypy ✓, tsc/eslint/vitest (offers, ActivityPanel) ✓, e2e 8/8 ✓.
+

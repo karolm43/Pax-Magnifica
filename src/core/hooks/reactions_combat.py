@@ -712,15 +712,25 @@ def _shields_condition(
         and window.subject == player_id
         and combat.pending_hits.get(player_id, 0) > 0
         and player_id not in _responded(state)
+        and _shields_mark(combat, player_id) not in combat.effects
     )
+
+
+def _shields_mark(combat: Any, player_id: str) -> dict[str, Any]:
+    """Ślad Shields Holding na TEN rzut (runda + rodzaj trafień: AFB / koniec rundy / rzut walki).
+
+    C_action_cards shields-holding 5: drugiej karty na te same trafienia gracz nie zagra."""
+    source = "afb" if combat.afb_assign else "round_end" if combat.round_end_assign else "roll"
+    return {"kind": "shields_holding", "player": player_id, "round": combat.round,
+            "source": source}
 
 
 def _register_shields_holding(card_id: str) -> None:
     """Shields Holding: Cancel up to 2 hits.
 
-    Dotyczy trafień z rzutu walki i z AFB (Waylay) w walce kosmicznej. ⚠ ZAŁOŻENIE: trafienia z
-    zwykłego AFB są rozstrzygane automatycznie (bez kroku ASSIGN), więc Shields Holding ich nie
-    anuluje; po zejściu trafień do 0 gracz zatwierdza przypisanie z pustym wyborem.
+    Dotyczy trafień z rzutu walki i z AFB (zwykłe i Waylay - krok ASSIGN, RULES.md 39 W4) w walce
+    kosmicznej; jedna karta gracza na ten sam rzut (C_action_cards 5). Po zejściu trafień do 0
+    gracz zatwierdza przypisanie z pustym wyborem.
     """
 
     def effect(
@@ -736,6 +746,7 @@ def _register_shields_holding(card_id: str) -> None:
         if pending <= 0:
             raise ValueError("You have no hits to cancel.")
         combat.pending_hits[player_id] = pending - min(count, pending)
+        combat.effects.append(_shields_mark(combat, player_id))
 
     register_effect(f"action_cards:{card_id}")(effect)
 

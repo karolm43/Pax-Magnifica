@@ -99,7 +99,12 @@ export function DecisionField({
   }
   // Badanie ma własne pełne okno (``ResearchOfferOverlay``), nie pole formularza.
   if (input.kind === "research") return null;
-  return (
+  // „Auto” wyboru z listy: opcja podpowiedziana przez silnik (decyzja użytkownika).
+  const autoId =
+    input.kind === "choice" && input.auto !== undefined
+      ? input.options.find((o) => o.value === input.auto)?.id
+      : undefined;
+  const field = (
     <ChoiceField
       input={input}
       value={value}
@@ -107,6 +112,21 @@ export function DecisionField({
       onChange={onChange}
       mapActive={mapActive}
     />
+  );
+  if (autoId === undefined) return field;
+  return (
+    <div className={styles.field}>
+      <button
+        type="button"
+        className={styles.autoButton}
+        disabled={disabled}
+        aria-pressed={value === autoId}
+        onClick={() => onChange(autoId)}
+      >
+        <IconWand size={14} aria-hidden="true" /> Auto
+      </button>
+      {field}
+    </div>
   );
 }
 

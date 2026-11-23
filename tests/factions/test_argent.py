@@ -197,6 +197,10 @@ def test_raid_formation_przed_przypisaniem_i_bez_sustain(registry: StaticDataReg
     assert combat is not None
     assert out.systems["102"].damaged_units["space"]["p2"]["dreadnought"] == 2
     assert combat.sustained_ships == []
+    # Trafienie AFB w myśliwca przypisuje jego właściciel (krok ASSIGN, RULES.md 39 W4).
+    assert combat.pending_hits == {"p2": 1} and combat.hit_targets["p2"]["types"] == ["fighter"]
+    out = battle.assign_combat_hits(out, grid_from_state(out, registry), registry, "p2",
+                                    sustain={}, destroy={"fighter": 1}, destroy_damaged={})
     assert out.systems["102"].space_units["p2"].get("fighter", 0) == 0
 
 

@@ -29,6 +29,7 @@ from src.core.game_state import (
 )
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -470,6 +471,7 @@ def test_odwrot_emituje_zdarzenie_retreat_declared(
 # ------------------------------------------------------------------------- Shields Holding
 
 
+@ruling("C_action_cards/shields-holding/4")
 def test_shields_holding_anuluje_do_dwoch_trafien(
     grid: HexGrid, registry: StaticDataRegistry
 ) -> None:
@@ -492,6 +494,7 @@ def test_shields_holding_anuluje_do_dwoch_trafien(
     assert assigned.active_combat.pending_hits["p2"] == 0
 
 
+@ruling("C_action_cards/shields-holding/3")
 def test_shields_holding_tylko_przed_przypisaniem(
     grid: HexGrid, registry: StaticDataRegistry
 ) -> None:
@@ -845,7 +848,16 @@ def test_bez_waylay_afb_niszczy_tylko_mysliwce_i_waylay_poza_afb_niezagrywalny(
     state = _afb_state(grid, registry, ["waylay"])
     plain = battle.resolve_afb(state, grid, registry)
     assert plain.active_combat is not None
-    assert plain.active_combat.step is not CombatStep.ASSIGN
+    # Zwykłe AFB: właściciel myśliwców przypisuje trafienia (tylko myśliwce) w kroku ASSIGN.
+    assert plain.active_combat.step is CombatStep.ASSIGN and plain.active_combat.afb_assign
+    assert plain.active_combat.hit_targets["p2"]["types"] == ["fighter"]
+    need = battle.required_hits(plain, grid, registry, "p2")
+    with pytest.raises(ValueError, match="Anti-Fighter Barrage"):
+        battle.assign_combat_hits(plain, grid, registry, "p2", sustain={},
+                                  destroy={"dreadnought": need}, destroy_damaged={})
+    plain = battle.assign_combat_hits(plain, grid, registry, "p2", sustain={},
+                                      destroy={"fighter": need}, destroy_damaged={})
+    assert plain.active_combat is not None
     assert plain.systems["000"].space_units["p2"].get("fighter", 0) == 0
     assert plain.systems["000"].space_units["p2"]["dreadnought"] == 6
     assert plain.active_combat.destroyed_ships == [
@@ -863,3 +875,64 @@ def test_waylay_po_stronie_bez_afb_niezagrywalny(
     )
     assert state.active_combat is not None and state.active_combat.step is CombatStep.AFB
     assert not _can(state, registry, "p1", "waylay")  # p1 nie ma AFB
+
+
+# ------------------------------------------------- Shields Holding: rulingi C_action_cards
+
+
+def _afb_assign(grid: HexGrid, registry: StaticDataRegistry, hand2: list[str]) -> GameState:
+    """AFB rozstrzygnięte: p2 ma przypisać trafienia w swojego myśliwca (krok ASSIGN)."""
+    state = _afb_state(grid, registry, [])
+    state.players["p2"].private.action_cards = list(hand2)
+    out = battle.resolve_afb(state, grid, registry)
+    assert out.active_combat is not None and out.active_combat.step is CombatStep.ASSIGN
+    assert out.active_combat.pending_hits["p2"] == 1  # 1 myśliwiec, nadwyżka przepada
+    return out
+
+
+@ruling("C_action_cards/shields-holding/4.1")
+def test_shields_holding_anuluje_trafienie_afb(grid: HexGrid, registry: StaticDataRegistry) -> None:
+    state = _afb_assign(grid, registry, ["sh2"])
+    assert _can(state, registry, "p2", "sh2")
+    new = _play(state, registry, "p2", "sh2", {"count": 1})
+    assert new.active_combat is not None and new.active_combat.pending_hits["p2"] == 0
+    assert battle.required_hits(new, grid, registry, "p2") == 0
+    after = battle.assign_combat_hits(new, grid, registry, "p2", sustain={}, destroy={},
+                                      destroy_damaged={})
+    assert after.systems["000"].space_units["p2"]["fighter"] == 1  # myśliwiec przeżył
+
+
+@ruling("C_action_cards/shields-holding/5")
+def test_shields_holding_raz_na_ten_sam_rzut(grid: HexGrid, registry: StaticDataRegistry) -> None:
+    state = _assign_state(grid, registry, [], ["sh2", "sh3"])
+    assert state.active_combat is not None
+    state.active_combat.pending_hits["p2"] = 4  # zostaną trafienia po pierwszej karcie
+    new = _play(state, registry, "p2", "sh2", {"count": 2})
+    assert new.active_combat is not None and new.active_combat.pending_hits["p2"] == 2
+    assert not _can(new, registry, "p2", "sh3")
+    # Następny rzut (nowa runda) - znowu wolno.
+    new.active_combat.round += 1
+    assert _can(new, registry, "p2", "sh3")
+
+
+@ruling("C_action_cards/shields-holding/1", "C_action_cards/shields-holding/2")
+def test_shields_holding_bez_space_cannon_i_bez_zniszczen_wprost(
+    grid: HexGrid, registry: StaticDataRegistry
+) -> None:
+    from src.core.hooks import reactions_combat
+
+    state = _assign_state(grid, registry, [], ["sh2"])
+    window = reaction_cards.OpenWindow(
+        GameEvent.HITS_ASSIGNED, Moment.BEFORE,
+        {"ability": "space_cannon", "target": "p2", "hits": 1},
+    )
+    # Space Cannon Offense: trafienia poza walką (brak walki) - karta nie pasuje do okna.
+    no_combat = state.clone()
+    no_combat.active_combat = None
+    assert not reactions_combat._shields_condition(no_combat, registry, "p2", window)
+    # Efekt niszczący bez trafienia (Direct Hit) - nie ma trafień do anulowania.
+    destroyed = state.clone()
+    assert destroyed.active_combat is not None
+    destroyed.active_combat.pending_hits["p2"] = 0
+    assert not _can(destroyed, registry, "p2", "sh2")
+

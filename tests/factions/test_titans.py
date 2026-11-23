@@ -731,3 +731,39 @@ def test_farran_z_alliance_przy_sustain_hel_titana(registry: StaticDataRegistry)
                   ctx={"player": "p1", "base_type": "pds", "count": 1})
     after = _accept(state, "p1", "Rear Admiral Farran")
     assert after.players["p1"].trade_goods == 1
+
+
+def test_tellurian_anuluje_trafienie_afb(registry: StaticDataRegistry) -> None:
+    """Trafienia AFB czekają na przypisanie w kroku ASSIGN (RULES.md 39 W4) - Tellurian działa."""
+    state = _state()
+    state.active_combat = ActiveCombat(kind="space", position=ARENA, attacker="p2",
+                                       defender="p1", step=CombatStep.ASSIGN, afb_assign=True,
+                                       pending_hits={"p1": 1})
+    hits = titans.agent_inputs(state, registry, "p1")[0]
+    assert hits["auto"] == "combat:p1"  # „Auto”: trafienie we własne jednostki
+    after, _ = faction_components.play(state, registry, "p1", "leader", titans.AGENT, {})
+    assert after.active_combat is not None and after.active_combat.pending_hits == {"p1": 0}
+
+
+def test_wybor_z_auto_pominiete_pole_to_auto() -> None:
+    """Decyzja użytkownika: każdy wybór ma „Auto”; pominięte pole = opcja Auto (bot, UI)."""
+    from src.core import offer_inputs as oi
+
+    inputs = [oi.choice("x", "X", [oi.option("a", "A"), oi.option("b", "B")], auto="b")]
+    assert inputs[0]["auto"] == "b"
+    assert oi.validate_params(inputs, {}) == {"x": "b"}
+    assert oi.validate_params(inputs, {"x": "a"}) == {"x": "a"}
+    # Auto spoza opcji jest ignorowane - pole zostaje wymagane.
+    strict = [oi.choice("x", "X", [oi.option("a", "A")], auto="zzz")]
+    assert "auto" not in strict[0]
+    with pytest.raises(ValueError):
+        oi.validate_params(strict, {})
+
+
+def test_awaken_auto_bez_parametrow(registry: StaticDataRegistry) -> None:
+    state = _state()
+    _own(state, ARENA, WELLON, units={"infantry": 1})
+    _sleeper(state, ARENA, WELLON)
+    after = _accept(_activate(state, registry, ARENA), "p1", "Awaken")  # „Auto” = PDS
+    assert _units(after, ARENA, WELLON)["pds"] == 1
+

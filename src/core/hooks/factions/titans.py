@@ -167,7 +167,13 @@ def _token_sources(state: GameState, player_id: str) -> list[dict[str, Any]]:
 def terragenesis_inputs(
     state: GameState, _registry: Any, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    return [oi.choice("source", "Sleeper token to place", _token_sources(state, player_id))]
+    options = _token_sources(state, player_id)
+    return [oi.choice("source", "Sleeper token to place", options, auto=_auto_source(options))]
+
+
+def _auto_source(options: list[dict[str, Any]]) -> Any:
+    """„Auto” źródła żetonu: pula, a bez niej pierwszy leżący żeton."""
+    return options[0]["value"] if options else None
 
 
 def _put_sleeper(state: GameState, player_id: str, planet: str, source: str) -> None:
@@ -271,7 +277,7 @@ def awaken_inputs(
                 options.append(oi.option(_AS_MECH, "Hecatoncheires and 1 infantry instead"))
         options.append(oi.option(_KEEP, "Keep the sleeper token"))
         inputs.append(oi.choice(f"{_TOKEN}{planet}", f"Sleeper on {_planet_name(planet)}",
-                                options, always=True))
+                                options, always=True, auto=options[0]["value"]))
     left = production.reinforcements_left(state, player_id, _PDS)
     if left is not None and left < len(sleepers):
         for planet in sleepers:
@@ -284,7 +290,7 @@ def awaken_inputs(
             inputs.append(oi.choice(
                 f"{_FROM}{planet}", f"PDS for {_planet_name(planet)} if reinforcements run out",
                 sources, hint="R_component_limitations: a PDS from a system without your command "
-                "token is moved instead.",
+                "token is moved instead.", auto=_SUPPLY,
             ))
     return inputs
 
@@ -390,7 +396,8 @@ def ouranos_inputs(
         oi.option(planet, f"PDS on {_planet_name(planet)}", ref=("planet", planet))
         for planet in _ouranos_pds(state, player_id, position)
     ]
-    return [oi.choice("pds", "PDS to replace with Ouranos", options)]
+    return [oi.choice("pds", "PDS to replace with Ouranos", options,
+                      auto=options[0]["value"] if options else None)]
 
 
 @on_event(
@@ -451,11 +458,17 @@ def _agent_window(state: GameState, _registry: StaticDataRegistry, _player_id: s
 def agent_inputs(
     state: GameState, _registry: StaticDataRegistry, _player_id: str
 ) -> list[dict[str, Any]]:
+    """Które trafienie anulować (chipy); „Auto” - patrz niżej."""
+    targets = pending_hit_targets(state)
     options = [
         oi.option(key, f"{_faction_name(state, target)}: 1 hit from {what}")
-        for key, target, what in pending_hit_targets(state)
+        for key, target, what in targets
     ]
-    return [oi.choice("hit", "Hit to cancel", options)]
+    # „Auto”: trafienie we własne jednostki Titans, a bez niego pierwsze z listy.
+    auto = next((key for key, target, _what in targets if target == _player_id), None)
+    if auto is None and targets:
+        auto = targets[0][0]
+    return [oi.choice("hit", "Hit to cancel", options, auto=auto)]
 
 
 @register_effect(f"leaders:{AGENT}")
@@ -570,7 +583,14 @@ def terraform_inputs(
         oi.option(planet, _planet_name(planet), ref=("planet", planet))
         for planet in terraform_targets(state, player_id)
     ]
-    return [oi.choice("planet", "Planet to terraform", options)]
+    # „Auto”: planeta o najwyższej sumie zasobów i wpływów.
+    best = max(
+        terraform_targets(state, player_id),
+        key=lambda p: planet_stats.resources_of(state, _registry, p)
+        + planet_stats.influence_of(state, _registry, p),
+        default=None,
+    )
+    return [oi.choice("planet", "Planet to terraform", options, auto=best)]
 
 
 @register_effect(f"promissory_notes:{TERRAFORM}")
@@ -626,8 +646,10 @@ def slumber_inputs(
         for planet, owner in consent_targets(state, player_id)
     ]
     return [
-        oi.choice("planet", "Planet for a sleeper token (its controller decides)", planets),
-        oi.choice("source", "Sleeper token to place", _token_sources(state, player_id)),
+        oi.choice("planet", "Planet for a sleeper token (its controller decides)", planets,
+                  auto=planets[0]["value"] if planets else None),
+        oi.choice("source", "Sleeper token to place", _token_sources(state, player_id),
+                  auto=_auto_source(_token_sources(state, player_id))),
     ]
 
 
@@ -662,7 +684,7 @@ def consent_inputs(
     planet = _planet_name(str(ctx.get("planet")))
     return [oi.choice("answer", f"{who} asks to place a sleeper token on {planet}", [
         oi.option(_ALLOW, "Allow"), oi.option(_REFUSE, "Refuse"),
-    ], always=True)]
+    ], always=True, auto=_REFUSE)]  # ⚠️ ZAŁOŻENIE 62.18: „Auto” = odmowa (zgoda to wybór)
 
 
 @on_event(

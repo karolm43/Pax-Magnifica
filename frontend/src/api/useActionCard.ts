@@ -26,6 +26,8 @@ export type ActionCardInput =
       /** Gdy true, słownik z wybranej opcji jest wklejany do parametrów (np. cel Lucky Shot). */
       merge: boolean;
       options: ActionCardOption[];
+      /** Wartość opcji „Auto” (przycisk „Auto”; pominięte pole = ta opcja). */
+      auto?: unknown;
     })
   | (InputBase & {
       kind: "multi";
