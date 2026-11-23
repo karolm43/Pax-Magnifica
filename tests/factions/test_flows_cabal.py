@@ -127,13 +127,14 @@ def test_przelom_ekspedycja_fracture_i_ingress(registry: StaticDataRegistry) -> 
             "actor_id": flow.me, "color": choice["color"], "position": choice["candidates"][0],
         })
         view = flow.client.get("/thunders-edge").json()
-    assert f"{flow.me}:cabalbt" in flow.available()
+    # Oferta przesunięcia wyskakuje SAMA zaraz po rozłożeniu ingressów - nie „Available now”.
+    assert f"{flow.me}:cabalbt" not in flow.available()
+    label = "Al'raith Ix Ianovar: move ingress tokens"
     source = next(p for p, s in sorted(_state(flow)["systems"].items()) if s["ingress_token"])
-    flow.use("breakthrough", "cabalbt", {"from_1": source, "to_1": flow.home,
-                                         "from_2": "none", "to_2": "none"})
+    flow.accept(label, {"from_1": source, "to_1": flow.home, "from_2": "none", "to_2": "none"})
     systems = _state(flow)["systems"]
     assert systems[flow.home]["ingress_token"] and not systems[source]["ingress_token"]
-    assert f"{flow.me}:cabalbt" not in flow.available()
+    assert not flow.has_offer(label)
 
 
 def test_transakcja_zwraca_przechwycony_statek(registry: StaticDataRegistry) -> None:

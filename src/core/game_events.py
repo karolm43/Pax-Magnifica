@@ -130,6 +130,7 @@ class GameEvent(StrEnum):
     ACTION_CARDS_DRAWN = "cards.action_drawn"
     ACTION_CARD_DISCARDED = "cards.action_discarded"
     COMPONENT_GAINED = "component.gained"  # „when you gain this card”
+    FRACTURE_INGRESS_PLACED = "fracture.ingress_placed"  # The Fracture w grze, ingressy rozłożone
     OBJECTIVE_REVEALED = "objective.revealed"
     OBJECTIVE_SCORED = "objective.scored"
     SECRET_OBJECTIVE_DISCARDED = "objective.secret_discarded"
@@ -338,6 +339,11 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
         "Gracz zdobył komponent (relikt, notka, technologia).",
         ("player", "component"),
         "relics / breakthrough / promissory_notes",
+    ),
+    GameEvent.FRACTURE_INGRESS_PLACED: EventInfo(
+        "The Fracture weszło do gry i wszystkie żetony ingress leżą (R_fracture).",
+        ("player", "breakthrough"),
+        "fracture.announce_ingress_placed",
     ),
     GameEvent.OBJECTIVE_REVEALED: EventInfo(
         "Cel publiczny ujawniony.", ("objective",), "objectives.reveal_next_public"

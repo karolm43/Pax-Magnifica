@@ -670,9 +670,15 @@ def test_przelom_fracture_bez_rzutu_z_synergia(registry: StaticDataRegistry) -> 
         c for c in synergy if c in {c.color for c in state.fracture.pending}
     )
     assert all(c.remaining <= fracture.INGRESS_PER_SYNERGY_COLOR for c in state.fracture.pending)
-    if state.fracture.pending:  # najpierw wszystkie ingressy (1.2)
-        reason = cabal._ingress_window(state, registry, "p1")
-        assert reason is not None and "first" in reason
+    state.systems[EAST].system_id = RIFT_TILE  # jest dokąd przesunąć
+    if state.fracture.pending:  # najpierw wszystkie ingressy (1.2) - oferty jeszcze nie ma
+        assert not _offers(state, "p1", "Al'raith Ix Ianovar: move ingress tokens")
+        while state.fracture.pending:
+            choice = state.fracture.pending[0]
+            spot = fracture.ingress_candidates(state, registry, grid, choice.color)[0]
+            state = fracture.choose_ingress(state, registry, grid, "p1", choice.color, spot)
+    # Zaraz po rozłożeniu ostatniego ingressu oferta wyskakuje sama (decyzja 2026-11-23).
+    assert _offers(state, "p1", "Al'raith Ix Ianovar: move ingress tokens")
 
 
 @ruling("breakthroughs:cabalbt#2", "F_vuilraith/alraith-ix-ianovar/2")
@@ -684,9 +690,9 @@ def test_przelom_przesuwa_ingress_do_szczeliny(registry: StaticDataRegistry) -> 
     state.systems[FAR].ingress_token = True
     state.systems[WEST].ingress_token = True
     state.systems[EAST].system_id = RIFT_TILE
-    assert cabal._ingress_window(state, registry, "p1") is not None  # okno tylko po wejściu
+    assert not cabal._ingress_ready(state, "p1", {})  # tylko zaraz po wejściu przełomu
     cabal._open_ingress_window(state, "p1", {})
-    assert cabal._ingress_window(state, registry, "p1") is None
+    assert cabal._ingress_ready(state, "p1", {})
     inputs = cabal.ingress_inputs(state, registry, "p1")
     targets = {o["value"] for o in inputs[1]["options"]}
     assert {HOME, EAST} <= targets  # Dimensional Tear też jest szczeliną
@@ -694,7 +700,7 @@ def test_przelom_przesuwa_ingress_do_szczeliny(registry: StaticDataRegistry) -> 
                        {"from_1": FAR, "to_1": HOME, "from_2": WEST, "to_2": EAST})
     assert state.systems[HOME].ingress_token and state.systems[EAST].ingress_token
     assert not state.systems[FAR].ingress_token
-    assert cabal._ingress_window(state, registry, "p1") is not None  # zużyte
+    assert not cabal._ingress_ready(state, "p1", {})  # zużyte
 
 
 @ruling("breakthroughs:cabalbt#3")

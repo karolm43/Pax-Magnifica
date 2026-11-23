@@ -338,3 +338,11 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
 - Stół transakcji: sekcja „Captured units” (stepper na typ, sylwetka w barwie partnera, tylko statki/mechy
   partnera z Nombox, tylko gdy wolno kłaść komponenty), podsumowanie „Returns captured …”; scenariusz API
   `test_transakcja_zwraca_przechwycony_statek`. Przy okazji: brak `hint` w `DecisionFields.test.tsx` (tsc).
+
+## 2026-11-23 — Cabal: przesunięcie ingressów zaraz po wejściu Fracture
+
+- Decyzja użytkownika: Al'raith Ix Ianovar przesuwa ingressy od razu po rozłożeniu ich wg zasad, nie
+  w oknie „Available now” do końca tury. Nowe zdarzenie `GameEvent.FRACTURE_INGRESS_PLACED`
+  (`fracture.announce_ingress_placed`: po `_enter` bez wyborów i po ostatnim `choose_ingress`); hook
+  Cabal = oferta (`ingress_offer`). Fracture już w grze → oferta od razu po wejściu przełomu.
+- QA: pytest (Cabal, Fracture/ekspedycje, zdarzenia, triggery) ✓, ruff/mypy ✓.

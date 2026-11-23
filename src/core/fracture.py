@@ -19,6 +19,7 @@ from src.core import variants
 from src.core.board_edit import planet_position
 from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.expedition_state import IngressChoice
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import Hex, HexGrid
 from src.core.neutral import NEUTRAL_PLAYER_ID
@@ -184,6 +185,23 @@ def _log(state: GameState, entry: dict[str, Any]) -> None:
     state.fracture.log.append(entry)
 
 
+def announce_ingress_placed(state: GameState) -> None:
+    """Emituje „The Fracture w grze, wszystkie ingressy rozłożone” (AFTER) - MUTUJE ``state``.
+
+    Tu reagują efekty „po wejściu Fracture” (Al'raith Ix Ianovar, F_vuilraith 1.2: przesunięcie
+    dopiero po rozłożeniu WSZYSTKICH ingressów). Nic nie robi, dopóki są ingressy do położenia.
+    """
+    from src.core import triggers  # lokalnie: triggers -> hooki -> fracture
+
+    fracture = state.fracture
+    if not fracture.in_play or fracture.pending or fracture.entered_by is None:
+        return
+    triggers.fire(
+        state, GameEvent.FRACTURE_INGRESS_PLACED, Moment.AFTER, subject=fracture.entered_by,
+        ctx={"player": fracture.entered_by, "breakthrough": fracture.breakthrough_id},
+    )
+
+
 def _settle_pending(state: GameState, registry: StaticDataRegistry, grid: HexGrid) -> None:
     """Kładzie ingress automatycznie, gdy kandydatów jest nie więcej niż trzeba (R_fracture).
 
@@ -288,6 +306,7 @@ def _enter(
             for c in COLORS
         ]
     _settle_pending(state, registry, grid)
+    announce_ingress_placed(state)
 
 
 def put_into_play(
@@ -419,6 +438,7 @@ def choose_ingress(
     if choice.remaining <= 0:
         new_state.fracture.pending.remove(choice)
     _settle_pending(new_state, registry, grid)
+    announce_ingress_placed(new_state)
     return new_state
 
 

@@ -502,7 +502,8 @@ def fracture_without_roll(_state: GameState, _player_id: str, _ctx: Mapping[str,
 )
 def _open_ingress_window(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> None:
     """After this card enters play, move up to 2 ingress tokens into systems that contain gravity
-    rifts - okno do końca tury (po rozłożeniu wszystkich ingressów, ruling 1.2)."""
+    rifts - znacznik „przesunięcie należne”; oferta wyskakuje SAMA, gdy tylko wszystkie ingressy
+    leżą (ruling 1.2, zdarzenie ``FRACTURE_INGRESS_PLACED``) - decyzja użytkownika 2026-11-23."""
     active_effects.add_effect(state, INGRESS_WINDOW, Duration.TURN, owner=player_id)
 
 
@@ -521,20 +522,16 @@ def _rift_targets(state: GameState) -> list[str]:
     )
 
 
-@faction_components.window_use("breakthrough", BREAKTHROUGH)
-def _ingress_window(state: GameState, _registry: StaticDataRegistry, player_id: str) -> str | None:
-    if not active_effects.has_effect(state, player_id, INGRESS_WINDOW):
-        return "Al'raith Ix Ianovar moves ingress tokens right after it enters play."
-    if not state.fracture.in_play or state.fracture.pending:
-        return "Place all ingress tokens first."
-    if not _ingress_systems(state) or not _rift_targets(state):
-        return "There is no ingress token to move into a gravity rift."
-    return None
+def _ingress_ready(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> bool:
+    """Przesunięcie należne (przełom właśnie wszedł) i jest co / dokąd przesunąć."""
+    return (
+        active_effects.has_effect(state, player_id, INGRESS_WINDOW)
+        and bool(_ingress_systems(state)) and bool(_rift_targets(state))
+    )
 
 
-@register_effect_inputs(f"breakthroughs:{BREAKTHROUGH}")
 def ingress_inputs(
-    state: GameState, _registry: StaticDataRegistry, _player_id: str
+    state: GameState, _registry: Any, _player_id: str, _ctx: Mapping[str, Any] | None = None
 ) -> list[dict[str, Any]]:
     sources = [oi.option(_NONE, "Do not move")] + [
         oi.option(p, f"Ingress token in system {p}", meta={"position": p})
@@ -551,7 +548,16 @@ def ingress_inputs(
     return inputs
 
 
-@register_effect(f"breakthroughs:{BREAKTHROUGH}")
+@on_event(
+    GameEvent.FRACTURE_INGRESS_PLACED, Moment.AFTER, HookSource(SOURCE_BREAKTHROUGH, BREAKTHROUGH),
+    optional=True, condition=_ingress_ready, inputs=ingress_inputs,
+    covers=f"breakthroughs:{BREAKTHROUGH}", label="Al'raith Ix Ianovar: move ingress tokens",
+)
+def ingress_offer(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
+    """Oferta zaraz po rozłożeniu ingressów (ruling 1.2) - wykonuje :func:`move_ingress`."""
+    move_ingress(state, _registry(), player_id, ctx.get("params", {}))
+
+
 def move_ingress(
     state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
 ) -> None:

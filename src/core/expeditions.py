@@ -160,7 +160,12 @@ def gain_breakthrough(
         return
     if rules_hooks.permits(rules_hooks.POINT_BREAKTHROUGH_FRACTURE_NO_ROLL, state, player_id):
         # Al'raith Ix Ianovar (RULES.md 62.17): Fracture wchodzi bez rzutu, z synergią przełomu.
-        fracture.put_into_play(state, registry, grid, player_id, breakthrough.id)
+        if state.fracture.in_play:
+            # „if it is not already in play” - Fracture już jest: przesunięcie ingressów od razu
+            # (albo po rozłożeniu ingressów, gdy ktoś jeszcze je kładzie).
+            fracture.announce_ingress_placed(state)
+        else:
+            fracture.put_into_play(state, registry, grid, player_id, breakthrough.id)
         return
     fracture.roll_for_fracture(state, registry, grid, player_id, breakthrough.id)
 
