@@ -28,7 +28,8 @@ export type FxMark =
   | "beam" // Sol: orbitalne słupy światła
   | "coins" // Hacan: deszcz trade goods
   | "slash" // Sardakk N'orr: szpony
-  | "seal" // Winnu / Naaz-Rokha: pieczęć
+  | "crown" // Winnu: korona imperium i promienie
+  | "forge" // Naaz-Rokha: kuźnia reliktu
   | "aegis" // Xxcha: kopuła tarczy
   | "nova" // Muaat: supernowa
   | "reticle" // Letnev: namierzanie floty
@@ -122,16 +123,19 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
       { at: 900, name: "plasma", gain: 0.3, rate: 1.4 },
     ],
   },
-  // Sanction of the Quieron: darmowa produkcja — deszcz trade goods nad systemem.
+  // Sanction of the Quieron: darmowa produkcja — szlaki handlowe zbiegają się do systemu,
+  // karawany niosą towar, deszcz trade goods i wielka moneta Quieron nad produkcją.
   hacanhero: {
     dim: 0.3,
     target: "active",
     mark: "coins",
     tone: "255 200 70",
-    ms: 4000,
+    ms: 4600,
     sounds: [
-      { at: 300, name: "diceThrow", gain: 0.5, rate: 1.3 },
-      { at: 1100, name: "diceThrow", gain: 0.4, rate: 1.5 },
+      { at: 0, name: "fleetEnter", gain: 0.35, rate: 1.4 },
+      { at: 1300, name: "diceThrow", gain: 0.5, rate: 1.3 },
+      { at: 1900, name: "diceThrow", gain: 0.4, rate: 1.5 },
+      { at: 2500, name: "sustain", gain: 0.4, rate: 1.5 },
     ],
   },
   // Sleeper Cell: zniszczone statki wroga wracają jako Mentak — haki abordażowe wbijają się
@@ -148,27 +152,36 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
       { at: 1100, name: "impact", gain: 0.5, rate: 0.8 },
     ],
   },
-  // Brood Swarm: prosto do lądowania — szpony uderzają w system inwazji.
+  // Brood Swarm: prosto do lądowania — rój N'orr nurkuje w system inwazji, szpony tną planetę
+  // i zostaje żarząca się rana.
   sardakkhero: {
     dim: 0.35,
     target: "active",
     mark: "slash",
     tone: "255 60 50",
-    ms: 3800,
+    ms: 4200,
+    quake: [{ at: 1500, px: 5, ms: 500 }],
     sounds: [
-      { at: 500, name: "impact", gain: 0.6, rate: 1.3 },
-      { at: 620, name: "impact", gain: 0.6, rate: 1.1 },
-      { at: 740, name: "groundBlast", gain: 0.6 },
+      { at: 0, name: "fleetEnter", gain: 0.5, rate: 1.6 },
+      { at: 700, name: "dropPod", gain: 0.5, rate: 1.3 },
+      { at: 1500, name: "impact", gain: 0.7, rate: 1.3 },
+      { at: 1620, name: "impact", gain: 0.6, rate: 1.1 },
+      { at: 1740, name: "groundBlast", gain: 0.7 },
     ],
   },
-  // Sins of the Father: dowolna karta strategii — pieczęć imperium nad Mecatol Rex.
+  // Sins of the Father: primary dowolnej karty strategii — korona dawnego imperium stempluje
+  // Mecatol Rex, laur się zamyka, a promienie władzy rozchodzą się przez całą planszę.
   winnuhero: {
     dim: 0.35,
     target: "mecatol",
-    mark: "seal",
+    mark: "crown",
     tone: "255 210 90",
-    ms: 4400,
-    sounds: [{ at: 300, name: "arriveHeavy", gain: 0.6, rate: 0.7 }],
+    ms: 4800,
+    sweep: "dawn",
+    sounds: [
+      { at: 300, name: "arriveHeavy", gain: 0.7, rate: 0.6 },
+      { at: 1200, name: "sunfire", gain: 0.3, rate: 0.7 },
+    ],
   },
   // Planetary Defense Nexus - Aegis: PDS i mechy na planetach — kopuły tarcz wznoszą się nad nimi.
   "xxchahero-te": {
@@ -240,16 +253,20 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
       { at: 700, name: "explosionHeavy", gain: 0.8, rate: 0.8 },
     ],
   },
-  // Perfect Synthesis: relikt i dwie karty strategii naraz — skan archeologów i pieczęcie nad
-  // systemami z jednostkami Naaz-Rokha.
+  // Perfect Synthesis: Forge Legend — skan archeologów, runiczne pierścienie zgrywają się,
+  // z kuźni tryskają iskry, wznosi się kryształ reliktu i rozkładają dwie karty strategii.
   naazhero: {
     dim: 0.35,
     sweep: "scan",
     target: "units",
-    mark: "seal",
+    mark: "forge",
     tone: "110 220 160",
-    ms: 4400,
-    sounds: [{ at: 400, name: "sustain", gain: 0.45, rate: 1.2 }],
+    ms: 4800,
+    sounds: [
+      { at: 300, name: "mechStep", gain: 0.6, rate: 1.2 },
+      { at: 1300, name: "assaultCannon", gain: 0.45, rate: 1.4 },
+      { at: 1500, name: "sustain", gain: 0.5, rate: 1.3 },
+    ],
   },
   // C-Radium Geometry: Poison of the Nefishh - umysły rywali oddają notki; fioletowa mgła,
   // psioniczne oko i fale nad systemami Naalu.

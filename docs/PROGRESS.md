@@ -415,3 +415,15 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-18) są w `PROGRESS_ARCHI
   Terraform = planeta o najwyższej sumie wartości, Slumberstate: kontroler „Auto” = odmowa.
 - QA: pytest całość ✓, ruff/mypy ✓, tsc/eslint/vitest (offers, ActivityPanel) ✓, e2e 8/8 ✓.
 
+
+## Efekty bohaterów: Hacan, Sardakk, Winnu, Naaz-Rokha + poprawka wygaszania (RULES.md 64.4)
+
+- Hacan (Sanction of the Quieron): szlaki handlowe zbiegają się do systemu, karawany, deszcz trade goods
+  i obracająca się moneta Quieron. Sardakk (Brood Swarm): rój N'orr nurkuje, uderzenia, trzy cięcia i żarząca
+  się rana + wstrząs. Winnu (Sins of the Father, znacznik `crown`): korona stempluje Mecatol Rex, laur i promienie
+  władzy przez planszę. Naaz-Rokha (Forge Legend, znacznik `forge`): runiczne pierścienie zgrywają się, iskry
+  kuźni, kryształ reliktu i dwie karty strategii. Znacznik `seal` usunięty (żaden bohater go nie dzieli).
+- Błąd: `fadeLate` dołączane jako druga animacja nadpisywało `opacity` animacji wejścia — elementy (liście
+  Arborec, płyty tytana, oko Naalu, moneta…) były widoczne przed swoim momentem. Usunięte; całość i tak gaśnie
+  z warstwą (`fxLife`).
+- QA: tsc app, eslint, vitest (map, KeyMoments); zrzuty klatek obejrzane.

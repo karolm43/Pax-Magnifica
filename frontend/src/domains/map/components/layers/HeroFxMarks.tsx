@@ -77,44 +77,116 @@ function Beam() {
   );
 }
 
-/** Hacan — Sanction of the Quieron: deszcz trade goods. */
+/** Hacan — Sanction of the Quieron: szlaki handlowe zbiegają się do systemu, karawany niosą
+ * towar, potem deszcz trade goods i wielka moneta Quieron obraca się nad produkcją. */
 function Coins() {
   return (
     <>
-      {seq(10, (i) => (
+      <Ring n={6} offset={15}>
+        {(i) => (
+          <>
+            <path className={fx.route} d={`M 0 -440 Q ${i % 2 ? 90 : -90} -220 0 -40`} pathLength={100} />
+            {seq(3, (j) => (
+              <circle
+                key={j}
+                className={fx.caravan}
+                r={6}
+                style={vars({ "--j": j, "--sx": `${i % 2 ? 40 : -40}px` })}
+              />
+            ))}
+          </>
+        )}
+      </Ring>
+      {seq(12, (i) => (
         <g key={i} style={vars({ "--i": i })}>
           <circle className={base.coin} r={9} />
         </g>
       ))}
+      <g className={fx.bigCoin}>
+        <circle className={fx.bigCoinFace} r={46} />
+        <circle className={fx.bigCoinRim} r={36} />
+        <path className={fx.bigCoinMark} d="M -14 -16 L 0 -24 L 14 -16 L 14 6 L 0 22 L -14 6 Z" />
+      </g>
     </>
   );
 }
 
-/** Sardakk N'orr — Brood Swarm: trzy cięcia szponów. */
+/** Sardakk N'orr — Brood Swarm: rój N'orr nurkuje ze skrzydłami w szyku, uderza w planety,
+ * a trzy cięcia szponów zostawiają żarzącą się ranę. */
 function Slash() {
   return (
     <>
+      {SWARM.map((b, i) => (
+        <g key={i} transform={`translate(${b.x} ${b.y})`} style={vars({ "--i": i })}>
+          <g className={fx.bug}>
+            <path className={fx.bugWing} d="M 0 0 L -16 -10 L -6 4 Z M 0 0 L 16 -10 L 6 4 Z" />
+            <ellipse className={fx.bugBody} rx={4} ry={10} />
+          </g>
+          <circle className={fx.bugHit} r={14} />
+        </g>
+      ))}
       {seq(3, (i) => (
         <g key={i} className={fx.clawRow} style={vars({ "--i": i })}>
+          <path className={fx.gash} d="M -70 -60 Q -10 -10 60 70" />
           <path className={base.claw} d="M -70 -60 Q -10 -10 60 70" pathLength={100} />
         </g>
       ))}
     </>
   );
 }
+const SWARM = seq(14, (i) => ({ x: ((i * 67) % 200) - 100, y: ((i * 43) % 150) - 75 }));
 
-/** Winnu / Naaz-Rokha: pieczęć stempluje system i rozsyła falę. */
-function Seal() {
+/** Winnu — Sins of the Father: korona imperium stempluje Mecatol Rex, promienie dawnej władzy
+ * rozchodzą się przez całą galaktykę. */
+function Crown() {
   return (
     <>
+      <g className={fx.rays}>
+        <Ring n={12}>{() => <rect className={fx.ray} x={-10} y={-1500} width={20} height={1400} />}</Ring>
+      </g>
       {seq(3, (i) => (
         <g key={i} style={vars({ "--i": i })}>
           <circle className={base.sealRing} r={120} />
           <circle className={base.sealInner} r={86} />
         </g>
       ))}
-      <g className={fx.sealGlyph}>
-        <Ring n={6}>{() => <path d="M 0 -70 L 9 -52 L -9 -52 Z" />}</Ring>
+      <g className={fx.laurel}>
+        <Ring n={18}>{() => <ellipse className={fx.leafGold} cx={0} cy={-102} rx={5} ry={12} transform="rotate(30 0 -102)" />}</Ring>
+      </g>
+      <path
+        className={fx.crown}
+        d="M -46 22 L -52 -26 L -26 -4 L 0 -40 L 26 -4 L 52 -26 L 46 22 Z M -46 30 L 46 30 L 46 42 L -46 42 Z"
+      />
+    </>
+  );
+}
+
+/** Naaz-Rokha — Perfect Synthesis: Forge Legend. Pierścienie runiczne obracają się i zgrywają,
+ * z kuźni tryskają iskry, wznosi się kryształ reliktu, a dwie karty strategii rozkładają się na boki. */
+function Forge() {
+  return (
+    <>
+      {[118, 92, 66].map((r, i) => (
+        <circle key={i} className={fx.rune} r={r} style={vars({ "--i": i })} />
+      ))}
+      {seq(18, (i) => (
+        <g key={i} transform={`rotate(${-70 + ((i * 37) % 140)})`}>
+          <circle
+            className={fx.ember}
+            r={2 + (i % 3)}
+            style={vars({ "--i": i, "--dist": `${-120 - ((i * 41) % 110)}px` })}
+          />
+        </g>
+      ))}
+      {[-1, 1].map((side) => (
+        <g key={side} className={fx.cardOut} style={vars({ "--side": side })}>
+          <rect className={fx.scCard} x={-18} y={-28} width={36} height={56} rx={4} />
+          <path className={fx.scMark} d="M -8 0 L 0 -12 L 8 0 L 0 12 Z" />
+        </g>
+      ))}
+      <g className={fx.relicRise}>
+        <path className={fx.relic} d="M 0 -58 L 26 -16 L 14 40 L -14 40 L -26 -16 Z" />
+        <path className={fx.relicFacet} d="M 0 -58 L 0 40 M -26 -16 L 26 -16" />
       </g>
     </>
   );
@@ -390,7 +462,8 @@ const DRAW: Record<Exclude<FxMark, "nova" | "maw">, () => ReactNode> = {
   beam: Beam,
   coins: Coins,
   slash: Slash,
-  seal: Seal,
+  crown: Crown,
+  forge: Forge,
   aegis: Aegis,
   reticle: Reticle,
   circuit: Circuit,

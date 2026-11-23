@@ -138,8 +138,8 @@
   stroke-width: 2;
   filter: drop-shadow(0 0 8px rgb(var(--tone)));
   opacity: 0;
-  translate: calc((var(--i) - 4.5) * 22px) -260px;
-  animation: coinFall 1300ms cubic-bezier(0.5, 0, 0.7, 1) calc(var(--d) + var(--i) * 110ms) both;
+  translate: calc((var(--i) - 5.5) * 20px) -260px;
+  animation: coinFall 1300ms cubic-bezier(0.5, 0, 0.7, 1) calc(var(--d) + 1300ms + var(--i) * 90ms) both;
 }
 
 .claw {
@@ -150,8 +150,7 @@
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
   filter: drop-shadow(0 0 10px rgb(var(--tone))) drop-shadow(0 0 20px rgb(var(--tone)));
-  animation: slash 360ms cubic-bezier(0.7, 0, 0.3, 1) calc(var(--d) + 500ms + var(--i) * 120ms) both,
-    fadeLate var(--fx-ms, 4000ms) ease both;
+  animation: slash 360ms cubic-bezier(0.7, 0, 0.3, 1) calc(var(--d) + 1500ms + var(--i) * 120ms) both;
 }
 
 /* Sins of the Father: pieczęć imperium stempluje Mecatol Rex i rozsyła falę. */
@@ -175,8 +174,7 @@
 .sealInner {
   stroke-width: 3;
   opacity: 0;
-  animation: sealStamp 900ms cubic-bezier(0.3, 1.4, 0.5, 1) calc(var(--d) + 450ms) both,
-    fadeLate var(--fx-ms, 4000ms) ease both;
+  animation: sealStamp 900ms cubic-bezier(0.3, 1.4, 0.5, 1) calc(var(--d) + 450ms) both;
 }
 
 /* Planetary Defense Nexus - Aegis: trzy warstwy kopuły tarczy wznoszą się nad systemem. */
@@ -193,15 +191,14 @@
   fill: rgb(var(--tone) / 0.12);
   stroke-width: 4;
   scale: calc(1 - var(--i) * 0.22);
-  animation: domeRise 1100ms cubic-bezier(0.2, 1.2, 0.4, 1) calc(var(--d) + 300ms + var(--i) * 260ms) both,
-    fadeLate var(--fx-ms, 4400ms) ease both;
+  animation: domeRise 1100ms cubic-bezier(0.2, 1.2, 0.4, 1) calc(var(--d) + 300ms + var(--i) * 260ms) both;
 }
 
 .domeBase {
   fill: none;
   stroke-width: 3;
   stroke-dasharray: 14 8;
-  animation: pop 600ms ease-out calc(var(--d) + 200ms) both, fadeLate var(--fx-ms, 4400ms) ease both;
+  animation: pop 600ms ease-out calc(var(--d) + 200ms) both;
 }
 
 /* Nova Seed — supernowa (chwile: puchnięcie 0–1,6 s, zapadanie do 2,85 s, błysk 2,85 s,
@@ -371,10 +368,6 @@
   from { opacity: 0; scale: 0; }
   to { opacity: 1; scale: 1; }
 }
-@keyframes fadeLate {
-  0%, 80% { opacity: 1; }
-  100% { opacity: 0; }
-}
 @keyframes beamRise {
   0% { opacity: 0; scale: 1 0; }
   30% { opacity: 1; scale: 1 1; }
@@ -383,8 +376,8 @@
 @keyframes coinFall {
   0% { opacity: 0; }
   20% { opacity: 1; }
-  80% { opacity: 1; translate: calc((var(--i) - 4.5) * 12px) 0; }
-  100% { opacity: 0; translate: calc((var(--i) - 4.5) * 12px) 0; scale: 1.8; }
+  80% { opacity: 1; translate: calc((var(--i) - 5.5) * 11px) 0; }
+  100% { opacity: 0; translate: calc((var(--i) - 5.5) * 11px) 0; scale: 1.8; }
 }
 @keyframes slash { to { stroke-dashoffset: 0; } }
 @keyframes domeRise {

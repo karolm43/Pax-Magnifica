@@ -14,16 +14,14 @@
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
   filter: drop-shadow(0 0 6px rgb(var(--tone) / 0.8));
-  animation: draw 1400ms cubic-bezier(0.3, 0.7, 0.3, 1) calc(var(--d) + var(--i) * 60ms) both,
-    fadeLate var(--fx-ms) ease both;
+  animation: draw 1400ms cubic-bezier(0.3, 0.7, 0.3, 1) calc(var(--d) + var(--i) * 60ms) both;
 }
 .leaf {
   fill: rgb(var(--tone));
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
-  animation: lockPop 500ms ease calc(var(--d) + 1100ms + var(--i) * 60ms) both,
-    fadeLate var(--fx-ms) ease both;
+  animation: lockPop 500ms ease calc(var(--d) + 1100ms + var(--i) * 60ms) both;
 }
 .vineArm {
   scale: 1;
@@ -77,12 +75,149 @@ g:nth-child(3n) > .vineArm {
   translate: calc((var(--i) - 1) * 46px) 0;
 }
 
-/* --- Winnu / Naaz: obracający się glif ----------------------------------------------------- */
-.sealGlyph {
+/* --- Hacan: szlaki handlowe, karawany, moneta Quieron ------------------------------------- */
+.route {
+  fill: none;
+  stroke: rgb(var(--tone) / 0.8);
+  stroke-width: 3;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+  animation: draw 900ms ease-out calc(var(--d) + var(--i) * 80ms) both;
+}
+.caravan {
+  fill: rgb(255 235 170);
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+  opacity: 0;
+  animation: caravan 1100ms cubic-bezier(0.5, 0, 0.8, 0.6) calc(var(--d) + 400ms + var(--i) * 80ms + var(--j) * 220ms) both;
+}
+.bigCoin {
+  opacity: 0;
+  animation: coinFlip 1800ms cubic-bezier(0.3, 1.2, 0.5, 1) calc(var(--d) + 2200ms) both;
+}
+.bigCoinFace {
   fill: rgb(var(--tone));
-  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  stroke: rgb(255 245 200);
+  stroke-width: 4;
+  filter: drop-shadow(0 0 16px rgb(var(--tone)));
+}
+.bigCoinRim {
+  fill: none;
+  stroke: rgb(150 100 20);
+  stroke-width: 3;
+  stroke-dasharray: 5 4;
+}
+.bigCoinMark {
+  fill: rgb(150 100 20);
+}
+
+/* --- Sardakk: rój i rana ------------------------------------------------------------------ */
+.bug {
+  opacity: 0;
+  animation: bugDive 900ms cubic-bezier(0.7, 0, 1, 0.7) calc(var(--d) + 300ms + var(--i) * 70ms) both;
+}
+.bugWing {
+  fill: rgb(60 10 10);
+  stroke: rgb(255 90 70);
+  stroke-width: 1.5;
+}
+.bugBody {
+  fill: rgb(30 5 5);
+  stroke: rgb(var(--tone));
+  stroke-width: 1.5;
+}
+.bugHit {
+  fill: none;
+  stroke: rgb(255 120 90);
+  stroke-width: 3;
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: podImpact 600ms ease-out calc(var(--d) + 1150ms + var(--i) * 70ms) both;
+}
+.gash {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 22;
+  stroke-linecap: round;
+  filter: blur(8px);
+  opacity: 0;
+  animation: gash 2200ms ease-out calc(var(--d) + 1650ms + var(--i) * 120ms) both;
+}
+
+/* --- Winnu: korona i promienie ------------------------------------------------------------ */
+.rays {
+  opacity: 0;
+  animation: rays var(--fx-ms) ease-out calc(var(--d) + 900ms) both;
+}
+.ray {
+  fill: rgb(var(--tone) / 0.35);
+  filter: blur(6px);
+}
+.laurel {
   opacity: 0;
   animation: glyphSpin 2600ms ease-out calc(var(--d) + 700ms) both;
+}
+.leafGold {
+  fill: rgb(var(--tone));
+  filter: drop-shadow(0 0 5px rgb(var(--tone)));
+}
+.crown {
+  fill: rgb(var(--tone));
+  stroke: rgb(255 245 210);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 12px rgb(var(--tone))) drop-shadow(0 0 30px rgb(var(--tone) / 0.7));
+  opacity: 0;
+  animation: crownStamp 900ms cubic-bezier(0.3, 1.5, 0.5, 1) calc(var(--d) + 300ms) both;
+}
+
+/* --- Naaz-Rokha: kuźnia reliktu ----------------------------------------------------------- */
+.rune {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 5;
+  stroke-dasharray: 22 8 4 8;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  opacity: 0;
+  animation: runeAlign 1500ms cubic-bezier(0.3, 0, 0.2, 1) calc(var(--d) + 200ms + var(--i) * 120ms) both;
+}
+.rune:nth-child(2) {
+  animation-name: runeAlignCounter;
+}
+.ember {
+  fill: rgb(255 220 140);
+  filter: drop-shadow(0 0 5px rgb(255 150 60));
+  opacity: 0;
+  animation: debris 1400ms cubic-bezier(0.1, 0.7, 0.4, 1) calc(var(--d) + 1500ms + var(--i) * 25ms) both;
+}
+.cardOut {
+  opacity: 0;
+  animation: cardOut 1200ms cubic-bezier(0.3, 1.3, 0.5, 1) calc(var(--d) + 2200ms) both;
+}
+.scCard {
+  fill: rgb(20 40 35);
+  stroke: rgb(var(--tone));
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+}
+.scMark {
+  fill: rgb(var(--tone));
+}
+.relicRise {
+  opacity: 0;
+  animation: relicRise 1600ms cubic-bezier(0.2, 1.1, 0.4, 1) calc(var(--d) + 1500ms) both;
+}
+.relic {
+  fill: rgb(var(--tone) / 0.55);
+  stroke: rgb(220 255 235);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 12px rgb(var(--tone))) drop-shadow(0 0 28px rgb(var(--tone)));
+}
+.relicFacet {
+  fill: none;
+  stroke: rgb(230 255 240 / 0.7);
+  stroke-width: 2;
 }
 
 /* --- Xxcha: siatka tarczy ------------------------------------------------------------------ */
@@ -105,8 +240,7 @@ g:nth-child(3n) > .vineArm {
   stroke-linejoin: miter;
   opacity: 0;
   animation: bracketClose 1100ms cubic-bezier(0.6, 0, 0.2, 1) calc(var(--d) + 400ms) both,
-    lockBlink 240ms steps(2) calc(var(--d) + 1500ms) 4,
-    fadeLate var(--fx-ms) ease both;
+    lockBlink 240ms steps(2) calc(var(--d) + 1500ms) 4;
 }
 .reticleRing {
   fill: none;
@@ -114,19 +248,18 @@ g:nth-child(3n) > .vineArm {
   stroke-width: 3;
   stroke-dasharray: 14 10;
   opacity: 0;
-  animation: spinIn 1400ms ease-out calc(var(--d) + 300ms) both, fadeLate var(--fx-ms) ease both;
+  animation: spinIn 1400ms ease-out calc(var(--d) + 300ms) both;
 }
 .crosshair {
   stroke: rgb(var(--tone) / 0.9);
   stroke-width: 2;
   opacity: 0;
-  animation: crossIn 900ms ease calc(var(--d) + 600ms) both, fadeLate var(--fx-ms) ease both;
+  animation: crossIn 900ms ease calc(var(--d) + 600ms) both;
 }
 .lockDot {
   fill: rgb(255 220 210);
   opacity: 0;
-  animation: lockPop 700ms cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--d) + 1500ms) both,
-    fadeLate var(--fx-ms) ease both;
+  animation: lockPop 700ms cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--d) + 1500ms) both;
 }
 
 /* --- Jol-Nar: obwody ----------------------------------------------------------------------- */
@@ -138,8 +271,7 @@ g:nth-child(3n) > .vineArm {
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
   filter: drop-shadow(0 0 6px rgb(var(--tone)));
-  animation: draw 900ms cubic-bezier(0.4, 0, 0.2, 1) calc(var(--d) + 500ms + var(--i) * 70ms) both,
-    fadeLate var(--fx-ms) ease both;
+  animation: draw 900ms cubic-bezier(0.4, 0, 0.2, 1) calc(var(--d) + 500ms + var(--i) * 70ms) both;
 }
 .node {
   fill: rgb(200 235 255);
@@ -157,7 +289,7 @@ g:nth-child(3n) > .vineArm {
   stroke: rgb(var(--tone));
   stroke-width: 3;
   filter: drop-shadow(0 0 10px rgb(var(--tone)));
-  animation: chipIn 700ms cubic-bezier(0.3, 1.5, 0.5, 1) calc(var(--d) + 250ms) both, fadeLate var(--fx-ms) ease both;
+  animation: chipIn 700ms cubic-bezier(0.3, 1.5, 0.5, 1) calc(var(--d) + 250ms) both;
 }
 .chipCore {
   fill: rgb(230 245 255);
@@ -172,8 +304,7 @@ g:nth-child(3n) > .vineArm {
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
   filter: drop-shadow(0 0 3px rgb(0 0 0));
-  animation: draw 420ms cubic-bezier(0.6, 0, 0.9, 0.6) calc(var(--d) + 300ms + var(--i) * 110ms) both,
-    fadeLate var(--fx-ms) ease both;
+  animation: draw 420ms cubic-bezier(0.6, 0, 0.9, 0.6) calc(var(--d) + 300ms + var(--i) * 110ms) both;
 }
 .hook {
   fill: none;
@@ -182,8 +313,7 @@ g:nth-child(3n) > .vineArm {
   stroke-linecap: round;
   filter: drop-shadow(0 0 6px rgb(var(--tone)));
   opacity: 0;
-  animation: hookIn 420ms cubic-bezier(0.6, 0, 0.9, 0.6) calc(var(--d) + 300ms + var(--i) * 110ms) both,
-    fadeLate var(--fx-ms) ease both;
+  animation: hookIn 420ms cubic-bezier(0.6, 0, 0.9, 0.6) calc(var(--d) + 300ms + var(--i) * 110ms) both;
 }
 .hookArm {
   animation: hookPull 900ms cubic-bezier(0.5, 0, 0.3, 1) calc(var(--d) + 1500ms) both;
@@ -217,12 +347,11 @@ g:nth-child(3n) > .vineArm {
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
   filter: drop-shadow(0 0 8px rgb(var(--tone)));
-  animation: draw 1300ms cubic-bezier(0.3, 0, 0.3, 1) calc(var(--d) + 300ms) both,
-    fadeLate var(--fx-ms) ease both;
+  animation: draw 1300ms cubic-bezier(0.3, 0, 0.3, 1) calc(var(--d) + 300ms) both;
 }
 .strand[data-b] {
   stroke: rgb(255 230 190);
-  animation-delay: calc(var(--d) + 450ms), 0ms;
+  animation-delay: calc(var(--d) + 450ms);
 }
 .chevron {
   fill: none;
@@ -288,7 +417,7 @@ g:nth-child(3n) > .vineArm {
   fill: rgb(255 70 60);
   filter: drop-shadow(0 0 10px rgb(255 40 40)) drop-shadow(0 0 24px rgb(var(--tone)));
   opacity: 0;
-  animation: lockPop 600ms cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--d) + 1300ms) both, fadeLate var(--fx-ms) ease both;
+  animation: lockPop 600ms cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--d) + 1300ms) both;
 }
 
 /* --- Saar: fala uderzeniowa ---------------------------------------------------------------- */
@@ -339,7 +468,7 @@ g:nth-child(3n) > .vineArm {
 .eye {
   opacity: 0;
   filter: drop-shadow(0 0 14px rgb(var(--tone)));
-  animation: eyeOpen 900ms cubic-bezier(0.3, 1.3, 0.5, 1) calc(var(--d) + 300ms) both, fadeLate var(--fx-ms) ease both;
+  animation: eyeOpen 900ms cubic-bezier(0.3, 1.3, 0.5, 1) calc(var(--d) + 300ms) both;
 }
 .eyeLid {
   fill: rgb(var(--tone) / 0.25);
@@ -408,7 +537,7 @@ g:nth-child(3n) > .vineArm {
   stroke-dasharray: 30 14 6 14;
   filter: drop-shadow(0 0 10px rgb(var(--tone)));
   opacity: 0;
-  animation: accretion 900ms linear calc(var(--d) + 300ms) 5 both, fadeLate var(--fx-ms) ease both;
+  animation: accretion 900ms linear calc(var(--d) + 300ms) 5 both;
 }
 .hole {
   fill: rgb(0 0 0);
@@ -441,8 +570,7 @@ g:nth-child(3n) > .vineArm {
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
   filter: drop-shadow(0 0 6px rgb(var(--tone))) drop-shadow(0 0 16px rgb(var(--tone)));
-  animation: draw 1300ms cubic-bezier(0.5, 0, 0.5, 1) calc(var(--d) + var(--i) * 80ms) both,
-    fadeLate var(--fx-ms) ease both;
+  animation: draw 1300ms cubic-bezier(0.5, 0, 0.5, 1) calc(var(--d) + var(--i) * 80ms) both;
 }
 .burst {
   fill: none;
@@ -459,7 +587,7 @@ g:nth-child(3n) > .vineArm {
 }
 .titan {
   opacity: 0;
-  animation: titanRise 1500ms cubic-bezier(0.2, 1.2, 0.4, 1) calc(var(--d) + 1550ms) both, fadeLate var(--fx-ms) ease both;
+  animation: titanRise 1500ms cubic-bezier(0.2, 1.2, 0.4, 1) calc(var(--d) + 1550ms) both;
 }
 .plate {
   fill: rgb(150 60 110);
@@ -486,9 +614,59 @@ g:nth-child(3n) > .vineArm {
 
 /* --- Keyframes ----------------------------------------------------------------------------- */
 @keyframes draw { to { stroke-dashoffset: 0; } }
-@keyframes fadeLate {
-  0%, 80% { opacity: 1; }
+@keyframes caravan {
+  0% { opacity: 0; translate: var(--sx) -420px; }
+  15% { opacity: 1; }
+  55% { translate: calc(var(--sx) * 1.2) -220px; }
+  90% { opacity: 1; }
+  100% { opacity: 0; translate: 0 -40px; }
+}
+@keyframes coinFlip {
+  0% { opacity: 0; scale: 0.2 1; translate: 0 30px; }
+  20% { opacity: 1; scale: 1 1; }
+  40% { scale: -1 1; }
+  60% { scale: 1 1; }
+  80% { scale: -1 1; translate: 0 -10px; }
+  100% { opacity: 1; scale: 1 1; translate: 0 -10px; }
+}
+@keyframes bugDive {
+  0% { opacity: 0; translate: -260px -520px; scale: 1.6; }
+  20% { opacity: 1; }
+  92% { opacity: 1; translate: 0 0; scale: 1; }
+  100% { opacity: 0; translate: 0 0; scale: 0.4; }
+}
+@keyframes gash {
+  0% { opacity: 0; }
+  15% { opacity: 0.9; }
   100% { opacity: 0; }
+}
+@keyframes rays {
+  0% { opacity: 0; rotate: -10deg; scale: 0.3; }
+  25% { opacity: 1; scale: 1; }
+  80% { opacity: 0.8; }
+  100% { opacity: 0; rotate: 15deg; scale: 1.1; }
+}
+@keyframes crownStamp {
+  0% { opacity: 0; scale: 2.8; }
+  100% { opacity: 1; scale: 1; }
+}
+@keyframes runeAlign {
+  0% { opacity: 0; rotate: -200deg; scale: 1.4; }
+  30% { opacity: 1; }
+  100% { opacity: 1; rotate: 0deg; scale: 1; }
+}
+@keyframes runeAlignCounter {
+  0% { opacity: 0; rotate: 200deg; scale: 1.4; }
+  30% { opacity: 1; }
+  100% { opacity: 1; rotate: 0deg; scale: 1; }
+}
+@keyframes cardOut {
+  0% { opacity: 0; translate: 0 0; rotate: 0deg; scale: 0.4; }
+  100% { opacity: 1; translate: calc(var(--side) * 96px) -20px; rotate: calc(var(--side) * 14deg); scale: 1; }
+}
+@keyframes relicRise {
+  0% { opacity: 0; translate: 0 50px; scale: 0.3; }
+  100% { opacity: 1; translate: 0 -30px; scale: 1; }
 }
 @keyframes flicker {
   0% { opacity: 0; }
