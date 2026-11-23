@@ -415,3 +415,10 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
   zaraz po starcie Vite, więc pierwsze wejście w przeglądarkę nie czeka.
 - Gracze przez ZeroTier: dev-serwer Vite podaje ~900 osobnych modułów (każdy = round-trip przez sieć). Do gry
   sieciowej lepiej `npm run build` + `uv run python packaging/launcher.py` (jeden serwer, `src/api/bundle.py`, kilka plików).
+
+## Miejsce na lore systemów
+
+- `frontend/src/entities/data/systems.ts`: każdy nazwany system (poza hyperlane'ami i pustym kafelkiem) ma pole
+  `"flavourText": ""` zaraz pod `"name"` — 435 miejsc do ręcznego uzupełnienia (anomalie, puste systemy, systemy z
+  planetami). Typ `TileData.flavourText`.
+- `SystemDossier` (`Flavour`): niepusty lore systemu wyświetla się nad opisami planet; pusty jest pomijany.

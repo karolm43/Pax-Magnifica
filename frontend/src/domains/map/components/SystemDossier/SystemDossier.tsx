@@ -347,7 +347,18 @@ function SystemFacts({
   );
 }
 
-function Flavour({ planetIds }: { planetIds: string[] }) {
+/**
+ * Lore systemu (``flavourText`` w ``systems.ts``) na górze, pod nim opisy
+ * planet. Puste pola są pomijane.
+ */
+function Flavour({
+  systemId,
+  planetIds,
+}: {
+  systemId: string;
+  planetIds: string[];
+}) {
+  const systemLore = cleanFlavour(getTileById(systemId)?.flavourText ?? "");
   const entries = planetIds
     .map((id) => getPlanetData(id))
     .filter((planet) => !!planet?.flavourText)
@@ -355,10 +366,11 @@ function Flavour({ planetIds }: { planetIds: string[] }) {
       name: planet!.name,
       text: cleanFlavour(planet!.flavourText!),
     }));
-  if (entries.length === 0) return null;
-  const named = entries.length > 1;
+  if (!systemLore && entries.length === 0) return null;
+  const named = entries.length > 1 || (!!systemLore && entries.length > 0);
   return (
     <div className={styles.flavour}>
+      {systemLore && <p>{systemLore}</p>}
       {entries.map((entry) => (
         <p key={entry.name}>
           {named && <b>{entry.name}</b>}
@@ -484,7 +496,7 @@ export function SystemDossier({
           <aside className={styles.art}>
             <TileWell tile={tile} helpers={helpers} />
             <SystemFacts tile={tile} features={features} />
-            <Flavour planetIds={planetIds} />
+            <Flavour systemId={tile.systemId} planetIds={planetIds} />
           </aside>
 
           <div className={styles.zones}>

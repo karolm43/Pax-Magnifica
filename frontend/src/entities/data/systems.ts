@@ -25,6 +25,7 @@ export const systems: TileData[] = [
     "tileBack": "green",
     "id": "01",
     "name": "Jord - Sol",
+    "flavourText": "",
     "aliases": [
       "01",
       "1",
@@ -44,6 +45,7 @@ export const systems: TileData[] = [
   {
     "id": "02",
     "name": "Moll Primus - Mentak",
+    "flavourText": "",
     "aliases": [
       "02",
       "2",
@@ -88,6 +90,7 @@ export const systems: TileData[] = [
   {
     "id": "03",
     "name": "Darien - Yin",
+    "flavourText": "",
     "aliases": [
       "03",
       "3",
@@ -134,6 +137,7 @@ export const systems: TileData[] = [
   {
     "id": "04",
     "name": "Muaat - Muaat",
+    "flavourText": "",
     "aliases": [
       "04",
       "4",
@@ -175,6 +179,7 @@ export const systems: TileData[] = [
   {
     "id": "05",
     "name": "Nestphar - Arborec",
+    "flavourText": "",
     "aliases": [
       "05",
       "5",
@@ -218,6 +223,7 @@ export const systems: TileData[] = [
   {
     "id": "06",
     "name": "[0.0.0] - L1Z1X",
+    "flavourText": "",
     "aliases": [
       "06",
       "6",
@@ -262,6 +268,7 @@ export const systems: TileData[] = [
   {
     "id": "07",
     "name": "Winnu - Winnu",
+    "flavourText": "",
     "aliases": [
       "07",
       "7",
@@ -300,6 +307,7 @@ export const systems: TileData[] = [
   {
     "id": "08",
     "name": "Mordai II - Nekro",
+    "flavourText": "",
     "aliases": [
       "08",
       "8",
@@ -344,6 +352,7 @@ export const systems: TileData[] = [
   {
     "id": "09",
     "name": "Maaluuk/Druaa - Naalu",
+    "flavourText": "",
     "aliases": [
       "09",
       "9",
@@ -472,6 +481,7 @@ export const systems: TileData[] = [
   {
     "id": "10",
     "name": "Arc Prime/Wren Terra - Letnev",
+    "flavourText": "",
     "aliases": [
       "10",
       "arcprime",
@@ -522,6 +532,7 @@ export const systems: TileData[] = [
   {
     "id": "100",
     "name": "Tempesta",
+    "flavourText": "",
     "aliases": [
       "te12",
       "tempesta",
@@ -538,6 +549,7 @@ export const systems: TileData[] = [
   {
     "id": "101",
     "name": "Olergodt",
+    "flavourText": "",
     "aliases": [
       "te18",
       "olergodt"
@@ -553,6 +565,7 @@ export const systems: TileData[] = [
   {
     "id": "102",
     "name": "Andeara",
+    "flavourText": "",
     "aliases": [
       "te03",
       "andeara"
@@ -571,6 +584,7 @@ export const systems: TileData[] = [
   {
     "id": "103",
     "name": "Vira Pics III",
+    "flavourText": "",
     "aliases": [
       "te20",
       "vira",
@@ -590,6 +604,7 @@ export const systems: TileData[] = [
   {
     "id": "104",
     "name": "Lesab",
+    "flavourText": "",
     "aliases": [
       "te21",
       "lesab"
@@ -605,6 +620,7 @@ export const systems: TileData[] = [
   {
     "id": "105",
     "name": "New Terra/Tinnes",
+    "flavourText": "",
     "aliases": [
       "te17",
       "neutera",
@@ -623,6 +639,7 @@ export const systems: TileData[] = [
   {
     "id": "106",
     "name": "Cresius/Lazul Rex",
+    "flavourText": "",
     "aliases": [
       "te16",
       "cresius",
@@ -640,6 +657,7 @@ export const systems: TileData[] = [
   {
     "id": "107",
     "name": "Tiamat/Hercalor",
+    "flavourText": "",
     "aliases": [
       "te25",
       "tiamat",
@@ -660,6 +678,7 @@ export const systems: TileData[] = [
   {
     "id": "108",
     "name": "Kostboth/Capha",
+    "flavourText": "",
     "aliases": [
       "te24",
       "kostboth",
@@ -679,6 +698,7 @@ export const systems: TileData[] = [
   {
     "id": "109",
     "name": "Bellatrix/Tsion Station",
+    "flavourText": "",
     "aliases": [
       "te23",
       "bellatrix",
@@ -697,6 +717,7 @@ export const systems: TileData[] = [
   {
     "id": "11",
     "name": "Ragh/Lisis II - Saar",
+    "flavourText": "",
     "aliases": [
       "11",
       "lisisii",
@@ -750,6 +771,7 @@ export const systems: TileData[] = [
   {
     "id": "110",
     "name": "Horizon/El'Nath/Luthien IV",
+    "flavourText": "",
     "aliases": [
       "te26",
       "horizon",
@@ -770,6 +792,7 @@ export const systems: TileData[] = [
   {
     "id": "111",
     "name": "Tarana/Oluz Station",
+    "flavourText": "",
     "aliases": [
       "te22",
       "tarana",
@@ -788,6 +811,7 @@ export const systems: TileData[] = [
   {
     "id": "112",
     "name": "Mecatol Rex",
+    "flavourText": "",
     "aliases": [
       "te05",
       "mrte",
@@ -808,6 +832,7 @@ export const systems: TileData[] = [
   {
     "id": "113",
     "name": "Beta Rift",
+    "flavourText": "",
     "aliases": [
       "te07",
       "betarift"
@@ -825,6 +850,7 @@ export const systems: TileData[] = [
   {
     "id": "114",
     "name": "Entropic Scar",
+    "flavourText": "",
     "aliases": [
       "te27",
       "scar",
@@ -842,6 +868,7 @@ export const systems: TileData[] = [
   {
     "id": "115",
     "name": "Industrex",
+    "flavourText": "",
     "aliases": [
       "te30",
       "industrex",
@@ -859,6 +886,7 @@ export const systems: TileData[] = [
   {
     "id": "116",
     "name": "Lemox",
+    "flavourText": "",
     "aliases": [
       "te28",
       "lemox",
@@ -876,6 +904,7 @@ export const systems: TileData[] = [
   {
     "id": "117",
     "name": "The Watchtower",
+    "flavourText": "",
     "aliases": [
       "te29",
       "watchtower",
@@ -895,6 +924,7 @@ export const systems: TileData[] = [
   {
     "id": "118",
     "name": "Ahk Creuxx (Crimson)",
+    "flavourText": "",
     "aliases": [
       "te06",
       "creuxx",
@@ -921,6 +951,7 @@ export const systems: TileData[] = [
   {
     "id": "12",
     "name": "Nar/Jol - Jol-Nar",
+    "flavourText": "",
     "aliases": [
       "12",
       "nar",
@@ -965,6 +996,7 @@ export const systems: TileData[] = [
   {
     "id": "13",
     "name": "Quinarra/Trenlak - N'orr",
+    "flavourText": "",
     "aliases": [
       "13",
       "trenlak",
@@ -1013,6 +1045,7 @@ export const systems: TileData[] = [
   {
     "id": "14",
     "name": "Archon Ren/Archon Tau - Xxcha",
+    "flavourText": "",
     "aliases": [
       "14",
       "archonren",
@@ -1064,6 +1097,7 @@ export const systems: TileData[] = [
   {
     "id": "15",
     "name": "Retillion/Shalloq - Yssaril",
+    "flavourText": "",
     "aliases": [
       "15",
       "retillion",
@@ -1114,6 +1148,7 @@ export const systems: TileData[] = [
   {
     "id": "16",
     "name": "Arretze/Hercant/Kamdorn - Hacan",
+    "flavourText": "",
     "aliases": [
       "16",
       "arretze",
@@ -1172,6 +1207,7 @@ export const systems: TileData[] = [
   {
     "id": "17",
     "name": "Creuss Gate - Creuss",
+    "flavourText": "",
     "aliases": [
       "17",
       "deltawh",
@@ -1214,6 +1250,7 @@ export const systems: TileData[] = [
   {
     "id": "18",
     "name": "Mecatol Rex",
+    "flavourText": "",
     "aliases": [
       "18",
       "mr",
@@ -1254,6 +1291,7 @@ export const systems: TileData[] = [
   {
     "id": "19",
     "name": "Wellon",
+    "flavourText": "",
     "aliases": [
       "19",
       "wellon",
@@ -1290,6 +1328,7 @@ export const systems: TileData[] = [
   {
     "id": "20",
     "name": "Vefut II",
+    "flavourText": "",
     "aliases": [
       "20",
       "vefutii",
@@ -1331,6 +1370,7 @@ export const systems: TileData[] = [
   {
     "id": "21",
     "name": "Thibah",
+    "flavourText": "",
     "aliases": [
       "21",
       "thibah",
@@ -1367,6 +1407,7 @@ export const systems: TileData[] = [
   {
     "id": "22",
     "name": "Tarmann",
+    "flavourText": "",
     "aliases": [
       "22",
       "tarmann",
@@ -1405,6 +1446,7 @@ export const systems: TileData[] = [
   {
     "id": "23",
     "name": "Saudor",
+    "flavourText": "",
     "aliases": [
       "23",
       "saudor",
@@ -1441,6 +1483,7 @@ export const systems: TileData[] = [
   {
     "id": "23a",
     "name": "Shamdor",
+    "flavourText": "",
     "aliases": [
       "23a",
       "shamdor"
@@ -1475,6 +1518,7 @@ export const systems: TileData[] = [
   {
     "id": "24",
     "name": "Mehar Xull",
+    "flavourText": "",
     "aliases": [
       "24",
       "meharxull",
@@ -1514,6 +1558,7 @@ export const systems: TileData[] = [
   {
     "id": "25",
     "name": "Quann",
+    "flavourText": "",
     "aliases": [
       "25",
       "quann",
@@ -1555,6 +1600,7 @@ export const systems: TileData[] = [
   {
     "id": "26",
     "name": "Lodor",
+    "flavourText": "",
     "aliases": [
       "26",
       "lodor",
@@ -1597,6 +1643,7 @@ export const systems: TileData[] = [
   {
     "id": "27",
     "name": "Starpoint/New Albion",
+    "flavourText": "",
     "aliases": [
       "27",
       "newalbion",
@@ -1640,6 +1687,7 @@ export const systems: TileData[] = [
   {
     "id": "28",
     "name": "Tequran/Torkan",
+    "flavourText": "",
     "aliases": [
       "28",
       "tequran",
@@ -1683,6 +1731,7 @@ export const systems: TileData[] = [
   {
     "id": "29",
     "name": "Qucenn/Rarron",
+    "flavourText": "",
     "aliases": [
       "29",
       "qucenn",
@@ -1730,6 +1779,7 @@ export const systems: TileData[] = [
   {
     "id": "30",
     "name": "Mellon/Zohbat",
+    "flavourText": "",
     "aliases": [
       "30",
       "mellon",
@@ -1773,6 +1823,7 @@ export const systems: TileData[] = [
   {
     "id": "31",
     "name": "Lazar/Sakulag",
+    "flavourText": "",
     "aliases": [
       "31",
       "lazar",
@@ -1815,6 +1866,7 @@ export const systems: TileData[] = [
   {
     "id": "32",
     "name": "Dal-Bootha/Xxehan",
+    "flavourText": "",
     "aliases": [
       "32",
       "dalbootha",
@@ -1860,6 +1912,7 @@ export const systems: TileData[] = [
   {
     "id": "33",
     "name": "Corneeq/Resculon",
+    "flavourText": "",
     "aliases": [
       "33",
       "corneeq",
@@ -1899,6 +1952,7 @@ export const systems: TileData[] = [
   {
     "id": "34",
     "name": "Centauri/Gral",
+    "flavourText": "",
     "aliases": [
       "34",
       "centauri",
@@ -1941,6 +1995,7 @@ export const systems: TileData[] = [
   {
     "id": "35",
     "name": "Bereg/Lirta iv",
+    "flavourText": "",
     "aliases": [
       "35",
       "bereg",
@@ -1991,6 +2046,7 @@ export const systems: TileData[] = [
   {
     "id": "36",
     "name": "Arnor/Lor",
+    "flavourText": "",
     "aliases": [
       "36",
       "arnor",
@@ -2033,6 +2089,7 @@ export const systems: TileData[] = [
   {
     "id": "37",
     "name": "Arinam/Meer",
+    "flavourText": "",
     "aliases": [
       "37",
       "arinam",
@@ -2076,6 +2133,7 @@ export const systems: TileData[] = [
   {
     "id": "38",
     "name": "Abyz/Fria",
+    "flavourText": "",
     "aliases": [
       "38",
       "abyz",
@@ -2119,6 +2177,7 @@ export const systems: TileData[] = [
   {
     "id": "39",
     "name": "Alpha Wormhole",
+    "flavourText": "",
     "aliases": [
       "39",
       "alphawh",
@@ -2162,6 +2221,7 @@ export const systems: TileData[] = [
   {
     "id": "40",
     "name": "Beta Wormhole",
+    "flavourText": "",
     "aliases": [
       "40",
       "betawh",
@@ -2205,6 +2265,7 @@ export const systems: TileData[] = [
   {
     "id": "41",
     "name": "Gravity Rift",
+    "flavourText": "",
     "aliases": [
       "41",
       "gravityrift",
@@ -2245,6 +2306,7 @@ export const systems: TileData[] = [
   {
     "id": "42",
     "name": "Nebula",
+    "flavourText": "",
     "aliases": [
       "42",
       "nebula",
@@ -2283,6 +2345,7 @@ export const systems: TileData[] = [
   {
     "id": "43",
     "name": "Supernova",
+    "flavourText": "",
     "aliases": [
       "43",
       "supernova1",
@@ -2325,6 +2388,7 @@ export const systems: TileData[] = [
   {
     "id": "44",
     "name": "Asteroids",
+    "flavourText": "",
     "aliases": [
       "44",
       "asteroids1",
@@ -2368,6 +2432,7 @@ export const systems: TileData[] = [
   {
     "id": "45",
     "name": "Asteroids",
+    "flavourText": "",
     "aliases": [
       "45",
       "asteroids2",
@@ -2407,6 +2472,7 @@ export const systems: TileData[] = [
   {
     "id": "46",
     "name": "Empty System",
+    "flavourText": "",
     "aliases": [
       "46",
       "void1",
@@ -2450,6 +2516,7 @@ export const systems: TileData[] = [
   {
     "id": "47",
     "name": "Empty System",
+    "flavourText": "",
     "aliases": [
       "47",
       "void2",
@@ -2489,6 +2556,7 @@ export const systems: TileData[] = [
   {
     "id": "48",
     "name": "Empty System",
+    "flavourText": "",
     "aliases": [
       "48",
       "void3",
@@ -2528,6 +2596,7 @@ export const systems: TileData[] = [
   {
     "id": "49",
     "name": "Empty System",
+    "flavourText": "",
     "aliases": [
       "49",
       "void4",
@@ -2567,6 +2636,7 @@ export const systems: TileData[] = [
   {
     "id": "50",
     "name": "Empty System",
+    "flavourText": "",
     "aliases": [
       "50",
       "void5",
@@ -2606,6 +2676,7 @@ export const systems: TileData[] = [
   {
     "id": "51",
     "name": "Creuss - Creuss",
+    "flavourText": "",
     "aliases": [
       "51",
       "creuss",
@@ -2647,6 +2718,7 @@ export const systems: TileData[] = [
   {
     "id": "51h",
     "name": "Creuss - Creuss Hexagon",
+    "flavourText": "",
     "aliases": [
       "51h",
       "hex51",
@@ -2689,6 +2761,7 @@ export const systems: TileData[] = [
   {
     "id": "52",
     "name": "Ixth - Mahact",
+    "flavourText": "",
     "aliases": [
       "52",
       "ixth",
@@ -2730,6 +2803,7 @@ export const systems: TileData[] = [
   {
     "id": "53",
     "name": "Arcturus - Nomad",
+    "flavourText": "",
     "aliases": [
       "53",
       "arcturus",
@@ -2769,6 +2843,7 @@ export const systems: TileData[] = [
   {
     "id": "54",
     "name": "Acheron - Vuil'raith",
+    "flavourText": "",
     "aliases": [
       "54",
       "acheron",
@@ -2815,6 +2890,7 @@ export const systems: TileData[] = [
   {
     "id": "55",
     "name": "Elysium - Ul",
+    "flavourText": "",
     "aliases": [
       "55",
       "elysium",
@@ -2856,6 +2932,7 @@ export const systems: TileData[] = [
   {
     "id": "56",
     "name": "The Dark - Empyrean",
+    "flavourText": "",
     "aliases": [
       "56",
       "thedark",
@@ -2900,6 +2977,7 @@ export const systems: TileData[] = [
   {
     "id": "57",
     "name": "Naazir/Rokha - Naaz-Rokha",
+    "flavourText": "",
     "aliases": [
       "57",
       "naazir",
@@ -2947,6 +3025,7 @@ export const systems: TileData[] = [
   {
     "id": "58",
     "name": "Ylir/Avar/Valk - Argent",
+    "flavourText": "",
     "aliases": [
       "58",
       "ylir",
@@ -2998,6 +3077,7 @@ export const systems: TileData[] = [
   {
     "id": "59",
     "name": "Archon Vail",
+    "flavourText": "",
     "aliases": [
       "59",
       "archonvail",
@@ -3039,6 +3119,7 @@ export const systems: TileData[] = [
   {
     "id": "59a",
     "name": "Archon Fail",
+    "flavourText": "",
     "aliases": [
       "59a",
       "archonfail",
@@ -3079,6 +3160,7 @@ export const systems: TileData[] = [
   {
     "id": "60",
     "name": "Perimeter",
+    "flavourText": "",
     "aliases": [
       "60",
       "perimeter",
@@ -3119,6 +3201,7 @@ export const systems: TileData[] = [
   {
     "id": "61",
     "name": "Ang",
+    "flavourText": "",
     "aliases": [
       "61",
       "ang"
@@ -3153,6 +3236,7 @@ export const systems: TileData[] = [
   {
     "id": "62",
     "name": "Sem-Lore",
+    "flavourText": "",
     "aliases": [
       "62",
       "semlore",
@@ -3196,6 +3280,7 @@ export const systems: TileData[] = [
   {
     "id": "63",
     "name": "Vorhal",
+    "flavourText": "",
     "aliases": [
       "63",
       "vorhal",
@@ -3233,6 +3318,7 @@ export const systems: TileData[] = [
   {
     "id": "64",
     "name": "Atlas",
+    "flavourText": "",
     "aliases": [
       "64",
       "atlas",
@@ -3275,6 +3361,7 @@ export const systems: TileData[] = [
   {
     "id": "65",
     "name": "Primor",
+    "flavourText": "",
     "aliases": [
       "65",
       "primor",
@@ -3314,6 +3401,7 @@ export const systems: TileData[] = [
   {
     "id": "66",
     "name": "Hope's End",
+    "flavourText": "",
     "aliases": [
       "66",
       "hopesend",
@@ -3356,6 +3444,7 @@ export const systems: TileData[] = [
   {
     "id": "67",
     "name": "Cormund",
+    "flavourText": "",
     "aliases": [
       "67",
       "cormund",
@@ -3399,6 +3488,7 @@ export const systems: TileData[] = [
   {
     "id": "68",
     "name": "Everra",
+    "flavourText": "",
     "aliases": [
       "68",
       "everra",
@@ -3439,6 +3529,7 @@ export const systems: TileData[] = [
   {
     "id": "69",
     "name": "Accoen/Jeol-ir",
+    "flavourText": "",
     "aliases": [
       "69",
       "accoen",
@@ -3494,6 +3585,7 @@ export const systems: TileData[] = [
   {
     "id": "70",
     "name": "Kraag/Siig",
+    "flavourText": "",
     "aliases": [
       "70",
       "kraag",
@@ -3536,6 +3628,7 @@ export const systems: TileData[] = [
   {
     "id": "71",
     "name": "Bakal/Alio Prima",
+    "flavourText": "",
     "aliases": [
       "71",
       "bakal",
@@ -3580,6 +3673,7 @@ export const systems: TileData[] = [
   {
     "id": "72",
     "name": "Lisis/Velnor",
+    "flavourText": "",
     "aliases": [
       "72",
       "lisis",
@@ -3623,6 +3717,7 @@ export const systems: TileData[] = [
   {
     "id": "73",
     "name": "Cealdri/Xanhact",
+    "flavourText": "",
     "aliases": [
       "73",
       "cealdri",
@@ -3668,6 +3763,7 @@ export const systems: TileData[] = [
   {
     "id": "74",
     "name": "Vega Major/Vega Minor",
+    "flavourText": "",
     "aliases": [
       "74",
       "vegas",
@@ -3717,6 +3813,7 @@ export const systems: TileData[] = [
   {
     "id": "75",
     "name": "Loki/Ashtroth/Abaddon - Devils",
+    "flavourText": "",
     "aliases": [
       "75",
       "abaddon",
@@ -3765,6 +3862,7 @@ export const systems: TileData[] = [
   {
     "id": "76",
     "name": "Rigels",
+    "flavourText": "",
     "aliases": [
       "76",
       "rigels",
@@ -3818,6 +3916,7 @@ export const systems: TileData[] = [
   {
     "id": "77",
     "name": "Empty System",
+    "flavourText": "",
     "aliases": [
       "77",
       "void6",
@@ -3857,6 +3956,7 @@ export const systems: TileData[] = [
   {
     "id": "78",
     "name": "Void",
+    "flavourText": "",
     "aliases": [
       "78",
       "void7",
@@ -3896,6 +3996,7 @@ export const systems: TileData[] = [
   {
     "id": "79",
     "name": "Asteroids Alpha Wormhole",
+    "flavourText": "",
     "aliases": [
       "79",
       "asteroidsalphawh",
@@ -3941,6 +4042,7 @@ export const systems: TileData[] = [
   {
     "id": "80",
     "name": "Supernova",
+    "flavourText": "",
     "aliases": [
       "80",
       "supernova2",
@@ -3980,6 +4082,7 @@ export const systems: TileData[] = [
   {
     "id": "81",
     "name": "Nova Seed",
+    "flavourText": "",
     "aliases": [
       "81",
       "novaseed",
@@ -4018,6 +4121,7 @@ export const systems: TileData[] = [
   {
     "id": "82a",
     "name": "Mallice - Locked Nexus",
+    "flavourText": "",
     "aliases": [
       "82a",
       "mallicelocked",
@@ -4060,6 +4164,7 @@ export const systems: TileData[] = [
   {
     "id": "82ah",
     "name": "Mallice - Locked Hexagon Nexus",
+    "flavourText": "",
     "aliases": [
       "82ah",
       "hex82a",
@@ -4103,6 +4208,7 @@ export const systems: TileData[] = [
   {
     "id": "82b",
     "name": "Mallice - Nexus",
+    "flavourText": "",
     "aliases": [
       "82b",
       "mallice",
@@ -4149,6 +4255,7 @@ export const systems: TileData[] = [
   {
     "id": "82bh",
     "name": "Mallice - Hexagon Nexus",
+    "flavourText": "",
     "aliases": [
       "82bh",
       "hex82b",
@@ -7219,6 +7326,7 @@ export const systems: TileData[] = [
   {
     "id": "92",
     "name": "Ordinian/Revelation (Bastion)",
+    "flavourText": "",
     "aliases": [
       "te01",
       "ordinian",
@@ -7239,6 +7347,7 @@ export const systems: TileData[] = [
   {
     "id": "92new",
     "name": "Archon Ren/Archon Tau Keleres",
+    "flavourText": "",
     "aliases": [
       "keleresx",
       "archontauk",
@@ -7275,6 +7384,7 @@ export const systems: TileData[] = [
   {
     "id": "93",
     "name": "Mez Lo Orz Fei Zsha/Rep Lo Orz Qet (RalNel)",
+    "flavourText": "",
     "aliases": [
       "te02",
       "mez",
@@ -7296,6 +7406,7 @@ export const systems: TileData[] = [
   {
     "id": "93new",
     "name": "Ylir/Avar/Valk Keleres",
+    "flavourText": "",
     "aliases": [
       "keleresa",
       "ylirk",
@@ -7334,6 +7445,7 @@ export const systems: TileData[] = [
   {
     "id": "94",
     "name": "Sorrow (Crimson)",
+    "flavourText": "",
     "aliases": [
       "te04",
       "epsilonwh",
@@ -7355,6 +7467,7 @@ export const systems: TileData[] = [
   {
     "id": "94new",
     "name": "Moll Primus Keleres",
+    "flavourText": "",
     "aliases": [
       "keleresm",
       "mollprimusk"
@@ -7389,6 +7502,7 @@ export const systems: TileData[] = [
   {
     "id": "95",
     "name": "Ikatena (Deepwrought)",
+    "flavourText": "",
     "aliases": [
       "te11",
       "ikatena",
@@ -7408,6 +7522,7 @@ export const systems: TileData[] = [
   {
     "id": "96a",
     "name": "Cronos/Tallin (Firmament)",
+    "flavourText": "",
     "aliases": [
       "te15a",
       "cronos",
@@ -7427,6 +7542,7 @@ export const systems: TileData[] = [
   {
     "id": "96b",
     "name": "Cronos Hollow/Tallin Hollow (Obsidian)",
+    "flavourText": "",
     "aliases": [
       "te15b",
       "cronoshollow",
@@ -7447,6 +7563,7 @@ export const systems: TileData[] = [
   {
     "id": "97",
     "name": "Faunus",
+    "flavourText": "",
     "aliases": [
       "te08",
       "faunus",
@@ -7465,6 +7582,7 @@ export const systems: TileData[] = [
   {
     "id": "98",
     "name": "Garbozia",
+    "flavourText": "",
     "aliases": [
       "te09",
       "garbozia",
@@ -7482,6 +7600,7 @@ export const systems: TileData[] = [
   {
     "id": "99",
     "name": "Emelpar",
+    "flavourText": "",
     "aliases": [
       "te10",
       "emelpar",
@@ -7500,6 +7619,7 @@ export const systems: TileData[] = [
   {
     "id": "99omega",
     "name": "99 Omega",
+    "flavourText": "",
     "aliases": [
       "99omega",
       "o99",
@@ -7537,6 +7657,7 @@ export const systems: TileData[] = [
   {
     "id": "ar1",
     "name": "Arachia/Keqo -- Arachian",
+    "flavourText": "",
     "aliases": [
       "arachian",
       "ar1",
@@ -7575,6 +7696,7 @@ export const systems: TileData[] = [
     "tileBack": "green",
     "id": "as01",
     "name": "Thyolcian - Cantokylegance",
+    "flavourText": "",
     "aliases": [
       "canto",
       "thyolcian"
@@ -7608,6 +7730,7 @@ export const systems: TileData[] = [
   {
     "id": "as02",
     "name": "Voyd/Etyr - Eidolon",
+    "flavourText": "",
     "aliases": [
       "as02",
       "voyd",
@@ -7627,6 +7750,7 @@ export const systems: TileData[] = [
   {
     "id": "as03",
     "name": "Eccon V/Tyria Prime - Shadows",
+    "flavourText": "",
     "aliases": [
       "as03",
       "ecconv",
@@ -7646,6 +7770,7 @@ export const systems: TileData[] = [
   {
     "id": "as04",
     "name": "Akredrite/Meccna - Mechi",
+    "flavourText": "",
     "aliases": [
       "as04",
       "akredrite",
@@ -7665,6 +7790,7 @@ export const systems: TileData[] = [
   {
     "id": "as05",
     "name": "Gaia/Gensis/Aeva - Saera",
+    "flavourText": "",
     "aliases": [
       "as05",
       "gaia",
@@ -7706,6 +7832,7 @@ export const systems: TileData[] = [
     "tileBack": "green",
     "id": "ba1",
     "name": "Vraxil/Lirastra - Arvaxi",
+    "flavourText": "",
     "aliases": [
       "lirastra",
       "ba1",
@@ -7743,6 +7870,7 @@ export const systems: TileData[] = [
     "tileBack": "green",
     "id": "ba2",
     "name": "Krax -- Kalora",
+    "flavourText": "",
     "aliases": [
       "krax",
       "ba2",
@@ -7759,6 +7887,7 @@ export const systems: TileData[] = [
   {
     "id": "ba3",
     "name": "Hexara II/Vysera III/Tala9 - Vyserix",
+    "flavourText": "",
     "aliases": [
       "ba3",
       "hexaraii",
@@ -7798,6 +7927,7 @@ export const systems: TileData[] = [
     "tileBack": "green",
     "id": "ba4",
     "name": "Velarune -- Onyxxa",
+    "flavourText": "",
     "aliases": [
       "onyxxa",
       "ba4",
@@ -7814,6 +7944,7 @@ export const systems: TileData[] = [
   {
     "id": "ba5",
     "name": "Xelvorr/Vaelthuun -- Tyris",
+    "flavourText": "",
     "aliases": [
       "tyris",
       "ba5",
@@ -7851,6 +7982,7 @@ export const systems: TileData[] = [
   {
     "id": "ba6",
     "name": "Luna/Terra Novus -  Lunarium",
+    "flavourText": "",
     "aliases": [
       "lunarium",
       "ba6",
@@ -7888,6 +8020,7 @@ export const systems: TileData[] = [
   {
     "id": "ba7",
     "name": "Xan/Thar - Xan",
+    "flavourText": "",
     "aliases": [
       "xan",
       "ba7",
@@ -7924,6 +8057,7 @@ export const systems: TileData[] = [
   {
     "id": "ba8",
     "name": "Dralius/Zephyrax - Zephyrion",
+    "flavourText": "",
     "aliases": [
       "zephyrion",
       "ba8",
@@ -7961,6 +8095,7 @@ export const systems: TileData[] = [
   {
     "id": "blackblank",
     "name": "Black, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "blackblank"
     ],
@@ -7971,6 +8106,7 @@ export const systems: TileData[] = [
   {
     "id": "bloodredblank",
     "name": "Bloodred, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "bloodredblank"
     ],
@@ -7981,6 +8117,7 @@ export const systems: TileData[] = [
   {
     "id": "blueblank",
     "name": "Blue, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "blueblank"
     ],
@@ -7991,6 +8128,7 @@ export const systems: TileData[] = [
   {
     "id": "br1",
     "name": "Uikos - Uydai",
+    "flavourText": "",
     "aliases": [
       "br1",
       "uikos",
@@ -8026,6 +8164,7 @@ export const systems: TileData[] = [
   {
     "id": "br2",
     "name": "Phar - Pharadn",
+    "flavourText": "",
     "aliases": [
       "br2",
       "phar",
@@ -8043,6 +8182,7 @@ export const systems: TileData[] = [
   {
     "id": "br3",
     "name": "Qhet/Drakkol - Qhet Republic",
+    "flavourText": "",
     "aliases": [
       "br3",
       "qhet",
@@ -8062,6 +8202,7 @@ export const systems: TileData[] = [
     "tileBack": "green",
     "id": "br4",
     "name": "Magna - Atokera",
+    "flavourText": "",
     "aliases": [
       "magna",
       "atokera"
@@ -8095,6 +8236,7 @@ export const systems: TileData[] = [
   {
     "id": "br5",
     "name": "Reil/Strang - Belkosea",
+    "flavourText": "",
     "aliases": [
       "br5",
       "strang",
@@ -8114,6 +8256,7 @@ export const systems: TileData[] = [
   {
     "id": "br6",
     "name": "Khodd/Dryun - Toldar",
+    "flavourText": "",
     "aliases": [
       "br6",
       "khodd",
@@ -8133,6 +8276,7 @@ export const systems: TileData[] = [
   {
     "id": "brownblank",
     "name": "Brown, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "brownblank"
     ],
@@ -8143,6 +8287,7 @@ export const systems: TileData[] = [
   {
     "id": "c01",
     "name": "Widmore",
+    "flavourText": "",
     "aliases": [
       "c01",
       "widmore"
@@ -8160,6 +8305,7 @@ export const systems: TileData[] = [
   {
     "id": "c02",
     "name": "Locke/Bentham",
+    "flavourText": "",
     "aliases": [
       "c02",
       "locke",
@@ -8184,6 +8330,7 @@ export const systems: TileData[] = [
   {
     "id": "c03",
     "name": "Lloyd",
+    "flavourText": "",
     "aliases": [
       "c03",
       "lloyd",
@@ -8202,6 +8349,7 @@ export const systems: TileData[] = [
   {
     "id": "c04",
     "name": "Lapidus",
+    "flavourText": "",
     "aliases": [
       "c04",
       "lapidus"
@@ -8220,6 +8368,7 @@ export const systems: TileData[] = [
   {
     "id": "c05",
     "name": "Horace",
+    "flavourText": "",
     "aliases": [
       "c05",
       "horace"
@@ -8240,6 +8389,7 @@ export const systems: TileData[] = [
   {
     "id": "c06",
     "name": "Eko",
+    "flavourText": "",
     "aliases": [
       "c06",
       "eko"
@@ -8260,6 +8410,7 @@ export const systems: TileData[] = [
   {
     "id": "c07",
     "name": "Desmond",
+    "flavourText": "",
     "aliases": [
       "c07",
       "desmond"
@@ -8278,6 +8429,7 @@ export const systems: TileData[] = [
   {
     "id": "c08",
     "name": "Alpert",
+    "flavourText": "",
     "aliases": [
       "c08",
       "alpert"
@@ -8295,6 +8447,7 @@ export const systems: TileData[] = [
   {
     "id": "c09",
     "name": "Jarrah",
+    "flavourText": "",
     "aliases": [
       "c09",
       "jarrah"
@@ -8312,6 +8465,7 @@ export const systems: TileData[] = [
   {
     "id": "c10",
     "name": "Kwon",
+    "flavourText": "",
     "aliases": [
       "c10",
       "kwon"
@@ -8333,6 +8487,7 @@ export const systems: TileData[] = [
   {
     "id": "c11",
     "name": "Ethan",
+    "flavourText": "",
     "aliases": [
       "c11",
       "ethan"
@@ -8353,6 +8508,7 @@ export const systems: TileData[] = [
   {
     "id": "c41",
     "name": "Ordinian (C4)",
+    "flavourText": "",
     "aliases": [
       "ordinianc4"
     ],
@@ -8387,6 +8543,7 @@ export const systems: TileData[] = [
   {
     "id": "chocolateblank",
     "name": "Chocolate, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "chocolateblank"
     ],
@@ -8397,6 +8554,7 @@ export const systems: TileData[] = [
   {
     "id": "chromeblank",
     "name": "Chrome, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "chromeblank"
     ],
@@ -8407,6 +8565,7 @@ export const systems: TileData[] = [
   {
     "id": "cpti20atropos",
     "name": "Atropos",
+    "flavourText": "",
     "aliases": [
       "cpti20atropos",
       "atropos"
@@ -8426,6 +8585,7 @@ export const systems: TileData[] = [
   {
     "id": "cpti20campe",
     "name": "Campe/Typhon",
+    "flavourText": "",
     "aliases": [
       "cpti20campe",
       "campe",
@@ -8443,6 +8603,7 @@ export const systems: TileData[] = [
   {
     "id": "cpti20cerberus",
     "name": "Cerberus",
+    "flavourText": "",
     "aliases": [
       "cpti20cerberus",
       "cerberuscpti"
@@ -8458,6 +8619,7 @@ export const systems: TileData[] = [
   {
     "id": "cpti20cottus",
     "name": "Cottus/Gyges/Briareus",
+    "flavourText": "",
     "aliases": [
       "cpti20cottus",
       "cottus",
@@ -8496,6 +8658,7 @@ export const systems: TileData[] = [
   {
     "id": "cpti20emptyleft",
     "name": "CPTI20 Empty Left",
+    "flavourText": "",
     "aliases": [
       "cpti20emptyleft"
     ],
@@ -8507,6 +8670,7 @@ export const systems: TileData[] = [
   {
     "id": "cpti20emptyright",
     "name": "CPTI20 Empty Right",
+    "flavourText": "",
     "aliases": [
       "cpti20emptyright"
     ],
@@ -8518,6 +8682,7 @@ export const systems: TileData[] = [
   {
     "id": "cpti20erebus",
     "name": "Erebus",
+    "flavourText": "",
     "aliases": [
       "cpti20erebus"
     ],
@@ -8532,6 +8697,7 @@ export const systems: TileData[] = [
   {
     "id": "cpti20fracxus",
     "name": "Fracxus",
+    "flavourText": "",
     "aliases": [
       "fracxus",
       "cpti20fracxus",
@@ -8550,6 +8716,7 @@ export const systems: TileData[] = [
   {
     "id": "cpti20lachesis",
     "name": "Clotho/Lachesis",
+    "flavourText": "",
     "aliases": [
       "cpti20lachesis",
       "lachesis",
@@ -8571,6 +8738,7 @@ export const systems: TileData[] = [
   {
     "id": "d01",
     "name": "Rhune - Veldyr",
+    "flavourText": "",
     "aliases": [
       "d01",
       "rhune",
@@ -8594,6 +8762,7 @@ export const systems: TileData[] = [
   {
     "id": "d02",
     "name": "Kjalengard/Hulgade - Kjalengard",
+    "flavourText": "",
     "aliases": [
       "d02",
       "kjalengard",
@@ -8616,6 +8785,7 @@ export const systems: TileData[] = [
   {
     "id": "d03",
     "name": "Edyn/Ekko/Okke - Edyn",
+    "flavourText": "",
     "aliases": [
       "d03",
       "edyn",
@@ -8640,6 +8810,7 @@ export const systems: TileData[] = [
   {
     "id": "d04",
     "name": "Zarr/Nokk - Nokar",
+    "flavourText": "",
     "aliases": [
       "d04",
       "zarr",
@@ -8663,6 +8834,7 @@ export const systems: TileData[] = [
   {
     "id": "d05",
     "name": "AysisRest/Solitude - Lanefir",
+    "flavourText": "",
     "aliases": [
       "d05",
       "aysis",
@@ -8687,6 +8859,7 @@ export const systems: TileData[] = [
   {
     "id": "d06",
     "name": "Alesna/Azle - Kolume",
+    "flavourText": "",
     "aliases": [
       "d06",
       "azle",
@@ -8709,6 +8882,7 @@ export const systems: TileData[] = [
   {
     "id": "d07",
     "name": "Benc/Hau - Bentor",
+    "flavourText": "",
     "aliases": [
       "d07",
       "hau",
@@ -8731,6 +8905,7 @@ export const systems: TileData[] = [
   {
     "id": "d08",
     "name": "Gghurntheta/Arche - Cheiran",
+    "flavourText": "",
     "aliases": [
       "d08",
       "arche",
@@ -8755,6 +8930,7 @@ export const systems: TileData[] = [
   {
     "id": "d09",
     "name": "LastStop - Gledge",
+    "flavourText": "",
     "aliases": [
       "d09",
       "laststop",
@@ -8777,6 +8953,7 @@ export const systems: TileData[] = [
   {
     "id": "d10",
     "name": "Avicenna - Kyro",
+    "flavourText": "",
     "aliases": [
       "d10",
       "avicenna",
@@ -8800,6 +8977,7 @@ export const systems: TileData[] = [
   {
     "id": "d100",
     "name": "Silence",
+    "flavourText": "",
     "aliases": [
       "silence",
       "sil",
@@ -8835,6 +9013,7 @@ export const systems: TileData[] = [
   {
     "id": "d101",
     "name": "Echo",
+    "flavourText": "",
     "aliases": [
       "echo",
       "4254"
@@ -8869,6 +9048,7 @@ export const systems: TileData[] = [
   {
     "id": "d102",
     "name": "Tarrock",
+    "flavourText": "",
     "aliases": [
       "tarrock",
       "tar",
@@ -8904,6 +9084,7 @@ export const systems: TileData[] = [
   {
     "id": "d103",
     "name": "Prism",
+    "flavourText": "",
     "aliases": [
       "prism",
       "prysm",
@@ -8940,6 +9121,7 @@ export const systems: TileData[] = [
   {
     "id": "d104",
     "name": "Domna",
+    "flavourText": "",
     "aliases": [
       "domna",
       "dom",
@@ -8976,6 +9158,7 @@ export const systems: TileData[] = [
   {
     "id": "d105",
     "name": "Inan/Swog",
+    "flavourText": "",
     "aliases": [
       "inan",
       "in",
@@ -9014,6 +9197,7 @@ export const systems: TileData[] = [
   {
     "id": "d106",
     "name": "Troac",
+    "flavourText": "",
     "aliases": [
       "troac",
       "tro",
@@ -9049,6 +9233,7 @@ export const systems: TileData[] = [
   {
     "id": "d107",
     "name": "Etir V",
+    "flavourText": "",
     "aliases": [
       "etirv",
       "etir",
@@ -9085,6 +9270,7 @@ export const systems: TileData[] = [
   {
     "id": "d108",
     "name": "Vioss",
+    "flavourText": "",
     "aliases": [
       "vioss",
       "vi",
@@ -9120,6 +9306,7 @@ export const systems: TileData[] = [
   {
     "id": "d109",
     "name": "Fakrenn",
+    "flavourText": "",
     "aliases": [
       "fakrenn",
       "fak",
@@ -9157,6 +9344,7 @@ export const systems: TileData[] = [
   {
     "id": "d11",
     "name": "Void - Ghoti",
+    "flavourText": "",
     "aliases": [
       "d11",
       "ghoti",
@@ -9173,6 +9361,7 @@ export const systems: TileData[] = [
   {
     "id": "d110",
     "name": "San-Vit/Lodran",
+    "flavourText": "",
     "aliases": [
       "sanvit",
       "san-vit",
@@ -9210,6 +9399,7 @@ export const systems: TileData[] = [
   {
     "id": "d111",
     "name": "Dorvok/Derbrae",
+    "flavourText": "",
     "aliases": [
       "dorvok",
       "debrae",
@@ -9248,6 +9438,7 @@ export const systems: TileData[] = [
   {
     "id": "d112",
     "name": "Rysaa/Moln",
+    "flavourText": "",
     "aliases": [
       "rysaa",
       "moln",
@@ -9286,6 +9477,7 @@ export const systems: TileData[] = [
   {
     "id": "d113",
     "name": "Salin/Gwiyun",
+    "flavourText": "",
     "aliases": [
       "salin",
       "sal",
@@ -9323,6 +9515,7 @@ export const systems: TileData[] = [
   {
     "id": "d114",
     "name": "Detic/Lliot",
+    "flavourText": "",
     "aliases": [
       "detic",
       "det",
@@ -9359,6 +9552,7 @@ export const systems: TileData[] = [
   {
     "id": "d115",
     "name": "Qaak/Larred/Nairb",
+    "flavourText": "",
     "aliases": [
       "qaak",
       "larred",
@@ -9397,6 +9591,7 @@ export const systems: TileData[] = [
   {
     "id": "d116",
     "name": "Sierpen/Mandle/Regnem",
+    "flavourText": "",
     "aliases": [
       "sierpen",
       "mandle",
@@ -9435,6 +9630,7 @@ export const systems: TileData[] = [
   {
     "id": "d117",
     "name": "DS Empty 1",
+    "flavourText": "",
     "aliases": [
       "dsempty1",
       "4270"
@@ -9471,6 +9667,7 @@ export const systems: TileData[] = [
   {
     "id": "d118",
     "name": "DS Empty 2",
+    "flavourText": "",
     "aliases": [
       "dsempty2",
       "4271"
@@ -9507,6 +9704,7 @@ export const systems: TileData[] = [
   {
     "id": "d119",
     "name": "Beta Nebula",
+    "flavourText": "",
     "aliases": [
       "betanebula",
       "4272"
@@ -9546,6 +9744,7 @@ export const systems: TileData[] = [
   {
     "id": "d12",
     "name": "Zelian/Gen - Zelian",
+    "flavourText": "",
     "aliases": [
       "d12",
       "gen",
@@ -9568,6 +9767,7 @@ export const systems: TileData[] = [
   {
     "id": "d120",
     "name": "Asteroid Nebula",
+    "flavourText": "",
     "aliases": [
       "asteroidnebula",
       "4273"
@@ -9606,6 +9806,7 @@ export const systems: TileData[] = [
   {
     "id": "d121",
     "name": "Asteroid Rift",
+    "flavourText": "",
     "aliases": [
       "asteroidrift",
       "rocksrift",
@@ -9647,6 +9848,7 @@ export const systems: TileData[] = [
   {
     "id": "d122",
     "name": "Gamma Rift",
+    "flavourText": "",
     "aliases": [
       "gammarift",
       "riftgamma",
@@ -9687,6 +9889,7 @@ export const systems: TileData[] = [
   {
     "id": "d123",
     "name": "Alpha Beta Nova",
+    "flavourText": "",
     "aliases": [
       "alphabetanova",
       "4276"
@@ -9727,6 +9930,7 @@ export const systems: TileData[] = [
   {
     "id": "d13",
     "name": "Kroll/Idyn/Cyrra - FreeSystems",
+    "flavourText": "",
     "aliases": [
       "d13",
       "idyn",
@@ -9754,6 +9958,7 @@ export const systems: TileData[] = [
   {
     "id": "d14",
     "name": "Pax/Vess/Kyr - Lizho",
+    "flavourText": "",
     "aliases": [
       "d14",
       "pax",
@@ -9778,6 +9983,7 @@ export const systems: TileData[] = [
   {
     "id": "d15",
     "name": "Orad/Poh - Zealots",
+    "flavourText": "",
     "aliases": [
       "d15",
       "poh",
@@ -9801,6 +10007,7 @@ export const systems: TileData[] = [
   {
     "id": "d16",
     "name": "Louk/Auldane - Celdauri",
+    "flavourText": "",
     "aliases": [
       "d16",
       "louk",
@@ -9822,6 +10029,7 @@ export const systems: TileData[] = [
   {
     "id": "d17",
     "name": "Biaheo/Empero - Mortheus",
+    "flavourText": "",
     "aliases": [
       "d17",
       "biaheo",
@@ -9846,6 +10054,7 @@ export const systems: TileData[] = [
   {
     "id": "d18",
     "name": "Delmor/Kyd - Florzen",
+    "flavourText": "",
     "aliases": [
       "d18",
       "kyd",
@@ -9869,6 +10078,7 @@ export const systems: TileData[] = [
   {
     "id": "d19",
     "name": "Demis/Chrion - Augers",
+    "flavourText": "",
     "aliases": [
       "d19",
       "demis",
@@ -9892,6 +10102,7 @@ export const systems: TileData[] = [
   {
     "id": "d20",
     "name": "Drah/Trykk - Ghemina",
+    "flavourText": "",
     "aliases": [
       "d20",
       "drah",
@@ -9917,6 +10128,7 @@ export const systems: TileData[] = [
   {
     "id": "d21",
     "name": "Discordia - Tnelis",
+    "flavourText": "",
     "aliases": [
       "d21",
       "discordia",
@@ -9937,6 +10149,7 @@ export const systems: TileData[] = [
   {
     "id": "d22",
     "name": "Sanctuary - Olradin",
+    "flavourText": "",
     "aliases": [
       "d22",
       "sanctuary",
@@ -9960,6 +10173,7 @@ export const systems: TileData[] = [
   {
     "id": "d23",
     "name": "Aldra/Beata - Mirveda",
+    "flavourText": "",
     "aliases": [
       "d23",
       "aldra",
@@ -9982,6 +10196,7 @@ export const systems: TileData[] = [
   {
     "id": "d24",
     "name": "Ogdun/Brthkul - Kortali",
+    "flavourText": "",
     "aliases": [
       "d24",
       "ogdun",
@@ -10004,6 +10219,7 @@ export const systems: TileData[] = [
   {
     "id": "d25",
     "name": "Ellas - Nivyn",
+    "flavourText": "",
     "aliases": [
       "d25",
       "ellas",
@@ -10029,6 +10245,7 @@ export const systems: TileData[] = [
   {
     "id": "d26",
     "name": "Vadarian/Norvus - Vaden",
+    "flavourText": "",
     "aliases": [
       "d26",
       "vadarian",
@@ -10051,6 +10268,7 @@ export const systems: TileData[] = [
   {
     "id": "d27",
     "name": "Axis - Shipwrights",
+    "flavourText": "",
     "aliases": [
       "d27",
       "axis",
@@ -10090,6 +10308,7 @@ export const systems: TileData[] = [
   {
     "id": "d28",
     "name": "Vaylar - Vaylerian",
+    "flavourText": "",
     "aliases": [
       "d28",
       "vaylar",
@@ -10110,6 +10329,7 @@ export const systems: TileData[] = [
   {
     "id": "d29",
     "name": "Abyssus - Dihmohn",
+    "flavourText": "",
     "aliases": [
       "d29",
       "abyssus",
@@ -10133,6 +10353,7 @@ export const systems: TileData[] = [
   {
     "id": "d30",
     "name": "Cymiae - Cymiae",
+    "flavourText": "",
     "aliases": [
       "d30",
       "cymiae",
@@ -10155,6 +10376,7 @@ export const systems: TileData[] = [
   {
     "id": "d31",
     "name": "Prind - Rohdhna",
+    "flavourText": "",
     "aliases": [
       "d31",
       "prind",
@@ -10177,6 +10399,7 @@ export const systems: TileData[] = [
   {
     "id": "d32",
     "name": "ShiHalaum - MykoMentori",
+    "flavourText": "",
     "aliases": [
       "d32",
       "shi",
@@ -10200,6 +10423,7 @@ export const systems: TileData[] = [
   {
     "id": "d33",
     "name": "BohlDhur - Khrask",
+    "flavourText": "",
     "aliases": [
       "d33",
       "bohl",
@@ -10223,6 +10447,7 @@ export const systems: TileData[] = [
   {
     "id": "d34",
     "name": "Susuros - Kollecc",
+    "flavourText": "",
     "aliases": [
       "d34",
       "susuros",
@@ -10245,6 +10470,7 @@ export const systems: TileData[] = [
   {
     "id": "d35a",
     "name": "Asteroids",
+    "flavourText": "",
     "aliases": [
       "d35a"
     ],
@@ -10260,6 +10486,7 @@ export const systems: TileData[] = [
   {
     "id": "d35b",
     "name": "Supernova",
+    "flavourText": "",
     "aliases": [
       "d35b"
     ],
@@ -10275,6 +10502,7 @@ export const systems: TileData[] = [
   {
     "id": "d36",
     "name": "Asteroids",
+    "flavourText": "",
     "aliases": [
       "d36"
     ],
@@ -10290,6 +10518,7 @@ export const systems: TileData[] = [
   {
     "id": "emeraldblank",
     "name": "Emerald, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "emeraldblank"
     ],
@@ -10300,6 +10529,7 @@ export const systems: TileData[] = [
   {
     "id": "er01",
     "name": "Rial Archon",
+    "flavourText": "",
     "aliases": [
       "rialarchon",
       "rial"
@@ -10315,6 +10545,7 @@ export const systems: TileData[] = [
   {
     "id": "er02",
     "name": "Eshonia",
+    "flavourText": "",
     "aliases": [
       "eshonia",
       "esh"
@@ -10334,6 +10565,7 @@ export const systems: TileData[] = [
   {
     "id": "er03",
     "name": "Hell's Maw",
+    "flavourText": "",
     "aliases": [
       "hell",
       "hellsmaw",
@@ -10355,6 +10587,7 @@ export const systems: TileData[] = [
   {
     "id": "er04",
     "name": "Su'Prima",
+    "flavourText": "",
     "aliases": [
       "su",
       "suprima",
@@ -10374,6 +10607,7 @@ export const systems: TileData[] = [
   {
     "id": "er05",
     "name": "Kkita Ul'in",
+    "flavourText": "",
     "aliases": [
       "kkita",
       "kkitaulin"
@@ -10392,6 +10626,7 @@ export const systems: TileData[] = [
   {
     "id": "er06",
     "name": "Selen Solin",
+    "flavourText": "",
     "aliases": [
       "seso",
       "selensolin",
@@ -10413,6 +10648,7 @@ export const systems: TileData[] = [
   {
     "id": "er07",
     "name": "Khjan Shul",
+    "flavourText": "",
     "aliases": [
       "khjan",
       "khjanshul",
@@ -10433,6 +10669,7 @@ export const systems: TileData[] = [
   {
     "id": "er08",
     "name": "Rayon V",
+    "flavourText": "",
     "aliases": [
       "rayonv",
       "rayon",
@@ -10453,6 +10690,7 @@ export const systems: TileData[] = [
   {
     "id": "er09",
     "name": "Ulon",
+    "flavourText": "",
     "aliases": [
       "ulon",
       "ulongamma",
@@ -10475,6 +10713,7 @@ export const systems: TileData[] = [
   {
     "id": "er10",
     "name": "Elok",
+    "flavourText": "",
     "aliases": [
       "elokphi",
       "eloknu",
@@ -10499,6 +10738,7 @@ export const systems: TileData[] = [
   {
     "id": "er100",
     "name": "Nix",
+    "flavourText": "",
     "aliases": [
       "er100",
       "nix",
@@ -10541,6 +10781,7 @@ export const systems: TileData[] = [
   {
     "id": "er101",
     "name": "Ryl Fang",
+    "flavourText": "",
     "aliases": [
       "er101",
       "rylfang",
@@ -10581,6 +10822,7 @@ export const systems: TileData[] = [
   {
     "id": "er102",
     "name": "Norrk",
+    "flavourText": "",
     "aliases": [
       "er102",
       "norrk"
@@ -10619,6 +10861,7 @@ export const systems: TileData[] = [
   {
     "id": "er103",
     "name": "Perpetual",
+    "flavourText": "",
     "aliases": [
       "er103",
       "perpetual"
@@ -10657,6 +10900,7 @@ export const systems: TileData[] = [
   {
     "id": "er104",
     "name": "Thenphase",
+    "flavourText": "",
     "aliases": [
       "er104",
       "thenphase"
@@ -10695,6 +10939,7 @@ export const systems: TileData[] = [
   {
     "id": "er105",
     "name": "Vent",
+    "flavourText": "",
     "aliases": [
       "er105",
       "vent"
@@ -10733,6 +10978,7 @@ export const systems: TileData[] = [
   {
     "id": "er106",
     "name": "Vygar II",
+    "flavourText": "",
     "aliases": [
       "er106",
       "vygarii",
@@ -10773,6 +11019,7 @@ export const systems: TileData[] = [
   {
     "id": "er107",
     "name": "Limbo",
+    "flavourText": "",
     "aliases": [
       "er107",
       "limbo"
@@ -10811,6 +11058,7 @@ export const systems: TileData[] = [
   {
     "id": "er108",
     "name": "Lust",
+    "flavourText": "",
     "aliases": [
       "er108",
       "lust"
@@ -10849,6 +11097,7 @@ export const systems: TileData[] = [
   {
     "id": "er109",
     "name": "Cerberus",
+    "flavourText": "",
     "aliases": [
       "er109",
       "cerberus"
@@ -10887,6 +11136,7 @@ export const systems: TileData[] = [
   {
     "id": "er11",
     "name": "Asteroid Beta",
+    "flavourText": "",
     "aliases": [
       "asteroidbeta",
       "asteroidbwh"
@@ -10904,6 +11154,7 @@ export const systems: TileData[] = [
   {
     "id": "er110",
     "name": "Plutus",
+    "flavourText": "",
     "aliases": [
       "er110",
       "plutus"
@@ -10942,6 +11193,7 @@ export const systems: TileData[] = [
   {
     "id": "er111",
     "name": "Stygain",
+    "flavourText": "",
     "aliases": [
       "er111",
       "stygain"
@@ -10980,6 +11232,7 @@ export const systems: TileData[] = [
   {
     "id": "er112",
     "name": "Hersey",
+    "flavourText": "",
     "aliases": [
       "er112",
       "hersey"
@@ -11018,6 +11271,7 @@ export const systems: TileData[] = [
   {
     "id": "er113",
     "name": "Violence",
+    "flavourText": "",
     "aliases": [
       "er113",
       "violence"
@@ -11056,6 +11310,7 @@ export const systems: TileData[] = [
   {
     "id": "er114",
     "name": "Malbolge",
+    "flavourText": "",
     "aliases": [
       "er114",
       "malbolge"
@@ -11094,6 +11349,7 @@ export const systems: TileData[] = [
   {
     "id": "er115",
     "name": "Cantris",
+    "flavourText": "",
     "aliases": [
       "er115",
       "cantris"
@@ -11132,6 +11388,7 @@ export const systems: TileData[] = [
   {
     "id": "er116",
     "name": "Phylo",
+    "flavourText": "",
     "aliases": [
       "er116",
       "phylo"
@@ -11172,6 +11429,7 @@ export const systems: TileData[] = [
   {
     "id": "er116b",
     "name": "Phylob",
+    "flavourText": "",
     "aliases": [
       "er116b",
       "phylob"
@@ -11209,6 +11467,7 @@ export const systems: TileData[] = [
   {
     "id": "er117",
     "name": "Cahgaris",
+    "flavourText": "",
     "aliases": [
       "er117",
       "cahgaris"
@@ -11249,6 +11508,7 @@ export const systems: TileData[] = [
   {
     "id": "er118",
     "name": "Ultimur",
+    "flavourText": "",
     "aliases": [
       "er118",
       "ultimur"
@@ -11289,6 +11549,7 @@ export const systems: TileData[] = [
   {
     "id": "er118b",
     "name": "Ultimurb",
+    "flavourText": "",
     "aliases": [
       "er118b",
       "ultimurb"
@@ -11326,6 +11587,7 @@ export const systems: TileData[] = [
   {
     "id": "er119",
     "name": "Alpha Beta Nebula",
+    "flavourText": "",
     "aliases": [
       "er119",
       "abnebula"
@@ -11369,6 +11631,7 @@ export const systems: TileData[] = [
   {
     "id": "er12",
     "name": "Asteroid Iota",
+    "flavourText": "",
     "aliases": [
       "asteroidiota"
     ],
@@ -11385,6 +11648,7 @@ export const systems: TileData[] = [
   {
     "id": "er120",
     "name": "Sentuim",
+    "flavourText": "",
     "aliases": [
       "er120",
       "sentuim",
@@ -11425,6 +11689,7 @@ export const systems: TileData[] = [
   {
     "id": "er121",
     "name": "Aranndan",
+    "flavourText": "",
     "aliases": [
       "er121",
       "aranndan"
@@ -11465,6 +11730,7 @@ export const systems: TileData[] = [
   {
     "id": "er121b",
     "name": "Aranndanb",
+    "flavourText": "",
     "aliases": [
       "er121b",
       "aranndanb"
@@ -11502,6 +11768,7 @@ export const systems: TileData[] = [
   {
     "id": "er122",
     "name": "Hr'An Cus",
+    "flavourText": "",
     "aliases": [
       "er122",
       "hrancus",
@@ -11542,6 +11809,7 @@ export const systems: TileData[] = [
   {
     "id": "er123",
     "name": "Vylanua",
+    "flavourText": "",
     "aliases": [
       "er123",
       "vylanua"
@@ -11580,6 +11848,7 @@ export const systems: TileData[] = [
   {
     "id": "er124",
     "name": "Ghanis",
+    "flavourText": "",
     "aliases": [
       "er124",
       "ghanis",
@@ -11620,6 +11889,7 @@ export const systems: TileData[] = [
   {
     "id": "er125",
     "name": "Veyhrune",
+    "flavourText": "",
     "aliases": [
       "er125",
       "veyhrune"
@@ -11658,6 +11928,7 @@ export const systems: TileData[] = [
   {
     "id": "er126",
     "name": "Sokaris",
+    "flavourText": "",
     "aliases": [
       "er126",
       "sokaris",
@@ -11698,6 +11969,7 @@ export const systems: TileData[] = [
   {
     "id": "er127",
     "name": "Maon-Lor",
+    "flavourText": "",
     "aliases": [
       "er127",
       "maonlor"
@@ -11738,6 +12010,7 @@ export const systems: TileData[] = [
   {
     "id": "er13",
     "name": "Iota",
+    "flavourText": "",
     "aliases": [
       "iota"
     ],
@@ -11753,6 +12026,7 @@ export const systems: TileData[] = [
   {
     "id": "er14",
     "name": "Iota Rift",
+    "flavourText": "",
     "aliases": [
       "iotarift"
     ],
@@ -11769,6 +12043,7 @@ export const systems: TileData[] = [
   {
     "id": "er15",
     "name": "Iota Nebula",
+    "flavourText": "",
     "aliases": [
       "iotanebula"
     ],
@@ -11785,6 +12060,7 @@ export const systems: TileData[] = [
   {
     "id": "er16",
     "name": "Supernova_1",
+    "flavourText": "",
     "aliases": [
       "er_super",
       "e1supper",
@@ -11802,6 +12078,7 @@ export const systems: TileData[] = [
   {
     "id": "er17",
     "name": "Asteroid Rift",
+    "flavourText": "",
     "aliases": [
       "rockyrift",
       "ar",
@@ -11818,6 +12095,7 @@ export const systems: TileData[] = [
   {
     "id": "er18",
     "name": "Nebula Asteroid",
+    "flavourText": "",
     "aliases": [
       "slowrock",
       "na",
@@ -11834,6 +12112,7 @@ export const systems: TileData[] = [
   {
     "id": "er19",
     "name": "Alpha Beta Rift",
+    "flavourText": "",
     "aliases": [
       "abrift"
     ],
@@ -11851,6 +12130,7 @@ export const systems: TileData[] = [
   {
     "id": "er20",
     "name": "Erodius",
+    "flavourText": "",
     "aliases": [
       "erodius"
     ],
@@ -11868,6 +12148,7 @@ export const systems: TileData[] = [
   {
     "id": "er21",
     "name": "All in One",
+    "flavourText": "",
     "aliases": [
       "allinone"
     ],
@@ -11887,6 +12168,7 @@ export const systems: TileData[] = [
   {
     "id": "er22",
     "name": "Il Voshu",
+    "flavourText": "",
     "aliases": [
       "ilvoshu"
     ],
@@ -11904,6 +12186,7 @@ export const systems: TileData[] = [
   {
     "id": "er23",
     "name": "Xyon",
+    "flavourText": "",
     "aliases": [
       "xyon",
       "xyo",
@@ -11924,6 +12207,7 @@ export const systems: TileData[] = [
   {
     "id": "er24",
     "name": "Ynnis",
+    "flavourText": "",
     "aliases": [
       "ynnis"
     ],
@@ -11960,6 +12244,7 @@ export const systems: TileData[] = [
   {
     "id": "er25",
     "name": "Epsilon",
+    "flavourText": "",
     "aliases": [
       "epsilon"
     ],
@@ -11997,6 +12282,7 @@ export const systems: TileData[] = [
   {
     "id": "er26",
     "name": "Epsilon Rift",
+    "flavourText": "",
     "aliases": [
       "epsilonrift"
     ],
@@ -12035,6 +12321,7 @@ export const systems: TileData[] = [
   {
     "id": "er27",
     "name": "Epsilon Nebula",
+    "flavourText": "",
     "aliases": [
       "epsilonnebula"
     ],
@@ -12073,6 +12360,7 @@ export const systems: TileData[] = [
   {
     "id": "er28",
     "name": "Epsilon Asteroids",
+    "flavourText": "",
     "aliases": [
       "repsilonrocks"
     ],
@@ -12111,6 +12399,7 @@ export const systems: TileData[] = [
   {
     "id": "er29",
     "name": "Zeta",
+    "flavourText": "",
     "aliases": [
       "zeta"
     ],
@@ -12148,6 +12437,7 @@ export const systems: TileData[] = [
   {
     "id": "er30",
     "name": "Zeta Rift",
+    "flavourText": "",
     "aliases": [
       "zetarift"
     ],
@@ -12186,6 +12476,7 @@ export const systems: TileData[] = [
   {
     "id": "er31",
     "name": "Zeta Nebula",
+    "flavourText": "",
     "aliases": [
       "zetanebula"
     ],
@@ -12224,6 +12515,7 @@ export const systems: TileData[] = [
   {
     "id": "er32",
     "name": "Zeta Asteroids",
+    "flavourText": "",
     "aliases": [
       "zetarocks"
     ],
@@ -12262,6 +12554,7 @@ export const systems: TileData[] = [
   {
     "id": "er33",
     "name": "EpsilonZeta",
+    "flavourText": "",
     "aliases": [
       "epsilonzeta",
       "zetaepsilon"
@@ -12305,6 +12598,7 @@ export const systems: TileData[] = [
   {
     "id": "er34",
     "name": "Eta",
+    "flavourText": "",
     "aliases": [
       "eta"
     ],
@@ -12342,6 +12636,7 @@ export const systems: TileData[] = [
   {
     "id": "er35",
     "name": "Eta Rift",
+    "flavourText": "",
     "aliases": [
       "etarift"
     ],
@@ -12380,6 +12675,7 @@ export const systems: TileData[] = [
   {
     "id": "er36",
     "name": "Eta Nebula",
+    "flavourText": "",
     "aliases": [
       "etanebula"
     ],
@@ -12418,6 +12714,7 @@ export const systems: TileData[] = [
   {
     "id": "er37",
     "name": "Eta Asteroids",
+    "flavourText": "",
     "aliases": [
       "etarocks"
     ],
@@ -12456,6 +12753,7 @@ export const systems: TileData[] = [
   {
     "id": "er38",
     "name": "Theta",
+    "flavourText": "",
     "aliases": [
       "theta"
     ],
@@ -12493,6 +12791,7 @@ export const systems: TileData[] = [
   {
     "id": "er39",
     "name": "Theta Rift",
+    "flavourText": "",
     "aliases": [
       "thetarift"
     ],
@@ -12531,6 +12830,7 @@ export const systems: TileData[] = [
   {
     "id": "er40",
     "name": "Theta Nebula",
+    "flavourText": "",
     "aliases": [
       "thetanebula"
     ],
@@ -12569,6 +12869,7 @@ export const systems: TileData[] = [
   {
     "id": "er41",
     "name": "Theta Asteroids",
+    "flavourText": "",
     "aliases": [
       "thetarocks"
     ],
@@ -12607,6 +12908,7 @@ export const systems: TileData[] = [
   {
     "id": "er42",
     "name": "Eta Theta",
+    "flavourText": "",
     "aliases": [
       "etatheta",
       "thetaeta"
@@ -12651,6 +12953,7 @@ export const systems: TileData[] = [
   {
     "id": "er43",
     "name": "Kappa",
+    "flavourText": "",
     "aliases": [
       "kappa"
     ],
@@ -12688,6 +12991,7 @@ export const systems: TileData[] = [
   {
     "id": "er44",
     "name": "Kappa Rift",
+    "flavourText": "",
     "aliases": [
       "kapparift"
     ],
@@ -12726,6 +13030,7 @@ export const systems: TileData[] = [
   {
     "id": "er45",
     "name": "Kappa Nebula",
+    "flavourText": "",
     "aliases": [
       "kappanebula"
     ],
@@ -12764,6 +13069,7 @@ export const systems: TileData[] = [
   {
     "id": "er46",
     "name": "Kappa Asteroid",
+    "flavourText": "",
     "aliases": [
       "kapparocks"
     ],
@@ -12802,6 +13108,7 @@ export const systems: TileData[] = [
   {
     "id": "er47",
     "name": "Iota Kappa",
+    "flavourText": "",
     "aliases": [
       "er47",
       "iotakappa",
@@ -12847,6 +13154,7 @@ export const systems: TileData[] = [
   {
     "id": "er48",
     "name": "Zhgen",
+    "flavourText": "",
     "aliases": [
       "er48",
       "zhgen",
@@ -12888,6 +13196,7 @@ export const systems: TileData[] = [
   {
     "id": "er49",
     "name": "Myrwater",
+    "flavourText": "",
     "aliases": [
       "myr",
       "myrwater"
@@ -12926,6 +13235,7 @@ export const systems: TileData[] = [
   {
     "id": "er50",
     "name": "Adrian",
+    "flavourText": "",
     "aliases": [
       "er50",
       "adrian",
@@ -12967,6 +13277,7 @@ export const systems: TileData[] = [
   {
     "id": "er51",
     "name": "Grywon",
+    "flavourText": "",
     "aliases": [
       "er51",
       "grywon"
@@ -13007,6 +13318,7 @@ export const systems: TileData[] = [
   {
     "id": "er51b",
     "name": "Grywonb",
+    "flavourText": "",
     "aliases": [
       "er51b",
       "grywonb"
@@ -13044,6 +13356,7 @@ export const systems: TileData[] = [
   {
     "id": "er52",
     "name": "Ikrus III",
+    "flavourText": "",
     "aliases": [
       "er52",
       "ikrusiii",
@@ -13085,6 +13398,7 @@ export const systems: TileData[] = [
   {
     "id": "er53",
     "name": "Meko II",
+    "flavourText": "",
     "aliases": [
       "er53",
       "mekoii",
@@ -13124,6 +13438,7 @@ export const systems: TileData[] = [
   {
     "id": "er54",
     "name": "Tethn'Sekun",
+    "flavourText": "",
     "aliases": [
       "er54",
       "tethn",
@@ -13167,6 +13482,7 @@ export const systems: TileData[] = [
   {
     "id": "er55",
     "name": "Dwuuit",
+    "flavourText": "",
     "aliases": [
       "er55",
       "dwuuit",
@@ -13207,6 +13523,7 @@ export const systems: TileData[] = [
   {
     "id": "er56",
     "name": "Breakpoint",
+    "flavourText": "",
     "aliases": [
       "er56",
       "breakpoint"
@@ -13247,6 +13564,7 @@ export const systems: TileData[] = [
   {
     "id": "er57",
     "name": "Akhassi",
+    "flavourText": "",
     "aliases": [
       "er57",
       "akhassi"
@@ -13285,6 +13603,7 @@ export const systems: TileData[] = [
   {
     "id": "er58",
     "name": "Rhyah",
+    "flavourText": "",
     "aliases": [
       "er58",
       "rhyah",
@@ -13327,6 +13646,7 @@ export const systems: TileData[] = [
   {
     "id": "er59",
     "name": "Volra",
+    "flavourText": "",
     "aliases": [
       "er59",
       "volra",
@@ -13367,6 +13687,7 @@ export const systems: TileData[] = [
   {
     "id": "er60",
     "name": "Orchard",
+    "flavourText": "",
     "aliases": [
       "er60",
       "orchard"
@@ -13405,6 +13726,7 @@ export const systems: TileData[] = [
   {
     "id": "er61",
     "name": "Erissiha",
+    "flavourText": "",
     "aliases": [
       "er61",
       "erissiha",
@@ -13445,6 +13767,7 @@ export const systems: TileData[] = [
   {
     "id": "er62",
     "name": "Heska",
+    "flavourText": "",
     "aliases": [
       "er62",
       "heska"
@@ -13485,6 +13808,7 @@ export const systems: TileData[] = [
   {
     "id": "er63",
     "name": "Mayris",
+    "flavourText": "",
     "aliases": [
       "er63",
       "mayris",
@@ -13525,6 +13849,7 @@ export const systems: TileData[] = [
   {
     "id": "er64",
     "name": "Hevahold",
+    "flavourText": "",
     "aliases": [
       "er64",
       "hevahold"
@@ -13565,6 +13890,7 @@ export const systems: TileData[] = [
   {
     "id": "er64b",
     "name": "Hevaholdb",
+    "flavourText": "",
     "aliases": [
       "er64b",
       "hevaholdb"
@@ -13602,6 +13928,7 @@ export const systems: TileData[] = [
   {
     "id": "er65",
     "name": "Kris",
+    "flavourText": "",
     "aliases": [
       "er65",
       "kris",
@@ -13642,6 +13969,7 @@ export const systems: TileData[] = [
   {
     "id": "er66",
     "name": "Super Rift",
+    "flavourText": "",
     "aliases": [
       "er66",
       "superrift",
@@ -13680,6 +14008,7 @@ export const systems: TileData[] = [
   {
     "id": "er67",
     "name": "Nebula1e",
+    "flavourText": "",
     "aliases": [
       "nebula1e",
       "n1e"
@@ -13719,6 +14048,7 @@ export const systems: TileData[] = [
   {
     "id": "er68",
     "name": "Supernova2e",
+    "flavourText": "",
     "aliases": [
       "supernova2e",
       "sn2e"
@@ -13758,6 +14088,7 @@ export const systems: TileData[] = [
   {
     "id": "er69",
     "name": "Rift1e",
+    "flavourText": "",
     "aliases": [
       "rift1e",
       "gr1e"
@@ -13797,6 +14128,7 @@ export const systems: TileData[] = [
   {
     "id": "er70",
     "name": "Void1",
+    "flavourText": "",
     "aliases": [
       "void1e",
       "vo1e"
@@ -13835,6 +14167,7 @@ export const systems: TileData[] = [
   {
     "id": "er71",
     "name": "Asteroid1e",
+    "flavourText": "",
     "aliases": [
       "asteroid1e",
       "a1e"
@@ -13874,6 +14207,7 @@ export const systems: TileData[] = [
   {
     "id": "er72",
     "name": "Asteroid2e",
+    "flavourText": "",
     "aliases": [
       "a2e"
     ],
@@ -13913,6 +14247,7 @@ export const systems: TileData[] = [
   {
     "id": "er73",
     "name": "Empty2e",
+    "flavourText": "",
     "aliases": [
       "empty2e",
       "v2e"
@@ -13953,6 +14288,7 @@ export const systems: TileData[] = [
   {
     "id": "er74",
     "name": "Empty3e",
+    "flavourText": "",
     "aliases": [
       "empty3e",
       "v3e"
@@ -13993,6 +14329,7 @@ export const systems: TileData[] = [
   {
     "id": "er75",
     "name": "empty1e",
+    "flavourText": "",
     "aliases": [
       "empty1e"
     ],
@@ -14032,6 +14369,7 @@ export const systems: TileData[] = [
   {
     "id": "er76",
     "name": "Empty2e",
+    "flavourText": "",
     "aliases": [
       "er76",
       "empty2e"
@@ -14072,6 +14410,7 @@ export const systems: TileData[] = [
   {
     "id": "er77",
     "name": "Empty3e",
+    "flavourText": "",
     "aliases": [
       "er77",
       "empty3e"
@@ -14112,6 +14451,7 @@ export const systems: TileData[] = [
   {
     "id": "er78",
     "name": "Empty4e",
+    "flavourText": "",
     "aliases": [
       "er78",
       "empty4e"
@@ -14152,6 +14492,7 @@ export const systems: TileData[] = [
   {
     "id": "er79",
     "name": "Empty5e",
+    "flavourText": "",
     "aliases": [
       "er79",
       "empty5e"
@@ -14192,6 +14533,7 @@ export const systems: TileData[] = [
   {
     "id": "er80",
     "name": "Empty6e",
+    "flavourText": "",
     "aliases": [
       "er80",
       "empty6e"
@@ -14232,6 +14574,7 @@ export const systems: TileData[] = [
   {
     "id": "er81",
     "name": "Empty7e",
+    "flavourText": "",
     "aliases": [
       "er81",
       "empty7e"
@@ -14272,6 +14615,7 @@ export const systems: TileData[] = [
   {
     "id": "er82",
     "name": "Ako.4.OM",
+    "flavourText": "",
     "aliases": [
       "er82",
       "ako",
@@ -14312,6 +14656,7 @@ export const systems: TileData[] = [
   {
     "id": "er83",
     "name": "Kelgate",
+    "flavourText": "",
     "aliases": [
       "er83",
       "kelgate"
@@ -14350,6 +14695,7 @@ export const systems: TileData[] = [
   {
     "id": "er84",
     "name": "Casibann",
+    "flavourText": "",
     "aliases": [
       "er84",
       "casibann"
@@ -14388,6 +14734,7 @@ export const systems: TileData[] = [
   {
     "id": "er85",
     "name": "Station 309",
+    "flavourText": "",
     "aliases": [
       "er85",
       "station309"
@@ -14426,6 +14773,7 @@ export const systems: TileData[] = [
   {
     "id": "er86",
     "name": "Meranna",
+    "flavourText": "",
     "aliases": [
       "meranna",
       "hurigati",
@@ -14465,6 +14813,7 @@ export const systems: TileData[] = [
   {
     "id": "er87",
     "name": "Argenum",
+    "flavourText": "",
     "aliases": [
       "argenum",
       "arg",
@@ -14503,6 +14852,7 @@ export const systems: TileData[] = [
   {
     "id": "er88",
     "name": "Elan's Rest",
+    "flavourText": "",
     "aliases": [
       "elan",
       "elansrest",
@@ -14541,6 +14891,7 @@ export const systems: TileData[] = [
   {
     "id": "er89",
     "name": "Brilenci",
+    "flavourText": "",
     "aliases": [
       "brilenci",
       "bri"
@@ -14577,6 +14928,7 @@ export const systems: TileData[] = [
   {
     "id": "er90",
     "name": "Char",
+    "flavourText": "",
     "aliases": [
       "char"
     ],
@@ -14613,6 +14965,7 @@ export const systems: TileData[] = [
   {
     "id": "er91",
     "name": "Dognui",
+    "flavourText": "",
     "aliases": [
       "dognui"
     ],
@@ -14649,6 +15002,7 @@ export const systems: TileData[] = [
   {
     "id": "er92",
     "name": "Fyrain",
+    "flavourText": "",
     "aliases": [
       "fyrain",
       "leonelli"
@@ -14686,6 +15040,7 @@ export const systems: TileData[] = [
   {
     "id": "er93",
     "name": "Sigilus",
+    "flavourText": "",
     "aliases": [
       "sigilus",
       "sig"
@@ -14722,6 +15077,7 @@ export const systems: TileData[] = [
   {
     "id": "er94",
     "name": "Iynntani",
+    "flavourText": "",
     "aliases": [
       "iynn",
       "iynntani"
@@ -14758,6 +15114,7 @@ export const systems: TileData[] = [
   {
     "id": "er95",
     "name": "Kytos/Prymis",
+    "flavourText": "",
     "aliases": [
       "er95",
       "er_95",
@@ -14781,6 +15138,7 @@ export const systems: TileData[] = [
   {
     "id": "er96",
     "name": "Mecantor",
+    "flavourText": "",
     "aliases": [
       "er96",
       "mecantor"
@@ -14819,6 +15177,7 @@ export const systems: TileData[] = [
   {
     "id": "er97",
     "name": "Merjae",
+    "flavourText": "",
     "aliases": [
       "er97",
       "merjae"
@@ -14857,6 +15216,7 @@ export const systems: TileData[] = [
   {
     "id": "er98",
     "name": "Mor Rock",
+    "flavourText": "",
     "aliases": [
       "er98",
       "morrock",
@@ -14897,6 +15257,7 @@ export const systems: TileData[] = [
   {
     "id": "er99",
     "name": "Mornn",
+    "flavourText": "",
     "aliases": [
       "er99",
       "mornn"
@@ -14937,6 +15298,7 @@ export const systems: TileData[] = [
   {
     "id": "etherealblank",
     "name": "Ethereal, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "etherealblank"
     ],
@@ -14947,6 +15309,7 @@ export const systems: TileData[] = [
   {
     "id": "fin1",
     "name": "Necatol Nex",
+    "flavourText": "",
     "aliases": [
       "nn",
       "necatol",
@@ -14984,6 +15347,7 @@ export const systems: TileData[] = [
   {
     "id": "fin2",
     "name": "Lecatol Lex",
+    "flavourText": "",
     "aliases": [
       "lecatol",
       "lecatollex",
@@ -15019,6 +15383,7 @@ export const systems: TileData[] = [
   {
     "id": "forestblank",
     "name": "Forest, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "forestblank"
     ],
@@ -15245,6 +15610,7 @@ export const systems: TileData[] = [
   {
     "id": "fracture1",
     "name": "Cocytus",
+    "flavourText": "",
     "aliases": [
       "fracture1",
       "cocytus",
@@ -15263,6 +15629,7 @@ export const systems: TileData[] = [
   {
     "id": "fracture2",
     "name": "Fracture Egress Left",
+    "flavourText": "",
     "aliases": [
       "fracture2",
       "egressleft"
@@ -15276,6 +15643,7 @@ export const systems: TileData[] = [
   {
     "id": "fracture3",
     "name": "Fracture Void Left",
+    "flavourText": "",
     "aliases": [
       "fracture3"
     ],
@@ -15287,6 +15655,7 @@ export const systems: TileData[] = [
   {
     "id": "fracture4",
     "name": "Styx",
+    "flavourText": "",
     "aliases": [
       "fracture4",
       "styx",
@@ -15304,6 +15673,7 @@ export const systems: TileData[] = [
   {
     "id": "fracture5",
     "name": "Fracture Void Right",
+    "flavourText": "",
     "aliases": [
       "fracture5"
     ],
@@ -15315,6 +15685,7 @@ export const systems: TileData[] = [
   {
     "id": "fracture6",
     "name": "Fracture Egress Right",
+    "flavourText": "",
     "aliases": [
       "fracture6",
       "egressright"
@@ -15328,6 +15699,7 @@ export const systems: TileData[] = [
   {
     "id": "fracture7",
     "name": "Lethe/Phlegethon",
+    "flavourText": "",
     "aliases": [
       "fracture7",
       "lethe",
@@ -15352,6 +15724,7 @@ export const systems: TileData[] = [
   {
     "id": "goldblank",
     "name": "Gold, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "goldblank"
     ],
@@ -15362,6 +15735,7 @@ export const systems: TileData[] = [
   {
     "id": "greenblank",
     "name": "Green, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "greenblank"
     ],
@@ -15372,6 +15746,7 @@ export const systems: TileData[] = [
   {
     "id": "greyblank",
     "name": "Grey, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "greyblank"
     ],
@@ -17184,6 +17559,7 @@ export const systems: TileData[] = [
   {
     "id": "lavenderblank",
     "name": "Lavender, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "lavenderblank"
     ],
@@ -17194,6 +17570,7 @@ export const systems: TileData[] = [
   {
     "id": "lightbrownblank",
     "name": "Lightbrown, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "lightbrownblank"
     ],
@@ -17204,6 +17581,7 @@ export const systems: TileData[] = [
   {
     "id": "lightgreyblank",
     "name": "Lightgrey, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "lightgreyblank"
     ],
@@ -17214,6 +17592,7 @@ export const systems: TileData[] = [
   {
     "id": "m01",
     "name": "Altor",
+    "flavourText": "",
     "aliases": [
       "altor",
       "m1"
@@ -17250,6 +17629,7 @@ export const systems: TileData[] = [
   {
     "id": "m02",
     "name": "Tralloc",
+    "flavourText": "",
     "aliases": [
       "m2",
       "tralloc"
@@ -17284,6 +17664,7 @@ export const systems: TileData[] = [
   {
     "id": "m03",
     "name": "Andok Xull",
+    "flavourText": "",
     "aliases": [
       "andok",
       "andokxull",
@@ -17319,6 +17700,7 @@ export const systems: TileData[] = [
   {
     "id": "m05",
     "name": "Shanh",
+    "flavourText": "",
     "aliases": [
       "shan",
       "m5",
@@ -17357,6 +17739,7 @@ export const systems: TileData[] = [
   {
     "id": "m07",
     "name": "Gaea",
+    "flavourText": "",
     "aliases": [
       "gaea",
       "m7",
@@ -17395,6 +17778,7 @@ export const systems: TileData[] = [
   {
     "id": "m09",
     "name": "Cyon/Bion",
+    "flavourText": "",
     "aliases": [
       "cyon",
       "bion",
@@ -17432,6 +17816,7 @@ export const systems: TileData[] = [
   {
     "id": "m17",
     "name": "Origin",
+    "flavourText": "",
     "aliases": [
       "origin",
       "lazax"
@@ -17466,6 +17851,7 @@ export const systems: TileData[] = [
   {
     "id": "m21",
     "name": "99 Omega",
+    "flavourText": "",
     "aliases": [
       "99omega",
       "omega",
@@ -17501,6 +17887,7 @@ export const systems: TileData[] = [
   {
     "id": "m23",
     "name": "Auriya",
+    "flavourText": "",
     "aliases": [
       "auriga",
       "auriya",
@@ -17535,6 +17922,7 @@ export const systems: TileData[] = [
   {
     "id": "m28",
     "name": "Bunker",
+    "flavourText": "",
     "aliases": [
       "m28",
       "bunker"
@@ -17555,6 +17943,7 @@ export const systems: TileData[] = [
   {
     "id": "m32",
     "name": "Apis/Vespa",
+    "flavourText": "",
     "aliases": [
       "apis",
       "vespa",
@@ -17598,6 +17987,7 @@ export const systems: TileData[] = [
   {
     "id": "mp01",
     "name": "Vigilum/Astrea - Netharii Keepers",
+    "flavourText": "",
     "aliases": [
       "nt01",
       "netharii",
@@ -17615,6 +18005,7 @@ export const systems: TileData[] = [
   {
     "id": "navyblank",
     "name": "Navy, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "navyblank"
     ],
@@ -17625,6 +18016,7 @@ export const systems: TileData[] = [
   {
     "id": "orangeblank",
     "name": "Orange, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "orangeblank"
     ],
@@ -17635,6 +18027,7 @@ export const systems: TileData[] = [
   {
     "id": "petrolblank",
     "name": "Petrol, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "petrolblank"
     ],
@@ -17645,6 +18038,7 @@ export const systems: TileData[] = [
   {
     "id": "pinkblank",
     "name": "Pink, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "pinkblank"
     ],
@@ -17655,6 +18049,7 @@ export const systems: TileData[] = [
   {
     "id": "purpleblank",
     "name": "Purple, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "purpleblank"
     ],
@@ -17665,6 +18060,7 @@ export const systems: TileData[] = [
   {
     "id": "qulane",
     "name": "Kull/Minaluk - Qulane",
+    "flavourText": "",
     "aliases": [
       "qulane",
       "seers",
@@ -17701,6 +18097,7 @@ export const systems: TileData[] = [
   {
     "id": "rainbowblank",
     "name": "Rainbow, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "rainbowblank"
     ],
@@ -17711,6 +18108,7 @@ export const systems: TileData[] = [
   {
     "id": "redblank",
     "name": "Red, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "redblank"
     ],
@@ -17721,6 +18119,7 @@ export const systems: TileData[] = [
   {
     "id": "rexmec",
     "name": "Rexatol Mec",
+    "flavourText": "",
     "aliases": [
       "rm",
       "rexmec"
@@ -17759,6 +18158,7 @@ export const systems: TileData[] = [
   {
     "id": "roseblank",
     "name": "Rose, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "roseblank"
     ],
@@ -17769,6 +18169,7 @@ export const systems: TileData[] = [
   {
     "id": "s01",
     "name": "Thigel",
+    "flavourText": "",
     "aliases": [
       "s01",
       "thigel",
@@ -17792,6 +18193,7 @@ export const systems: TileData[] = [
   {
     "id": "s02",
     "name": "Crispe",
+    "flavourText": "",
     "aliases": [
       "s02",
       "crispe",
@@ -17835,6 +18237,7 @@ export const systems: TileData[] = [
   {
     "id": "s03",
     "name": "Groose Mihsal",
+    "flavourText": "",
     "aliases": [
       "s03",
       "groose_mihsal",
@@ -17862,6 +18265,7 @@ export const systems: TileData[] = [
   {
     "id": "s04",
     "name": "Marshen Gurn",
+    "flavourText": "",
     "aliases": [
       "s04",
       "marshen_gurn",
@@ -17887,6 +18291,7 @@ export const systems: TileData[] = [
   {
     "id": "s05",
     "name": "Sayen's Beach",
+    "flavourText": "",
     "aliases": [
       "s05",
       "sayensbeach",
@@ -17913,6 +18318,7 @@ export const systems: TileData[] = [
   {
     "id": "s06",
     "name": "Golga",
+    "flavourText": "",
     "aliases": [
       "s06",
       "golga",
@@ -17938,6 +18344,7 @@ export const systems: TileData[] = [
   {
     "id": "s07",
     "name": "Albredaan",
+    "flavourText": "",
     "aliases": [
       "s07",
       "albredaan",
@@ -17960,6 +18367,7 @@ export const systems: TileData[] = [
   {
     "id": "s08",
     "name": "Phaeton",
+    "flavourText": "",
     "aliases": [
       "s08",
       "phaeton",
@@ -17981,6 +18389,7 @@ export const systems: TileData[] = [
   {
     "id": "s09",
     "name": "Drobna",
+    "flavourText": "",
     "aliases": [
       "s09",
       "drobna",
@@ -17999,6 +18408,7 @@ export const systems: TileData[] = [
   {
     "id": "s10",
     "name": "Foakn/Ooglee",
+    "flavourText": "",
     "aliases": [
       "s10",
       "foakn",
@@ -18024,6 +18434,7 @@ export const systems: TileData[] = [
   {
     "id": "s11",
     "name": "Cabal Prison",
+    "flavourText": "",
     "aliases": [
       "s11",
       "cabalprison",
@@ -18044,6 +18455,7 @@ export const systems: TileData[] = [
   {
     "id": "s12",
     "name": "Nekro Prison",
+    "flavourText": "",
     "aliases": [
       "s12",
       "nekroprison",
@@ -18062,6 +18474,7 @@ export const systems: TileData[] = [
   {
     "id": "s13",
     "name": "Yssaril Prison",
+    "flavourText": "",
     "aliases": [
       "s13",
       "yssarilprison",
@@ -18081,6 +18494,7 @@ export const systems: TileData[] = [
   {
     "id": "s14",
     "name": "Somna/Tera/Hospoona",
+    "flavourText": "",
     "aliases": [
       "s14",
       "adminshs",
@@ -18105,6 +18519,7 @@ export const systems: TileData[] = [
   {
     "id": "s16",
     "name": "Agnar Vath",
+    "flavourText": "",
     "aliases": [
       "s16",
       "agnarvath"
@@ -18120,6 +18535,7 @@ export const systems: TileData[] = [
   {
     "id": "s17",
     "name": "Belsung IX",
+    "flavourText": "",
     "aliases": [
       "s17",
       "belsungix"
@@ -18135,6 +18551,7 @@ export const systems: TileData[] = [
   {
     "id": "s18",
     "name": "Cycada VII",
+    "flavourText": "",
     "aliases": [
       "s18",
       "cycadavii"
@@ -18150,6 +18567,7 @@ export const systems: TileData[] = [
   {
     "id": "s19",
     "name": "Iota 8217",
+    "flavourText": "",
     "aliases": [
       "s19",
       "iota8217",
@@ -18166,6 +18584,7 @@ export const systems: TileData[] = [
   {
     "id": "s20",
     "name": "Dryptaar",
+    "flavourText": "",
     "aliases": [
       "s20",
       "dryptaar"
@@ -18181,6 +18600,7 @@ export const systems: TileData[] = [
   {
     "id": "s21",
     "name": "Briis Theta",
+    "flavourText": "",
     "aliases": [
       "s21",
       "briistheta"
@@ -18196,6 +18616,7 @@ export const systems: TileData[] = [
   {
     "id": "s22",
     "name": "Trith Tao/Trith Chek",
+    "flavourText": "",
     "aliases": [
       "s22",
       "trithtao",
@@ -18213,6 +18634,7 @@ export const systems: TileData[] = [
   {
     "id": "s23",
     "name": "Trisrodh/Brakke",
+    "flavourText": "",
     "aliases": [
       "s23",
       "trisrodh",
@@ -18230,6 +18652,7 @@ export const systems: TileData[] = [
   {
     "id": "s24",
     "name": "Evita XL/Gryphon III",
+    "flavourText": "",
     "aliases": [
       "s24",
       "evitaxl",
@@ -18247,6 +18670,7 @@ export const systems: TileData[] = [
   {
     "id": "s25",
     "name": "Jaferra/Suul Mogg",
+    "flavourText": "",
     "aliases": [
       "s25",
       "jaferra",
@@ -18264,6 +18688,7 @@ export const systems: TileData[] = [
   {
     "id": "s26",
     "name": "Drak Mor II/Drak Mor VI",
+    "flavourText": "",
     "aliases": [
       "s26",
       "drakmorii",
@@ -18283,6 +18708,7 @@ export const systems: TileData[] = [
   {
     "id": "sig01",
     "name": "Bozgarbia",
+    "flavourText": "",
     "aliases": [
       "sig01",
       "bozgarbia"
@@ -18317,6 +18743,7 @@ export const systems: TileData[] = [
   {
     "id": "sig02",
     "name": "Pulsar",
+    "flavourText": "",
     "aliases": [
       "sig02",
       "pulsar"
@@ -18353,6 +18780,7 @@ export const systems: TileData[] = [
   {
     "id": "sig03",
     "name": "Magrathea",
+    "flavourText": "",
     "aliases": [
       "sig03",
       "magrathea"
@@ -18387,6 +18815,7 @@ export const systems: TileData[] = [
   {
     "id": "springblank",
     "name": "Spring, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "springblank"
     ],
@@ -18397,6 +18826,7 @@ export const systems: TileData[] = [
   {
     "id": "sunsetblank",
     "name": "Sunset, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "sunsetblank"
     ],
@@ -18407,6 +18837,7 @@ export const systems: TileData[] = [
   {
     "id": "tanblank",
     "name": "Tan, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "tanblank"
     ],
@@ -18417,6 +18848,7 @@ export const systems: TileData[] = [
   {
     "id": "tealblank",
     "name": "Teal, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "tealblank"
     ],
@@ -18427,6 +18859,7 @@ export const systems: TileData[] = [
   {
     "id": "turquoiseblank",
     "name": "Turquoise, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "turquoiseblank"
     ],
@@ -18437,6 +18870,7 @@ export const systems: TileData[] = [
   {
     "id": "whiteblank",
     "name": "White, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "whiteblank"
     ],
@@ -18447,6 +18881,7 @@ export const systems: TileData[] = [
   {
     "id": "yellowblank",
     "name": "Yellow, blank draft tile",
+    "flavourText": "",
     "aliases": [
       "yellowblank"
     ],

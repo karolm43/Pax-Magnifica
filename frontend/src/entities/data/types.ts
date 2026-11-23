@@ -27,6 +27,8 @@ type PlanetType =
 export type TileData = {
   id: string;
   name?: string | null;
+  /** Opis fabularny systemu (lore) — wpisywany ręcznie w systems.ts; pusty = brak. */
+  flavourText?: string;
   aliases?: string[] | null;
   imagePath: string;
   planets?: string[];
