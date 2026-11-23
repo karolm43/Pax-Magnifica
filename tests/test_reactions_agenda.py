@@ -7,6 +7,7 @@ import pytest
 from src.core import (
     action_cards,
     agenda_phase,
+    card_draw,
     exploration,
     reaction_cards,
     rules_hooks,
@@ -284,13 +285,62 @@ def test_insider_podglad_jest_prywatny(registry: StaticDataRegistry) -> None:
     assert own_view.players["p1"].private.agenda_peek == [DIRECTIVE, LAW, DIRECTIVE]
 
 
-def test_podglad_znika_na_koncu_fazy_agendy(registry: StaticDataRegistry) -> None:
+def test_wiedza_o_talii_agend_zostaje_po_fazie_agendy(registry: StaticDataRegistry) -> None:
+    # RULES.md 53.5.a1: obejrzane agendy zostają w wiedzy gracza także w następnej rundzie.
     state = _revealed(registry, [LAW, DIRECTIVE, LAW, DIRECTIVE], {"p1": ["insider"]})
     state = _play(state, registry, "p1", "insider")
-    assert state.players["p1"].private.agenda_peek
+    known = list(state.players["p1"].private.agenda_peek)
+    assert known == [DIRECTIVE, LAW, DIRECTIVE]
     state.agenda.step = AgendaStep.COMPLETE  # type: ignore[union-attr]
     out = agenda_phase.finish_agenda(state, registry)
-    assert out.players["p1"].private.agenda_peek == []
+    assert out.players["p1"].private.agenda_peek == known
+
+
+def test_dobrana_agenda_schodzi_z_wiedzy_reszta_zostaje(registry: StaticDataRegistry) -> None:
+    state = _revealed(registry, [LAW, DIRECTIVE, LAW, DIRECTIVE], {"p1": ["insider"]})
+    state = _play(state, registry, "p1", "insider")
+    assert card_draw.draw_agenda(state, registry) == DIRECTIVE
+    assert state.players["p1"].private.agenda_peek == [LAW, DIRECTIVE]
+    assert state.players["p2"].private.agenda_peek == []
+
+
+def test_wiedza_niezgodna_z_wierzchem_talii_znika(registry: StaticDataRegistry) -> None:
+    state = _state(registry, [LAW, DIRECTIVE])
+    state.players["p1"].private.agenda_peek = [DIRECTIVE]  # nieaktualna (np. God-Mode)
+    card_draw.draw_agenda(state, registry)
+    assert state.players["p1"].private.agenda_peek == []
+
+
+def test_ponowny_podglad_nie_skraca_dluzszej_wiedzy(registry: StaticDataRegistry) -> None:
+    state = _state(registry, [LAW, DIRECTIVE, LAW, DIRECTIVE])
+    card_draw.peek_agenda_top(state, "p1", 3)
+    card_draw.peek_agenda_top(state, "p1", 1)  # np. podgląd 1 karty innym efektem
+    assert state.players["p1"].private.agenda_peek == [LAW, DIRECTIVE, LAW]
+
+
+def test_przetasowanie_talii_kasuje_wiedze(registry: StaticDataRegistry) -> None:
+    state = _state(registry, [])
+    state.decks.agenda_discard = [LAW, DIRECTIVE]
+    state.players["p1"].private.agenda_peek_bottom = [LAW]  # wiedza sprzed przetasowania
+    card_draw.draw_agenda(state, registry)
+    assert state.players["p1"].private.agenda_peek_bottom == []
+
+
+def test_ulozenie_talii_politics_kasuje_wiedze_innych(registry: StaticDataRegistry) -> None:
+    deck = [LAW, DIRECTIVE, "minister_war", "mutiny"]
+    state = _state(registry, deck)
+    card_draw.peek_agenda_top(state, "p2", 3)
+    card_draw.peek_agenda_top(state, "p1", 3)
+    card_draw.rearrange_agenda_top(state, 2, [DIRECTIVE], [LAW], owner_id="p1")
+    assert state.decks.agenda_deck == [DIRECTIVE, "minister_war", "mutiny", LAW]
+    # właściciel: nowa góra + to, co znał dalej; spód = karta położona na spód
+    assert state.players["p1"].private.agenda_peek == [DIRECTIVE, "minister_war"]
+    assert state.players["p1"].private.agenda_peek_bottom == [LAW]
+    assert state.players["p2"].private.agenda_peek == []  # nie wie, gdzie trafiły karty
+    # spód znany właścicielowi wypada z wiedzy, gdy krótka talia dojdzie do niego
+    for _ in range(4):
+        card_draw.draw_agenda(state, registry)
+    assert state.players["p1"].private.agenda_peek_bottom == []
 
 
 # --- Riders -----------------------------------------------------------------------------------

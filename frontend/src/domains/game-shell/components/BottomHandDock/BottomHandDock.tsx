@@ -12,8 +12,6 @@ import { DEFAULT_GAME_ID } from "@/config";
 import { useFactionColors } from "@/hooks/useFactionColors";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { getActionCard } from "@/entities/lookup/actionCards";
-import { getAgenda } from "@/entities/lookup/agendas";
-import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import { getRelicData } from "@/entities/lookup/relics";
 import { getExploration } from "@/entities/lookup/explorations";
@@ -27,6 +25,7 @@ import {
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import type { PlayerData } from "@/entities/data/types";
 import { HoldControls } from "./HoldControls";
+import { KnownCards } from "./KnownCards";
 import {
   DRAG_TYPE,
   FRONTIER_DRAG_TYPE,
@@ -272,33 +271,24 @@ export function BottomHandDock() {
     return hand.promissoryNotes;
   }, [hand, tab, relicIds, frontierIds]);
 
-  // Prywatne podglądy z kart reakcji: Insider Information (top agend) i Extreme Duress (tajne cele);
-  // stały podgląd M'aban (Naalu): notki sąsiadów oraz wierzchnia i spodnia karta talii agend.
+  // Wiedza z kart i zdolności „look at…”: talia agend (Insider Information, Politics - trwa, aż
+  // talia się zmieni, RULES.md 53.5.a1), tajne cele (Extreme Duress), stały podgląd M'aban.
   const { data: mabanPeek } = usePlayerData(gameId, { select: (d) => d.gameState?.peek ?? null });
-  const peekLines = useMemo(() => {
-    const lines: string[] = [];
-    if (hand?.agendaPeek?.length) {
-      const names = hand.agendaPeek.map((id) => getAgenda(id)?.name ?? id);
-      lines.push(`Top of the agenda deck: ${names.join(" · ")}`);
-    }
-    for (const [owner, ids] of Object.entries(hand?.revealedSecrets ?? {})) {
-      const names = ids.map((id) => getSecretObjectiveData(id)?.name ?? id);
-      lines.push(`Secret objectives of ${owner}: ${names.join(" · ") || "none"}`);
-    }
-    if (mabanPeek?.agendaTop || mabanPeek?.agendaBottom) {
-      const name = (id: string | null) => (id ? (getAgenda(id)?.name ?? id) : "-");
-      lines.push(
-        `Agenda deck (M'aban): top ${name(mabanPeek.agendaTop)} · bottom ${name(mabanPeek.agendaBottom)}`,
-      );
-    }
-    for (const [owner, notes] of Object.entries(mabanPeek?.neighbors ?? {})) {
-      const names = notes.map(
-        (id) => getPromissoryNoteData(id, noteColors)?.displayName ?? id,
-      );
-      lines.push(`Promissory notes of ${owner} (M'aban): ${names.join(" · ") || "none"}`);
-    }
-    return lines;
-  }, [hand?.agendaPeek, hand?.revealedSecrets, mabanPeek, noteColors]);
+  const { data: players } = usePlayerData(gameId, { select: (d) => d.playerData ?? [] });
+  const known = (
+    <KnownCards
+      agendaTop={hand?.agendaPeek ?? []}
+      agendaBottom={hand?.agendaPeekBottom ?? []}
+      revealedSecrets={hand?.revealedSecrets ?? {}}
+      maban={mabanPeek ?? null}
+      players={players ?? []}
+    />
+  );
+  const hasKnown =
+    (hand?.agendaPeek?.length ?? 0) > 0 ||
+    (hand?.agendaPeekBottom?.length ?? 0) > 0 ||
+    Object.keys(hand?.revealedSecrets ?? {}).length > 0 ||
+    Boolean(mabanPeek);
 
   // Mierzymy wysokość doku (zwinięty / rozwinięty) i wystawiamy ją jako zmienną CSS
   // ``--hand-dock-clear`` na <html> - pastylki powrotu do okien (produkcja, technologie…)
@@ -406,17 +396,11 @@ export function BottomHandDock() {
         // Pusta zakładka (np. brak kart akcji na starcie) nie trzyma 176 px pustej tacy
         // nad planszą - ręka kurczy się do jednej linii komunikatu.
         data-empty={
-          (tab !== "techs" && tab !== "relics" && ids.length === 0 && peekLines.length === 0) ||
+          (tab !== "techs" && tab !== "relics" && ids.length === 0 && !hasKnown) ||
           undefined
         }
       >
-      {peekLines.length > 0 && (
-        <ul className={styles.peek} aria-label="Cards you were shown">
-          {peekLines.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      )}
+      {hasKnown && known}
 
       {/* Fragmenty -> relikt (RULES.md 59.7): przycisk „Forge relic" nad reliktami. */}
       {tab === "relics" && active.discordId && (

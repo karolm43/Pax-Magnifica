@@ -856,7 +856,6 @@ def finish_agenda(state: GameState, registry: StaticDataRegistry) -> GameState:
     _require_agenda(state, AgendaStep.COMPLETE)
     turn_flow.require_no_open_decisions(state)
     work = state.clone()
-    card_draw.clear_agenda_peek(work)  # podgląd Insider Information nie żyje do następnej rundy
     return turn_flow.next_round(work)
 
 
@@ -865,7 +864,6 @@ def skip_agenda(state: GameState, registry: StaticDataRegistry) -> GameState:
     del registry
     work = state.clone()
     _ready_all_planets(work)
-    card_draw.clear_agenda_peek(work)
     return turn_flow.next_round(work)
 
 

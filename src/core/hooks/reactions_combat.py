@@ -753,7 +753,8 @@ def _register_shields_holding(card_id: str) -> None:
     def inputs(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[Input]:
         window = reaction_cards.window_for(state, registry, player_id, card_id)
         hits = int(window.ctx.get("hits", _SHIELDS_MAX)) if window is not None else _SHIELDS_MAX
-        return [_number("count", "Hits to cancel", 1, max(1, min(_SHIELDS_MAX, hits)))]
+        most = max(1, min(_SHIELDS_MAX, hits))
+        return [_number("count", "Hits to cancel", 1, most, auto=most)]  # Auto: jak najwięcej
 
     register_effect_inputs(f"action_cards:{card_id}")(inputs)
 

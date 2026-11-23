@@ -340,8 +340,11 @@ def _lead_inputs(_s: GameState, _r: StaticDataRegistry, _p: str) -> list[Input]:
             0,
             _LEADERSHIP_RIDER_TOKENS,
             f"The three pools must add up to {_LEADERSHIP_RIDER_TOKENS}.",
+            # Auto: po równo (3 żetony = 1 na pulę; RULES.md 53.5.a - ⚠️ ZAŁOŻENIE „Auto”).
+            auto=_LEADERSHIP_RIDER_TOKENS // len(command_tokens.POOLS)
+            + (1 if index < _LEADERSHIP_RIDER_TOKENS % len(command_tokens.POOLS) else 0),
         )
-        for pool in command_tokens.POOLS
+        for index, pool in enumerate(command_tokens.POOLS)
     ]
 
 
@@ -801,6 +804,8 @@ def bribery_inputs(state: GameState, _registry: StaticDataRegistry, player_id: s
         _number(
             "trade_goods", "Trade goods to spend (1 additional vote each)", 0,
             economy.spendable_trade_goods(state, player_id),
+            # Auto: wszystkie trade goods (cel karty = przeważyć głosowanie; ⚠️ ZAŁOŻENIE).
+            auto=economy.spendable_trade_goods(state, player_id),
         )
     ]
 

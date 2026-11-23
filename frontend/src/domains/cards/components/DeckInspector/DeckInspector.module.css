@@ -99,6 +99,11 @@
   background: none;
 }
 
+/* Zakryta talia bez ustawienia „Browse deck contents”: sam rewers z licznikiem. */
+.closedDeck {
+  cursor: default;
+}
+
 /* Stos odrzuconych / purge: obrys karty (65x91) w kolorze talii, liczba pośrodku. */
 .pile {
   --tone: 148 163 184; /* składowe rgb oddzielone spacjami */

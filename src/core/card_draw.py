@@ -193,29 +193,67 @@ def seed_action_deck(state: GameState, cards: list[str]) -> None:
 
 
 def rearrange_agenda_top(
-    state: GameState, peeked: int, top: list[str], bottom: list[str]
+    state: GameState,
+    peeked: int,
+    top: list[str],
+    bottom: list[str],
+    owner_id: str | None = None,
 ) -> None:
-    """Układa ``peeked`` wierzchnich agend: ``top`` na górę, ``bottom`` na spód (Politics)."""
+    """Układa ``peeked`` wierzchnich agend: ``top`` na górę, ``bottom`` na spód (Politics).
+
+    Wiedza o talii (RULES.md 53.5.a1): inni gracze tracą pewność (nie wiedzą, gdzie trafiły
+    karty), ``owner_id`` zna nową górę (``top`` + to, co znał dalej) i nowy spód.
+    """
     decks = state.decks
     rest = decks.agenda_deck[peeked:]
     decks.agenda_deck = [*top, *rest, *bottom]
+    for pid, player in state.players.items():
+        private = player.private
+        if pid == owner_id:
+            private.agenda_peek = [*top, *private.agenda_peek[peeked:]]
+            private.agenda_peek_bottom = [*private.agenda_peek_bottom, *bottom]
+        else:
+            private.agenda_peek = []
+            private.agenda_peek_bottom = []
 
 
 def peek_agenda_top(state: GameState, player_id: str, count: int) -> list[str]:
     """Zapisuje graczowi PRYWATNY podgląd ``count`` wierzchnich agend (Insider Information).
 
-    Wynik trafia do ``private.agenda_peek`` (projekcja widoczności czyści go innym graczom).
-    Talia się nie zmienia. Mutuje ``state``.
+    Wynik trafia do ``private.agenda_peek`` (projekcja widoczności czyści go innym graczom);
+    dłuższa wiedza z wcześniejszego podglądu zostaje (RULES.md 53.5.a1). Talia się nie zmienia.
+    Mutuje ``state``.
     """
     top = list(state.decks.agenda_deck[:count])
-    state.players[player_id].private.agenda_peek = top
+    private = state.players[player_id].private
+    if private.agenda_peek[: len(top)] != top:
+        private.agenda_peek = []  # wiedza nieaktualna - zastępuje ją świeży podgląd
+    if len(private.agenda_peek) < len(top):
+        private.agenda_peek = top
     return top
 
 
-def clear_agenda_peek(state: GameState) -> None:
-    """Czyści podglądy agend wszystkich graczy (koniec fazy agendy). Mutuje ``state``."""
+def _forget_drawn_agenda(state: GameState, card: str) -> None:
+    """Agenda zdjęta z wierzchu talii wypada z wiedzy graczy (RULES.md 53.5.a1).
+
+    Znana góra przesuwa się o kartę; jeśli dobrana karta NIE była pierwszą znaną, wiedza o
+    górze była nieaktualna - znika. Karta znana ze spodu (krótka talia) też wypada.
+    """
+    for player in state.players.values():
+        private = player.private
+        if private.agenda_peek:
+            private.agenda_peek = (
+                private.agenda_peek[1:] if private.agenda_peek[0] == card else []
+            )
+        if card in private.agenda_peek_bottom:
+            private.agenda_peek_bottom = [c for c in private.agenda_peek_bottom if c != card]
+
+
+def _forget_agenda_deck(state: GameState) -> None:
+    """Talia agend przetasowana: nikt nie zna już jej kolejności."""
     for player in state.players.values():
         player.private.agenda_peek = []
+        player.private.agenda_peek_bottom = []
 
 
 def ensure_agenda_deck(state: GameState, registry: StaticDataRegistry) -> None:
@@ -251,9 +289,12 @@ def draw_agenda(state: GameState, registry: StaticDataRegistry) -> str | None:
         next_rng(state).shuffle(reshuffled)
         decks.agenda_deck = reshuffled
         decks.agenda_discard = []
+        _forget_agenda_deck(state)
     if not decks.agenda_deck:
         return None
-    return decks.agenda_deck.pop(0)
+    card = decks.agenda_deck.pop(0)
+    _forget_drawn_agenda(state, card)
+    return card
 
 
 def discard_agenda(state: GameState, agenda_id: str) -> None:

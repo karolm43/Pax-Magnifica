@@ -73,6 +73,7 @@ const DEFAULT_SETTINGS: Settings = {
   adminFastMode: false,
   gameVariants: defaultVariantIds(),
   freeUnitDrag: false,
+  browseDecks: false,
   skipPhases: false,
   chessClockEnabled: false,
   chessClockMinutes: 120,
@@ -706,6 +707,12 @@ export type Settings = {
    * Włączone: jednostkę można upuścić w dowolnym miejscu (omija reguły, /units/move).
    */
   freeUnitDrag: boolean;
+  /*
+   * Podgląd ZAWARTOŚCI zakrytych talii (God-Mode, testy). Wyłączone (domyślnie): klik w rewers
+   * talii nic nie pokazuje - w grze nikt nie przegląda talii; jawne są tylko stosy odrzuconych
+   * i purge. Włączone: klik w talię pokazuje jej zawartość (jak dotąd).
+   */
+  browseDecks: boolean;
   /*
    * Przeskok faz (God-Mode, testy). Włączone: w panelu tury pojawia się przycisk
    * „Skip phase" (/phase/skip) omijający bramy, okna i wybór kart strategii.

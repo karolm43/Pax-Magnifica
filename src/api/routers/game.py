@@ -167,6 +167,7 @@ def get_player_hand(
         secretObjectives=list(target.private.secret_objectives),
         promissoryNotes=list(target.private.promissory_notes),
         agendaPeek=list(target.private.agenda_peek),
+        agendaPeekBottom=list(target.private.agenda_peek_bottom),
         revealedSecrets={k: list(v) for k, v in target.private.revealed_secrets.items()},
     )
 

@@ -77,9 +77,16 @@ def brilliance(
     gain their breakthrough.
 
     ``mode`` = ``ready_planet`` (+ ``planet``) albo ``breakthrough`` (+ ``player``, może być sam
-    grający - C_action_cards). Zdobycie przełomu robi też rzut na The Fracture.
+    grający - C_action_cards). Bez ``mode`` decyduje to, co gracz wskazał w formularzu: planeta
+    (mapa) ALBO gracz - dokładnie jedno. Zdobycie przełomu robi też rzut na The Fracture.
     """
     mode = params.get("mode")
+    if mode is None:
+        picked_planet = bool(params.get("planet"))
+        picked_player = bool(params.get("player"))
+        if picked_planet and picked_player:
+            raise ValueError("Brilliance: ready a planet OR give a breakthrough, not both.")
+        mode = "ready_planet" if picked_planet else "breakthrough" if picked_player else None
     if mode == "ready_planet":
         planet = _text(params, "planet", "Choose 1 of your planets with a technology specialty.")
         if planet not in targets.specialty_planets_owned(state, registry, player_id):

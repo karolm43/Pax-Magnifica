@@ -74,28 +74,36 @@ def arch_expedition_inputs(
 def brilliance_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[Input]:
-    options = [
-        _option(
-            {"mode": "ready_planet", "planet": planet},
-            f"Ready {_planet_label(state, registry, planet)}",
-            f"ready:{planet}",
-            ref=("planet", planet),
-        )
+    """Dwa wybory zamiast jednej mieszanej listy: planeta = klik NA MAPIE (decyzja użytkownika:
+    nigdy lista planet), przełom = chip gracza. Gracz wskazuje JEDNO z nich, drugie „Do not…”."""
+    planets = [
+        _option(planet, _planet_label(state, registry, planet), ref=("planet", planet))
         for planet in targets.specialty_planets_owned(state, registry, player_id)
     ]
+    players = []
     for pid in targets.breakthrough_targets(state, registry):
         who = "yourself" if pid == player_id else _player_label(state, registry, pid)
         found = registry.breakthrough_for_faction(state.players[pid].faction)
         name = f"{found.name} - " if found is not None and found.name else ""
-        options.append(
+        players.append(
             _option(
-                {"mode": "breakthrough", "player": pid},
+                pid,
                 f"{name}gain the breakthrough: {who}",
-                f"breakthrough:{pid}",
                 ref=("breakthrough", found.id) if found is not None else None,
             )
         )
-    return [_choice("effect", "Ready a planet or give a breakthrough", options, merge=True)]
+    inputs: list[Input] = []
+    if planets:
+        if players:
+            planets.append(_option(None, "Do not ready a planet (give a breakthrough)", "none"))
+        inputs.append(_choice("planet", "Planet with a technology specialty to ready", planets))
+    if players:
+        if planets:
+            players.append(_option(None, "Do not give a breakthrough (ready a planet)", "none"))
+        inputs.append(_choice("player", "Player who gains their breakthrough", players))
+    if not inputs:  # brak celu - wymagany wybór bez opcji blokuje kartę (zagrywalność)
+        inputs.append(_choice("planet", "Planet with a technology specialty to ready", []))
+    return inputs
 
 
 @register_effect_inputs("action_cards:divert_funding")
@@ -226,7 +234,11 @@ def unstable_inputs(
                 options.append(_option(planet, label))
     return [
         _choice("planet", "Hazardous planet", options),
-        _number("count", "Infantry to destroy (up to 3)", 0, min(_UNSTABLE_MAX, most)),
+        # Auto: jak najwięcej (RULES.md 53.4 - ⚠️ ZAŁOŻENIE „Auto”).
+        _number(
+            "count", "Infantry to destroy (up to 3)", 0, min(_UNSTABLE_MAX, most),
+            auto=min(_UNSTABLE_MAX, most),
+        ),
     ]
 
 

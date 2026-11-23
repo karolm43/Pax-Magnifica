@@ -1,6 +1,7 @@
 import { Stack } from "@/ds";
 import { ReactNode, useEffect, useState } from "react";
 import { useDeckSearchStore } from "@/domains/search/deckSearchStore";
+import { useSettingsStore } from "@/state/appStore";
 import { Cardback } from "@/shared/ui/Cardback";
 import { AppModal } from "@/shared/ui/AppModal";
 import styles from "./CardbackModal.module.css";
@@ -17,7 +18,11 @@ type CardbackModalProps = {
   deckId?: string;
 };
 
-/** A deck's card back; clicking it opens the deck list on the system modal frame. */
+/**
+ * A deck's card back. Klik otwiera listę kart talii TYLKO z ustawieniem ``browseDecks``
+ * (decyzja użytkownika: w grze nikt nie przegląda talii). Wyszukiwarka planszy nadal otwiera
+ * listę - to katalog wszystkich kart puli, nie kolejność ani skład talii w tej grze.
+ */
 export function CardbackModal({
   imageSrc,
   alt,
@@ -29,6 +34,7 @@ export function CardbackModal({
   deckId,
 }: CardbackModalProps) {
   const [opened, setOpened] = useState(false);
+  const browse = useSettingsStore((s) => s.settings.browseDecks);
   const request = useDeckSearchStore((state) => state.request);
   useEffect(() => {
     if (deckId && request?.deckId === deckId) setOpened(true);
@@ -38,7 +44,11 @@ export function CardbackModal({
 
   return (
     <>
-      <Stack className={styles.trigger} onClick={() => setOpened(true)}>
+      <Stack
+        className={browse ? styles.trigger : undefined}
+        onClick={browse ? () => setOpened(true) : undefined}
+        title={browse ? undefined : "Deck contents are hidden (Settings → Browse deck contents)"}
+      >
         <Cardback key={cardKey} src={imageSrc} alt={alt} count={count} />
       </Stack>
       <AppModal

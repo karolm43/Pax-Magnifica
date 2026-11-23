@@ -38,9 +38,11 @@ class PlayerHandResponse(BaseModel):
     actionCards: list[str] = Field(default_factory=list)  # noqa: N815
     secretObjectives: list[str] = Field(default_factory=list)  # noqa: N815
     promissoryNotes: list[str] = Field(default_factory=list)  # noqa: N815
-    # Prywatne podglądy z kart (RULES.md 53.5): Insider Information (wierzchnie agendy) i tajne cele
-    # pokazane przez Extreme Duress ({właściciel: [cele]}).
+    # Prywatne podglądy z kart (RULES.md 53.5): wiedza o talii agend (Insider Information, Politics;
+    # 53.5.a1 - znane karty od góry i od spodu) i tajne cele pokazane przez Extreme Duress
+    # ({właściciel: [cele]}).
     agendaPeek: list[str] = Field(default_factory=list)  # noqa: N815
+    agendaPeekBottom: list[str] = Field(default_factory=list)  # noqa: N815
     revealedSecrets: dict[str, list[str]] = Field(default_factory=dict)  # noqa: N815
 
 

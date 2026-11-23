@@ -340,3 +340,20 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
 - ⓘ przy każdym wierszu: nowe rodzaje `ability` (zdolność frakcji, `AbilityDetailsCard`) i `legendary`
   (`PlanetAbilityDetailsCard`) w `ComponentInfo` + `hintFor`; także przy zdolnościach technologii.
 - Test: `componentActions.test.ts`.
+
+
+## Karty akcji: przegląd + wiedza o talii agend (Insider Information) + zakryte talie
+
+- Audyt 140 kart akcji (skrypt na stanie 6 graczy): każda ma efekt; formularze przejrzane pod kątem mapy/overlay/Auto.
+- Wiedza o talii agend (RULES.md 53.5.a1): `agenda_peek` + nowe `agenda_peek_bottom` w `core/card_draw.py` —
+  trwa do zmiany talii (nie znika po fazie agendy); dobranie agendy zdejmuje ją z wiedzy, Politics daje właścicielowi
+  nową górę/spód i kasuje wiedzę innych, przetasowanie kasuje wszystkim. `/hand` → `agendaPeekBottom`.
+- UI: `KnownCards` w doku ręki zamiast linii tekstu — chipy `KnownAgenda` („Top 1: …”, „Bottom: …”, karta po
+  kliknięciu), tajne cele z Extreme Duress jako `ScoredSecret`, notki z M'aban jako `PromissoryNote`, gracz = ikona frakcji.
+- Zakryte talie: ustawienie `browseDecks` (Settings → Admin / testing, domyślnie wyłączone) — bez niego klik w rewers
+  nic nie pokazuje; stosy odrzuconych i purge nadal jawne.
+- Brilliance: planeta klikiem na mapie (`planet`) albo gracz (`player`), dokładnie jedno.
+- „Auto” w polach liczbowych kart (RULES.md 53.9): Bribery, Unstable Planet, Shields Holding, Leadership Rider,
+  Manipulate Investments.
+- Testy: `test_reactions_agenda.py` (wiedza), `test_strategy_diplomacy_politics_imperial.py`, `test_action_cards_economy.py`,
+  `KnownCards.test.ts`.

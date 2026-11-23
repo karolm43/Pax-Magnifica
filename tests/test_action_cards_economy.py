@@ -182,9 +182,9 @@ def test_brilliance_odrzuca_przelom_juz_zdobyty_i_zly_tryb(registry: StaticDataR
 
 def test_brilliance_formularz_i_zagrywalnosc(registry: StaticDataRegistry) -> None:
     state = _state(["brilliance"], mine=(_SPECIALTY_BIOTIC,))
-    values = _option_values(_inputs(state, registry, "brilliance"), "effect")
-    assert {"mode": "ready_planet", "planet": _SPECIALTY_BIOTIC} in values
-    assert {"mode": "breakthrough", "player": "p2"} in values
+    inputs = _inputs(state, registry, "brilliance")
+    assert _SPECIALTY_BIOTIC in _option_values(inputs, "planet")
+    assert "p2" in _option_values(inputs, "player")
     empty = _state(["brilliance"])
     empty.players["p1"].faction = None
     empty.players["p2"].breakthrough_unlocked = True
@@ -565,3 +565,25 @@ def test_formularz_daje_parametry_przyjmowane_przez_efekt(
             params[item["key"]] = item["min"]
     assert _playable(state, registry, card)["playable"]
     assert action_cards.play_action_card(state, registry, "p1", card, params)[1]
+
+
+def test_brilliance_formularz_planeta_na_mapie_albo_gracz(registry: StaticDataRegistry) -> None:
+    # Planety osobno (wybór na mapie, nie wymieszane z przełomami), gracz osobno; jedno z dwóch.
+    state = _state(
+        ["brilliance"], mine=(_SPECIALTY_BIOTIC,), exhausted_planets=[_SPECIALTY_BIOTIC]
+    )
+    state.fracture.in_play = True
+    _, inputs = action_cards.card_inputs(state, registry, "p1", "brilliance")
+    by_key = {item["key"]: item for item in inputs}
+    planet_values = [o["value"] for o in by_key["planet"]["options"]]
+    assert planet_values == [_SPECIALTY_BIOTIC, None]
+    players = [o["value"] for o in by_key["player"]["options"]]
+    assert all(v is None or v in state.players for v in players)
+    new = _play(state, registry, "brilliance", {"planet": _SPECIALTY_BIOTIC, "player": None})
+    assert new.players["p1"].exhausted_planets == []
+    new = _play(state, registry, "brilliance", {"planet": None, "player": "p2"})
+    assert new.players["p2"].breakthrough_unlocked
+    with pytest.raises(ValueError, match="not both"):
+        action_cards.play_action_card(
+            state, registry, "p1", "brilliance", {"planet": _SPECIALTY_BIOTIC, "player": "p2"}
+        )

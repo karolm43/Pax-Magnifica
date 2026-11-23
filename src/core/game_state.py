@@ -435,9 +435,11 @@ class PlayerPrivateState(BaseModel):
     # Tajne cele INNYCH graczy pokazane tej osobie przez efekt karty (Extreme Duress):
     # {właściciel: [cele]}. Migawka z chwili pokazania; pole prywatne, więc projekcja ukrywa je.
     revealed_secrets: dict[str, list[str]] = Field(default_factory=dict)
-    # Podgląd wierzchnich agend (Insider Information) - TAJNY, tylko dla właściciela; zmienia go
-    # wyłącznie ``card_draw.peek_agenda_top``, czyści ``card_draw.clear_agenda_peek``.
+    # Wiedza o talii agend (Insider Information, Politics; RULES.md 53.5.a1) - TAJNA, tylko dla
+    # właściciela: znane karty od góry (kolejność) i od spodu (ostatnia = sam spód). Trwa, aż talia
+    # zmieni się tak, że wiedza przestaje być pewna; zmienia ją WYŁĄCZNIE ``core/card_draw``.
     agenda_peek: list[str] = Field(default_factory=list)
+    agenda_peek_bottom: list[str] = Field(default_factory=list)
     # „Skip all reactions” (RULES.md 54.11): silnik pasuje za gracza w każdym oknie reakcji, także
     # gdy ma kartę do zagrania. Ustawienie TAJNE (okno trwa tyle samo, z zewnątrz nic nie widać).
     auto_pass_reactions: bool = False

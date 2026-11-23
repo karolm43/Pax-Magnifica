@@ -93,15 +93,44 @@
 }
 
 /* Prywatne podglądy z kart (Insider Information, Extreme Duress). */
-.peek {
+/* Wiedza z kart „look at…” (KnownCards): grupy chipów z panelu gracza, opis po kliknięciu. */
+.known {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
   margin: 0 12px 6px;
   padding: 6px 10px;
-  list-style: none;
   border: 1px solid rgba(214, 178, 94, 0.4);
   border-radius: 8px;
   background: rgba(214, 178, 94, 0.08);
+}
+
+.knownGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.knownTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.knownChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.knownEmpty {
   font-size: 12px;
-  line-height: 1.5;
+  opacity: 0.7;
 }
 
 /* Przełącznik ręki (reakcje grają też gracze, których nie jest tura). */

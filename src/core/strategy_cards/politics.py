@@ -73,7 +73,7 @@ def _primary(
     # Mówca i karty akcji rozstrzygnięte już w kroku ``choose_speaker``; tu tylko agendy.
     ensure_agenda_deck(state, ctx.registry)
     rearrange_agenda_top(
-        state, len(_peek(state)), draft.get("top", []), draft.get("bottom", [])
+        state, len(_peek(state)), draft.get("top", []), draft.get("bottom", []), owner_id
     )
 
 

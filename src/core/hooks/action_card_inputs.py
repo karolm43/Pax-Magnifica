@@ -76,8 +76,11 @@ def _multi(
     }
 
 
-def _number(key: str, label: str, minimum: int, maximum: int, hint: str = "") -> Input:
-    return {
+def _number(
+    key: str, label: str, minimum: int, maximum: int, hint: str = "", *, auto: int | None = None
+) -> Input:
+    """Pole liczbowe formularza karty; ``auto`` = wartość opcji „Auto” (``offer_inputs.number``)."""
+    item: Input = {
         "key": key,
         "kind": "number",
         "label": label,
@@ -85,6 +88,9 @@ def _number(key: str, label: str, minimum: int, maximum: int, hint: str = "") ->
         "max": maximum,
         "hint": hint,
     }
+    if auto is not None:
+        item["auto"] = max(minimum, min(maximum, auto))
+    return item
 
 
 def _planet_name(registry: StaticDataRegistry, planet_id: str) -> str:

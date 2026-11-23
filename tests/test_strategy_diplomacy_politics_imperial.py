@@ -154,6 +154,10 @@ def test_politics_agenda_peek_is_private_and_reorders_deck(registry: StaticDataR
     deck = state.decks.agenda_deck
     assert deck[0] == peek[1] and deck[-1] == peek[0]
     assert deck[1:-1] == deck_before[2:]
+    # Wiedza o talii (RULES.md 53.5.a1): właściciel pamięta wierzch i spód, inni nic.
+    assert state.players["p1"].private.agenda_peek == [peek[1]]
+    assert state.players["p1"].private.agenda_peek_bottom == [peek[0]]
+    assert state.players["p2"].private.agenda_peek == []
     assert state.speaker_id == "p3"
     assert len(state.players["p1"].private.action_cards) == 2
 

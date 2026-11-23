@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useDeckSearchStore } from "@/domains/search/deckSearchStore";
+import { useSettingsStore } from "@/state/appStore";
 import { IconBug, IconFlame, IconStack2 } from "@tabler/icons-react";
 import { assetUrl } from "@/shared/assets/resolveAsset";
 import { AppModal } from "@/shared/ui/AppModal";
@@ -67,15 +68,31 @@ type InspectorProps = {
   opened: boolean;
   onClose: () => void;
   initialTab?: PileTab;
+  /** Zakładka „In deck” (zawartość zakrytej talii) - tylko z ustawieniem ``browseDecks``. */
+  showDeck?: boolean;
 };
+
+/** Czy gracz może przeglądać zawartość zakrytych talii (ustawienie God-Mode, domyślnie nie). */
+export function useBrowseDecks(): boolean {
+  return useSettingsStore((s) => s.settings.browseDecks);
+}
 
 /**
  * Zawartość jednej talii: karty w talii (z szansą dobrania każdej), stos odrzuconych i
  * stos purge. W trybie debug każda karta ma przyciski przenoszenia - w tym „Make next",
  * które ustawia, jaka karta zostanie dobrana jako następna.
  */
-export function DeckInspector({ spec, opened, onClose, initialTab = "deck" }: InspectorProps) {
-  const [tab, setTab] = useState<PileTab>(initialTab);
+export function DeckInspector({
+  spec,
+  opened,
+  onClose,
+  initialTab = "deck",
+  showDeck = true,
+}: InspectorProps) {
+  const [tab, setTab] = useState<PileTab>(
+    !showDeck && initialTab === "deck" ? "discard" : initialTab,
+  );
+  const tabs = (Object.keys(TAB_LABEL) as PileTab[]).filter((t) => showDeck || t !== "deck");
   const [debug, setDebug] = useDebugMode();
   const move = useMoveCard();
   const groups = useMemo(() => groupsForTab(spec, tab, debug), [spec, tab, debug]);
@@ -112,7 +129,7 @@ export function DeckInspector({ spec, opened, onClose, initialTab = "deck" }: In
     >
       <div className={styles.bar}>
         <div className={styles.tabs} role="tablist">
-          {(Object.keys(TAB_LABEL) as PileTab[]).map((t) => (
+          {tabs.map((t) => (
             <button
               key={t}
               type="button"
@@ -152,34 +169,55 @@ export function DeckInspector({ spec, opened, onClose, initialTab = "deck" }: In
 
 type BackProps = { spec: DeckSpec };
 
-/** Rewers talii z liczbą kart, które w niej ZOSTAŁY; klik → zawartość talii. */
+/**
+ * Rewers talii z liczbą kart, które w niej ZOSTAŁY. Klik → zawartość talii TYLKO z ustawieniem
+ * ``browseDecks`` (decyzja użytkownika: w grze nikt nie przegląda zakrytej talii); bez niego
+ * sam rewers z licznikiem. Wyszukiwarka planszy nadal otwiera stos odrzuconych / purge.
+ */
 export function DeckBack({ spec }: BackProps) {
   const [opened, setOpened] = useState(false);
+  const browse = useBrowseDecks();
   const request = useDeckSearchStore((state) => state.request);
   const searchTab = request?.deckId === spec.key ? request.tab : undefined;
   /* Prośba z wyszukiwarki planszy otwiera tę talię na zakładce z szukaną kartą. */
   useEffect(() => {
-    if (request?.deckId === spec.key) setOpened(true);
-  }, [request, spec.key]);
+    if (request?.deckId !== spec.key) return;
+    if (browse || (request.tab && request.tab !== "deck")) setOpened(true);
+  }, [request, spec.key, browse]);
+  const back = (
+    <Cardback
+      src={assetUrl(`/player_area/${spec.back}`)}
+      alt={`${spec.label} deck`}
+      count={pileCount(spec, "deck")}
+    />
+  );
   return (
     <>
-      <button
-        type="button"
-        className={styles.trigger}
-        onClick={() => setOpened(true)}
-        aria-label={`${spec.label} deck, ${pileCount(spec, "deck")} cards left`}
-      >
-        <Cardback
-          src={assetUrl(`/player_area/${spec.back}`)}
-          alt={`${spec.label} deck`}
-          count={pileCount(spec, "deck")}
-        />
-      </button>
+      {browse ? (
+        <button
+          type="button"
+          className={styles.trigger}
+          onClick={() => setOpened(true)}
+          aria-label={`${spec.label} deck, ${pileCount(spec, "deck")} cards left`}
+        >
+          {back}
+        </button>
+      ) : (
+        <div
+          className={styles.closedDeck}
+          role="img"
+          aria-label={`${spec.label} deck, ${pileCount(spec, "deck")} cards left`}
+          title="Deck contents are hidden (Settings → Browse deck contents)"
+        >
+          {back}
+        </div>
+      )}
       {opened && (
         <DeckInspector
           key={request?.nonce}
           spec={spec}
           opened
+          showDeck={browse}
           initialTab={searchTab}
           onClose={() => setOpened(false)}
         />
@@ -196,6 +234,7 @@ type PileProps = {
 /** Stos odrzuconych / purge danej talii: karta z liczbą, klik → lista. */
 export function PileSlot({ spec, tab }: PileProps) {
   const [opened, setOpened] = useState(false);
+  const browse = useBrowseDecks();
   const count = pileCount(spec, tab);
   return (
     <>
@@ -216,7 +255,13 @@ export function PileSlot({ spec, tab }: PileProps) {
         <b>{count}</b>
       </button>
       {opened && (
-        <DeckInspector spec={spec} opened initialTab={tab} onClose={() => setOpened(false)} />
+        <DeckInspector
+          spec={spec}
+          opened
+          showDeck={browse}
+          initialTab={tab}
+          onClose={() => setOpened(false)}
+        />
       )}
     </>
   );
