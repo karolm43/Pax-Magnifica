@@ -21,12 +21,21 @@ const RING_MIN_COUNT = 3;
 /**
  * O ile przesuwamy PLANSZĘ (kafle i pola graczy) w dół, gdy The Fracture jest w grze.
  *
- * Fracture leży u GÓRY, nad planszą i polami graczy, ale POD kaflem Mallice (róg `tl`, który
- * się nie przesuwa). Najwyższa zawartość planszy (kafle stat-area graczy, pierścień R+1) ma
- * y = 50 + bump, a dolna krawędź Fracture to ok. 899, więc bump 880 zostawia między nimi
- * tylko wąski pas ok. 30 px - Fracture przylega do graczy, ale na nich nie nachodzi.
+ * Fracture leży u GÓRY, nad planszą i polami graczy. Bump 400 kładzie go na tej samej siatce
+ * heksów co pola graczy, w sąsiednich komórkach (decyzja użytkownika 2026-11-23: „przyklej do
+ * gracza nr 1 od góry bez przerwy”): frac3/frac4/frac5 stykają się z polem gracza 1, frac1 i
+ * frac7 z polami graczy 6 i 2. Odstęp pionowy sąsiadów = 300 = SPACE_FOR_TILE_HEIGHT, więc
+ * kafle się nie nachodzą (test w tilePositioning.test.ts). Policzone dla mapy 3-pierścieniowej.
  */
-export const FRACTURE_Y_BUMP = 880;
+export const FRACTURE_Y_BUMP = 400;
+/**
+ * Przesunięcie Mallice (róg `tl`), gdy Fracture jest w grze: bez Fracture Mallice wisi nad
+ * polem gracza 6, ale to miejsce zajmuje frac1. Decyzja użytkownika 2026-11-23: Mallice niżej,
+ * przy planszy. Kafel spiralny jest większy od heksa (416x386, środek kształtu = +208,+193),
+ * więc stawiamy go w lewo od frac1 i pola gracza 6 tak, by kształt ich nie nachodził
+ * (test w tilePositioning.test.ts).
+ */
+const MALLICE_BESIDE_FRACTURE = { x: -398, y: 187 };
 /** Fracture jest uniesiony o tyle względem współrzędnych bazowych (niezależnie od bumpu). */
 const FRACTURE_TOP_LIFT = 50;
 
@@ -106,6 +115,10 @@ function applyRingAdjustments(
     const lowerPos = position.toLowerCase();
     if (lowerPos === "tl") {
       y -= 150;
+      if (fractureYbump > 0) {
+        x += MALLICE_BESIDE_FRACTURE.x;
+        y += fractureYbump + MALLICE_BESIDE_FRACTURE.y;
+      }
     } else if (lowerPos === "bl") {
       y -= lower * SPACE_FOR_TILE_HEIGHT * 2 - 150;
       y += fractureYbump;

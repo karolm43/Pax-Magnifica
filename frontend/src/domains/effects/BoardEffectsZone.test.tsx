@@ -5,7 +5,7 @@ import type { ActiveEffectData } from "@/entities/data/types";
 import type { GameData } from "@/entities/game/types";
 import { TILE_HEIGHT, TILE_WIDTH, calculateSingleTilePosition } from "@/entities/geometry/tilePositioning";
 import { BoardEffectsZone } from "./BoardEffectsZone";
-import { ZONE_GAP, effectsZoneAnchor } from "./effectsZoneAnchor";
+import { ZONE_GAP, effectsZoneAnchor, zoneCells } from "./effectsZoneAnchor";
 
 const effectsRef: { current: ActiveEffectData[] } = { current: [] };
 
@@ -47,18 +47,26 @@ const renderZone = () =>
   );
 
 describe("effectsZoneAnchor", () => {
-  it("6 graczy: na wysokości luki gracza 2 i 3, za prawą kolumną heksów (bez nachodzenia)", () => {
+  it("6 graczy: heks w wolnej komórce 407 między polami graczy 2 i 3, równo z planszą", () => {
     const anchor = effectsZoneAnchor(SIX_PLAYERS, 3, []);
     const gapHex = calculateSingleTilePosition("407", 3);
-    const rightColumn = calculateSingleTilePosition("406", 3);
-    expect(anchor?.y).toBe(gapHex.y);
-    expect(anchor?.x).toBe(rightColumn.x + TILE_WIDTH + ZONE_GAP);
+    expect(anchor).toEqual({ x: gapHex.x, y: gapHex.y });
     // Pole gracza 2 (406) kończy się nad tacą, pole gracza 3 (408) zaczyna pod nią.
     expect(calculateSingleTilePosition("406", 3).y + TILE_HEIGHT).toBeLessThanOrEqual(anchor!.y);
+    expect(calculateSingleTilePosition("408", 3).y).toBeGreaterThanOrEqual(anchor!.y + TILE_HEIGHT);
   });
 
-  it("taca leży też za kaflami planszy wysuniętymi dalej niż pola graczy", () => {
-    expect(effectsZoneAnchor(SIX_PLAYERS, 3, [], 99999)?.x).toBe(99999 + ZONE_GAP);
+  it("komórka zajęta przez kafel planszy - taca za prawą krawędzią planszy", () => {
+    const gapHex = calculateSingleTilePosition("407", 3);
+    const far = { x: 99999, y: 0 };
+    const anchor = effectsZoneAnchor(SIX_PLAYERS, 3, [], [gapHex, far]);
+    expect(anchor?.x).toBe(far.x + TILE_WIDTH + ZONE_GAP);
+  });
+
+  it("więcej efektów niż mieści heks - kolejne heksy w prawo po siatce", () => {
+    expect(zoneCells(0)).toEqual([{ x: 0, y: 0 }]);
+    expect(zoneCells(6)).toHaveLength(1);
+    expect(zoneCells(7)).toEqual([{ x: 0, y: 0 }, { x: 260, y: 150 }]);
   });
 
   it("bez pól graczy nie ma gdzie położyć tacy", () => {

@@ -1,0 +1,83 @@
+/*
+ * Player color — motyw domyślny (decyzja użytkownika 2026-11-23): cała strona ma stonowany
+ * akcent w kolorze MOJEGO gracza (kolor wybrany w kreatorze). Konstrukcja jak Midnight Gray
+ * (grafit), ale odcień płaszczyzn, linii i poświaty bierze się z `--player-accent-rgb`
+ * (triplet „r g b”, ustawiany na <body> przez `usePlayerAccent`, już przygaszony w JS).
+ * Bez gracza (menu, kreator) - neutralny łupek. Sygnały gry (--ds-sig-*, --ds-accent) nie
+ * są barwione: czerwony gracz nie może udawać ostrzeżenia.
+ */
+.theme-playercolortheme {
+    --pa: var(--player-accent-rgb, 148 163 184);
+    --pa-ground: color-mix(in oklab, rgb(var(--pa)) 7%, #0b0b0d);
+    --pa-ground-hi: color-mix(in oklab, rgb(var(--pa)) 10%, #141416);
+
+    /* Surface.tsx */
+    --surface-bg: var(--pa-ground);
+    --surface-border: 1px solid rgb(var(--pa) / 0.24);
+    --surface-corner-accent: 2px solid rgb(var(--pa) / 0.36);
+    --surface-shadow: 0 12px 48px rgb(var(--pa) / 0.12), 0 8px 28px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+    --player-card-box-bg: linear-gradient(180deg, var(--pa-ground-hi) 0%, var(--pa-ground) 100%);
+
+    --sidebar-bg: var(--pa-ground);
+    --left-sidebar-bg: color-mix(in srgb, var(--pa-ground) 92%, transparent);
+    --sidebar-border: 1px solid rgb(var(--pa) / 0.22);
+
+    /* Poświata koloru gracza z góry i z dołu - ledwo widoczna, jak w innych motywach. */
+    --main-bg:
+      radial-gradient(120% 80% at 50% -10%, rgb(var(--pa) / 0.07), transparent 55%),
+      radial-gradient(90% 60% at 85% 110%, rgb(var(--pa) / 0.04), transparent 60%),
+      #09090b;
+    --map-tabs-bg: linear-gradient(180deg, #08080a, var(--pa-ground-hi) 100%);
+
+    --header-bg: linear-gradient(90deg, var(--pa-ground) 0%, var(--pa-ground-hi) 100%);
+
+    --header-tab-input-bg: color-mix(in srgb, var(--pa-ground) 88%, transparent);
+    --header-tab-input-border: 1px solid rgb(var(--pa) / 0.42);
+
+    --header-tab-dropdown-bg: color-mix(in srgb, var(--pa-ground) 94%, transparent);
+    --header-tab-dropdown-border: 1px solid rgb(var(--pa) / 0.42);
+    --header-tab-dropdown-hover-bg: rgb(var(--pa) / 0.3);
+
+    --details-card-bg: linear-gradient(135deg, var(--pa-ground) 0%, var(--pa-ground-hi) 100%);
+    --details-card-border: 1px solid rgb(var(--pa) / 0.3);
+
+    --scrollbar-thumb-bg: linear-gradient(135deg, rgb(var(--pa) / 0.45) 0%, rgb(var(--pa) / 0.3) 100%);
+    --scrollbar-thumb-hover-bg: linear-gradient(135deg, rgb(var(--pa) / 0.6) 0%, rgb(var(--pa) / 0.42) 100%);
+    --scrollbar-color-thumb: rgb(var(--pa) / 0.5);
+
+    --unit-details-inherited-bg: rgb(var(--pa) / 0.06);
+    --unit-details-inherited-border: rgb(var(--pa) / 0.15);
+
+    /* Panele: grafit z kroplą koloru gracza; linie w odcieniu gracza, ale ciche. */
+    --panel-field-bg: linear-gradient(
+      180deg,
+      color-mix(in oklab, rgb(var(--pa)) 6%, rgb(12 12 13 / 0.96)),
+      rgba(8, 8, 9, 0.98)
+    );
+    --panel-field-flat: color-mix(in srgb, rgb(var(--pa)) 4%, rgba(8, 8, 9, 0.55));
+    --panel-field-strip: color-mix(in srgb, rgb(var(--pa)) 5%, rgba(10, 10, 11, 0.66));
+
+    --panel-hairline: rgb(var(--pa) / 0.16);
+    --panel-hairline-strong: rgb(var(--pa) / 0.26);
+    --panel-separator: rgb(var(--pa) / 0.11);
+    --panel-bracket: rgb(var(--pa) / 0.3);
+    --player-card-inner-glow: radial-gradient(90% 60% at 50% 0%, rgb(var(--pa) / 0.05), transparent 60%);
+
+    --rail-border: rgb(var(--pa) / 0.18);
+    --rail-ink: rgba(186, 186, 192, 0.92);
+
+    --socket-bg: rgba(0, 0, 0, 0.3);
+    --socket-border: rgb(var(--pa) / 0.1);
+
+    --plate-ground: color-mix(in oklab, rgb(var(--pa)) 6%, #141416);
+    --hud-deck-ground: color-mix(in oklab, rgb(var(--pa)) 5%, #0a0a0b);
+    --hud-edge-accent: rgb(var(--pa) / 0.34);
+    --survey-lit: color-mix(in srgb, rgb(var(--pa)) 30%, rgb(222 222 228 / 0.82));
+}
+
+/* Osobowość motywu (themeContract): delikatna poświata gracza na stronie. */
+body.theme-playercolortheme {
+    --ds-tex-rail: linear-gradient(180deg, rgb(var(--pa) / 0.05), transparent 40%);
+    --ds-ambient: radial-gradient(ellipse 80% 50% at 50% -10%, rgb(var(--pa) / 0.06), transparent 70%);
+}

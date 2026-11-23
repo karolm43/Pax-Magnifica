@@ -25,44 +25,7 @@
   stroke-width: 1.5;
 }
 
-/* Niehexagonalne systemy: sam hit-target zostaje heksem, ale nie jest widoczny. */
-.hexHitOnly {
-  pointer-events: all;
-  fill: transparent;
-  stroke: none;
-}
-
-/* Podświetlenie po kształcie tekstury, wizualnie identyczne z .hex. */
-.filterDefs {
-  position: absolute;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
-.washFill {
-  flood-color: rgb(var(--gd-blue));
-  flood-opacity: 0.1;
-}
-
-.washStroke {
-  flood-color: rgb(var(--gd-blue));
-  flood-opacity: 0.5;
-}
-
-.shapeWash {
-  position: absolute;
-  left: 0;
-  top: 0;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.12s linear;
-  /* Filtr SVG (#system-shape-wash): wypełnienie 0.1 + obrys 0.5 — jak .hex. */
-  filter: url(#system-shape-wash);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .shapeWash,
   .target {
     transition: none;
   }

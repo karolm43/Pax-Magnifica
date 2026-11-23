@@ -1,9 +1,5 @@
 import type { Tile } from "@/entities/game/types";
-import {
-  HEX_PATH,
-  TILE_HEIGHT,
-  TILE_WIDTH,
-} from "@/entities/geometry/tilePositioning";
+import { tileOutline } from "@/entities/geometry/tileOutline";
 import { linkTargets, useWormholeHoverStore } from "../../wormholeLinks";
 import classes from "./WormholeLinkLayer.module.css";
 
@@ -39,10 +35,12 @@ export function WormholeLinkLayer({
   const byPosition = new Map(tiles.map((t) => [t.position, t]));
   const source = byPosition.get(hovered.position);
   if (!source) return null;
-  const center = (t: Tile): Point => ({
-    x: t.properties.x + TILE_WIDTH / 2,
-    y: t.properties.y + TILE_HEIGHT / 2,
-  });
+  /* Środek KSZTAŁTU kafla — dla Creuss/Mallice (grafika większa od heksa) to nie jest
+     środek heksa 345x299. */
+  const center = (t: Tile): Point => {
+    const { center: c } = tileOutline(t.systemId);
+    return { x: t.properties.x + c.x, y: t.properties.y + c.y };
+  };
   const from = center(source);
 
   const links = hovered.kinds.flatMap((kind) =>
@@ -71,7 +69,7 @@ export function WormholeLinkLayer({
             <g key={`${kind}-${target.position}`} data-kind={dataKind}>
               <path
                 className={classes.targetHex}
-                d={HEX_PATH}
+                d={tileOutline(target.systemId).path}
                 transform={`translate(${target.properties.x} ${target.properties.y})`}
               />
               <path className={classes.shadow} d={d} />

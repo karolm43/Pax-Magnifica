@@ -51,6 +51,7 @@ import { isMobileDevice } from "@/utils/isTouchDevice";
 import { NavigationDrawer } from "@/domains/game-shell/components/navigation/NavigationDrawer";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { usePageThemeClass } from "@/hooks/usePageThemeClass";
+import { usePlayerAccent } from "@/hooks/usePlayerAccent";
 import { PlayerDataErrorAlert } from "@/shared/ui/PlayerDataErrorAlert";
 import { MAIN_TAB_CONFIGS } from "@/domains/game-shell/components/mainTabs";
 import { TabPanelSection } from "@/domains/game-shell/components/TabPanelSection";
@@ -85,6 +86,8 @@ function TabContent({ gameId, ready, isError, children }: TabContentProps) {
 
 function GameMapContent() {
   const data = useGameContext();
+  // Motyw „Player color”: akcent strony w (stonowanym) kolorze mojego gracza.
+  usePlayerAccent();
   const gameDataState = useGameDataState();
   const isError = !!gameDataState?.isError;
   const params = useParams<{ mapid: string }>();

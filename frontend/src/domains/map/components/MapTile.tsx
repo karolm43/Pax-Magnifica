@@ -14,10 +14,10 @@ import { PlanetaryShieldOverlayLayer } from "./layers/PlanetaryShieldOverlayLaye
 import { AnomalyOverlay } from "./layers/AnomalyOverlay";
 import { BorderAnomalyLayer } from "./layers/BorderAnomalyLayer";
 import {
-  HEX_PATH,
   TILE_HEIGHT,
   TILE_WIDTH,
 } from "@/entities/geometry/tilePositioning";
+import { tileOutline } from "@/entities/geometry/tileOutline";
 import type { Tile as TileType } from "@/entities/game/types";
 import { TechSkipIconsLayer } from "./layers/TechSkipIconsLayer";
 import { AttachmentsLayer } from "./layers/AttachmentsLayer";
@@ -27,7 +27,7 @@ import { WormholeHotspotsLayer } from "./layers/WormholeHotspotsLayer";
 import { FactionColorOverlay } from "./FactionColorOverlay";
 import { FactionControlBorderOverlay } from "./FactionControlBorderOverlay";
 import { SystemHexTarget } from "./SystemHexTarget";
-import { getTileById } from "@/entities/lookup/systems";
+import { getTileById, systemDisplayName } from "@/entities/lookup/systems";
 import { useHeroFx } from "@/domains/game-shell/components/KeyMoments/heroBoardFx";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import { searchKey, searchTarget } from "@/domains/search/searchKeys";
@@ -75,6 +75,11 @@ export const MapTile = React.memo<Props>(
     const systemId = mapTile.systemId;
     // Nova Seed: stary kafel na mapie, dopóki efekt bohatera nie odsłoni nowego (`heroBoardFx`).
     const coverSystemId = useHeroFx((s) => s.covers[ringPosition]);
+    /* Obrys widocznego kafla: heks albo kształt nieregularnej grafiki (Creuss, Mallice…) —
+       wszystkie podświetlenia kafla rysujemy po nim, nie po stałym heksie. */
+    const outline = tileOutline(coverSystemId ?? systemId);
+    const outlineBox = `0 0 ${outline.width} ${outline.height}`;
+    const outlineSize = { width: outline.width, height: outline.height };
     const position = {
       x: mapTile.properties.x,
       y: mapTile.properties.y,
@@ -237,7 +242,7 @@ export const MapTile = React.memo<Props>(
             position={tileMenu.position}
             items={tileMenuItems}
             onClose={tileMenu.close}
-            title={`System ${ringPosition}`}
+            title={systemDisplayName(systemId, ringPosition)}
           />
         )}
         <div
@@ -265,19 +270,21 @@ export const MapTile = React.memo<Props>(
             <svg
               key={`${mapReplay.key}-system-highlight`}
               className={classes.tacticalActivationGlow}
-              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              viewBox={outlineBox}
+              style={outlineSize}
               aria-hidden="true"
             >
-              <path d={HEX_PATH} />
+              <path d={outline.path} />
             </svg>
           )}
           {isPickDimmed && (
             <svg
               className={classes.mapPickDim}
-              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              viewBox={outlineBox}
+              style={outlineSize}
               aria-hidden="true"
             >
-              <path d={HEX_PATH} />
+              <path d={outline.path} />
             </svg>
           )}
           {isSystemPickTarget && (
@@ -286,13 +293,13 @@ export const MapTile = React.memo<Props>(
               data-selected={mapPick?.selected === mapTile.position || undefined}
               style={
                 mapPick?.hue
-                  ? ({ "--pick-hue": mapPick.hue } as CSSProperties)
-                  : undefined
+                  ? ({ ...outlineSize, "--pick-hue": mapPick.hue } as CSSProperties)
+                  : outlineSize
               }
-              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              viewBox={outlineBox}
               aria-hidden="true"
             >
-              <path d={HEX_PATH} />
+              <path d={outline.path} />
             </svg>
           )}
           {isRoutePickTarget && (!isMoveRangeSource || isRoutePickSelected) && (
@@ -301,13 +308,13 @@ export const MapTile = React.memo<Props>(
               data-selected={isRoutePickSelected || undefined}
               style={
                 routePick?.hue
-                  ? ({ "--pick-hue": routePick.hue } as CSSProperties)
-                  : undefined
+                  ? ({ ...outlineSize, "--pick-hue": routePick.hue } as CSSProperties)
+                  : outlineSize
               }
-              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              viewBox={outlineBox}
               aria-hidden="true"
             >
-              <path d={HEX_PATH} />
+              <path d={outline.path} />
             </svg>
           )}
           {(isMoveSource || isMoveCandidate) && (
@@ -315,19 +322,21 @@ export const MapTile = React.memo<Props>(
               className={`${classes.moveHighlight} ${
                 isMoveSource ? classes.moveSource : classes.moveCandidate
               }`}
-              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              viewBox={outlineBox}
+              style={outlineSize}
               aria-hidden="true"
             >
-              <path d={HEX_PATH} />
+              <path d={outline.path} />
             </svg>
           )}
           {isMoveRangeSource && (
             <svg
               className={`${classes.moveHighlight} ${classes.moveRangeSource}`}
-              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              viewBox={outlineBox}
+              style={outlineSize}
               aria-hidden="true"
             >
-              <path d={HEX_PATH} />
+              <path d={outline.path} />
             </svg>
           )}
           {isDragTarget && (
@@ -335,10 +344,11 @@ export const MapTile = React.memo<Props>(
               className={`${classes.dropHighlight} ${
                 dragTargetValid ? classes.dropValid : classes.dropInvalid
               }`}
-              viewBox={`0 0 ${TILE_WIDTH} ${TILE_HEIGHT}`}
+              viewBox={outlineBox}
+              style={outlineSize}
               aria-hidden="true"
             >
-              <path d={HEX_PATH} />
+              <path d={outline.path} />
             </svg>
           )}
           <PlanetCirclesLayer

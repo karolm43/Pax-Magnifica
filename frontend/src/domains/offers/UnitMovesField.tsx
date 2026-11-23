@@ -4,7 +4,7 @@ import { useAppStore } from "@/state/appStore";
 import { useGameData } from "@/state/useGameContext";
 import { useMapTargets } from "@/domains/strategy/mapPick";
 import { getColorAlias } from "@/entities/lookup/colors";
-import { getTileById } from "@/entities/lookup/systems";
+import { systemDisplayName } from "@/entities/lookup/systems";
 import { lookupUnit } from "@/entities/lookup/units";
 import { RouteUnitChip } from "@/domains/movement/RouteUnitChip";
 import { asyncOfBase } from "@/domains/movement/routeTypes";
@@ -251,9 +251,7 @@ export function UnitMovesField({
 
   const tiles = gameData?.tiles ?? {};
   const systemName = (position: string): string => {
-    const tile = tiles[position];
-    const name = tile ? getTileById(tile.systemId)?.name : undefined;
-    return name ? `${name} (${position})` : `System ${position}`;
+    return systemDisplayName(tiles[position]?.systemId, position);
   };
   const unitName = (baseType: string) =>
     lookupUnit(asyncOfBase(baseType), faction, player)?.name ?? baseType;

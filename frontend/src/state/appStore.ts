@@ -22,6 +22,7 @@ const STORAGE_KEY = "ti4_settings";
 const THEME_STORAGE_KEY = "ti4_theme";
 
 export const THEME_NAMES = [
+  "playercolortheme",
   "midnightbluetheme",
   "midnightgraytheme",
   "midnightredtheme",
@@ -32,7 +33,8 @@ export const THEME_NAMES = [
 
 type ThemeName = (typeof THEME_NAMES)[number];
 
-const DEFAULT_THEME: ThemeName = "midnightgraytheme";
+/** Domyślnie akcent w kolorze mojego gracza (decyzja użytkownika 2026-11-23); inne motywy do wyboru. */
+const DEFAULT_THEME: ThemeName = "playercolortheme";
 
 /** Removed themes and the theme a stored value migrates to. */
 const DEPRECATED_THEMES: Record<string, ThemeName> = {

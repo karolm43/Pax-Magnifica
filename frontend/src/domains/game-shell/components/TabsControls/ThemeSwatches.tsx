@@ -6,6 +6,12 @@ type ThemeName = SettingsStore["settings"]["themeName"];
 /* Each swatch previews its theme's ground, so the colours here are the themes'
    own identities rather than UI chrome. */
 const THEME_SWATCHES: { name: ThemeName; label: string; fill: string }[] = [
+  /* Kolor mojego gracza (ustawiany na <body> przez usePlayerAccent), z łupkiem bez gracza. */
+  {
+    name: "playercolortheme",
+    label: "Player color",
+    fill: "rgb(var(--player-accent-rgb, 148 163 184))",
+  },
   { name: "midnightgraytheme", label: "Midnight Gray", fill: "#2a2a2e" },
   { name: "midnightbluetheme", label: "Blue", fill: "#1e3a8a" },
   { name: "midnightredtheme", label: "Red", fill: "#7f1d1d" },

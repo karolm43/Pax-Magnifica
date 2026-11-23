@@ -58,9 +58,19 @@ export function WormholeBlockedLayer({ systemId }: Props) {
 
 type Point = { x: number; y: number };
 
-/** Per-tile wormhole art positions, ported from TileGenerator.java drawOnWormhole. */
-const TILE_WORMHOLE_POSITIONS: Record<string, { alpha?: Point; beta?: Point }> = {
-  "82b": { alpha: { x: 95, y: 249 }, beta: { x: 169, y: 273 } }, // wormhole nexus
+type WormholeKey = "alpha" | "beta" | "gamma" | "delta" | "epsilon";
+
+/**
+ * Per-tile wormhole art positions, ported from TileGenerator.java drawOnWormhole
+ * (lewy górny róg znacznika 80x80; środek nadruku = punkt + 40). Gamma/delta/epsilon na
+ * kaflach spiralnych (Creuss, Crimson, Mallice) zmierzone z grafik — Java ich nie ma, a
+ * domyślny punkt wypadał poza nadrukiem.
+ */
+const TILE_WORMHOLE_POSITIONS: Record<string, Partial<Record<WormholeKey, Point>>> = {
+  "51": { delta: { x: 233, y: 245 } }, // Creuss home
+  "118": { epsilon: { x: 243, y: 241 } }, // Crimson home
+  "82a": { gamma: { x: 173, y: 278 } }, // locked nexus
+  "82b": { alpha: { x: 95, y: 249 }, beta: { x: 169, y: 273 }, gamma: { x: 240, y: 253 } }, // wormhole nexus
   c02: { alpha: { x: 37, y: 158 }, beta: { x: 223, y: 62 } }, // Locke/Bentham
   c10: { alpha: { x: 182, y: 22 }, beta: { x: 259, y: 241 } }, // Kwon
   c11: { alpha: { x: 54, y: 138 }, beta: { x: 159, y: 275 } }, // Ethan
@@ -136,8 +146,7 @@ export function getPrintedLinkPoints(
 
   const points = new Map<string, { x: number; y: number; kinds: string[] }>();
   for (const kind of new Set(kinds)) {
-    const own =
-      kind === "ALPHA" ? tilePositions?.alpha : kind === "BETA" ? tilePositions?.beta : undefined;
+    const own = tilePositions?.[kind.toLowerCase() as WormholeKey];
     const base = own ?? fallback;
     const key = `${base.x},${base.y}`;
     const point = points.get(key) ?? { x: offset + base.x, y: offset + base.y, kinds: [] };

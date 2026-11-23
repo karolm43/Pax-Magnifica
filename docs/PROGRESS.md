@@ -432,3 +432,18 @@ Starsze, ukończone bloki (Faza 1 → bloki do 2026-11-19) są w `PROGRESS_ARCHI
   `legendaryAbilityText` (Primor, Hope's End, Mirage, Mr Te, Thunder's Edge, Custodia Vigilia), dedup aliasów.
 - Własne teksty Keleres planet `*k` (commit 4145b436) zostawione — upstream dał im kopię lore oryginałów.
 - Pozostała część PR (teksty kart akcji/agend/techów/liderów, lore frakcji, plik `asteroid.json`) NIE zsynchronizowana.
+
+## Plansza: kafle nieregularne, Fracture/Mallice, taca efektów, motyw „Player color”
+
+- Kafle spiralne (Creuss 51, Crimson 118, Mallice 82a/82b, Kwon c10, Ethan c11; grafika ~416x386): hit-target i
+  wszystkie podświetlenia idą po obrysie kształtu (`entities/geometry/tileOutline.ts`, obrysy z kanału alfa:
+  `scripts/gen_tile_outlines.py` → `tileOutlines.generated.ts`), nie po heksie 345x299. Punkty hovera wormhole'i
+  gamma/delta/epsilon zmierzone z grafik (`WormholeBlockedLayer`), linie „dokąd prowadzi” od środka kształtu.
+- Fracture przylega do pola gracza 1 (bump 400 = sąsiednie komórki siatki), Mallice z Fracture w lewo od frac1,
+  bez nachodzenia kształtu (`tilePositioning.test.ts`).
+- Menu po kliknięciu systemu: „Nazwa (103)” (`systemDisplayName` w `entities/lookup/systems.ts`).
+- Taca efektów (RULES.md 54) to heks na siatce planszy w wolnej komórce między graczami 2 i 3 (6p: 407), żetony
+  efektów 2x3; więcej efektów = kolejne heksy w prawo. Zajęta komórka => za prawą krawędzią planszy.
+- Motyw „Player color” (domyślny): stonowany akcent strony w kolorze mojego gracza (`usePlayerAccent` →
+  `--player-accent-rgb`, `styles/playercolortheme.css`); sygnały gry bez zmian. Pozostałe motywy w kropkach paska.
+  Zapisany wcześniej wybór motywu w przeglądarce ma pierwszeństwo.
