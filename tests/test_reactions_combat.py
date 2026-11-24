@@ -287,7 +287,8 @@ def test_skilled_retreat_przenosi_statki_konczy_walke_remisem(
     assert _can(state, registry, "p1", "s_retreat1")
     implemented, inputs = action_cards.card_inputs(state, registry, "p1", "s_retreat1")
     assert implemented
-    assert [o["value"] for o in inputs[0]["options"]] == ["101"]  # anomalie odpadają
+    # Supernowa i asteroidy odpadają; mgławica (102) dozwolona - R_nebula notes/2.
+    assert [o["value"] for o in inputs[0]["options"]] == ["101", "102"]
     reinforcements = command_tokens.reinforcements(state, "p1")
     new = _play(state, registry, "p1", "s_retreat1", {"destination": "101"})
     combat = new.active_combat
@@ -306,11 +307,11 @@ def test_skilled_retreat_bledy_i_blokady(grid: HexGrid, registry: StaticDataRegi
     state = _start(
         _state(
             {"cruiser": 1}, {"cruiser": 1}, hand1=["s_retreat1"],
-            presence={"101": {"p2": {"cruiser": 1}}},
+            presence={"101": {"p2": {"cruiser": 1}}, "102": {"p2": {"cruiser": 1}}},
         ),
         grid, registry,
     )
-    # Jedyny legalny cel (101) zajmują statki przeciwnika - brak celu = niezagrywalna.
+    # Jedyne legalne cele (101, mgławica 102) zajmują statki przeciwnika - niezagrywalna.
     row = _row(state, registry, "p1", "s_retreat1")
     assert not row["playable"]
     open_state = _start(
@@ -318,7 +319,7 @@ def test_skilled_retreat_bledy_i_blokady(grid: HexGrid, registry: StaticDataRegi
     )
     with pytest.raises(ValueError, match="cannot move to system"):
         action_cards.play_action_card(
-            open_state, registry, "p1", "s_retreat1", {"destination": "102"}
+            open_state, registry, "p1", "s_retreat1", {"destination": "104"}  # supernowa
         )
     with pytest.raises(ValueError, match="Choose an adjacent system"):
         action_cards.play_action_card(open_state, registry, "p1", "s_retreat1", {})

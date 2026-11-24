@@ -559,8 +559,8 @@ def test_dark_space_navigation_tylko_jeden_cel_i_tylko_pancerniki(
 
 
 @ruling("F_lizix/the-helmsman-dark-space-navigation/5",
-        "F_lizix/the-helmsman-dark-space-navigation/5.2")
-def test_dark_space_navigation_cele_bez_mglawicy_i_asteroid(
+        "F_lizix/the-helmsman-dark-space-navigation/5.2", "R_nebula/notes/2")
+def test_dark_space_navigation_cele_mglawica_tak_asteroidy_z_antimass(
     registry: StaticDataRegistry,
 ) -> None:
     state = _hero_state()
@@ -572,7 +572,7 @@ def test_dark_space_navigation_cele_bez_mglawicy_i_asteroid(
     state.systems["102"].system_id = nebula
     state.systems["103"].system_id = asteroid
     found = l1z1x.hero_destinations(state, "p1")
-    assert "102" not in found and "103" not in found
+    assert "102" in found and "103" not in found  # mgławica OK (R_nebula notes/2)
     state.players["p1"].technologies = ["amd"]
     assert "103" in l1z1x.hero_destinations(state, "p1")
 

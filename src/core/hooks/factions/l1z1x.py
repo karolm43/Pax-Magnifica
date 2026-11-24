@@ -87,7 +87,8 @@ _NOW = "now"
 _AFTER = "after_explore"
 _HERO_SHIPS = ("flagship", "dreadnought")
 _HERO_CARGO = ("fighter", "infantry", "mech")
-_NO_ENTRY = ("NEBULA", "SUPERNOVA")  # Dark Space Navigation: nigdy do mgławicy ani supernowej
+# Dark Space Navigation: nie do supernowej (mgławica OK - R_nebula notes/2).
+_NO_ENTRY = ("SUPERNOVA",)
 _ASTEROID = "ASTEROID_FIELD"
 _ANTIMASS = "amd"
 

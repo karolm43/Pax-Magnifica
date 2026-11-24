@@ -84,7 +84,7 @@ _GROUND_FORCES = ("infantry", "mech")
 _SWA_KILL_FROM = 9  # „each result of 9 or 10”
 _COMMANDER_UNITS = 6  # „Have 6 units that have ANTI-FIGHTER BARRAGE, SPACE CANNON, or BOMBARDMENT”
 _SPACE = "space"
-_NO_ENTRY = ("NEBULA", "SUPERNOVA")  # Helix Protocol: nigdy do mgławicy ani supernowej
+_NO_ENTRY = ("SUPERNOVA",)  # Helix Protocol: nie do supernowej (mgławica OK - R_nebula notes/2)
 _ASTEROID = "ASTEROID_FIELD"
 _ANTIMASS = "amd"
 

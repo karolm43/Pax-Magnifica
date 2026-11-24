@@ -323,19 +323,19 @@ def test_foresight_zeton_nie_jest_wydany_scepter_nie_dziala() -> None:
 
 
 @ruling(
-    "R_nebula/rules-reference/1",
+    "R_nebula/notes/2",
     "R_supernova/rules-reference/1",
     "R_asteroid_field/rules-reference/1",
 )
-def test_foresight_cele_bez_mglawicy_supernowej_i_asteroid() -> None:
+def test_foresight_cele_mglawica_tak_bez_supernowej_i_asteroid() -> None:
     state = _foresight_state()
-    state.systems[EAST].system_id = "42"  # mgławica
+    state.systems[EAST].system_id = "42"  # mgławica - dozwolona (R_nebula notes/2)
     state.systems[WEST].system_id = "43"  # supernowa
-    assert naalu.foresight_destinations(state, "p1", ARENA) == ["000", HOME]
+    assert set(naalu.foresight_destinations(state, "p1", ARENA)) == {"000", HOME, EAST}
     state.systems["000"].system_id = "44"  # pole asteroid
-    assert naalu.foresight_destinations(state, "p1", ARENA) == [HOME]
+    assert set(naalu.foresight_destinations(state, "p1", ARENA)) == {HOME, EAST}
     state.players["p1"].technologies = ["amd"]  # Antimass Deflectors
-    assert naalu.foresight_destinations(state, "p1", ARENA) == ["000", HOME]
+    assert set(naalu.foresight_destinations(state, "p1", ARENA)) == {"000", HOME, EAST}
 
 
 def test_foresight_cel_bez_cudzych_statkow() -> None:

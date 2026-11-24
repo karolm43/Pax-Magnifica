@@ -22,6 +22,7 @@ from src.core.game_state import (
 from src.core.hex_grid import HexGrid
 from src.core.movement import CargoPickup
 from src.core.registry import StaticDataRegistry
+from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -81,14 +82,16 @@ def _everywhere(pid: str, unit: str = "destroyer") -> dict[str, dict[str, dict[s
 # --------------------------------------------------------------------- cele odwrotu
 
 
+@ruling("R_nebula/notes/3", "R_supernova/rules-reference/1", "R_asteroid_field/rules-reference/1")
 def test_destinations_need_presence_and_skip_anomalies() -> None:
     grid = _grid()
     state = _state({"p1": {"cruiser": 1}, "p2": {"cruiser": 1}}, presence=_everywhere("p2"))
-    # Mgławica, supernowa i asteroidy (bez Antimass) odpadają — zostaje 101.
-    assert retreat.retreat_destinations(state, grid, "000", "p2") == ["101"]
+    # Supernowa i asteroidy (bez Antimass) odpadają; do mgławicy wolno się wycofać (R_nebula
+    # notes/3, decyzja użytkownika 2026-11-24).
+    assert retreat.retreat_destinations(state, grid, "000", "p2") == ["101", "102"]
     assert retreat.retreat_destinations(state, grid, "000", "p1") == []  # brak obecności
     state.players["p2"].technologies = ["amd"]  # Antimass Deflectors (alias z danych)
-    assert retreat.retreat_destinations(state, grid, "000", "p2") == ["101", "103"]
+    assert retreat.retreat_destinations(state, grid, "000", "p2") == ["101", "102", "103"]
 
 
 def test_destination_with_enemy_ships_or_controlled_planet() -> None:

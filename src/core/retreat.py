@@ -38,10 +38,10 @@ from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
 from src.core.unit_ops import UnitCause
 
-# Anomalie blokujące odwrót (O4). Mgławica: cel nie jest systemem aktywnym (R_nebula);
-# supernowa: nieprzejezdna; pole asteroid: tylko z Antimass Deflectors.
+# Anomalie blokujące odwrót (O4): supernowa nieprzejezdna; pole asteroid tylko z Antimass
+# Deflectors. Mgławica NIE blokuje - R_nebula notes/2-3 (decyzja użytkownika 2026-11-24):
+# do mgławicy wolno wejść, także odwrotem, choć nie jest systemem aktywnym.
 _SUPERNOVA = "SUPERNOVA"
-_NEBULA = "NEBULA"
 _ASTEROID = "ASTEROID_FIELD"
 
 _GROUND_FORCES = frozenset({"infantry", "mech"})
@@ -129,8 +129,6 @@ def retreat_destinations(
         ):
             continue
         anomalies = grid.anomalies_at(neighbor)
-        if _NEBULA in anomalies:
-            continue
         if _SUPERNOVA in anomalies and not can_enter_supernova(state, player_id):
             continue  # R_space_combat: odwrót do supernowej tylko z Magmus Reactor
         if _ASTEROID in anomalies and not can_enter_asteroids:
@@ -202,7 +200,8 @@ def ships_move_destinations(
     """Sąsiednie systemy, do których wolno PRZENIEŚĆ statki kartą (Skilled Retreat), posortowane.
 
     To NIE odwrót (O4 bez wymogu własnej obecności): wystarczy, że w celu nie ma statków
-    innego gracza; nadal odpadają supernowa, mgławica i pole asteroid bez Antimass Deflectors.
+    innego gracza; nadal odpadają supernowa i pole asteroid bez Antimass Deflectors (mgławica
+    dozwolona - R_nebula notes/2).
     """
     can_enter_asteroids = _can_enter_asteroids(state, player_id)
     result: list[str] = []
@@ -212,8 +211,6 @@ def ships_move_destinations(
         ):
             continue
         anomalies = grid.anomalies_at(neighbor)
-        if _NEBULA in anomalies:
-            continue
         if _SUPERNOVA in anomalies and not can_enter_supernova(state, player_id):
             continue  # R_space_combat: odwrót do supernowej tylko z Magmus Reactor
         if _ASTEROID in anomalies and not can_enter_asteroids:

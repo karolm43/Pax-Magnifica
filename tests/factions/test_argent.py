@@ -532,11 +532,11 @@ def test_helix_piechota_tylko_ze_statkiem_z_tego_samego_systemu(
 
 @ruling(
     "F_argent/mirik-aun-sissiri-helix-protocol/6",
-    "R_nebula/rules-reference/1",
+    "R_nebula/notes/2",
     "R_supernova/rules-reference/1",
     "R_asteroid_field/notes/1",
 )
-def test_helix_cele_bez_mglawicy_supernowej_asteroid(registry: StaticDataRegistry) -> None:
+def test_helix_cele_mglawica_tak_asteroidy_z_antimass(registry: StaticDataRegistry) -> None:
     state = _helix_state(registry)
     nebula = next(s for s, d in sorted(registry.systems.items()) if d.is_nebula)
     asteroid = next(
@@ -547,9 +547,9 @@ def test_helix_cele_bez_mglawicy_supernowej_asteroid(registry: StaticDataRegistr
     state.systems["102"].command_tokens = ["p1"]
     state.systems["000"].system_id = asteroid
     state.systems["000"].command_tokens = ["p1"]
-    assert argent.helix_destinations(state, "p1") == ["103"]
+    assert argent.helix_destinations(state, "p1") == ["102", "103"]  # mgławica OK (notes/2)
     state.players["p1"].technologies = ["amd"]
-    assert argent.helix_destinations(state, "p1") == ["000", "103"]
+    assert argent.helix_destinations(state, "p1") == ["000", "102", "103"]
 
 
 @ruling("F_argent/mirik-aun-sissiri-helix-protocol/6", "R_gravity_rift/rules-reference/2")

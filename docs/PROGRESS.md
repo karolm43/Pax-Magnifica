@@ -616,3 +616,12 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   another session's uncommitted argent/l1z1x/naalu edits and pass without them), ruff (only the other session's
   file), mypy (changed files), frontend tsc/eslint/vitest (Nombox, ActivityPanel). Skipped: full suite, build, e2e.
   Backend restart needed (new route).
+
+## Nebula: Entry Without Activation, Retreats Allowed (2026-11-24)
+- User decision: adopt the design intent in `R_nebula` notes/2–3 — ships may move INTO a nebula that is not the
+  active system (retreat, Skilled Retreat, Foresight, Helix Protocol, Dark Space Navigation), still never THROUGH it.
+- `retreat.retreat_destinations` / `ships_move_destinations`, Argent/L1Z1X hero targets and Naalu Foresight no longer
+  exclude nebulae; pathing (`movement_paths._passable`) unchanged. Docs: RULES.md 1.2, 32 (R6), 39 (O4), 53, 62.
+- QA: full backend suite before test updates (only expected nebula tests + pre-existing guards failed), then the 6
+  updated tests, ruff, mypy. Pre-existing red: `test_ruling_coverage` (new-rulings debt), `test_locality_guard`
+  (fandom URLs in `frontend/src/domains/rules/componentLinks.ts` — parallel session). Skipped: frontend (no change).

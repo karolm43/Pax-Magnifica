@@ -87,7 +87,6 @@ _MECH = "mech"
 _GROUND_CARGO = ("mech", "infantry")  # ⚠️ ZAŁOŻENIE (62.16): kolejność „Auto” przy Foresight
 _CARRY = "carry_"  # pole Foresight: ile sił naziemnych danego typu zabrać
 _GROUND_FORCES = frozenset(_GROUND_CARGO)
-_NEBULA = "NEBULA"
 _SUPERNOVA = "SUPERNOVA"
 _HCF_FIGHTERS_PER_SHIP = 1  # „count as 1/2 of a ship” = +1 myśliwiec na statek (baza 1)
 
@@ -187,12 +186,13 @@ def gift_returns(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> N
 
 
 def foresight_destinations(state: GameState, player_id: str, position: str) -> list[str]:
-    """Sąsiednie systemy bez statków innych graczy; nigdy mgławica ani supernowa (F_naalu 4),
-    pole asteroid tylko z Antimass Deflectors (4.1 - ``ships_move_destinations``)."""
+    """Sąsiednie systemy bez statków innych graczy; nigdy supernowa, pole asteroid tylko z
+    Antimass Deflectors (``ships_move_destinations``). Mgławica dozwolona (R_nebula notes/2,
+    decyzja użytkownika 2026-11-24)."""
     grid = _grid(state)
     return [
         pos for pos in ships_move_destinations(state, grid, position, player_id)
-        if not {_NEBULA, _SUPERNOVA} & set(grid.anomalies_at(pos))
+        if _SUPERNOVA not in grid.anomalies_at(pos)
     ]
 
 
