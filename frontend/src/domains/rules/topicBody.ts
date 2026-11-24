@@ -1,7 +1,8 @@
 /**
  * Topic body for the rules viewer: the dump's topic files open with their own `# Title` and a
  * source blockquote (`> Źródło: … — © Fantasy Flight Games …`). The viewer already shows the
- * title above the content and the credit under the index, so both are dropped from the body.
+ * title above the content and the credit under the index, so both are dropped from the body,
+ * as is the generic `## Rules Reference` heading that opens every rule (`R_*`) topic.
  * The files themselves stay unchanged (they are also read as docs).
  */
 export function topicBody(markdown: string): string {
@@ -17,5 +18,9 @@ export function topicBody(markdown: string): string {
     while (i < lines.length && lines[i].startsWith(">")) i++;
   }
   skipBlank();
+  if (i < lines.length && /^##\s+Rules Reference\s*$/i.test(lines[i])) {
+    i++;
+    skipBlank();
+  }
   return lines.slice(i).join("\n");
 }

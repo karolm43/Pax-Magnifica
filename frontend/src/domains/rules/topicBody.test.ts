@@ -9,6 +9,11 @@ describe("topicBody", () => {
     expect(topicBody(md)).toBe("## Moving\n\n- note");
   });
 
+  it("drops the generic opening 'Rules Reference' heading but keeps later sections", () => {
+    const md = "# Movement\n\n> Źródło: x\n\n## Rules Reference\n\nA player can move.\n\n## Notes\n\n- n";
+    expect(topicBody(md)).toBe("A player can move.\n\n## Notes\n\n- n");
+  });
+
   it("keeps blockquotes that are rule content", () => {
     expect(topicBody("# T\n\n> A quoted rule\n\ntext")).toBe("> A quoted rule\n\ntext");
   });
