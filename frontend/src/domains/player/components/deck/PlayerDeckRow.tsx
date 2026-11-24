@@ -84,7 +84,7 @@ function RailCell({
 
 function getVictoryReadout(vp: number, vpsToWin: number) {
   if (vp >= vpsToWin) return "Victory";
-  return `${vpsToWin - vp} to win`;
+  return `${vpsToWin - vp} VP to win`;
 }
 
 /**

@@ -49,16 +49,17 @@
  * so neighbouring systems read as separate stickers. The image is cropped to
  * the inner hex (rim removed) and scaled up ~3% so that crop fills the hex
  * again: opaque starfield meets starfield, no transparency and no seam.
- * Irregular (spiral) tiles are not hexes and are left alone.
+ * The clip is ~1.5px larger than the hex so neighbours overlap slightly and no
+ * sub-pixel black line shows between them. Irregular (spiral) tiles are left alone.
  */
 .tileSeamless {
   clip-path: polygon(
-    25.73% 1.46%,
-    74.27% 1.46%,
-    98.54% 50%,
-    74.27% 98.54%,
-    25.73% 98.54%,
-    1.46% 50%
+    25.49% 0.97%,
+    74.51% 0.97%,
+    99.03% 50%,
+    74.51% 99.03%,
+    25.49% 99.03%,
+    0.97% 50%
   );
   transform: scale(1.03);
   transform-origin: 50% 50%;

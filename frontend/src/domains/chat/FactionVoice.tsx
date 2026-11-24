@@ -1,5 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import cx from "clsx";
 import { IconMessageCircle2 } from "@tabler/icons-react";
 import { ActionIcon, Button } from "@/ds";
@@ -73,56 +72,9 @@ function useLatestVoice(playerId: string): string | null {
   return shown?.text ?? null;
 }
 
-/** Odstęp dymka od pola gracza i od krawędzi okna (px ekranu). */
-const GAP = 14;
-const EDGE = 8;
-
 /**
- * Ustawia dymek (position: fixed) przy elemencie `anchor`: nad nim, a gdy brak miejsca — pod nim;
- * w poziomie zawsze w oknie. Śledzi kotwicę co klatkę (mapa się przesuwa i skaluje), pisząc
- * styl wprost do DOM, bez re-renderów.
- */
-function useFollowAnchor(
-  active: boolean,
-  anchor: RefObject<HTMLElement | null>,
-  bubble: RefObject<HTMLElement | null>,
-) {
-  useLayoutEffect(() => {
-    if (!active) return;
-    let frame = 0;
-    const place = () => {
-      const a = anchor.current;
-      const b = bubble.current;
-      if (a && b) {
-        const r = a.getBoundingClientRect();
-        const w = b.offsetWidth;
-        const h = b.offsetHeight;
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        const below = r.top - GAP - h < EDGE && r.bottom + GAP + h <= vh - EDGE;
-        const cx = r.left + r.width / 2;
-        const left = Math.min(Math.max(cx - w / 2, EDGE), Math.max(EDGE, vw - w - EDGE));
-        const rawTop = below ? r.bottom + GAP : r.top - GAP - h;
-        const top = Math.min(Math.max(rawTop, EDGE), Math.max(EDGE, vh - h - EDGE));
-        b.style.left = `${left}px`;
-        b.style.top = `${top}px`;
-        b.dataset.side = below ? "below" : "above";
-        // Ogonek celuje w środek pola, także gdy dymek dosunięto do krawędzi okna.
-        const tail = Math.min(Math.max(cx - left, 20), w - 20);
-        b.style.setProperty("--tail-x", `${tail}px`);
-        b.style.visibility = "visible";
-      }
-      frame = window.requestAnimationFrame(place);
-    };
-    place();
-    return () => window.cancelAnimationFrame(frame);
-  }, [active, anchor, bubble]);
-}
-
-/**
- * DYMEK z kwestią przy głównym polu gracza (kółko z frakcją). Wstaw go W TYM polu: niewidoczna
- * kotwica bierze prostokąt rodzica, a sam dymek rysuje się w portalu na `body`, więc nigdy nie
- * jest ucięty przez krawędź mapy (nad polem, a przy górnej krawędzi okna — pod nim).
+ * DYMEK z kwestią przy głównym polu gracza (kółko z frakcją). Wstaw go W TYM polu (position:
+ * absolute): dymek wisi nad nim i porusza się razem z mapą.
  * Wygląd = cytat frakcji z ekranu wyboru: szeryfowa kursywa + podpis frakcji w jej kolorze.
  */
 export function FactionVoiceBubble({
@@ -135,32 +87,32 @@ export function FactionVoiceBubble({
 }) {
   const text = useLatestVoice(playerId);
   const tint = usePlayerTint(playerId);
-  const marker = useRef<HTMLSpanElement | null>(null);
-  const anchor = useRef<HTMLElement | null>(null);
-  const bubble = useRef<HTMLElement | null>(null);
+  const figure = useRef<HTMLElement | null>(null);
+  const [below, setBelow] = useState(false);
+  // Seats at the top edge of the board have no room above: hang the bubble below the hex instead,
+  // so it is never cut off by the map area. Decided once per line (not while the user pans).
   useLayoutEffect(() => {
-    anchor.current = marker.current?.parentElement ?? null;
-  });
-  useFollowAnchor(!!text, anchor, bubble);
-
+    const bubble = figure.current;
+    const hex = bubble?.parentElement;
+    const area = bubble?.closest(".dragscroll");
+    if (!bubble || !hex || !area) return;
+    const room = hex.getBoundingClientRect().top - area.getBoundingClientRect().top;
+    const scale = bubble.getBoundingClientRect().height / bubble.offsetHeight || 1;
+    setBelow(room < bubble.offsetHeight * scale + 14 * scale);
+  }, [text]);
+  if (!text) return null;
+  // Drawn in place (no portal): the bubble lives in map space, so it pans and zooms with the
+  // board and never slides under the top bar or along the window edge.
   return (
-    <>
-      <span ref={marker} hidden />
-      {text &&
-        createPortal(
-          <figure
-            ref={bubble}
-            className={styles.bubble}
-            style={{ ...tint, visibility: "hidden" }}
-            role="status"
-            aria-label="Faction voice line"
-          >
-            <blockquote className={styles.quote}>{quoted(text)}</blockquote>
-            <figcaption className={styles.author}>{author}</figcaption>
-          </figure>,
-          document.body,
-        )}
-    </>
+    <figure
+      ref={figure}
+      className={styles.bubble}
+      data-side={below ? "below" : undefined}
+      style={tint}
+      role="status" aria-label="Faction voice line">
+      <blockquote className={styles.quote}>{quoted(text)}</blockquote>
+      <figcaption className={styles.author}>{author}</figcaption>
+    </figure>
   );
 }
 
@@ -209,19 +161,35 @@ export function FactionVoice({
   return (
     <SmoothPopover opened={opened} onChange={setOpened} position={onMap ? "right" : "bottom"}>
       <SmoothPopover.Target>
-        <ActionIcon
-          variant={onMap ? "default" : "subtle"}
-          size={onMap ? 34 : 28}
-          radius="50%"
-          className={cx(onMap && styles.mapTrigger, className)}
-          style={tint}
-          aria-label="Faction voice lines"
-          aria-expanded={opened}
-          title="Say something"
-          onClick={() => setOpened((o) => !o)}
-        >
-          <IconMessageCircle2 size={onMap ? 19 : 18} stroke={1.8} aria-hidden="true" />
-        </ActionIcon>
+        {onMap ? (
+          // Labelled pill: a bare icon was easy to miss, the word says what it does.
+          <button
+            type="button"
+            className={cx(styles.mapTrigger, className)}
+            style={tint}
+            aria-label="Faction voice lines"
+            aria-expanded={opened}
+            title="Say something to the table"
+            onClick={() => setOpened((o) => !o)}
+          >
+            <IconMessageCircle2 size={22} stroke={1.8} aria-hidden="true" />
+            <span aria-hidden="true">Say</span>
+          </button>
+        ) : (
+          <ActionIcon
+            variant="subtle"
+            size={28}
+            radius="50%"
+            className={className}
+            style={tint}
+            aria-label="Faction voice lines"
+            aria-expanded={opened}
+            title="Say something"
+            onClick={() => setOpened((o) => !o)}
+          >
+            <IconMessageCircle2 size={18} stroke={1.8} aria-hidden="true" />
+          </ActionIcon>
+        )}
       </SmoothPopover.Target>
       <SmoothPopover.Dropdown>
         <DetailsCard width={300} style={tint}>

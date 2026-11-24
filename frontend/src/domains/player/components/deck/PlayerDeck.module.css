@@ -12,15 +12,15 @@
   --seat-plate: var(--ds-plate);
   --seat-well: var(--ds-well);
   --lane-gap: 8px;
-  --l-seat: 58px;
+  --l-seat: 88px;
   --l-stores: 176px;
   --l-leaders: 212px;
   --l-hold: 214px;
   --l-tech: 196px;
   --l-units: 232px;
   --l-econ: 156px;
-  width: max-content;
-  min-width: 100%;
+  width: 100%;
+  min-width: max-content;
 }
 
 /* The deck's name, set on the ground like the other deck sections: the seats
@@ -281,12 +281,18 @@
 }
 
 .vp small {
-  margin-top: 4px;
+  margin-top: 5px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgb(0 0 0 / 0.38);
   font-family: var(--font-data);
-  font-size: var(--text-micro);
+  font-size: 11px;
   font-weight: var(--weight-data);
+  letter-spacing: 0.02em;
   white-space: nowrap;
-  color: var(--ds-ink);
+  color: var(--ds-white);
+  opacity: 0.85;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.8);
 }
 
 .stamps {
@@ -405,16 +411,47 @@
 /* Passed is a state of the seat, so it is stamped on the spine with the
    seat's other marks, in the same plate as Tyrant but in neutral ink. */
 .passed {
-  padding: 2px 3px 1px;
+  padding: 2px 4px 1px;
   border-radius: 2px;
   background: var(--ds-socket);
   box-shadow: inset 0 0 0 1px var(--ds-h22);
   font-family: var(--ds-label-font);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: var(--weight-rail);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--ds-ink-lo);
+  color: var(--ds-ink);
+}
+
+/* Status stamps open an explanation on click: a quiet "?" says so. */
+.passed::after,
+.tyrant::after {
+  content: "?";
+  margin-left: 4px;
+  padding: 0 3px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.14);
+  font-size: 9px;
+  opacity: 0.75;
+}
+
+.passed:hover,
+.tyrant:hover {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.4);
+}
+
+.passed:hover::after,
+.tyrant:hover::after {
+  opacity: 1;
+}
+
+.speaker {
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.speaker:hover {
+  filter: brightness(1.25) drop-shadow(0 0 4px rgb(255 255 255 / 0.35));
 }
 
 /* Holding the turn: a status light, so it may pulse. */

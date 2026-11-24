@@ -107,12 +107,16 @@ export function BoardHud({
           </HudSection>
         )}
 
-        <HudSection isMobile={isMobile} innerStyle={playerAreaStyles}>
-          <PlayerDeck
-            players={filterPlayersWithAssignedFaction(gameData?.playerData ?? [])}
-            vpsToWin={gameData?.vpsToWin || 10}
-          />
-        </HudSection>
+        {/* The deck is wider than the screen: it pans inside its own scroller so
+            the HUD itself stays screen-sized whatever the map zoom is. */}
+        <Box className={classes.hudScrollX}>
+          <HudSection isMobile={isMobile} innerStyle={playerAreaStyles}>
+            <PlayerDeck
+              players={filterPlayersWithAssignedFaction(gameData?.playerData ?? [])}
+              vpsToWin={gameData?.vpsToWin || 10}
+            />
+          </HudSection>
+        </Box>
       </Box>
     </Box>
   );

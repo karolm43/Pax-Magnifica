@@ -214,14 +214,21 @@
   background: rgb(0 0 0 / 0.5);
 }
 
+/* Equal-size choice boxes: every column has the same width and each row stretches to the
+   tallest card, so short and long objective texts look identical. */
 .choices {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 340px);
   justify-content: center;
+  align-items: stretch;
   gap: 24px;
+  max-width: 100%;
 }
 
 .choice {
+  display: flex;
+  align-items: stretch;
+  text-align: left;
   padding: 0;
   border: 2px solid transparent;
   border-radius: 12px;
@@ -231,6 +238,11 @@
     transform 0.15s,
     border-color 0.15s,
     box-shadow 0.15s;
+}
+
+.choice > * {
+  flex: 1;
+  min-width: 0;
 }
 
 .choice:hover,

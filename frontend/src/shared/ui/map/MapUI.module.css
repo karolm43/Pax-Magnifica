@@ -366,8 +366,11 @@
    * 1500px against 2576px of content, which cut the console field off mid-scroll
    * and left the right-hand modules sitting on bare background.
    */
-  width: max-content;
-  min-width: 100%;
+  /* Pinned to the left edge and exactly as wide as the viewport: map zoom and
+     panning never resize or move the deck; browser zoom is what scales it. */
+  position: sticky;
+  left: 0;
+  width: 100%;
   /*
    * Breathing room so the board's lowest tiles clear the deck's lip.
    *
@@ -411,6 +414,10 @@
  *
  * box-sizing keeps the indent inside the shared width rather than adding to it.
  */
+.hudScrollX {
+  overflow-x: auto;
+}
+
 .hudSection {
   box-sizing: border-box;
   width: 100%;
