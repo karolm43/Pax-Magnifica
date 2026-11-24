@@ -33,9 +33,20 @@ function Value({ value, total }: { value: number; total?: number }) {
 }
 
 /** Grupa odczytów z małym podpisem (TOTAL / OPTIMAL / SHIPS). */
-function Group({ label, title, children }: { label?: string; title: string; children: ReactNode }) {
+function Group({
+  label,
+  title,
+  group,
+  children,
+}: {
+  label?: string;
+  title: string;
+  /** Klucz do ukrywania grupy na wąskich ekranach (CSS `data-group`). */
+  group?: "total" | "ships";
+  children: ReactNode;
+}) {
   return (
-    <span className={styles.group} title={title}>
+    <span className={styles.group} title={title} data-group={group}>
       {label && <small>{label}</small>}
       {children}
     </span>
@@ -65,6 +76,7 @@ function Ships({ player }: { player: PlayerData }) {
   return (
     <Group
       label="Ships"
+      group="ships"
       title={`Ships on the board: ${ships.map((s) => `${s.count} ${s.name}`).join(", ")}`}
     >
       {ships.map((s) => (
@@ -86,7 +98,16 @@ function Ships({ player }: { player: PlayerData }) {
 }
 
 /** Pasek zasobów dowolnego gracza (panel dowódcy pokazuje też innych graczy). */
-export function ResourceBarFor({ desk, label = "Your stores" }: { desk: PlayerData; label?: string }) {
+export function ResourceBarFor({
+  desk,
+  label = "Your stores",
+  strip = false,
+}: {
+  desk: PlayerData;
+  label?: string;
+  /** Wersja w pasku zakładek: na wąskich ekranach ukrywa mniej ważne grupy. */
+  strip?: boolean;
+}) {
   const player = getPlayerCardLayoutFields(desk);
   const { total, optimal, flex, flexSpendOnly } = usePlanetEconomics(desk);
   const tg = player.tg ?? 0;
@@ -96,10 +117,11 @@ export function ResourceBarFor({ desk, label = "Your stores" }: { desk: PlayerDa
   const showFlex = floor(flex.totalFlex) > 0;
 
   return (
-    <div className={styles.bar} role="group" aria-label={label}>
+    <div className={styles.bar} role="group" aria-label={label} data-strip={strip || undefined}>
       {!flexSpendOnly && (
         <Group
           label="Total"
+          group="total"
           title={`Planets, ready of all - resources ${floor(total.currentResources)}/${floor(total.totalResources)}, influence ${floor(total.currentInfluence)}/${floor(total.totalInfluence)}`}
         >
           <Pair icon={RES} value={floor(total.currentResources)} total={floor(total.totalResources)} />
@@ -150,5 +172,5 @@ export function ResourceBarFor({ desk, label = "Your stores" }: { desk: PlayerDa
 
 export function ResourceBar() {
   const desk = useDeskPlayer();
-  return desk ? <ResourceBarFor desk={desk} /> : null;
+  return desk ? <ResourceBarFor desk={desk} strip /> : null;
 }

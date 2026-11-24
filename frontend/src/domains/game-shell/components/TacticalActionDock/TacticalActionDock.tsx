@@ -8,6 +8,8 @@ import { useHudMetric } from "@/hooks/useHudMetric";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { useResizablePanel } from "@/hooks/useResizablePanel";
 import { TacticalActionPanel } from "@/domains/game-shell/components/GameStatePanel";
+import { useNetworkMe } from "@/domains/network/useNetworkMe";
+import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import styles from "./TacticalActionDock.module.css";
 
 /** Klucze zapisu pozycji/rozmiaru doku (localStorage) — pamięć między sesjami. */
@@ -44,9 +46,16 @@ export function TacticalActionDock() {
   // Slot HUD „lewy dół": ręka zwęża się z lewej, póki dok stoi w domyślnym miejscu.
   useHudMetric(drag.el, "--hud-left-w", (rect) => rect.right, !drag.isMoved);
 
+  const { data: me } = useNetworkMe();
+  const desk = useDeskPlayer();
+
   const activeSystem = gameState?.activeSystem ?? null;
   // Dok ma sens wyłącznie podczas trwającej akcji taktycznej.
   if (!activeSystem) return null;
+  // Gra sieciowa: kroki akcji taktycznej to panel aktywnego gracza - pozostali go nie potrzebują
+  // (walkę i decyzje reakcji pokazują własne okna).
+  const turnColor = gameState?.activeTurnPlayer ?? gameState?.activePlayer ?? null;
+  if (me?.network && desk && turnColor && desk.color !== turnColor) return null;
 
   // Kolor gracza, którego jest tura (do produkcji / doboru wariantu jednostek).
   const activePlayerColor =

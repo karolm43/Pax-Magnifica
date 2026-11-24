@@ -219,90 +219,90 @@ const promissoryNote: LoreMap = {
 
 /** Public objectives. */
 const publicObjective: LoreMap = {
-  "supremacy": "When a flagship drops out of warp directly over a rival's capital, diplomacy ends. The shadow of that hull tells the galaxy who owns the sky.", // Achieve Supremacy
-  "amass_wealth": "Full vaults, loyal bureaucrats, and humming foundries. An empire built on all three can outlast any storm.", // Amass Wealth
-  "become_legend": "Generations from now, pilots will still point to the scarred nebulae and ancient worlds on the star-charts and speak your name in hushed tones.", // Become a Legend
+  "supremacy": "\"Look out the viewport, Governor,\" the admiral said softly. \"That shadow over your capital is my flagship. Shall we discuss terms?\"", // Achieve Supremacy
+  "amass_wealth": "Full vaults, loyal bureaucrats, and humming foundries. An empire built on all three can weather any storm the Council throws its way.", // Amass Wealth
+  "become_legend": "Generations from now, pilots will still trace the scarred nebulae and ancient worlds on their star-charts and speak your name in hushed tones.", // Become a Legend
   "build_defenses": "Orbital batteries locked into position above the colonies, their targeting grids painting the void in quiet red. Let the raiders come.", // Build Defenses
-  "centralize_trade": "Every shipping lane, tariff, and bulk freighter now passes through your customs gates. If the galaxy wants to eat, it pays your toll.", // Centralize Galactic Trade
-  "command_armada": "Eight capital ships aligned in tight formation, their drives burning bright enough to rival a local star. Even the Barony's admirals paused to count the hulls.", // Command an Armada
+  "centralize_trade": "\"Every freighter from the Fringe to the Core passes through our customs gates now,\" the trade minister smiled. \"If the galaxy wants to eat, it pays our toll.\"", // Centralize Galactic Trade
+  "command_armada": "An unbroken wall of capital ships aligned in tight formation, their drives burning bright enough to rival a local star. Even the Barony's admirals paused to count the hulls.", // Command an Armada
   "conquer": "Your boots stand on the soil of their ancestral world. The banner above their capital belongs to you now, and their people know it.", // Conquer the Weak
   "massive_cities": "Arcologies pierced the cloud layer while orbital docks ringed the equator in steel. What began as frontier outposts had grown into monuments of imperial permanence.", // Construct Massive Cities
-  "control_borderlands": "Out on the galactic rim, law is whatever the local patrol squadron says it is. Your cruisers own every jump-point along the edge of the dark.", // Control the Borderlands
-  "corner": "Whether it is rare isotopes, fertile soil, or industrial alloys, your consortium holds the supply. Everyone else can beg for a quota.", // Corner the Market
-  "develop": "The old hulls were fine for border skirmishes. These new frames were built to break empires.", // Develop Weaponry
+  "control_borderlands": "\"Out on the rim, law is whatever the local patrol squadron says it is,\" the captain remarked, checking the jump-buoys. \"And right now, we own the whole edge of the dark.\"", // Control the Borderlands
+  "corner": "Whether it is rare isotopes, fertile soil, or industrial alloys, your consortium holds the supply. Everyone else can queue up and beg for a quota.", // Corner the Market
+  "develop": "\"The old hulls were fine for border skirmishes,\" the chief yard-master said, tapping the fresh blueprints. \"These new frames were built to break empires.\"", // Develop Weaponry
   "lost_outposts": "Beneath layers of dust and forgotten Lazax seals, the excavation teams struck gold. The old empire left plenty of toys behind for those willing to dig.", // Discover Lost Outposts
-  "diversify": "A single discipline wins a battle. Mastery across multiple fields wins the century.", // Diversify Research
+  "diversify": "A single discipline wins a battle. Mastery across every branch of science wins the century.", // Diversify Research
   "engineer_marvel": "The drydock clamps fell away, revealing a silhouette that dwarfed every cruiser in the sector. \"She's ready,\" the chief engineer whispered. \"God help whoever sees her first.\"", // Engineer a Marvel
-  "monument": "Half a sector's ore went into the marble and durasteel spires. Practical men called it a waste of resources, yet every envoy who saw it lowered their eyes.", // Erect a Monument
-  "expand_borders": "The frontier maps had to be redrawn three times this cycle. Every week, another distant world swore fealty to the new flag.", // Expand Borders
-  "deep_space": "There are no cities in the empty reaches between stars, only cold vacuum and hidden jump-lanes. Your scouts charted them all before anyone else dared look.", // Explore Deep Space
-  "brain_trust": "The brightest minds from five different worlds linked their data-cores into a single lattice. By morning, they had solved problems the Universities had shelved for decades.", // Form Galactic Brain Trust
+  "monument": "A fortune in marble and durasteel went into the soaring spires. Practical men called it a waste of ore, yet every envoy who saw it lowered their eyes.", // Erect a Monument
+  "expand_borders": "\"Redraw the frontier maps again,\" the cartographer sighed, unrolling a fresh chart. \"Another distant world swore fealty before breakfast.\"", // Expand Borders
+  "deep_space": "Empty reaches between stars hold no cities, only cold vacuum and hidden jump-lanes. Your scouts charted them all before anyone else dared look.", // Explore Deep Space
+  "brain_trust": "The brightest minds from across your realm linked their data-cores into a single lattice. By morning, they had solved problems the Universities had shelved for decades.", // Form Galactic Brain Trust
   "golden_age": "Art flourished, granaries overflowed, and the shipyards sang day and night. For one shining era, the galaxy looked to your worlds and saw what the Lazax had lost.", // Found a Golden Age
   "research_outposts": "Prefabricated labs clung to the jagged cliffs of the frontier worlds, their dishes tuned to the anomalies overhead. Knowledge waits for whoever claims the high ground.", // Found Research Outposts
-  "galvanize": "Recruitment halls stayed open past midnight as volunteers lined up by the thousands. When an entire people moves with one purpose, logistics become a formality.", // Galvanize the People
-  "vast_reserves": "While neighboring empires scraped the bottom of their treasuries to fund the next campaign, your quartermasters calmly opened a second vault.", // Hold Vast Reserves
+  "galvanize": "\"Keep the recruitment halls open past midnight!\" When an entire people moves with one purpose, logistics become a formality.", // Galvanize the People
+  "vast_reserves": "While neighboring empires scraped the bottom of their treasuries to fund the next campaign, your quartermasters calmly unlocked a second vault.", // Hold Vast Reserves
   "infrastructure": "New spaceports, planetary shields, and supply depots rose across the outer colonies. A conquered world stays conquered only when you pave the roads.", // Improve Infrastructure
-  "intimidate": "Two battle fleets loitered just outside the Mecatol Rex exclusion zone, weapons cold and transponders loud. The senators inside the rotunda got the message.", // Intimidate Council
+  "intimidate": "\"Keep the weapons cold and the transponders loud,\" the fleet marshal ordered just outside the Mecatol Rex exclusion zone. \"The senators inside the rotunda will get the message.\"", // Intimidate Council
   "lead": "The admiral's shuttle was the first to breach the atmosphere. Soldiers fight harder when their commanders share the same mud and flak.", // Lead From the Front
-  "make_history": "Ordinary empires cling to safe trade routes. Great ones plant their banners where the star-charts still say 'here be monsters.'", // Make History
-  "manipulate_law": "A quiet word in the corridor, a well-timed favor, and a mountain of diplomatic leverage. By the time the vote was called, the outcome had been decided for days.", // Manipulate Galactic Law
+  "make_history": "Ordinary empires cling to safe trade routes. Great ones plant their banners where the star-charts still warn of monsters.", // Make History
+  "manipulate_law": "\"A quiet word in the corridor, a well-timed favor, and a stack of leverage,\" the envoy murmured as the gavel fell. \"That vote was decided days ago.\"", // Manipulate Galactic Law
   "master_science": "Propulsion, cybernetics, warfare, and biology: every branch of galactic science bowed to your academies. The Jol-Nar envoys stopped laughing.", // Master the Sciences
-  "trade_routes": "Convoy schedules aligned across a dozen sectors, turning former rivals into reluctant business partners. Credits flow smoother when everyone gets a taste.", // Negotiate Trade Routes
+  "trade_routes": "Convoy schedules aligned across the quadrant, turning former rivals into reluctant business partners. Credits flow smoother when everyone gets a taste.", // Negotiate Trade Routes
   "vast_territories": "Long-range pickets swept the dead zones between systems in endless, silent loops. Nothing crosses the void without your sensors logging its signature.", // Patrol Vast Territories
   "outer_rim": "Settlers poured onto the windswept worlds at the galaxy's edge, raising domes against the dark. The core worlds sneered, right until the rim started producing fleets.", // Populate the Outer Rim
   "protect_border": "A chain of fortified worlds stretched along the frontier like iron teeth. Any invader looking for an easy flank would have to chew through steel first.", // Protect the Border
-  "push_boundaries": "Your neighbors watched nervously as your survey beacons crept closer to their core systems. In a crowded galaxy, hesitation is surrender.", // Push Boundaries
-  "raise_fleet": "Five warships broke orbit in unison, their engines painting blue streaks across the night sky. The drydocks had delivered on their promise.", // Raise a Fleet
+  "push_boundaries": "\"Their survey beacons are practically on our doorstep,\" the rival senator snapped. In a crowded galaxy, hesitation is surrender.", // Push Boundaries
+  "raise_fleet": "Fresh warships broke orbit in unison, their engines painting blue streaks across the night sky. The drydocks had delivered on their promise.", // Raise a Fleet
   "ancient_monuments": "The monoliths hummed back to life as your engineers cleared the rubble. Whatever ancient hands raised them, they answer to your empire now.", // Reclaim Ancient Monuments
-  "revolutionize": "Every doctrine in the imperial war colleges became obsolete overnight. Your upgraded divisions tore through conventional formations before the enemy could adjust.", // Revolutionize Warfare
-  "distant_lands": "Two rival homeworlds, both within striking distance of your forward garrisons. Let them sleep with one eye on the sky.", // Rule Distant Lands
-  "subdue": "Eleven worlds, eleven surrendered capitals, and one unbroken chain of supply lines. The galaxy was running out of places to hide.", // Subdue the Galaxy
+  "revolutionize": "\"Burn the old war-college manuals,\" the general told her staff after watching the upgraded divisions tear through enemy lines. \"Everything changed today.\"", // Revolutionize Warfare
+  "distant_lands": "Rival homeworlds sat squarely within striking distance of your forward garrisons. Let them sleep with one eye on the sky.", // Rule Distant Lands
+  "subdue": "Sector after sector, surrendered capitals fell into one unbroken chain of supply lines. The galaxy was running out of places to hide.", // Subdue the Galaxy
   "sway_council": "When your ambassador stepped up to the podium, the chatter in the gallery died instantly. Influence is the art of making people agree with you before you even ask.", // Sway the Council
-  "unify_colonies": "Six worlds of shared heritage, bound under a single charter and a single fleet. What distance had divided, ambition brought home.", // Unify the Colonies
+  "unify_colonies": "\"Separated by light-years, bound by one charter and one fleet,\" the governor declared as the outer worlds raised the same banner. \"What distance divided, ambition brought home.\"", // Unify the Colonies
 };
 
 /** Secret objectives. */
 const secretObjective: LoreMap = {
-  "ans": "The old manuals were written for the last war. Your commanders tossed them out the airlock and wrote a new doctrine tailored to their own strengths.", // Adapt New Strategies
+  "ans": "\"Those manuals were written for the last war,\" the commander said, tossing the datapad aside. \"We fight on our own terms now.\"", // Adapt New Strategies
   "bam": "The homeworld burned, and the broadcasts carried every frame to the outer colonies. Grief is a sharp blade when you know how to aim it.", // Become a Martyr
-  "btgk": "Two cruisers held station at opposite ends of the rift, their transponders pulsing in tandem. Anyone wishing to cross the galaxy would have to ask permission first.", // Become the Gatekeeper
-  "baf": "\"We had a treaty!\" the rival admiral shouted over the open channel as your cruisers opened fire.\n\"We had an arrangement,\" your captain replied, calmly ordering a second salvo. \"It just expired.\"", // Betray a Friend
+  "btgk": "\"Hold station on both sides of the rift,\" the commodore ordered. \"Anyone wanting a shortcut across the galaxy asks our permission first.\"", // Become the Gatekeeper
+  "baf": "\"We had a treaty!\" the rival admiral shouted over the open channel as your cruisers opened fire.\n\"We had an arrangement,\" your captain replied, ordering a second salvo. \"It just expired.\"", // Betray a Friend
   "btv": "Radiation clawed at the hull plating and the sensors went blind, yet the gunners kept firing by dead reckoning. Winning in the deep dark takes steadier nerves than winning in the light.", // Brave the Void
-  "ctr": "Six sectors, six patrol flags, and an unbroken grid of listening posts. Anyone moving through this quadrant is walking across your front porch.", // Control the Region
+  "ctr": "Patrol flags and listening posts formed an unbroken web across the quadrant. Anyone moving through this region was walking straight across your front porch.", // Control the Region
   "csl": "The enemy's orbital shipyard sat helpless beneath your dreadnought's shadow, its half-finished hulls cooling in the vacuum. Starve the docks, and the war ends on its own.", // Cut Supply Lines
   "dts": "The citizens of their capital looked up expecting their own defense fleet. Instead, your banners blotted out the noon sun.", // Darken the Skies
   "dfat": "Inside the wormhole nexus, gravity bends sideways and stars hang in the wrong places. Your crews anchored there anyway, claiming the crossroads of the galaxy.", // Defy Space and Time
-  "dyp": "When the smoke cleared, three of your capital ships still held formation amid the wreckage. The survivors on the enemy bridge got the message loud and clear.", // Demonstrate Your Power
-  "dhw": "The ancient fragments hissed as they dissolved in the plasma furnace. Some relics from the old empire deserve to stay buried.", // Destroy Heretical Works
+  "dyp": "When the smoke cleared, your capital ships still held tight formation amid the wreckage. The survivors on the enemy bridge got the message loud and clear.", // Demonstrate Your Power
+  "dhw": "\"Drop them into the plasma furnace,\" the inquisitor commanded as the ancient fragments hissed to ash. \"Some relics deserve to stay buried.\"", // Destroy Heretical Works
   "dtgs": "The pride of their navy cracked down the keel, venting atmosphere and golden light into the void. Every ship in the sector paused to watch a giant die.", // Destroy Their Greatest Ship
-  "dp": "Three laws on the books, each one stamped with your subtle amendments. The Council thinks it governs the galaxy; your clerks know better.", // Dictate Policy
+  "dp": "Statute after statute passed the floor, each stamped with your subtle amendments. The Council thinks it governs the galaxy; your clerks know better.", // Dictate Policy
   "dtd": "By the time the Speaker called the question, half the chamber was already repeating your talking points word for word. Steering a senate is all about picking the right microphone.", // Drive the Debate
-  "eap": "Four planetary defense grids hummed in unison along the frontier. Any fleet looking for a shortcut through your space is going to pay for every kilometer in hull plating.", // Establish a Perimeter
-  "eh": "Senators, governors, and trade magistrates across a dozen worlds all waited for your nod before signing a single decree. Power sounds quiet when nobody dares argue with you.", // Establish Hegemony
-  "fwp": "Before the enemy swarm could even lock weapons, your destroyers painted the sky in flak. A hundred fighters vanished in a single, blinding heartbeat.", // Fight with Precision
-  "faa": "Artists, diplomats, and archivists from four proud worlds gathered under one roof. Shared culture binds an empire tighter than any garrison.", // Forge an Alliance
-  "fsn": "Five separate cells, three forged identities, and a mountain of burned cipher-pads. Your spymasters knew what the enemy was planning before their own admirals did.", // Form a Spy Network
-  "fc": "Your envoys kept an open channel to every throne room in the galaxy. Good fences make good neighbors, and a fleet on every border makes them polite.", // Foster Cohesion
-  "fwm": "Three massive orbital foundries glowed orange against the dark, spitting out fresh hulls around the clock. Wars are won in the drydocks long before the first shot is fired.", // Fuel the War Machine
-  "gamf": "Five dreadnoughts dropped out of warp in a single iron wall, their bow cannons charging in lockstep. Smaller ships turned tail before the targeting locks even chimed.", // Gather a Mighty Fleet
-  "hrm": "Ore barges queued three deep at every orbital refinery. While other houses rationed fuel, your warehouses were bursting at the seams.", // Hoard Raw Materials
+  "eap": "Planetary defense grids hummed in unison along the frontier. Any fleet looking for a shortcut through your space would pay for every kilometer in hull plating.", // Establish a Perimeter
+  "eh": "Senators, governors, and trade magistrates across the sector waited for your nod before signing a single decree. Power sounds quiet when nobody dares argue with you.", // Establish Hegemony
+  "fwp": "\"Clear the sky!\" Before the enemy swarm could even lock weapons, your destroyers painted the void in flak and erased their screen in a heartbeat.", // Fight with Precision
+  "faa": "Artists, diplomats, and archivists from across the realm gathered under one roof. Shared culture binds an empire tighter than any garrison.", // Forge an Alliance
+  "fsn": "\"We knew their jump coordinates before their own admirals did,\" the spymaster murmured, lighting another stack of cipher-pads.", // Form a Spy Network
+  "fc": "Your envoys kept an open channel to every capital in the galaxy. Good fences make good neighbors, and a fleet on every border makes them polite.", // Foster Cohesion
+  "fwm": "Massive orbital foundries glowed orange against the dark, spitting out fresh hulls around the clock. Wars are won in the drydocks long before the first shot is fired.", // Fuel the War Machine
+  "gamf": "A solid iron wall of dreadnoughts dropped out of warp, bow cannons charging in lockstep. Smaller ships turned tail before the targeting locks even chimed.", // Gather a Mighty Fleet
+  "hrm": "Ore barges queued deep at every orbital refinery. While other realms rationed fuel, your warehouses were bursting at the seams.", // Hoard Raw Materials
   "lsc": "Your survey ships lingered at the edges of gravity wells and asteroid storms, drinking in data that would fry a standard nav-computer. The void keeps its secrets for those brave enough to listen.", // Learn the Secrets of the Cosmos
   "mew": "The orbital batteries fired until the fortress walls turned to glass. \"Let the neighboring worlds see the glow,\" the commander ordered. \"They'll surrender faster.\"", // Make an Example of Their World
-  "mlp": "Four breakthroughs in a single discipline, stacked one atop the other until the old textbooks read like children's stories. The galaxy's laws bent to your equations.", // Master the Laws of Physics
-  "mtm": "Heavy walkers stomped off the drop-ramps on four different worlds, their armor shrugging off small-arms fire. Infantry holds the line; mechs break it.", // Mechanize the Military
+  "mlp": "\"Throw out the old textbooks,\" the dean laughed, watching the containment field stabilize. \"The laws of physics just got an update.\"", // Master the Laws of Physics
+  "mtm": "Heavy walkers stomped off the drop-ramps across the front, their armor shrugging off small-arms fire. Infantry holds the line; mechs break it.", // Mechanize the Military
   "mrm": "Acid rain ate through the drill casings, and seismic tremors shook the rigs every hour. The isotopes pulled from those hellholes were worth every bruised knuckle.", // Mine Rare Metals
-  "mp": "Four industrial worlds, all running triple shifts under your house's seal. If the galaxy wants steel, circuitry, or starship plating, it buys from you.", // Monopolize Production
-  "otf": "Nine divisions dug into the red dirt of a backwater rock miles from any friendly shipyard. They had no docks and no backup, only rifles and stubbornness.", // Occupy the Fringe
-  "ose": "Three warships hung motionless above the ruined spires of Mecatol City while your troops secured the palace gates. The throne of the Lazax had a new tenant.", // Occupy the Seat of the Empire
+  "mp": "\"If the galaxy wants steel, circuitry, or starship plating,\" the syndicate director said calmly, \"it buys from our foundries.\"", // Monopolize Production
+  "otf": "Garrisons dug into the red dirt of a backwater rock miles from any friendly shipyard. They had no docks and no backup, only rifles and stubbornness.", // Occupy the Fringe
+  "ose": "Warships hung motionless above the ruined spires of Mecatol City while your troops secured the palace gates. The throne of the Lazax had a new tenant.", // Occupy the Seat of the Empire
   "pem": "Assembly lines screamed at maximum tolerance as hulls, fighters, and transports rolled off the gantries in an endless tide. Quantity has a brutal elegance all its own.", // Produce en Masse
-  "pe": "One by one, the other empires wound down their operations and recalled their fleets for the cycle. Your bridges stayed lit until dawn, squeezing one last move out of an exhausted galaxy.", // Prove Endurance
- "sai": "Every spacer knew the stories about this world: the strange ruins, the impossible skies, the power buried beneath its crust. Now your flag flies over the legend.", // Seize an Icon
+  "pe": "\"Everyone else has called it a cycle, Commander.\"\n\"Good,\" she replied, sipping cold coffee on the lit bridge. \"Then nobody is watching our next move.\"", // Prove Endurance
+  "sai": "Every spacer knew the stories about this world: the strange ruins, the impossible skies, the power buried beneath its crust. Now your flag flies over the legend.", // Seize an Icon
   "sar": "The frontrunner's fleet expected an easy patrol. Instead, your cruisers ambushed them from the sunward side and reminded the galaxy that giants still bleed.", // Spark a Rebellion
-  "syc": "Your troops planted their banner on the neighboring moon, right in full view of the rival garrison's telescopes. Sharing a system is a polite way of starting an argument.", // Stake Your Claim
-  "sb": "A signed pledge from a rival house sat locked in your safe. In galactic politics, leverage is the warmest blanket you can own.", // Strengthen Bonds
-  "te": "Your patrol ships loitered just one jump from their homeworld, running live-fire drills in full view of their early-warning buoys. Nobody slept well in their capital that week.", // Threaten Enemies
+  "syc": "\"Plant the banner where their telescopes can see it,\" the lieutenant grinned as the drop-ship touched down on the neighboring moon. Sharing a system is a polite way of starting an argument.", // Stake Your Claim
+  "sb": "A signed pledge from a rival empire sat locked in your safe. In galactic politics, leverage is the warmest blanket you can own.", // Strengthen Bonds
+  "te": "Your patrol ships loitered right outside their homeworld's perimeter, running live-fire drills in full view of their early-warning buoys. Nobody slept well in their capital that week.", // Threaten Enemies
   "ttfd": "Long-range orbital cannons flashed once from the planet's surface, and the invading vanguard dissolved into expanding clouds of superheated debris.", // Turn Their Fleets to Dust
-  "uf": "The flagship's keel-mounted cannon lit up the void, tearing through the enemy line on its maiden engagement. Rumors of its power had been terrifying; the reality was worse.", // Unveil Flagship
+  "uf": "\"Bring the main battery online,\" the captain ordered on the flagship's maiden engagement. Rumors of its power had been terrifying; the reality was worse.", // Unveil Flagship
 };
 
 /** Technologies. */

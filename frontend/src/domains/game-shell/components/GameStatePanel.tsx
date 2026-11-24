@@ -1221,15 +1221,6 @@ export function TacticalActionPanel({
         <div className={styles.footBtns}>
           <button
             type="button"
-            className={styles.endAction}
-            disabled={busy || endBlock !== null}
-            onClick={() => void run(endTactical)}
-            title={endBlock ?? "End the tactical action now"}
-          >
-            End action
-          </button>
-          <button
-            type="button"
             className={styles.nextStep}
             disabled={busy || nextBlock !== null}
             onClick={() => void run(tacticalNextStep)}
@@ -1241,7 +1232,16 @@ export function TacticalActionPanel({
             }
           >
             {isLast ? "Finish action" : "Next step"}
-            <IconArrowRight size={14} aria-hidden="true" />
+            <IconArrowRight size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={styles.endAction}
+            disabled={busy || endBlock !== null}
+            onClick={() => void run(endTactical)}
+            title={endBlock ?? "End the tactical action now"}
+          >
+            End action
           </button>
         </div>
       </footer>

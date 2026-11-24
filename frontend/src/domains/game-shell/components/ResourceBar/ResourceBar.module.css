@@ -6,7 +6,10 @@
 .bar {
   display: flex;
   align-items: center;
-  flex: none;
+  /* Kurczy się i przycina zamiast wypychać pasek zakładek; grupy są całe albo ich nie ma. */
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
   gap: 6px;
   margin: 0 14px 0 8px;
 }
@@ -26,6 +29,7 @@
   font-variant-numeric: tabular-nums;
   color: var(--ds-ink-hi);
   white-space: nowrap;
+  flex: none;
 }
 
 .group > small {
@@ -105,15 +109,36 @@
   margin-right: 0;
 }
 
-/* Wąskie ekrany: brak miejsca w pasku zakładek — strefa gracza zostaje źródłem. */
-@media (max-width: 1400px) {
-  .group > small {
+/*
+ * Wąskie ekrany: brak miejsca w pasku zakładek — strefa gracza zostaje źródłem.
+ * Najpierw znikają podpisy i zagęszcza się odstępy, potem grupy od najmniej ważnej
+ * (Total, potem statki); poniżej 1200 px cały pasek.
+ */
+@media (max-width: 1700px) {
+  .bar[data-strip] .group > small {
+    display: none;
+  }
+
+  .bar[data-strip] .group {
+    gap: 6px;
+    padding: 0 8px;
+  }
+}
+
+@media (max-width: 1500px) {
+  .bar[data-strip] .group[data-group="total"] {
+    display: none;
+  }
+}
+
+@media (max-width: 1350px) {
+  .bar[data-strip] .group[data-group="ships"] {
     display: none;
   }
 }
 
 @media (max-width: 1200px) {
-  .bar {
+  .bar[data-strip] {
     display: none;
   }
 }

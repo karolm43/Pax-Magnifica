@@ -1,49 +1,48 @@
-# Warianty gry: fanowskie zestawy, erraty komponentów, własne komponenty
+# Game Variants: Fan Sets, Component Errata, Custom Components
 
-Jak wpiąć fanowski zestaw (Absol, Black Spectrum…), erratę dowolnego komponentu, własny
-komponent albo zmianę parametrów setupu. Mechanizm to **moduły wariantów**: dane w
-`assets/config/variants.json`, logika w `src/core/variants.py`. Kod nie zna żadnego
-konkretnego zestawu fanowskiego.
+How to plug in a fan set (Absol, Black Spectrum…), errata for any component, a custom
+component, or setup parameter changes. The mechanism is **variant modules**: data in
+`assets/config/variants.json`, logic in `src/core/variants.py`. The code knows nothing about any
+specific fan set.
 
-## Jak to działa
+## How It Works
 
-- **Wybór per gra.** Moduły włącza się w Ustawieniach (General → Game variants). Lista
-  przełączników powstaje z manifestu. Wybór trafia do `/game/new` (`variants`) i do
+- **Per-game selection.** Modules are enabled in Settings (General → Game variants). The toggle
+  list is generated from the manifest. Selection goes to `/game/new` (`variants`) and into
   `GameState.decks.variants`.
-- **Rejestr danych per gra.** `StaticDataRegistry(variant_ids=...)` nakłada moduły na dane
-  aktywnych źródeł. `AppContext.registry` zwraca rejestr bieżącej gry (budowany raz na
-  zestaw modułów) i podpina go do hooków. Rejestr bez modułów = czyste dane oficjalne.
-- **Errata w miejscu (`replaces`).** Wpis źródła modułu z polem `homebrewReplacesID`
-  nadpisuje treść oficjalnego komponentu: tekst, liczby, wymagania, zdolność. Komponent
-  **zachowuje oficjalne id**. Dlatego reszta silnika (techy frakcji, wymagania, statystyki
-  jednostek, talie, ręce graczy) od razu używa nowej wersji. Odwołania wewnątrz danych
-  wariantu (np. `requiredTechId: "bsp_inf2"`) są przemapowane na id oficjalne (`inf2`).
-  Obejmuje to każdą kategorię: technologie, jednostki (także mechy i flagowce), frakcje,
-  zdolności, liderów, przełomy, planety, karty strategii, karty akcji, agendy, relikty,
-  eksploracje, notki, cele i karty ogólne (np. ploty Firmament/Obsidian).
-- **Nowe komponenty (`adds`).** Wpisy źródła bez `homebrewReplacesID` wchodzą pod własnymi
-  id.
-- **Całe talie (`decks`).** Talia danego typu w grze to talia modułu z `assets/data/decks`.
-  Dwa moduły tej samej talii się wykluczają.
-- **Parametry reguł i setupu (`rules`).** Wartości, które kod czyta przez
-  `variants.rule_value(registry, klucz, domyślna)`. Dziś:
-  - `fracture.roll_success` (wyniki d10 wprowadzające Fracture, domyślnie `[1, 10]`),
+- **Per-game data registry.** `StaticDataRegistry(variant_ids=...)` overlays modules onto
+  active sources' data. `AppContext.registry` returns the current game's registry (built once per
+  module set) and attaches it to hooks. Registry without modules = pure official data.
+- **In-place errata (`replaces`).** A module source entry with a `homebrewReplacesID` field
+  overrides the official component's content: text, numbers, prerequisites, ability. The component
+  **keeps its official id**. Therefore the rest of the engine (faction techs, prerequisites, unit
+  stats, decks, player hands) immediately uses the new version. References inside variant data
+  (e.g. `requiredTechId: "bsp_inf2"`) are remapped to official ids (`inf2`).
+  This covers every category: technologies, units (including mechs and flagships), factions,
+  abilities, leaders, breakthroughs, planets, strategy cards, action cards, agendas, relics,
+  explorations, promissory notes, objectives, and generic cards (e.g. Firmament/Obsidian plots).
+- **New components (`adds`).** Source entries without `homebrewReplacesID` enter under their own
+  ids.
+- **Full decks (`decks`).** A deck of a given type in the game becomes the module's deck from `assets/data/decks`.
+  Two modules touching the same deck are mutually exclusive.
+- **Rule and setup parameters (`rules`).** Values read by code via
+  `variants.rule_value(registry, key, default)`. Today:
+  - `fracture.roll_success` (d10 results introducing the Fracture, default `[1, 10]`),
   - `fracture.ingress_per_synergy_color` (3),
   - `fracture.ingress_per_color_no_synergy` (1),
-  - `fracture.neutral_setup` (jednostki neutralne na kaflach Fracture).
+  - `fracture.neutral_setup` (neutral units on Fracture tiles).
 
-  Nowy parametr = stała w kodzie zamieniona na `rule_value(...)` z tą stałą jako domyślną.
-- **Kolejność.** Gdy dwa moduły poprawiają ten sam komponent, wygrywa moduł wybrany
-  wcześniej.
+  New parameter = constant in code replaced with `rule_value(...)` using that constant as default.
+- **Ordering.** When two modules patch the same component, the earlier-selected module wins.
 
-## Mechanika komponentu z erratą
+## Mechanics of an Errata'd Component
 
-Hooki są przypisane do id komponentu (`covers="technologies:st"` albo źródło hooka).
+Hooks are bound to component id (`covers="technologies:st"` or hook source).
 
-- Gdy moduł podmienił komponent, **oficjalne hooki tego komponentu się wyłączają**
-  (`rules_hooks.variant_active`, `effect_for`, `inputs_for`, `ability_for`). Stara
-  mechanika nie działa pod nowym tekstem.
-- Działają hooki wersji wariantu: ten sam dekorator z `variant="<source>"`:
+- When a module replaces a component, **official hooks for that component are disabled**
+  (`rules_hooks.variant_active`, `effect_for`, `inputs_for`, `ability_for`). The old
+  mechanic does not run under the new text.
+- Variant hooks run instead: the same decorator with `variant="<source>"`:
   ```python
   @register(POINT_PRODUCTION_COST, HookSource(SOURCE_TECHNOLOGY, "st"), HookKind.MODIFY,
             covers="technologies:st", variant="black_spectrum")
@@ -52,28 +51,28 @@ Hooki są przypisane do id komponentu (`covers="technologies:st"` albo źródło
   @register_effect("action_cards:sabotage", variant="black_spectrum")
   def bsp_sabotage(state, registry, player_id, params): ...
   ```
-  Tak samo `on_event(..., variant=...)`, `register_effect_inputs`, `register_ability`.
-- Bez hooka wariantu komponent działa jak ręczna ewidencja, tak jak każda nieoprogramowana
-  karta.
-- Liczby z danych (koszt, walka, ruch, pojemność jednostek…) zmieniają się same, bo silnik
-  czyta je z rejestru gry.
+  Same for `on_event(..., variant=...)`, `register_effect_inputs`, `register_ability`.
+- Without a variant hook, the component acts as manual tracking, just like any unscripted
+  card.
+- Data numbers (cost, combat, move, unit capacity…) update automatically because the engine
+  reads them from the game registry.
 
-## Tekst w UI
+## Text in UI
 
-- Backend: `/api/public/game/{id}/variant-data` zwraca wpisy zmienione i dodane przez
-  moduły gry (`entries`), plakietki (`badges`) i talie zastąpione w całości (`decks`).
-- Front: `entities/lookup/variantData.ts`. Pobiera dane raz na zestaw modułów (razem z
-  web-data). Każda funkcja wyszukująca (`getTechData`, `getRelicData`, `getUnitData`,
-  `getLeaderById`, `getAgenda`, `getActionCard`, `getExploration`, cele, notki, przełomy,
-  zdolności, karty strategii) nakłada errata na dane statyczne. Pule kart dostają nowe karty
-  przez `withVariantList`. Dzięki temu front pokazuje także karty, których nie ma w jego
-  statycznych danych (Black Spectrum, własne komponenty).
+- Backend: `/api/public/game/{id}/variant-data` returns entries modified and added by the
+  game's modules (`entries`), badges (`badges`), and fully replaced decks (`decks`).
+- Frontend: `entities/lookup/variantData.ts`. Fetches data once per module set (alongside
+  web-data). Every lookup function (`getTechData`, `getRelicData`, `getUnitData`,
+  `getLeaderById`, `getAgenda`, `getActionCard`, `getExploration`, objectives, PNs, breakthroughs,
+  abilities, strategy cards) overlays errata onto static data. Card pools get new cards
+  via `withVariantList`. Thus the frontend also displays cards missing from its
+  static data (Black Spectrum, custom components).
 
-## Przepis: dodanie fanowskiego zestawu
+## Recipe: Adding a Fan Set
 
-1. Sprawdź dane: wpisy w `assets/data/<kategoria>/<zrodlo>.json` (czy mają
-   `homebrewReplacesID`?) i talie w `assets/data/decks/<zrodlo>.json`.
-2. Dopisz moduł do `assets/config/variants.json`, np.:
+1. Check the data: entries in `assets/data/<category>/<source>.json` (do they have
+   `homebrewReplacesID`?) and decks in `assets/data/decks/<source>.json`.
+2. Add the module to `assets/config/variants.json`, e.g.:
    ```json
    {
      "id": "bsp_factions",
@@ -84,47 +83,47 @@ Hooki są przypisane do id komponentu (`covers="technologies:st"` albo źródło
      "replaces": ["technologies", "units", "leaders", "breakthroughs", "promissory_notes"]
    }
    ```
-3. `uv run python scripts/gen_active_decks.py` (przełącznik w Ustawieniach).
-4. Test składu/tekstu w `tests/test_variants.py` (np. `StaticDataRegistry(variant_ids=[...])`).
-5. Mechanika: hooki z `variant="<source>"` dla komponentów, których efekt się zmienił.
-   Rulingi do wersji fanowskich trafiają do testów jak zwykle.
-6. Restart backendu (manifest wczytuje się przy starcie).
+3. `uv run python scripts/gen_active_decks.py` (toggle in Settings).
+4. Composition/text test in `tests/test_variants.py` (e.g. `StaticDataRegistry(variant_ids=[...])`).
+5. Mechanics: hooks with `variant="<source>"` for components whose effect changed.
+   Rulings for fan versions go into tests as usual.
+6. Restart backend (manifest is loaded on startup).
 
-## Przepis: własna errata albo nowy komponent
+## Recipe: Custom Errata or New Component
 
-1. Plik `assets/data/<kategoria>/pax_errata.json` z wpisami o własnym `source`
-   (np. `pax_errata`):
-   - errata: nowe id + `"homebrewReplacesID": "<id oficjalne>"` + zmienione pola,
-   - nowy komponent: nowe id bez `homebrewReplacesID` (karta musi też trafić do talii: własna
-     talia w `assets/data/decks/` + `decks` w module).
-2. Moduł: `{"id": "pax_errata", "name": "…", "source": "pax_errata", "replaces": "all",
-   "adds": "all", "default": true}`. `default: true` włącza moduł w nowych grach.
-3. Kroki 3–6 z przepisu wyżej.
+1. File `assets/data/<category>/pax_errata.json` with entries using your own `source`
+   (e.g. `pax_errata`):
+   - errata: new id + `"homebrewReplacesID": "<official id>"` + changed fields,
+   - new component: new id without `homebrewReplacesID` (a card must also be in a deck: custom
+     deck in `assets/data/decks/` + `decks` in module).
+2. Module: `{"id": "pax_errata", "name": "…", "source": "pax_errata", "replaces": "all",
+   "adds": "all", "default": true}`. `default: true` enables the module in new games.
+3. Steps 3–6 from the recipe above.
 
-## Moduły w manifeście (2026-11-18)
+## Modules in Manifest (2026-11-18)
 
-| Moduł | Co robi |
+| Module | What it does |
 |---|---|
-| `absol_agendas` | talia agend Absol + Absol's Political Secret (errata `<color>_ps`) |
-| `absol_relics` | talia reliktów Absol (20) |
-| `absol_tech` | technologie i jednostki Absol (errata + nowe) |
-| `bsp_factions` | technologie, jednostki, liderzy, przełomy, notki Black Spectrum |
-| `bsp_firmament_plots` | ploty Firmament/Obsidian Black Spectrum |
-| `bsp_objectives` | cele publiczne i tajne Black Spectrum |
-| `bsp_cards` | talie kart akcji, eksploracji i reliktów Black Spectrum |
-| `bsp_agendas` | talia agend Black Spectrum (50) |
+| `absol_agendas` | Absol agenda deck + Absol's Political Secret (errata `<color>_ps`) |
+| `absol_relics` | Absol relic deck (20) |
+| `absol_tech` | Absol technologies and units (errata + new) |
+| `bsp_factions` | Black Spectrum technologies, units, leaders, breakthroughs, promissory notes |
+| `bsp_firmament_plots` | Black Spectrum Firmament/Obsidian plots |
+| `bsp_objectives` | Black Spectrum public and secret objectives |
+| `bsp_cards` | Black Spectrum action, exploration, and relic decks |
+| `bsp_agendas` | Black Spectrum agenda deck (50) |
 
-Hooków wersji fanowskich jeszcze nie ma. Komponenty z erratą mają nowy tekst i dane, a
-ich efekty są ręczną ewidencją, dopóki ktoś nie dopisze hooka z `variant=`.
+Fan-version hooks do not exist yet. Errata'd components have the new text and data, and
+their effects are tracked manually until someone writes a hook with `variant=`.
 
-## Ograniczenia
+## Limitations
 
-- Obrazki kart: errata usuwa oficjalny `imageURL` (pokazywałby stary tekst). UI pokazuje
-  wtedy tekst.
-- Setup Fracture: modułami da się zmienić parametry z listy wyżej. Inne kroki setupu (np.
-  inne kafle) wymagają nowego parametru `rule_value` albo hooka.
-- Kreator gry (wybór frakcji) pokazuje ploty BSP, gdy w Ustawieniach wybrano moduł
-  podmieniający `genericcards` źródłem Black Spectrum. Pozostałe teksty w kreatorze są
-  oficjalne, bo przed startem gry nie ma jeszcze rejestru z modułami.
-- Fanowska talia z kartami spoza modelu silnika (np. „Resolution” w BSP Agenda Pack) się
-  załaduje, ale takie karty nie zadziałają w fazie agendy.
+- Card images: errata removes the official `imageURL` (it would show old text). The UI shows
+  text instead.
+- Fracture setup: modules can change parameters from the list above. Other setup steps (e.g.
+  different tiles) require a new `rule_value` parameter or hook.
+- Game wizard (faction picker) shows BSP plots when a module replacing `genericcards` with the
+  Black Spectrum source is selected in Settings. Other texts in the wizard are
+  official, because before game start there is no module-aware registry yet.
+- A fan deck with cards outside the engine's model (e.g. "Resolution" in BSP Agenda Pack) will
+  load, but such cards will not work in the agenda phase.

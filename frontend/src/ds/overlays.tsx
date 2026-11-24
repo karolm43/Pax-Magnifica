@@ -9,6 +9,7 @@ import {
   isValidElement,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -156,7 +157,17 @@ function useFloatingDrag(key: string) {
     setOffset({ x: 0, y: 0 });
     writeOffset(key, { x: 0, y: 0 });
   }, [key]);
-  return { offset, onPointerDown, reset };
+  /**
+   * Przycina BIEŻĄCE przesunięcie, gdy okno wyszłoby poza ekran (zapisana pozycja z większego
+   * monitora, zmniejszone okno przeglądarki). Bez zapisu - po powiększeniu wraca zapisane miejsce.
+   */
+  const refit = useCallback((popup: HTMLElement | null) => {
+    if (!popup) return;
+    const fix = clampDragDelta(popup.getBoundingClientRect(), 0, 0);
+    if (fix.dx === 0 && fix.dy === 0) return;
+    setOffset((cur) => ({ x: cur.x + fix.dx, y: cur.y + fix.dy }));
+  }, []);
+  return { offset, onPointerDown, reset, refit };
 }
 
 /**
@@ -189,6 +200,21 @@ export function Modal({
 }: ModalProps) {
   const popupRef = useRef<HTMLDivElement>(null);
   const drag = useFloatingDrag(floatingKey ?? (typeof title === "string" ? title : "window"));
+  const { refit } = drag;
+  useEffect(() => {
+    if (!floating || !opened) return;
+    const fit = () => refit(popupRef.current);
+    const raf = requestAnimationFrame(fit);
+    window.addEventListener("resize", fit);
+    const observer =
+      typeof ResizeObserver !== "undefined" && popupRef.current ? new ResizeObserver(fit) : null;
+    if (observer && popupRef.current) observer.observe(popupRef.current);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", fit);
+      observer?.disconnect();
+    };
+  }, [floating, opened, refit]);
   const width = fullScreen ? "100%" : typeof size === "number" ? size : MODAL_SIZE[size as SizeKey] ?? size;
   return (
     <Dialog.Root

@@ -885,16 +885,16 @@
   color: rgb(var(--ds-sig-warn));
 }
 
-/* Stały układ 1fr / 2fr — zmiana etykiety (np. „Confirm?") nie przesuwa przycisków. */
+/* „Next step" = GŁÓWNY przycisk (pełna szerokość, u góry), „End action" = drugorzędny pod nim. */
 .footBtns {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
 .endAction {
   min-width: 0;
-  padding: 8px 10px;
+  padding: 7px 10px;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -1000,30 +1000,54 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  width: 100%;
   min-width: 0;
-  padding: 8px 12px;
-  font-size: 12px;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 11px 14px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
   color: var(--ds-ink-hi);
-  background: rgb(var(--ph) / 0.2);
-  border: 1px solid rgb(var(--ph) / 0.55);
-  border-radius: 8px;
+  background: color-mix(in oklab, var(--ds-accent) 34%, transparent);
+  border: 1px solid color-mix(in oklab, var(--ds-accent) 85%, transparent);
+  border-radius: 10px;
   cursor: pointer;
+  animation: nextStepPulse 1.8s ease-in-out infinite;
   transition:
     background 120ms ease,
     border-color 120ms ease;
 }
 
 .nextStep:hover:not(:disabled) {
-  background: rgb(var(--ph) / 0.32);
-  border-color: rgb(var(--ph) / 0.8);
+  background: color-mix(in oklab, var(--ds-accent) 48%, transparent);
+  border-color: var(--ds-accent);
 }
 
+/* Zablokowany = neutralny szary (jak przyciski TurnControls), bez pulsu. */
 .nextStep:disabled {
-  opacity: 0.4;
   cursor: not-allowed;
+  animation: none;
+  color: var(--ds-ink-lo);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--ds-h14);
+}
+
+@keyframes nextStepPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--ds-accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--ds-accent) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nextStep {
+    animation: none;
+  }
 }
 
 /* Drugorzędny przycisk wewnątrz kroku (Undo / Move) — stonowany, nie konkuruje z „Next". */
@@ -1078,25 +1102,27 @@
   gap: 8px;
   width: 100%;
   margin-top: 8px;
+  min-height: 44px;
+  box-sizing: border-box;
   padding: 11px;
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   color: var(--ds-ink-hi);
-  background: rgb(var(--ph) / 0.1);
-  border: 1px dashed rgb(var(--ph) / 0.5);
-  border-radius: 8px;
+  background: color-mix(in oklab, var(--ds-accent) 20%, transparent);
+  border: 1px solid color-mix(in oklab, var(--ds-accent) 55%, transparent);
+  border-radius: 10px;
   cursor: pointer;
   transition: background 120ms ease;
 }
 
 .bigAction:hover {
-  background: rgb(var(--ph) / 0.18);
+  background: color-mix(in oklab, var(--ds-accent) 30%, transparent);
 }
 
 .bigActionOn {
-  background: rgb(var(--ph) / 0.22);
-  border-style: solid;
+  background: color-mix(in oklab, var(--ds-accent) 34%, transparent);
+  border-color: color-mix(in oklab, var(--ds-accent) 85%, transparent);
 }
 
 /* Panel produkcji (stawianie jednostek) ---------------------------------- */

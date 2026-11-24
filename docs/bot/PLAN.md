@@ -1,160 +1,160 @@
-# Bot AI — audyt silnika i plan pracy (krótkie branche)
+# AI Bot — Engine Audit & Work Plan (Short Branches)
 
-Status (2026-11-16): B0, B1, B3 zrobione, B2 — rdzeń; reszta PLAN. Etap 3 projektu (`docs/README.md` §1).
-Zasady projektowe bota: `docs/rules/R65.md`. Instrukcje dla Claude: `src/engine/CLAUDE.md`.
-Wizja warstw (strategiczna / operacyjna / taktyczna / dyplomacja): `specyfikacja_techniczna_i_architektura_systemu.md` §4.
-Ten plik jest ŻYWY: po każdym bloku bota aktualizuj tabele w §2 i §5.
+Status (2026-11-16): B0, B1, B3 done, B2 — core; rest is PLAN. Stage 3 of the project (`docs/README.md` §1).
+Bot design rules: `docs/rules/R65.md`. Claude instructions: `src/engine/CLAUDE.md`.
+Layer vision (strategic / operational / tactical / diplomacy): `specyfikacja_techniczna_i_architektura_systemu.md` §4.
+This file is LIVING: after every bot block, update the tables in §2 and §5.
 
-**Decyzja użytkownika (2026-11-16):** bot będzie używał kilku osobnych, złożonych algorytmów
-obliczeniowych, liczonych LOKALNIE (na maszynie hosta, bez chmury). Architektura (§4) musi to udźwignąć
-od początku: wspólny interfejs algorytmu, osobne procesy, budżet czasu, porównywanie algorytmów w arenie.
-
----
-
-## 1. Zasady (skrót; pełne w `docs/rules/R65.md`)
-
-1. **Bot gra tą samą ścieżką reguł co człowiek** — każdy ruch przez funkcje `core/` (Sędzia, RULES 29).
-2. **Bot nie oszukuje** — decyduje na `visibility.project_strict(state, bot_id)`; ukryte informacje losuje.
-3. **Gra nigdy nie czeka na bota w nieskończoność** — budżet czasu + bezpieczny ruch domyślny.
-4. **Algorytm = wymienny moduł** za jednym interfejsem; który algorytm do której decyzji — w konfiguracji.
-5. **Ciężkie liczenie poza pętlą serwera** — procesy robocze; serwer gry nigdy nie zamarza.
-6. **Determinizm** — ta sama projekcja + to samo ziarno + ten sam budżet iteracji = ta sama decyzja.
+**User decision (2026-11-16):** the bot will use several separate, complex computational
+algorithms, computed LOCALLY (on the host machine, no cloud). The architecture (§4) must support this
+from the start: common algorithm interface, separate processes, time budget, comparing algorithms in an arena.
 
 ---
 
-## 2. Audyt: co silnik już daje botowi (stan 2026-11-16)
+## 1. Rules (summary; full in `docs/rules/R65.md`)
 
-| Potrzeba bota | Stan | Gdzie | Uwagi / co dodać |
+1. **The bot plays through the same rules path as a human** — every move via `core/` functions (Referee, RULES 29).
+2. **The bot does not cheat** — decides on `visibility.project_strict(state, bot_id)`; hidden info is sampled.
+3. **The game never waits on a bot forever** — time budget + safe default move.
+4. **Algorithm = swappable module** behind one interface; which algorithm for which decision lives in config.
+5. **Heavy compute outside the server loop** — worker processes; the game server never freezes.
+6. **Determinism** — same projection + same seed + same iteration budget = same decision.
+
+---
+
+## 2. Audit: What the Engine Already Gives the Bot (as of 2026-11-16)
+
+| Bot need | Status | Where | Notes / what to add |
 |---|---|---|---|
-| Kto ma teraz ruch i jaki | ✅ | `core/actor.awaiting(state)` | Kody `respond/decide/assign_hits/combat/invasion/explore/strategy/turn/speaker/secret/setup` — gotowy „dyspozytor” bota. |
-| Uprawnienia aktora | ✅ | `core/actor.require/subject` | Bot działa jako `actor_id = swój player_id`; te same 403 co człowiek. |
-| Widok bez oszustwa | ✅ | `core/visibility.project_strict` | Ukrywa ręce, tajne cele, `rng_seed`. |
-| Seedowalny RNG | ✅ | `core/dice.roll_dice/next_rng` | Ziarno + licznik w stanie. Projekcja ma `rng_seed=0` → w symulacji ziarno ustawia algorytm (inaczej `secrets` = niedeterminizm). |
-| Klonowanie stanu | 🟡 | `GameState.clone()` | Pomiar: **0,40 ms** (6 graczy, runda 2, ~23 KB JSON; `model_copy(deep)` 0,78 ms, `deepcopy` 0,60 ms). Wystarcza na heurystyki i płytki lookahead; dla Monte Carlo / MCTS z tysiącami symulacji za wolno → szybka reprezentacja (B6). |
-| Mapa | 🟡 | `core/hex_grid.HexGrid` | Topologia POZA `GameState` (jednostki są w stanie). Symulacja potrzebuje pary `(state, grid)`; grid do procesu roboczego jako `to_placements()`. |
-| Ustawienia bota | ✅ | `PlayerState.control_type/difficulty/personality`, `assets/config/engine_config.json` | Wartości to ⚠️ ZAŁOŻENIE. |
-| Decyzje „za bota” w `core/` | ⚠️ | `core/transaction.bot_accepts`, `core/epilogue._bot_choice`, `core/transaction_table`, `core/game_setup.begin_setup` (losowy tajny cel bota), auto-pas botów w oknach reakcji (`core/reaction_window`) | Placeholdery decyzji w warstwie reguł. Przenieść do `src/engine/` (B10). Auto-pas w oknach reakcji może zostać (silnik zna ręce; pas za „nic do zagrania” dotyczy też ludzi). |
-| Katalog akcji | 🟡 B1 | `src/engine/actions.py` | 31 rodzajów (setup, strategia z krokami primary, tura, okna, oferty, przypisanie trafień, status, agenda, ogłoszenia mówcy, limit ręki, okna o stałej długości, `production_skip` = „Finish production” po produkcji z karty, `fleet_pool_resolve` = okno FLEET_POOL). `apply_and_settle` = akcja + `core/step_settle` (dokładnie jak commit). Ruch, produkcja, inwazja, karty akcji: B5. |
-| Generator legalnych ruchów | 🟡 B1 | `src/engine/legal.py` + `src/engine/observation.py` | Zakres B1 (bez własnej akcji taktycznej); pierwszy kandydat = bezpieczny ruch domyślny. Obserwacja = ścisła projekcja + własne monity (`step_options`, `offers_view`), czyli to samo, co dostaje klient człowieka. |
-| Wyzwalacz bota | ✅ B3 | `src/api/bot_runner.py` | Pętla w lifespan serwera, budzona po broadcast i co 1 s; pyta `legal_actions` KAŻDEGO bota (decyzje równoległe). Ruch = to samo żądanie HTTP co człowieka (`api/bot_http.py`, ASGI w procesie). `--no-bots` wyłącza. Brak: przełącznik admin fast (opóźnienie 0) z UI. |
-| Logika reguł poza `core/` | ✅ B1 | `core/phase_flow.py`, `core/step_settle.py` | Znalezione w B1 i przeniesione do `core/`: wybór domknięcia fazy w routerze `/phase/next` (+ `/round/next`) oraz reguły „po każdym kroku” w `StateService.replace_state`. Middleware zwalniający przeterminowaną pauzę przed każdym POST zostaje w `api/` (bot ma akcję `reaction_pause_release`). |
-| Determinizm | ✅ B1 | `core/game_setup` | Błąd znaleziony testem zgodności: wybór tajnego celu tasował niezasianym `random.Random()`, teraz `next_rng(stan)`. Tworzenie gry nadal z entropii (start partii). |
-| Okna czasowe a bot | ✅ | `engine/legal._window` | Usunięta ogólna odpowiedź `/window/respond` (+ akcja `window_respond`): omijała obowiązkową decyzję okna i nie zamykała dopełnionego okna (gra stawała). W oknie `COMBAT_ASSIGN_HITS` bot dostaje teraz `battle_assign` (wcześniej ogólne „OK” = pominięte straty). FLEET_POOL: `fleet_pool_resolve` z podpowiedzią `core/fleet_pool.auto_removal`. SPACE_CANNON / COMBAT_RETREAT / CAPACITY: brak ruchu bota do B5 (`tests/engine/test_legal_windows.py`). |
-| Infrastruktura obliczeń | 🟡 B2 | `src/engine/compute.py`, `BotConfig` w `engine_config.json` | `DecisionRequest/Result`, rejestr algorytmów (`first`, `random`), `Executor` inline/process z terminem i ruchem domyślnym, unieważnianie po `state_seq` (runner). Brak: `bench.py`, wynik „anytime” z procesu (dziś po terminie tylko ruch domyślny), inicjalizacja rejestru danych w procesie roboczym. |
-| Fuzzer partii | 🟡 | `tests/engine/fuzz.py` (`python -m tests.engine.fuzz --games N`), smoke `tests/engine/test_fuzz_games.py` | Losowe partie przez API: losowe frakcje (3–6, jeden wariant z rodziny), bot losowy, losowa kolejność graczy, 50% z agendą. Po każdym ruchu: zgodność katalog ↔ HTTP, niezmienniki (`check_invariants`: brak ujemnych TG/żetonów/VP, commodities ≤ wartości, aktywny gracz w fazie akcji, JSON round-trip) i web-data dla każdego gracza. Błąd = JSON z ziarnem, ostatnimi akcjami i migawką stanu. Znalezione luki generatora (naprawione): produkcja z Construction i z secondary Warfare, obowiązkowy wybór technologii z Research Grant Reallocation, okno FLEET_POOL. Zakres = zakres generatora: bez akcji taktycznej, walki i kart akcji do B5. |
-| Współbieżność | ⬜ | N4 w `PLAN_PELNA_ROZGRYWKA.md` | Brak blokady na grę; runner bota musi serializować się z żądaniami ludzi. |
-| Czas | ✅ | `core/game_clock.py`, `create_app(now=...)` | Wstrzykiwany `now` — także dla budżetu bota. |
-| Feed Activity | ✅ | `core/activity.py` | Ruchy bota widoczne jak ruchy człowieka; etykiety commitów `bot:<kind>`. |
-| Sprzęt / środowisko | ℹ️ | maszyna hosta | Python 3.14, 12 rdzeni logicznych, NumPy ≥ 2.5. Brak Numby (i niepewne wsparcie 3.14) — decyzja o zależnościach w B6. |
+| Who has a move now & what kind | ✅ | `core/actor.awaiting(state)` | Codes `respond/decide/assign_hits/combat/invasion/explore/strategy/turn/speaker/secret/setup` — ready-made bot "dispatcher". |
+| Actor permissions | ✅ | `core/actor.require/subject` | Bot acts as `actor_id = its player_id`; same 403s as a human. |
+| Cheat-free view | ✅ | `core/visibility.project_strict` | Hides hands, secret objectives, `rng_seed`. |
+| Seedable RNG | ✅ | `core/dice.roll_dice/next_rng` | Seed + counter in state. Projection has `rng_seed=0` → in simulation the seed is set by the algorithm (otherwise `secrets` = non-determinism). |
+| State cloning | 🟡 | `GameState.clone()` | Measured: **0.40 ms** (6 players, round 2, ~23 KB JSON; `model_copy(deep)` 0.78 ms, `deepcopy` 0.60 ms). Enough for heuristics and shallow lookahead; too slow for Monte Carlo / MCTS with thousands of simulations → fast representation (B6). |
+| Map | 🟡 | `core/hex_grid.HexGrid` | Topology OUTSIDE `GameState` (units are in state). Simulation needs `(state, grid)` pair; grid to worker process via `to_placements()`. |
+| Bot settings | ✅ | `PlayerState.control_type/difficulty/personality`, `assets/config/engine_config.json` | Values are `⚠️ ASSUMPTION`s. |
+| "Bot" decisions inside `core/` | ⚠️ | `core/transaction.bot_accepts`, `core/epilogue._bot_choice`, `core/transaction_table`, `core/game_setup.begin_setup` (random bot secret objective), bot auto-pass in reaction windows (`core/reaction_window`) | Decision placeholders in the rules layer. Move to `src/engine/` (B10). Auto-pass in reaction windows can stay (engine knows hands; "nothing to play" pass applies to humans too). |
+| Action catalog | 🟡 B1 | `src/engine/actions.py` | 31 kinds (setup, strategy with primary steps, turn, windows, offers, hit assignment, status, agenda, speaker announcements, hand limit, fixed-length windows, `production_skip` = "Finish production" after card production, `fleet_pool_resolve` = FLEET_POOL window). `apply_and_settle` = action + `core/step_settle` (exactly like commit). Movement, production, invasion, action cards: B5. |
+| Legal move generator | 🟡 B1 | `src/engine/legal.py` + `src/engine/observation.py` | B1 scope (no tactical action of its own); first candidate = safe default move. Observation = strict projection + own prompts (`step_options`, `offers_view`), i.e. the same thing a human client receives. |
+| Bot trigger | ✅ B3 | `src/api/bot_runner.py` | Loop in server lifespan, woken after broadcast and every 1 s; queries `legal_actions` of EVERY bot (parallel decisions). Move = same HTTP request as a human (`api/bot_http.py`, in-process ASGI). `--no-bots` disables. Missing: admin fast toggle (delay 0) from UI. |
+| Rules logic outside `core/` | ✅ B1 | `core/phase_flow.py`, `core/step_settle.py` | Found in B1 and moved to `core/`: phase-closing choice in `/phase/next` (+ `/round/next`) router and "after every step" rules in `StateService.replace_state`. Middleware releasing expired pause before every POST stays in `api/` (bot has `reaction_pause_release` action). |
+| Determinism | ✅ B1 | `core/game_setup` | Bug found by parity test: secret objective choice shuffled with unseeded `random.Random()`, now `next_rng(state)`. Game creation still uses entropy (match start). |
+| Timing windows & bot | ✅ | `engine/legal._window` | Removed generic `/window/respond` (+ `window_respond` action): it bypassed mandatory window decisions and didn't close a fulfilled window (game stalled). In `COMBAT_ASSIGN_HITS` window, bot now gets `battle_assign` (previously generic "OK" = skipped hits). FLEET_POOL: `fleet_pool_resolve` with `core/fleet_pool.auto_removal` hint. SPACE_CANNON / COMBAT_RETREAT / CAPACITY: no bot move until B5 (`tests/engine/test_legal_windows.py`). |
+| Compute infrastructure | 🟡 B2 | `src/engine/compute.py`, `BotConfig` in `engine_config.json` | `DecisionRequest/Result`, algorithm registry (`first`, `random`), inline/process `Executor` with deadline and default move, `state_seq` invalidation (runner). Missing: `bench.py`, "anytime" result from process (currently only default move on timeout), data registry init in worker process. |
+| Game fuzzer | 🟡 | `tests/engine/fuzz.py` (`python -m tests.engine.fuzz --games N`), smoke `tests/engine/test_fuzz_games.py` | Random games via API: random factions (3–6, one variant per family), random bot, random player order, 50% with agenda. After each move: catalog ↔ HTTP parity, invariants (`check_invariants`: no negative TG/tokens/VP, commodities ≤ value, active player in action phase, JSON round-trip), and web-data for each player. Failure = JSON with seed, recent actions, and state snapshot. Generator gaps found (fixed): production from Construction and Warfare secondary, mandatory tech choice from Research Grant Reallocation, FLEET_POOL window. Scope = generator scope: no tactical action, combat, or action cards until B5. |
+| Concurrency | ⬜ | N4 in `PLAN_PELNA_ROZGRYWKA.md` | No per-game lock; bot runner must serialize with human requests. |
+| Time | ✅ | `core/game_clock.py`, `create_app(now=...)` | Injected `now` — also for bot budget. |
+| Activity feed | ✅ | `core/activity.py` | Bot moves visible like human moves; commit labels `bot:<kind>`. |
+| Hardware / environment | ℹ️ | host machine | Python 3.14, 12 logical cores, NumPy ≥ 2.5. No Numba (and uncertain 3.14 support) — dependency decision in B6. |
 
 ---
 
-## 3. Algorytmy — architektura 4 warstw (wizja użytkownika 2026-11-16)
+## 3. Algorithms — 4-Layer Architecture (user vision 2026-11-16)
 
-Każdy algorytm to osobny moduł z własnym branchem `bot/alg-<nazwa>`, testami i wynikiem w arenie,
-zarejestrowany w `engine/compute` (`register_algorithm`) i przypisany w `engine_config.json`.
-Bez sieci neuronowych, PyTorcha i GPU (RL/self-play wymagałby pełnego szybkiego symulatora całego TI4).
-LLM do czatu/negocjacji — ewentualnie na samym końcu, poza logiką gry.
+Every algorithm is a separate module with its own `bot/alg-<name>` branch, tests, and arena result,
+registered in `engine/compute` (`register_algorithm`) and assigned in `engine_config.json`.
+No neural networks, PyTorch, or GPU (RL/self-play would require a full fast simulator of all of TI4).
+LLM for chat/negotiations — possibly at the very end, outside game logic.
 
-| Warstwa | Algorytmy | Decyzje | Biblioteki (⚠️ zależność = zgoda + pomiar w `bench.py`) |
+| Layer | Algorithms | Decisions | Libraries (⚠️ dependency = approval + `bench.py` measurement) |
 |---|---|---|---|
-| 1. Strategiczna (VP Solver) | MIP/ILP, CP-SAT | które planety wyczerpać (zasoby/wpływy) pod cele; produkcja jako plecak (siła floty w limicie zasobów i PRODUCTION) | Google OR-Tools |
-| 2. Użyteczność i heurystyki | Utility AI (krzywe 0–1), mapy wpływu/zagrożenia, Monte Carlo walki | wartość każdej akcji wobec celów i odległości; szansa wygranej i straty przed atakiem (Sustain, AFB, modyfikatory) | NumPy (+ Numba `@njit`?) |
-| 3. Operacyjna (kolejność w rundzie) | RHEA (krótkie sekwencje 4–6 makro-decyzji, mutacja/krzyżowanie) lub makro-ISMCTS | kiedy zagrać kartę strategii, kiedy spasować, kolejność aktywacji | własna pętla Python |
-| 4. Taktyczna (logistyka) | graf + Dijkstra/A* na heksach | realny zasięg flot (anomalie, Gravity Drive, Antimass, wormhole) | NetworkX / NumPy |
-| (dyplomacja) | heurystyki | głosy w agendzie, transakcje | — |
+| 1. Strategic (VP Solver) | MIP/ILP, CP-SAT | which planets to exhaust (resources/influence) for objectives; production as knapsack (fleet power within resource and PRODUCTION limits) | Google OR-Tools |
+| 2. Utility & Heuristics | Utility AI (0–1 curves), influence/threat maps, combat Monte Carlo | value of each action vs objectives and distance; win chance and losses before attacking (Sustain, AFB, modifiers) | NumPy (+ Numba `@njit`?) |
+| 3. Operational (round order) | RHEA (short sequences of 4–6 macro-decisions, mutation/crossover) or macro-ISMCTS | when to play strategy card, when to pass, activation order | custom Python loop |
+| 4. Tactical (logistics) | graph + Dijkstra/A* on hexes | real fleet reach (anomalies, Gravity Drive, Antimass, wormholes) | NetworkX / NumPy |
+| (diplomacy) | heuristics | agenda votes, transactions | — |
 
-**Uwagi Claude do wizji (do decyzji przy danym branchu):**
-1. **Warstwa 4 nie może liczyć zasięgu sama.** Ruch ma pełne reguły w `core/movement` (anomalie, technologie,
-   frakcje, blokady). Dijkstra/A* liczy po grafie zbudowanym z enumeratora `core/` („dokąd ten statek
-   legalnie doleci”), a nie po własnej kopii reguł — inaczej bot i Sędzia będą się rozjeżdżać. Pierwszy krok
-   B5: taki enumerator w `core/`.
-2. **Monte Carlo walki = osobny, szybki symulator z obowiązkowym testem zgodności z `core/battle`**
-   (rozkład wyników na tych samych ziarnach/próbie). Numba: niepewne wsparcie Pythona 3.14 na tej maszynie —
-   najpierw sama wektoryzacja NumPy (10 000 bitew < 50 ms jest realne bez Numby), Numba tylko po pomiarze.
-3. **OR-Tools to ciężka zależność** (natywne koła, wsparcie 3.14 do sprawdzenia). Problemy płatności i
-   produkcji są małe (kilkanaście planet, kilka typów jednostek) — dokładne programowanie dynamiczne /
-   przegląd zupełny w czystym Pythonie daje optimum w milisekundach. Propozycja: zacząć od DP, OR-Tools
-   wprowadzić, gdy pojawi się problem, którego DP nie udźwignie (np. łączny plan rundy).
-4. **Wspólna funkcja oceny stanu** (warstwa 2) jest fundamentem dla warstw 1 i 3: RHEA/ISMCTS bez dobrej
-   oceny liści gra losowo. Kolejność: ocena + Monte Carlo walki → enumerator ruchu → RHEA.
-5. **RHEA/ISMCTS potrzebują szybkiego modelu do przodu** (`engine/fast`, B6) — `GameState.clone()` 0,4 ms
-   pozwala na ~2 500 kroków/s na rdzeń; na makro-poziomie (4–6 decyzji) może wystarczyć bez B6. Zmierzyć.
-6. **Brakuje modelu przeciwnika** (co zrobią inni w tej rundzie) — RHEA powinna symulować rywali choćby
-   prostą polityką (bot „first”/utility), a ukryte karty losować z puli niewidocznych (determinizacja, 65.2).
+**Claude notes on the vision (for decision on the relevant branch):**
+1. **Layer 4 cannot compute range on its own.** Movement has full rules in `core/movement` (anomalies, technologies,
+   factions, blockades). Dijkstra/A* runs over a graph built from a `core/` enumerator ("where can this ship
+   legally fly"), not its own copy of the rules — otherwise bot and Referee will diverge. First step of
+   B5: such an enumerator in `core/`.
+2. **Combat Monte Carlo = separate, fast simulator with mandatory parity test against `core/battle`**
+   (outcome distribution on the same seeds/sample). Numba: uncertain Python 3.14 support on this machine —
+   first pure NumPy vectorization (10,000 battles < 50 ms is realistic without Numba), Numba only after measurement.
+3. **OR-Tools is a heavy dependency** (native wheels, 3.14 support to be checked). Payment and production
+   problems are small (a dozen planets, a few unit types) — exact dynamic programming /
+   exhaustive search in pure Python gives the optimum in milliseconds. Proposal: start with DP, introduce OR-Tools
+   when a problem appears that DP cannot handle (e.g. joint round plan).
+4. **A shared state evaluation function** (Layer 2) is the foundation for Layers 1 and 3: RHEA/ISMCTS without good
+   leaf evaluation plays randomly. Order: evaluation + combat Monte Carlo → movement enumerator → RHEA.
+5. **RHEA/ISMCTS need a fast forward model** (`engine/fast`, B6) — `GameState.clone()` at 0.4 ms
+   allows ~2,500 steps/s per core; at the macro level (4–6 decisions) it may suffice without B6. Measure.
+6. **Missing opponent model** (what others will do this round) — RHEA should simulate rivals with at least
+   a simple policy ("first"/utility bot), and sample hidden cards from the unseen pool (determinization, 65.2).
 
-## 4. Architektura docelowa
+## 4. Target Architecture
 
 ```text
-                    ┌──────────────────────── proces serwera (FastAPI) ────────────────────────┐
- commit stanu ──►   │ api/bot_runner.py: awaiting ∋ BOT?                                      │
+                    ┌──────────────────────── server process (FastAPI) ────────────────────────┐
+ state commit ──►   │ api/bot_runner.py: awaiting ∋ BOT?                                       │
                     │   view = project_strict(state, bot)   legal = engine.legal_actions(...)  │
-                    │   request = DecisionRequest(view, grid, legal, seed, budżet, state_seq)  │
+                    │   request = DecisionRequest(view, grid, legal, seed, budget, state_seq)  │
                     │   ──► engine.compute.Executor ──┐                                         │
-                    │   ◄── DecisionResult ───────────┤ (stary state_seq? => wynik odrzucony)   │
-                    │   apply(action) przez core/ ──► commit „bot:<kind>” + Activity           │
+                    │   ◄── DecisionResult ───────────┤ (stale state_seq? => result discarded) │
+                    │   apply(action) via core/ ───► commit "bot:<kind>" + Activity            │
                     └─────────────────────────────────┼────────────────────────────────────────┘
                                                       ▼
-                         procesy robocze (ProcessPoolExecutor, N = rdzenie − 1)
-                         initializer: StaticDataRegistry + tabele NumPy raz na proces
-                         algorytm.decide(request) — anytime: najlepszy wynik do terminu
+                         worker processes (ProcessPoolExecutor, N = cores − 1)
+                         initializer: StaticDataRegistry + NumPy tables once per process
+                         algorithm.decide(request) — anytime: best result before deadline
 ```
 
-- **`src/engine/actions/`** — dyskryminowana unia `Action` (Pydantic) + `apply(state, grid, registry, action)`,
-  wołające DOKŁADNIE te funkcje `core/`, które wołają routery. Jedno mapowanie: gra na żywo i symulacje.
-- **`src/engine/legal.py`** — `legal_actions(view, grid, registry, player_id) -> list[Action]` dla bieżącego
-  powodu z `awaiting`; brakujące enumeratory dopisujemy w `core/`.
-- **`src/engine/compute/`** — infrastruktura obliczeń:
-  - `DecisionRequest` / `DecisionResult` — serializowalne (picklable), z `state_seq`, ziarnem, budżetem
-    (`deadline_ms` i/lub `max_iterations`), nazwą algorytmu i parametrami.
-  - `Algorithm` (Protocol): `name`, `decide(request) -> DecisionResult`; funkcja modułowa (nie metoda
-    obiektu z serwera), żeby dało się ją wysłać do procesu.
-  - `Executor`: tryb `inline` (testy, arena deterministyczna) i `process` (gra na żywo, równoległe boty).
-    Termin twardy: po przekroczeniu — ostatni wynik „anytime” albo ruch domyślny.
-  - Rejestr algorytmów: `decyzja → algorytm + parametry` z `engine_config.json` (per poziom trudności/osobowość).
-- **`src/engine/fast/`** (B6) — szybka reprezentacja stanu do symulacji (NumPy; Numba/inna akceleracja tylko
-  po pomiarze i zgodzie użytkownika na zależność). Konwerter `GameState → FastState` + test zgodności
-  wyników z `core/` na losowych pozycjach (szybki stan NIE może mieć innych reguł niż `core/`).
-- **`src/engine/{strategic,operational,tactical,diplomacy}/`** — algorytmy (istniejące katalogi).
-- **`src/api/bot_runner.py`** — wyzwalacz w procesie serwera, kolejka zadań na grę, opóźnienie „dla oka”.
-- **`src/engine/arena.py`** — gry bez UI: bot kontra bot, turnieje algorytmów (A vs B na tych samych
-  ziarnach i mapach), metryki: wygrane, VP, czas/ruch, iteracje/s. Też test regresji silnika.
-- **`src/engine/bench.py`** — mikro-benchmarki (klon, symulacja walki, generator ruchów); poza `pytest -q`.
+- **`src/engine/actions/`** — discriminated union `Action` (Pydantic) + `apply(state, grid, registry, action)`,
+  calling the EXACT same `core/` functions that routers call. Single mapping: live game and simulations.
+- **`src/engine/legal.py`** — `legal_actions(view, grid, registry, player_id) -> list[Action]` for the current
+  reason from `awaiting`; missing enumerators are added in `core/`.
+- **`src/engine/compute/`** — compute infrastructure:
+  - `DecisionRequest` / `DecisionResult` — serializable (picklable), with `state_seq`, seed, budget
+    (`deadline_ms` and/or `max_iterations`), algorithm name, and parameters.
+  - `Algorithm` (Protocol): `name`, `decide(request) -> DecisionResult`; module-level function (not a method
+    on a server object) so it can be sent to a worker process.
+  - `Executor`: `inline` mode (tests, deterministic arena) and `process` mode (live game, parallel bots).
+    Hard deadline: on timeout — latest "anytime" result or default move.
+  - Algorithm registry: `decision → algorithm + parameters` from `engine_config.json` (per difficulty/personality).
+- **`src/engine/fast/`** (B6) — fast state representation for simulations (NumPy; Numba/other acceleration only
+  after measurement and user approval of dependency). Converter `GameState → FastState` + parity test
+  against `core/` on random positions (fast state MUST NOT have different rules from `core/`).
+- **`src/engine/{strategic,operational,tactical,diplomacy}/`** — algorithms (existing directories).
+- **`src/api/bot_runner.py`** — trigger in server process, per-game task queue, "human-paced" delay.
+- **`src/engine/arena.py`** — headless games: bot vs bot, algorithm tournaments (A vs B on the same
+  seeds and maps), metrics: wins, VP, time/move, iterations/s. Also an engine regression test.
+- **`src/engine/bench.py`** — micro-benchmarks (clone, combat sim, move generator); outside `pytest -q`.
 
 ---
 
-## 5. Krótkie branche (każdy 1–3 sesje, merge do `main` po zielonym QA)
+## 5. Short Branches (1–3 sessions each, merge to `main` after green QA)
 
-Konwencja: `bot/<nr>-<temat>` (infrastruktura) i `bot/alg-<nazwa>` (algorytmy), zawsze z aktualnego `main`;
-przed merge `git merge main` i QA. Zmiana w `core/` potrzebna botowi = osobny commit. Worktree tylko przy
-równoległej sesji nad silnikiem.
+Convention: `bot/<no>-<topic>` (infrastructure) and `bot/alg-<name>` (algorithms), always from current `main`;
+before merge `git merge main` and QA. `core/` change needed by the bot = separate commit. Worktree only during
+parallel work on the engine.
 
-| Branch | Zakres | DoD |
+| Branch | Scope | DoD |
 |---|---|---|
-| ✅ `bot/b0-fundament` | Ten plan, `src/engine/CLAUDE.md`, `docs/rules/R65.md`, `ARCHITEKTURA_KODU.md` (`ai/`→`engine/`), indeks `docs/README.md`. | Dokumenty spójne; zero kodu. |
-| ✅ `bot/b1-katalog-akcji` | `Action` + `apply` dla decyzji „nie blokuj gry”: tajny cel, Custodians/odkrycie celów, wybór karty strategii, pas / koniec tury, pas w oknie, odmowa „may”, pominięcie secondary, przypisanie trafień, głos w agendzie, kroki statusu, odrzut nad limit ręki. `legal_actions` dla tych powodów. | Test zgodności katalog ↔ HTTP dla każdej akcji; strażnik „engine nie importuje api”. **Wynik:** 3 scenariusze (6 botów; 6 botów + agenda; 4 „ludzi” + agenda) grają 2 pełne rundy bez zawieszenia, 0 rozjazdów z HTTP, 0 odrzuceń pierwszego kandydata; ten sam start + ziarno = ta sama partia. Niepokryte (lista `NOT_YET_COVERED` w `tests/engine/test_actions_parity.py`): `battle_assign`, `held_pass`, `held_release`, `offer_decline` → B5. |
-| 🟡 `bot/b2-obliczenia` (rdzeń na `main` 2026-11-16) | `engine/compute`: `DecisionRequest/Result`, `Algorithm`, `Executor` inline + process, termin i wynik anytime, unieważnianie po `state_seq`, rejestr z `engine_config.json`, algorytm „domyślny” (bezpieczny ruch). `engine/bench.py`. | Ten sam request inline i w procesie → ta sama decyzja; przekroczenie terminu → ruch domyślny; serwer odpowiada w trakcie liczenia. |
-| ✅ `bot/b3-runner` (na `main` 2026-11-16) | `api/bot_runner.py`: wyzwalacz po commicie, kolejka na grę, opóźnienie z ustawień (admin fast = 0), etykiety `bot:*`, Activity, odrzucanie wyników po Undo człowieka. | Partia 1 człowiek + 5 botów przechodzi pełne rundy bez zawieszenia (test API). |
-| ⬜ `bot/b4-arena` | `python -m src.engine.arena`: gry bez UI, turnieje algorytmów na wspólnych ziarnach, raport (wygrane, VP, czas/ruch). Smoke w `tests/engine/`. | Arena z ziarnem deterministyczna (tryb inline); 422 na legalnym ruchu kończy grę raportem. |
-| ⬜ `bot/b5-legalne-ruchy` | Generatory akcji taktycznej (aktywacja, ruch, produkcja, inwazja), prowadzenie walki (rzut, AFB, odwrót), secondary z wyborem, badań, akcji komponentu, kart akcji; brakujące enumeratory w `core/`; scenariusze pokrywające `NOT_YET_COVERED`. | Bot losowy gra w arenie 10 rund bez 422. |
-| ⬜ `bot/b6-szybki-stan` | `engine/fast`: szybka reprezentacja i symulator kroków potrzebnych algorytmom (najpierw walka); test zgodności z `core/`; decyzja o Numbie/akceleracji po pomiarze. | Cel wydajności z pomiaru (np. symulacji walki/s) zapisany w tym planie; zgodność 100% na próbie losowej. |
-| ⬜ `bot/alg-*` | Każdy algorytm z §3 osobno: moduł + testy + konfiguracja + wynik w arenie wobec poprzedniej wersji bota. | Algorytm wygrywa (lub nie przegrywa) w arenie z wersją bez niego; mieści się w budżecie. |
-| ⬜ `bot/b10-dyplomacja-core` | Przeniesienie `bot_accepts`, `_bot_choice` i losowego tajnego celu bota (`begin_setup`) z `core/` do `engine/` (core pyta, engine odpowiada). | `core/` nie zawiera decyzji bota. |
-| ⬜ `bot/b11-trudnosc` | Poziomy i osobowości = zestawy algorytmów + parametrów + budżetów w `engine_config.json`; reakcje w oknach. | Różnice poziomów mierzalne w arenie. |
+| ✅ `bot/b0-fundament` | This plan, `src/engine/CLAUDE.md`, `docs/rules/R65.md`, `ARCHITEKTURA_KODU.md` (`ai/`→`engine/`), `docs/README.md` index. | Docs consistent; zero code. |
+| ✅ `bot/b1-katalog-akcji` | `Action` + `apply` for "don't stall the game" decisions: secret objective, Custodians/objective reveal, strategy card pick, pass / end turn, pass in window, decline "may", skip secondary, assign hits, agenda vote, status steps, hand limit discard. `legal_actions` for those reasons. | Catalog ↔ HTTP parity test for every action; guard "engine does not import api". **Result:** 3 scenarios (6 bots; 6 bots + agenda; 4 "humans" + agenda) play 2 full rounds without stalling, 0 HTTP divergences, 0 rejections of first candidate; same start + seed = same match. Uncovered (`NOT_YET_COVERED` list in `tests/engine/test_actions_parity.py`): `battle_assign`, `held_pass`, `held_release`, `offer_decline` → B5. |
+| 🟡 `bot/b2-obliczenia` (core on `main` 2026-11-16) | `engine/compute`: `DecisionRequest/Result`, `Algorithm`, `Executor` inline + process, deadline and anytime result, `state_seq` invalidation, registry from `engine_config.json`, "default" algorithm (safe move). `engine/bench.py`. | Same request inline and in process → same decision; timeout → default move; server stays responsive during compute. |
+| ✅ `bot/b3-runner` (on `main` 2026-11-16) | `api/bot_runner.py`: post-commit trigger, per-game queue, delay from settings (admin fast = 0), `bot:*` labels, Activity, discarding results after human Undo. | 1 human + 5 bots game completes full rounds without stalling (API test). |
+| ⬜ `bot/b4-arena` | `python -m src.engine.arena`: headless games, algorithm tournaments on shared seeds, report (wins, VP, time/move). Smoke in `tests/engine/`. | Seeded arena deterministic (inline mode); 422 on a legal move ends the game with a report. |
+| ⬜ `bot/b5-legalne-ruchy` | Tactical action generators (activation, movement, production, invasion), running combat (roll, AFB, retreat), secondary with choice, research, component actions, action cards; missing enumerators in `core/`; scenarios covering `NOT_YET_COVERED`. | Random bot plays 10 rounds in arena without 422. |
+| ⬜ `bot/b6-szybki-stan` | `engine/fast`: fast representation and step simulator needed by algorithms (combat first); parity test with `core/`; decision on Numba/acceleration after measurement. | Target performance from benchmark (e.g. combat sims/s) recorded in this plan; 100% parity on random sample. |
+| ⬜ `bot/alg-*` | Each algorithm from §3 separately: module + tests + config + arena result against previous bot version. | Algorithm wins (or doesn't lose) in arena vs version without it; fits within budget. |
+| ⬜ `bot/b10-dyplomacja-core` | Move `bot_accepts`, `_bot_choice`, and random bot secret objective (`begin_setup`) from `core/` to `engine/` (core asks, engine answers). | `core/` contains no bot decisions. |
+| ⬜ `bot/b11-trudnosc` | Levels and personalities = sets of algorithms + parameters + budgets in `engine_config.json`; window reactions. | Measurable level differences in arena. |
 
-Zależności: B3 wymaga prostej serializacji na grę (fragment N4). Od B5 każda nowa mechanika silnika
-powinna od razu dostać wpis w `legal_actions` (strażnik do rozważenia w B5).
+Dependencies: B3 requires simple per-game serialization (part of N4). From B5 onward, every new engine
+mechanic should immediately get an entry in `legal_actions` (guard to consider in B5).
 
 ---
 
-## 6. Decyzje użytkownika
+## 6. User Decisions
 
-Podjęte 2026-11-16 (szczegóły w `docs/rules/R65.md` 65.7):
-1. Algorytmy: architektura 4 warstw (§3); bez sieci neuronowych i GPU.
-2. Bot w procesie serwera + procesy robocze (rekomendacja przyjęta).
-3. Budżet 2 s decyzja zwykła / 10 s kluczowa; rdzenie: maksymalnie (wszystkie poza jednym).
-4. Tempo „dla oka” 1–2 s, admin fast = 0.
-5. Bot nigdy nie cofa; po Undo człowieka liczy od nowa.
-6. Przejęcie nieobecnego człowieka przez bota — na końcu prac.
+Made 2026-11-16 (details in `docs/rules/R65.md` 65.7):
+1. Algorithms: 4-layer architecture (§3); no neural networks or GPU.
+2. Bot in server process + worker processes (recommendation accepted).
+3. Budget 2 s normal decision / 10 s key decision; cores: maximum (all minus one).
+4. Pace "human-paced" 1–2 s, admin fast = 0.
+5. Bot never undoes; after human Undo, recomputes from scratch.
+6. Bot takeover for absent human — at the end of development.
 
-Otwarte: zależności OR-Tools / Numba (§3, uwagi 2–3) — decyzja przy branchu algorytmu, po pomiarze.
+Open: OR-Tools / Numba dependencies (§3, notes 2–3) — decide on the algorithm branch after measurement.

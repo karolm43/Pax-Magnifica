@@ -1,120 +1,120 @@
-1# Plan: pełna rozgrywka Twilight Imperium na stronie
+# Plan: Full Twilight Imperium Gameplay on the Web
 
-Cel końcowy (ustalony z użytkownikiem): **możliwość rozegrania pełnej partii TI4 w aplikacji**
-— nie tylko odwzorowanie stanu (God-Mode), ale realne fazy, akcje, walka, agenda, punktacja.
+End goal (agreed with user): **ability to play a full game of TI4 in the app**
+— not just mirroring state (God-Mode), but real phases, actions, combat, agenda, scoring.
 
-## Ustalenie bazowe (dowodowe)
+## Baseline Findings (evidence-based)
 
-- **Frontend `ti4_web` NIE ma logiki akcji.** To viewer: jedyne POST-y to nasze dodatki
-  (`useNewGame`, `useBoardEditor`); oryginał deleguje akcje do Discorda przez
-  `actionsJumpLink`/`tableTalkJumpLink`. Potwierdzone grepem (brak `useMutation`, brak
-  POST do bota poza naszymi).
-- **Logika gry jest w Java bocie** (`TI4_map_generator_bot/src/main/java/ti4/service/`):
+- **The `ti4_web` frontend has NO action logic.** It is a viewer: the only POSTs are our additions
+  (`useNewGame`, `useBoardEditor`); the original delegates actions to Discord via
+  `actionsJumpLink`/`tableTalkJumpLink`. Confirmed by grep (no `useMutation`, no
+  POST to bot outside ours).
+- **Game logic lives in the Java bot** (`TI4_map_generator_bot/src/main/java/ti4/service/`):
   `turn/`, `strategycard/`, `tactical/`, `combat/`, `agenda/`, `status` (StatusCleanupService),
   `objectives/`, `leader/`, `tech/`, `explore/`, `transaction/`, `commodities/`, `planet/`,
-  `relic/`, `abilities/`. Spleciona z Discordem (JDA buttony) — używamy jako ŹRÓDŁO REGUŁ.
-- **Reużywalne z frontu:** komponenty wyświetlania/wyboru w `src/domains/cards/components/`
+  `relic/`, `abilities/`. Tangled with Discord (JDA buttons) — we use it as a RULES SOURCE.
+- **Reusable from frontend:** display/picker components in `src/domains/cards/components/`
   (StrategyCardDetailsCard, StrategyCardSheet, TechCard, LeaderDetailsCard, PlanetDetailsCard,
-  ObjectiveDetailsCard, UnitDetailsCard…), panele graczy/mapy, builder battle-calc.
+  ObjectiveDetailsCard, UnitDetailsCard…), player/map panels, battle-calc builder.
 
-## Zasada
+## Principle
 
-Każda reguła → najpierw do `docs/RULES.md` ze źródłem (Java bot / LRR), potem implementacja
-w Pythonie. Dane liczbowe wyłącznie z assetów przez `StaticDataRegistry`. Każdy krok:
-kod + testy + QA + commit; grywalny przyrostowo.
+Every rule → first into `docs/RULES.md` with a source (Java bot / LRR), then implementation
+in Python. Numeric data exclusively from assets via `StaticDataRegistry`. Every step:
+code + tests + QA + commit; incrementally playable.
 
-## Etapy (kolejność jak pakiety Javy)
+## Stages (ordered like Java packages)
 
-### E1 — Maszyna faz + kolejność tur (fundament)  ⬅ START
-Źródło: `service/turn/` (StartTurn/EndTurn/Pass), `service/game/` (round).
-- Model: `Phase` już jest; dodać przejścia faz i kolejność inicjatywy (z `scs`).
-- Endpointy: `POST /phase/next`, `POST /turn/end`, `POST /turn/pass`, `POST /round/next`.
-- Reguła: kolejność tur wg inicjatywy kart strategii; pas = gracz pomijany do końca rundy;
-  koniec rundy gdy wszyscy spasowali → faza statusu.
-- UI: panel faz (jest) + przyciski „Zakończ turę / Pas / Następna faza" w stylu strony.
-- DoD: można przeklikać Strategia → Akcja (tury wg inicjatywy) → Status → Agenda → runda+1.
+### E1 — Phase Machine + Turn Order (foundation) ⬅ START
+Source: `service/turn/` (StartTurn/EndTurn/Pass), `service/game/` (round).
+- Model: `Phase` already exists; add phase transitions and initiative order (from `scs`).
+- Endpoints: `POST /phase/next`, `POST /turn/end`, `POST /turn/pass`, `POST /round/next`.
+- Rule: turn order by strategy card initiative; pass = player skipped until end of round;
+  end of round when all have passed → status phase.
+- UI: phase panel (exists) + "End turn / Pass / Next phase" buttons matching site style.
+- DoD: can click through Strategy → Action (turns by initiative) → Status → Agenda → round+1.
 
-### E2 — Faza strategii (wybór kart strategii)
-Źródło: `service/strategycard/` (PickStrategyCard, PlayStrategyCard, secondary/follow).
-- Model: pula 8 kart strategii (SpeakerOrder), wybór per gracz (`strategy_cards`), exhausted.
-- Endpointy: `POST /strategy/pick`, `POST /strategy/play`, `POST /strategy/follow`.
-- Reguła: inicjatywa z numeru karty; primary/secondary; trade goods na niewybranych kartach.
-- UI: wybór karty (komponenty SC z frontu), oznaczenie zagranej/wyczerpanej.
-- DoD: faza strategii rozdaje karty, ustala inicjatywę dla fazy akcji.
+### E2 — Strategy Phase (strategy card selection)
+Source: `service/strategycard/` (PickStrategyCard, PlayStrategyCard, secondary/follow).
+- Model: pool of 8 strategy cards (SpeakerOrder), per-player pick (`strategy_cards`), exhausted.
+- Endpoints: `POST /strategy/pick`, `POST /strategy/play`, `POST /strategy/follow`.
+- Rule: initiative from card number; primary/secondary; trade goods on unpicked cards.
+- UI: card picker (SC components from frontend), played/exhausted indicator.
+- DoD: strategy phase deals cards, sets initiative for the action phase.
 
-### E3 — Akcja taktyczna (aktywacja → ruch → walka kosmiczna → inwazja → produkcja) ✅ GOTOWY
-Źródło: `service/tactical/` (TacticalAction* + movement/planet/postmovement), `service/combat/`.
-- **⚠️ DECYZJA ZMIENIONA (2026-10, patrz RULES.md 29):** pierwotnie silnik był ASYSTENTEM
-  STOŁU (prowadził kroki, NIE walidował reguł). NOWY KIERUNEK: silnik jest SĘDZIĄ — EGZEKWUJE
-  reguły TI4 przez kod (bo bot AI i tak musi je znać, a to wygodniejsze dla gracza). God-Mode
-  zostaje jako osobny kanał ręcznej korekty (omija walidację). E3 w wersji asystenta (bloki
-  T1–T4) jest FUNDAMENTEM — dobudowujemy na nim walidację + okna czasowe (patrz etap E8 niżej).
-- Krokowa maszyna (TacticalStep FSM): ACTIVATION → MOVEMENT → SPACE_CANNON → SPACE_COMBAT →
-  INVASION → PRODUCTION. Aktywacja kładzie żeton dowodzenia (pula taktyczna), `active_system`.
-- Walka (kosmiczna/naziemna): okno-asystent z pomocami (kości, trafia na X+, expected hits
-  z UnitDef); odejmowanie zniszczonych przez God-Mode. Inwazja: przejęcie kontroli planety.
-  Produkcja: pomoc kosztu (UnitDef.cost + dostępne zasoby). Space cannon: krok FSM bez okna.
-- DoD: ✅ pełna sekwencja przeklikalna krok po kroku (aktywacja → ruch → walka → przejęcie
-  planety → produkcja → zakończenie akcji).
+### E3 — Tactical Action (activation → movement → space combat → invasion → production) ✅ DONE
+Source: `service/tactical/` (TacticalAction* + movement/planet/postmovement), `service/combat/`.
+- **⚠️ DECISION CHANGED (2026-10, see RULES.md 29):** originally the engine was a TABLE
+  ASSISTANT (guided steps, did NOT validate rules). NEW DIRECTION: the engine is a REFEREE — it ENFORCES
+  TI4 rules in code (since the AI bot has to know them anyway, and it's more convenient for the player). God-Mode
+  remains as a separate manual correction channel (bypasses validation). Assistant-version E3 (blocks
+  T1–T4) is the FOUNDATION — we build validation + timing windows on top of it (see stage E8 below).
+- Step state machine (TacticalStep FSM): ACTIVATION → MOVEMENT → SPACE_CANNON → SPACE_COMBAT →
+  INVASION → PRODUCTION. Activation places a command token (tactic pool), `active_system`.
+- Combat (space/ground): assistant window with helpers (dice, hits on X+, expected hits
+  from `UnitDef`); removing destroyed units via God-Mode. Invasion: establishing planet control.
+  Production: cost helper (`UnitDef.cost` + available resources). Space cannon: FSM step without window.
+- DoD: ✅ full sequence clickable step by step (activation → movement → combat → planet
+  capture → production → end action).
 
-### E4 — Akcje komponentowe + strategiczne secondary
-Źródło: `service/actioncard/`, `service/leader/`, `service/tech/`, `service/explore/`.
-- Zagranie karty akcji, agent/hero, badanie technologii, eksploracja planet/frontier.
-- UI: przyciski „Zagraj kartę / Aktywuj lidera / Zbadaj tech" (karty z frontu jako pickery).
+### E4 — Component Actions + Strategic Secondaries
+Source: `service/actioncard/`, `service/leader/`, `service/tech/`, `service/explore/`.
+- Playing an action card, agent/hero, researching technology, exploring planets/frontier.
+- UI: "Play card / Activate leader / Research tech" buttons (frontend cards as pickers).
 
-### E5 — Faza statusu (punktacja + sprzątanie)
-Źródło: `StatusCleanupService`, `service/objectives/`.
-- Punktowanie celów publicznych/sekretnych (ewaluator — M3 roadmapy), custodian.
-- Sprzątanie: odświeżenie kart/planet, zwrot żetonów, nowa runda.
-- UI: panel celów (komponenty z frontu) + scoring.
+### E5 — Status Phase (scoring + cleanup)
+Source: `StatusCleanupService`, `service/objectives/`.
+- Scoring public/secret objectives (evaluator — roadmap M3), custodian.
+- Cleanup: ready cards/planets, return tokens, new round.
+- UI: objectives panel (frontend components) + scoring.
 
-### E6 — Faza agendy
-Źródło: `service/agenda/`.
-- Odkrycie agend, głosowanie (wpływy z planet), rozstrzygnięcie, prawa w grze.
-- UI: panel agendy (jest w GameStatePanel) + głosowanie.
+### E6 — Agenda Phase
+Source: `service/agenda/`.
+- Revealing agendas, voting (planet influence), resolution, laws in play.
+- UI: agenda panel (in GameStatePanel) + voting.
 
-### E7 — Asymetria frakcyjna + end-game
-Źródło: `service/abilities/`, dane `assets/data/abilities/*.json`, `rules_hooks` (spec), VP do zwycięstwa.
-- Zdolności frakcji (hooki na ruch/walkę/produkcję), warunek wygranej (10 VP).
-- Pełna lista frakcji i ich gimmicków do okodowania: patrz sekcja „Frakcje" niżej.
+### E7 — Faction Asymmetry + End-Game
+Source: `service/abilities/`, data `assets/data/abilities/*.json`, `rules_hooks` (spec), VP to win.
+- Faction abilities (hooks on movement/combat/production), win condition (10 VP).
+- Full list of factions and their gimmicks to code: see "Factions" section below.
 
 ---
 
-### E8 — Silnik-SĘDZIA: egzekucja reguł + okna czasowe (PRZEBUDOWA, w toku) ⬅ AKTUALNY
+### E8 — Referee Engine: Rule Enforcement + Timing Windows (OVERHAUL, in progress) ⬅ CURRENT
 
-Źródło decyzji: RULES.md 29 (zmiana kierunku z „asystent" na „sędzia"). Dobudowujemy walidację
-i okna czasowe NA ISTNIEJĄCYM E1–E3 (nie przepisujemy). Tryb: solo vs boty + hot-seat (docelowo
-sieć), więc okna pytają graczy po kolei. God-Mode zostaje jako kanał omijający walidację.
+Decision source: RULES.md 29 (direction shift from "assistant" to "referee"). We add validation
+and timing windows ON TOP OF EXISTING E1–E3 (no rewrite). Mode: solo vs bots + hot-seat (ultimately
+networked), so windows prompt players in order. God-Mode stays as a validation-bypassing channel.
 
-Zadania (pełny opis i reguły: RULES.md 29.1–29.3; dziennik: PROGRESS.md):
-- T1: model okna czasowego w `GameState` + `core/timing.py` (kolejka respondentów, open/respond/close).
-- T2: ekspozycja okna w `web_data` + panel okna w UI (kto teraz reaguje + odpowiedź).
-- T3: pierwsze realne okno — secondary karty strategii (zagranie karty otwiera okno pozostałym).
-- T4: pojęcie aktualnego gracza w STATUS/AGENDA + twarda walidacja flow (czyja tura, co wolno).
-- T5: ruch jako funkcja core (`core/movement.py`) + walidacja zasięgu/anomalii/przejezdności.
-- T6: walidacja aktywacji / przejęcia planety / produkcji (koszty, limity, legalność).
-- T7: walka — rdzeń: rzuty (seedowalny RNG) + liczenie trafień + okno „przypisz straty", wielorundowo.
-- T8: interaktywna walka w UI (animacja rzutów kośćmi) spięta z oknami.
-- T9: dodatkowe okna walki — anti-fighter barrage + space cannon offense.
-- T10: aktualizacja dokumentacji (RULES.md 29, PLAN, PROGRESS, README) + memory projektu.
+Tasks (full description and rules: RULES.md 29.1–29.3; log: PROGRESS.md):
+- T1: timing window model in `GameState` + `core/timing.py` (respondent queue, open/respond/close).
+- T2: expose window in `web_data` + window panel in UI (who is reacting now + response).
+- T3: first real window — strategy card secondary (playing a card opens a window for others).
+- T4: concept of current player in STATUS/AGENDA + hard flow validation (whose turn, what's allowed).
+- T5: movement as a `core/` function (`core/movement.py`) + range/anomaly/traversability validation.
+- T6: activation / planet capture / production validation (costs, limits, legality).
+- T7: combat — core: rolls (seedable RNG) + hit counting + "assign hits" window, multi-round.
+- T8: interactive combat in UI (dice roll animation) wired to windows.
+- T9: extra combat windows — anti-fighter barrage + space cannon offense.
+- T10: update documentation (RULES.md 29, PLAN, PROGRESS, README) + project memory.
 
-DoD E8: pełna runda rozgrywana z egzekwowanymi regułami i oknami czasowymi (secondary działa dla
-wszystkich graczy po kolei; nielegalne akcje odrzucane; walka rozstrzygana przez silnik z rzutami).
+DoD E8: full round playable with enforced rules and timing windows (secondary works for
+all players in turn order; illegal actions rejected; combat resolved by engine with rolls).
 
-## Frakcje — zakres i gimmicki do okodowania (E7, po silniku bazowym)
+## Factions — Scope and Gimmicks to Code (E7, after base engine)
 
-Aktywne źródła: **base + pok + codex3 (Keleres) + thunders_edge**. Łącznie 30 frakcji
-grywalnych (Keleres = 3 warianty startowe; Firmament/Obsidian = 2 osobne frakcje; plus
-`neutral` jako pseudo-frakcja systemowa). **Zdolności czytane z danych** (`abilities` we
-`FactionDef` → opisy w `assets/data/abilities/`), nigdy z pamięci.
+Active sources: **base + pok + codex3 (Keleres) + thunders_edge**. Total 30 playable
+factions (Keleres = 3 starting variants; Firmament/Obsidian = 2 separate factions; plus
+`neutral` as a system pseudo-faction). **Abilities read from data** (`abilities` in
+`FactionDef` → descriptions in `assets/data/abilities/`), never from memory.
 
-> Jak to kodujemy (plan, nie teraz): każda zdolność to **hook** w odpowiednim oknie
-> silnika (setup / ruch / walka / produkcja / status / agenda). Dopóki hook nie istnieje,
-> zdolność jest „martwa" (frakcja gra jak generyczna). Implementujemy je PO ukończeniu
-> silnika bazowego (E1–E6), frakcja po frakcji, każda z wpisem w `RULES.md` i testem.
+> How we code this (plan, not now): each ability is a **hook** in the appropriate engine
+> window (setup / movement / combat / production / status / agenda). Until a hook exists,
+> the ability is "inert" (faction plays as generic). We implement them AFTER completing
+> the base engine (E1–E6), faction by faction, each with an entry in `RULES.md` and a test.
 
-### Base (17 frakcji)
-| Frakcja | alias | Zdolności (gimmicki z danych) |
+### Base (17 factions)
+| Faction | alias | Abilities (gimmicks from data) |
 |---|---|---|
 | The Arborec | `arborec` | Mitosis |
 | The Barony of Letnev | `letnev` | Munitions Reserves, Armada |
@@ -134,8 +134,8 @@ grywalnych (Keleres = 3 warianty startowe; Firmament/Obsidian = 2 osobne frakcje
 | The Yin Brotherhood | `yin` | Indoctrination, Devotion |
 | The Yssaril Tribes | `yssaril` | Stall Tactics, Scheming, Crafty |
 
-### Prophecy of Kings (7 frakcji)
-| Frakcja | alias | Zdolności |
+### Prophecy of Kings (7 factions)
+| Faction | alias | Abilities |
 |---|---|---|
 | The Argent Flight | `argent` | Zeal, Raid Formation |
 | The Empyrean | `empyrean` | Voidborn, Aetherpassage, Dark Whispers |
@@ -145,15 +145,15 @@ grywalnych (Keleres = 3 warianty startowe; Firmament/Obsidian = 2 osobne frakcje
 | The Titans of Ul | `titans` | Terragenesis, Awaken, Coalescence |
 | The Vuil'Raith Cabal | `cabal` | Devour, Amalgamation, Riftmeld |
 
-### Codex III — Council Keleres (1 frakcja, 3 warianty startowe)
-| Frakcja | alias | Zdolności |
+### Codex III — Council Keleres (1 faction, 3 starting variants)
+| Faction | alias | Abilities |
 |---|---|---|
 | The Council Keleres — Argent | `keleresa` | The Tribuni, Council Patronage, Law's Order |
-| The Council Keleres — Mentak | `keleresm` | (jw.) |
-| The Council Keleres — Xxcha | `keleresx` | (jw.) |
+| The Council Keleres — Mentak | `keleresm` | (same) |
+| The Council Keleres — Xxcha | `keleresx` | (same) |
 
-### Thunder's Edge (DLC, 6 frakcji + neutral)
-| Frakcja | alias | Zdolności |
+### Thunder's Edge (DLC, 6 factions + neutral)
+| Faction | alias | Abilities |
 |---|---|---|
 | Last Bastion | `bastion` | Liberate, Galvanize, Phoenix Standard |
 | The Crimson Rebellion | `crimson` | Sundered, Incursion, Sorrow |
@@ -161,378 +161,378 @@ grywalnych (Keleres = 3 warianty startowe; Firmament/Obsidian = 2 osobne frakcje
 | The Firmament | `firmament` | Plots Within Plots, Puppets of the Blade |
 | The Obsidian | `obsidian` | Nocturne, The Blade's Orchestra, Marionettes |
 | The Ral Nel Consortium | `ralnel` | Survival Instinct, Miniaturization |
-| (Neutral) | `neutral` | — pseudo-frakcja systemowa (jednostki neutralne), nie gra |
+| (Neutral) | `neutral` | — system pseudo-faction (neutral units), non-playable |
 
-> Pełne TEKSTY zdolności są w `assets/data/abilities/*.json` — nie przepisujemy ich tu
-> ani do kodu z pamięci. Przy implementacji każdego gimmicka: odczyt tekstu z danych →
-> wpis reguły do `RULES.md` ze źródłem → hook w silniku → test. Thunder's Edge to DLC,
-> więc część mechanik może odbiegać od LRR — wtedy źródłem jest materiał Thunder's Edge
-> (do potwierdzenia przez użytkownika, gdy reguła niejasna).
+> Full ability TEXTS are in `assets/data/abilities/*.json` — we do not copy them here
+> or into code from memory. When implementing each gimmick: read text from data →
+> rule entry in `RULES.md` with source → hook in engine → test. Thunder's Edge is DLC,
+> so some mechanics may diverge from LRR — then the source is Thunder's Edge material
+> (for user confirmation when a rule is unclear).
 
-## Status i następny krok
+## Status and Next Step
 
-- **Milestone 1 — cyfrowa plansza + God-Mode:** ✅ gotowy (mapa, jednostki, gracze,
-  historia/Undo, edycja graficzna, panel faz).
-- **E1 — fazy + kolejność tur:** ✅ gotowy (`turn_flow.py`, endpointy, panel faz).
-- **E2 — faza strategii (wybór kart):** ✅ gotowy (`strategy_phase.py`, pula kart, wybór +
-  transfer trade goods, akumulacja TG, picker w UI). **DOMKNIĘTE jako sędzia** (feature
-  `strategy-phase-complete`, RULES.md 13): Pick_Count (3–4→2, 5–8→1), druga runda od mówcy,
-  walidacja przejścia STRATEGY→ACTION + ścisła kolejność inicjatywy → HTTP 422; UI
-  `StrategyCardTable` + `PhaseTransitionBanner`. Szczegóły: PROGRESS.md.
-- **E3 — akcja taktyczna:** ✅ gotowy (`core/tactical.py` + `core/combat.py`,
-  `api/routers/tactical.py`, panel taktyczny + okno walki w UI). Asystent stołu: aktywacja,
-  FSM kroków, walka kosmiczna/naziemna z pomocami liczbowymi, przejęcie planety, pomoc
-  produkcji. Zero walidacji reguł (decyzja projektowa). Bloki T1–T4, reguły RULES.md 19–22.
-- **E3 — akcja taktyczna (wersja asystenta):** ✅ gotowy jako FUNDAMENT (bloki T1–T4, RULES.md 19–22).
-- **⬅ AKTUALNY: E8 — silnik-sędzia (egzekucja reguł + okna czasowe)** — PRZEBUDOWA na istniejącym
-  E1–E3 (patrz etap E8 wyżej + RULES.md 29). Rozpoczęta od aktualizacji dokumentacji (T10 częściowo).
-- **E4 — akcje komponentowe** (karty akcji, liderzy, badanie tech, eksploracja) — po E8.
-- **Frakcje (E7):** lista 30 frakcji + gimmicki spisane (sekcja „Frakcje"). Kodujemy je
-  dopiero PO silniku bazowym (E3–E6), frakcja po frakcji, jako hooki w oknach silnika.
+- **Milestone 1 — digital board + God-Mode:** ✅ done (map, units, players,
+  history/Undo, visual editing, phase panel).
+- **E1 — phases + turn order:** ✅ done (`turn_flow.py`, endpoints, phase panel).
+- **E2 — strategy phase (card selection):** ✅ done (`strategy_phase.py`, card pool, pick +
+  trade good transfer, TG accumulation, UI picker). **CLOSED as referee** (feature
+  `strategy-phase-complete`, RULES.md 13): Pick_Count (3–4→2, 5–8→1), second round from speaker,
+  STRATEGY→ACTION transition validation + strict initiative order → HTTP 422; UI
+  `StrategyCardTable` + `PhaseTransitionBanner`. Details: PROGRESS.md.
+- **E3 — tactical action:** ✅ done (`core/tactical.py` + `core/combat.py`,
+  `api/routers/tactical.py`, tactical panel + combat window in UI). Table assistant: activation,
+  step FSM, space/ground combat with numeric helpers, planet capture, production
+  helper. Zero rule validation (design decision). Blocks T1–T4, rules RULES.md 19–22.
+- **E3 — tactical action (assistant version):** ✅ done as FOUNDATION (blocks T1–T4, RULES.md 19–22).
+- **⬅ CURRENT: E8 — referee engine (rule enforcement + timing windows)** — OVERHAUL on existing
+  E1–E3 (see stage E8 above + RULES.md 29). Started with documentation update (T10 partial).
+- **E4 — component actions** (action cards, leaders, tech research, exploration) — after E8.
+- **Factions (E7):** list of 30 factions + gimmicks documented ("Factions" section). We code them
+  only AFTER the base engine (E3–E6), faction by faction, as hooks in engine windows.
 
-**Stan na 2026-11-08 (aktualizacja):**
-- **Faza C (punkty centralne C1–C9):** ✅ — strażnik `tests/test_central_points.py` pilnuje ~40 pól stanu.
-- **Hooki:** H1 szkielet (`core/rules_hooks.py`, pakiet `core/hooks/`) ✅, H2 punkty MODIFY/PERMIT/FORBID ✅ (ruch,
-  walka, produkcja, płatność, agenda), H3 raport pokrycia ✅ (`POKRYCIE_HOOKOW.md`). **H1b (STOP) ⬜** — model
-  uzgodniony w RULES.md 43.4, implementacja czeka.
-- **E6 faza agendy:** `core/agenda_phase.py` ✅ (ujawnienie, głosowanie, remis, prawa w grze); **efekty agend ⬜**.
-- **Karty akcji (H4):** zagrywanie ACTION ✅ (`core/action_cards.py`, formularz wyborów, zagrywalność, UI z
-  przeciąganiem z ręki); **16 z 143 kart ma efekt**. Cel: komplet (patrz „CEL PRODUKTOWY” niżej).
-- **Frakcje (H5):** hooków frakcyjnych jest 1 (Arborec); reszta ⬜. **Sieć (N) ⬜** (brak `actor_id` w większości endpointów).
+**Status as of 2026-11-08 (update):**
+- **Phase C (central points C1–C9):** ✅ — guard `tests/test_central_points.py` protects ~40 state fields.
+- **Hooks:** H1 skeleton (`core/rules_hooks.py`, package `core/hooks/`) ✅, H2 MODIFY/PERMIT/FORBID points ✅ (movement,
+  combat, production, payment, agenda), H3 coverage report ✅ (`POKRYCIE_HOOKOW.md`). **H1b (STOP) ⬜** — model
+  agreed in RULES.md 43.4, implementation pending.
+- **E6 agenda phase:** `core/agenda_phase.py` ✅ (reveal, voting, ties, laws in play); **agenda effects ⬜**.
+- **Action cards (H4):** ACTION play ✅ (`core/action_cards.py`, choice form, playability, UI with
+  drag-from-hand); **16 of 143 cards have effects**. Goal: complete set (see "PRODUCT GOAL" below).
+- **Factions (H5):** 1 faction hook (Arborec); rest ⬜. **Network (N) ⬜** (missing `actor_id` in most endpoints).
 
-**Stan na 2026-11-11 (nadrzędny wobec punktów wyżej):**
-- **Karty strategii:** wszystkie 8 (primary + secondary) ✅ w `core/strategy_cards/` (moduły `CardSpec`).
-- **Karty akcji (H4):** 143/143 z efektem ✅; reakcje w oknach + **H1b ✅** jako hold-play (Sabotage) i
-  hold-rewind (przycisk HOLD) — RULES.md 53.6, 53.7.
-- **Relikty** 23/23 ✅, **technologie ogólne** 33/33 ✅ (frakcyjne w H5), **cele** 80/80 sprawdzane automatycznie ✅.
-- **Agendy:** głosowanie ✅, efekty praw/dyrektyw ⬜ (0/123) — następny blok.
-- **Frakcje (H5):** ⬜. **Sieć (N):** N0–N3 ✅, N5 część 1 ✅, N4 ⬜ (sekcja „Etap sieciowy” niżej).
+**Status as of 2026-11-11 (supersedes points above):**
+- **Strategy cards:** all 8 (primary + secondary) ✅ in `core/strategy_cards/` (`CardSpec` modules).
+- **Action cards (H4):** 143/143 with effects ✅; window reactions + **H1b ✅** as hold-play (Sabotage) and
+  hold-rewind (HOLD button) — RULES.md 53.6, 53.7.
+- **Relics** 23/23 ✅, **general technologies** 33/33 ✅ (faction techs in H5), **objectives** 80/80 auto-checked ✅.
+- **Agendas:** voting ✅, law/directive effects ⬜ (0/123) — next block.
+- **Factions (H5):** ⬜. **Network (N):** N0–N3 ✅, N5 part 1 ✅, N4 ⬜ ("Network Stage" section below).
 
-Szczegółowy dziennik postępu: `PROGRESS.md`. Mapa dokumentacji: `README.md` (w `docs/`).
+Detailed progress log: `PROGRESS.md`. Documentation map: `README.md` (in `docs/`).
 
-## OSTATECZNY PLAN KOLEJNOŚCI (nadrzędny wobec starszych kolejności w tym pliku)
+## FINAL ORDERING PLAN (supersedes older orderings in this file)
 
-Ustalone z użytkownikiem. Karty strategii i dodawanie technologii istnieją (bez pełnych efektów), więc
-następny krok to **porządkowanie punktów centralnych (C) i szkielet hooków (H)**.
+Agreed with user. Strategy cards and adding technologies exist (without full effects), so
+the next step is **consolidating central points (C) and the hook skeleton (H)**.
 
-| Faza | Zakres | Uwagi |
+| Phase | Scope | Notes |
 |---|---|---|
-| **C** | Punkty centralne: jedna funkcja na każdą rozproszoną operację (płatności, żetony, wyczerpywanie, kontrola planet, zniszczenie/postawienie jednostek, zdobycie technologii, VP) | Czysty refaktor, ZERO zmiany zachowania; testy regresji. Patrz „Audyt miejsc rozproszonych" niżej |
-| **H0–H2** | Szkielet `core/rules_hooks.py` + punkty zaczepienia NA punktach centralnych z C | Pierwsze przypadki: Arborec (`production.py`), Antimass (`movement.py`), technologia „ruch przez systemy z obcymi statkami", Keleres (commodities jako TG) |
-| **T** | Dokończenie technologii: zdobywanie (karta Technology, skipy, prerekwizyty) + efekty technologii jako hooki | Efekty po H2; reguły z `R_technology`, `R_technology_sc`, `R_unit_upgrades` |
-| **S** | Dokończenie kart strategii (efekty primary/secondary, wyjątki frakcyjne jako hooki) | Wg stanu kodu `core/strategy_cards/*` |
-| **X** | Eksploracja: dokończenie (talie, attachmenty, relikwie) + efekty kart jako hooki | Wg stanu `core/exploration.py` |
-| **H1b** | STOP: punkty kontrolne + przerwanie (RULES.md 43.4) | Przed kartami akcji |
-| **E4–E7** | Karty akcji, frakcje (proste → złożone), agendy | Wg raportu pokrycia (H3) |
-| **N** | Sieć do 6 graczy (RULES.md 44) | `actor_id` w nowych endpointach OD TERAZ |
+| **C** | Central points: one function per scattered operation (payments, tokens, exhausting, planet control, destroying/placing units, gaining tech, VP) | Pure refactor, ZERO behavior change; regression tests. See "Scattered Sites Audit" below |
+| **H0–H2** | Skeleton `core/rules_hooks.py` + hook points ON central points from C | First cases: Arborec (`production.py`), Antimass (`movement.py`), "move through systems with enemy ships" tech, Keleres (commodities as TG) |
+| **T** | Finish technologies: gaining (Technology card, skips, prerequisites) + tech effects as hooks | Effects after H2; rules from `R_technology`, `R_technology_sc`, `R_unit_upgrades` |
+| **S** | Finish strategy cards (primary/secondary effects, faction exceptions as hooks) | Per state of `core/strategy_cards/*` code |
+| **X** | Exploration: finish (decks, attachments, relics) + card effects as hooks | Per state of `core/exploration.py` |
+| **H1b** | STOP: checkpoints + interrupt (RULES.md 43.4) | Before action cards |
+| **E4–E7** | Action cards, factions (simple → complex), agendas | Per coverage report (H3) |
+| **N** | Network up to 6 players (RULES.md 44) | `actor_id` in new endpoints FROM NOW ON |
 
-Zasady przekrojowe:
-- Każdy blok: RULES.md ze źródłem → kod w `core/` → test → cienki endpoint → QA (pytest/ruff/mypy) → commit.
-  Wątpliwa reguła = ⚠ ZAŁOŻENIE i pytanie do użytkownika.
-- Do czasu ukończenia H2: żadnych nowych `if faction == ...`/sprawdzeń konkretnej karty w regułach bazowych.
-  Jeśli wyjątek jest konieczny, ląduje w JEDNYM nazwanym miejscu (stała/słownik) z komentarzem `HOOK-CANDIDATE`
-  (jak `_PRODUCTION_FORBIDS`), żeby migracja do hooków była mechaniczna.
-- Każda zmiana stanu opisana w „punktach centralnych" (niżej) idzie WYŁĄCZNIE przez jej funkcję centralną.
+Cross-cutting rules:
+- Every block: RULES.md with source → code in `core/` → test → thin endpoint → QA (pytest/ruff/mypy) → commit.
+  Uncertain rule = `⚠ ASSUMPTION` and question to user.
+- Until H2 is done: no new `if faction == ...` / specific card checks in base rules.
+  If an exception is necessary, it goes in ONE named place (constant/dict) with a `HOOK-CANDIDATE` comment
+  (like `_PRODUCTION_FORBIDS`) so migrating to hooks is mechanical.
+- Every state mutation described in "central points" (below) goes EXCLUSIVELY through its central function.
 
-## CEL PRODUKTOWY: wszystkie karty gotowe + zagrywanie przeciąganiem z ręki (decyzja użytkownika 2026-11-08)
+## PRODUCT GOAL: all cards ready + drag-from-hand to play (user decision 2026-11-08)
 
-**Chcemy mieć WSZYSTKIE karty gotowe**, a nie tylko wybrane: żaden komponent z aktywnych talii nie zostaje „martwy”.
-Docelowo 100% komponentów ma status `IMPLEMENTED`, a wyjątki są jawnie `MANUAL` z uzasadnieniem w RULES.md
-(RULES.md 43.1 pkt 7). Zakres (liczby z generowanego `POKRYCIE_HOOKOW.md`): karty akcji 143, agendy 63, karty
-eksploracji 80, relikty 24, promissory notes 40, wydarzenia galaktyczne 20, liderzy 103, zdolności frakcji 73,
-technologie 102, przełomy 31. Dziś: 16 kart akcji i 1 technologia mają efekt.
+**We want ALL cards ready**, not just selected ones: no component from active decks stays "dead".
+Ultimately 100% of components have status `IMPLEMENTED`, and exceptions are explicitly `MANUAL` with justification in RULES.md
+(RULES.md 43.1 item 7). Scope (counts from generated `POKRYCIE_HOOKOW.md`): action cards 143, agendas 63,
+exploration cards 80, relics 24, promissory notes 40, galactic events 20, leaders 103, faction abilities 73,
+technologies 102, breakthroughs 31. Today: 16 action cards and 1 tech have effects.
 
-**Definicja „karta gotowa” (DoD pojedynczej karty):**
-1. wpis w RULES.md (komponent, tekst z assetów, źródło w `docs/rules_tirules/`, ⚠ przy założeniach);
-2. efekt: `register_effect("<kategoria>:<id>")` albo hook (`core/hooks/*`) — zmiana stanu WYŁĄCZNIE przez punkty
-   centralne (RULES.md 43.1a);
-3. formularz wyborów: `register_effect_inputs` — legalne opcje liczy silnik (front nie zna kart);
-4. zagrywalność: karta jest zagrywalna, tylko gdy silnik może ją w pełni rozstrzygnąć
-   (`action_cards.playability`: okno, tura, legalne cele);
-5. testy: para „bez / z efektem”, round-trip formularza (parametry zbudowane jak w UI przechodzą walidację) i błędy;
-6. przegenerowany raport pokrycia (`uv run python -m src.audit.hook_coverage --write`).
+**Definition of "card ready" (DoD for a single card):**
+1. entry in RULES.md (component, text from assets, source in `docs/rules_tirules/`, `⚠` on assumptions);
+2. effect: `register_effect("<category>:<id>")` or hook (`core/hooks/*`) — state mutation EXCLUSIVELY through central
+   points (RULES.md 43.1a);
+3. choice form: `register_effect_inputs` — legal options computed by engine (frontend doesn't know cards);
+4. playability: card is playable only when the engine can fully resolve it
+   (`action_cards.playability`: window, turn, legal targets);
+5. tests: "without / with effect" pair, form round-trip (UI-shaped params pass validation), and errors;
+6. regenerated coverage report (`uv run python -m src.audit.hook_coverage --write`).
 
-**Standard UX — zagrywanie przeciąganiem z ręki:**
-- Kartę zagrywa się **przeciągając ją z paska ręki** na strefę „Drop to play”; po upuszczeniu otwiera się formularz
-  wyborów (cele, płatność), a silnik waliduje i stosuje efekt. Klik w kartę dalej pokazuje podgląd.
-- **Kartę można podnieść tylko wtedy, gdy da się ją zagrać** (decyzja silnika, nie UI). Pozostałe są przyciemnione,
-  a podpowiedź podaje powód (nie Twoja tura, brak celu, karta reakcji…).
-- Stan dziś: ✅ karty akcji z oknem ACTION (`BottomHandDock`, `GET /action-card/playable`).
-- Do zrobienia w tym samym standardzie: karty reakcji (when/after/instead) — przeciągnięcie w oknie reakcji / po STOP
-  (RULES.md 43.4); promissory notes (zagranie do strefy gracza, ⚠ założenie do potwierdzenia); relikty i inne
-  komponenty z akcją. Tajne cele NIE są zagrywane (punktacja w fazie statusu).
+**UX Standard — drag-from-hand to play:**
+- A card is played by **dragging it from the hand bar** onto the "Drop to play" zone; on drop, the choice
+  form opens (targets, payment), and the engine validates and applies the effect. Clicking a card still shows preview.
+- **A card can only be picked up when it can be played** (engine's decision, not UI's). Others are dimmed,
+  and a tooltip states why (not your turn, no target, reaction card…).
+- Status today: ✅ action cards with ACTION window (`BottomHandDock`, `GET /action-card/playable`).
+- To do at the same standard: reaction cards (when/after/instead) — drag in reaction window / after STOP
+  (RULES.md 43.4); promissory notes (play to player's area, `⚠` assumption to confirm); relics and other
+  action components. Secret objectives are NOT played (scored in status phase).
 
-**Kolejność prac (wg raportu pokrycia; sekcja „Kolejka kart ACTION” w `POKRYCIE_HOOKOW.md` jest generowana):**
-1. Pozostałe karty ACTION (lista w raporcie) — wymagają m.in. pomocnika „system domowy”, cech i wormholi, badania
-   technologii i wykonania zdolności kart strategii.
-2. Efekty agend (prawa jako trwałe hooki, dyrektywy jednorazowo) — mechanizm `SOURCE_AGENDA` już jest.
-3. Komponenty z oknem at_start / at_end / during (hook na początek/koniec fazy lub tury).
-4. STOP + pauza + predykaty zagrywalności → karty reakcji (około 157 komponentów when/after/before).
-5. Relikty, promissory notes, karty eksploracji, wydarzenia galaktyczne.
-6. Frakcje (zdolności, liderzy, technologie frakcyjne, przełomy, jednostki specjalne): od prostych do strukturalnych.
-7. `actor_id` w endpointach akcji równolegle z każdym blokiem, potem etap sieciowy (N).
+**Work order (per coverage report; "ACTION Card Queue" section in `POKRYCIE_HOOKOW.md` is generated):**
+1. Remaining ACTION cards (list in report) — require e.g. "home system" helper, traits & wormholes, technology
+   research, and executing strategy card abilities.
+2. Agenda effects (laws as persistent hooks, directives one-shot) — `SOURCE_AGENDA` mechanism already exists.
+3. Components with at_start / at_end / during window (hook at start/end of phase or turn).
+4. STOP + pause + playability predicates → reaction cards (~157 when/after/before components).
+5. Relics, promissory notes, exploration cards, galactic events.
+6. Factions (abilities, leaders, faction techs, breakthroughs, special units): simple to structural.
+7. `actor_id` in action endpoints alongside each block, then network stage (N).
 
-## Audyt miejsc rozproszonych (punkty centralne) — wynik wyszukiwania w `src/core/`
+## Scattered Sites Audit (central points) — search results in `src/core/`
 
-Hook przyczepia się w JEDNYM miejscu, więc operacja musi mieć jedną funkcję. Poniżej wynik wyszukiwania
-(grep po kodzie, stan z tej sesji). Liczby = liczba trafień we wzorcach, wstępne; DOKŁADNĄ listę wywołań
-ustala blok C0 (przegląd przed refaktorem).
+A hook attaches in ONE place, so an operation must have one function. Below are search results
+(code grep, state from this session). Counts = pattern hits, preliminary; EXACT call list
+is determined by block C0 (pre-refactor review).
 
-| # | Operacja | Gdzie rozproszone dziś | Funkcja centralna (propozycja) | Przykłady hooków |
+| # | Operation | Where scattered today | Central function (proposal) | Hook examples |
 |---|---|---|---|---|
-| 1 | Trade goods / commodities (dodanie, wydanie, konwersja) | `payment.py`, `production.py` (osobna ścieżka), `objective_payment.py`, `exploration.py` (TG i commodities), `strategy_phase.py`, `transaction.py`, `strategy_cards/trade.py` | `core/economy.py`: `gain_tg`, `spend_tg`, `gain/spend_commodities`, `convert_commodities`, `payment_sources` | commodities liczone jak TG (Keleres), zmiana kosztu, zwrot |
-| 2 | Płatność zasobami/wpływem (planety + TG) | `payment.py` (karty), `production.py` (`Spend`, `auto_pay`), `objective_payment.py`, `exploration.py` | jedna `pay(...)` używana przez wszystkich; produkcja przepięta | modyfikatory kosztu, dodatkowe źródła zapłaty |
-| 3 | Żetony dowodzenia (taktyczne/flota/strategiczne) | `objective_payment.py`, `status_phase.py`, `strategic_action.py`, `tactical.py`, `strategy_cards/common.py` | `core/command_tokens.py`: `gain`, `spend`, `move_between_pools` | darmowa aktywacja, dodatkowe żetony |
-| 4 | Wyczerpywanie/odświeżanie planet i technologii | `exhausted_planets` w ~11 plikach (m.in. `invasion.py`, `production.py`, `payment.py`), `exhausted_technologies` (`status_phase`, `board_edit`) | `core/exhaust.py`: `exhaust_planet/ready_planet`, `exhaust_tech/ready_tech` | odświeżanie planet, zdolności „exhaust this card" |
-| 5 | Statystyki jednostek (ruch, pojemność, koszt, walka, produkcja) | `resolve_unit_variant` wołane w ~11 plikach (16 wywołań) — dobry punkt centralny już istnieje | zostaje; hook MODIFY na wyniku (`unit_stat(...)`) | bonusy do ruchu/walki, jednostki frakcyjne |
-| 6 | Wartość planet (resources/influence) | `planet_stats.py` (`resources_of`, `influence_of`; użycia: `production.py`, `tactical.py`, `payment.py`) | zostaje; hook MODIFY na wartości | attachmenty, cechy |
-| 7 | Zmiana kontroli planety | zapisy `planet_owners[...]=` w `invasion.py`, `tactical.py`, `faction_setup.py` (poza God-Mode `board_edit`) | `core/control.py`: `set_planet_control` (RULES.md 12, 23) | „po zdobyciu planety", wyczerpanie przy zdobyciu |
-| 8 | Zniszczenie/postawienie/usunięcie jednostek | `battle.py` (13), `invasion.py` (10), `space_cannon.py` (5), `movement.py`, `unit_catalog.py`; stawianie: `production.py`, `retreat.py`, `exploration.py` | `core/unit_ops.py`: `destroy`, `place`, `remove`, `move` (z limitem fleet pool/reinforcements) | „gdy jednostka zniszczona", odrodzenie, limity |
-| 9 | Zdobycie technologii | brak funkcji centralnej (listę zmienia setup/God-Mode; karta Technology brakuje) | `core/technology.py`: `gain_technology`, `can_research`, prerekwizyty, skipy | „gdy zbadasz technologię", skipy frakcyjne |
-| 10 | Punkty zwycięstwa | `objectives.award_points` (jest) + zapisy w `status_phase.py`, `imperial.py`, `game_end.py` | upewnić się, że wszystkie idą przez `award_points`/`remove_points` | „gdy zdobywasz/tracisz punkt" |
-| 11 | Karty (dobór/odrzucenie/ręka) | `card_draw.py`, `deck_piles.py`, `status_phase.py` | jedna `draw`/`discard` | limit ręki, dobór dodatkowy |
-| 12 | Modyfikatory walki (rzuty, trafienia, reroll, straty) | `battle.py`, `combat.py`, `components.py` | punkty zaczepienia w jednym pipeline rzutu | +1 do rzutu, reroll, ignorowanie sustain |
-| 13 | Dostępność/limit jednostek (fleet pool, reinforcements) | `fleet_pool.py`, `capacity.py`, `production.py`, `retreat.py`, `unit_catalog.py` | pozostaje w `unit_ops` (pkt 8) | zmiana limitów |
-| 14 | Okna czasowe | `open_window` w `battle`, `capacity`, `fleet_pool`, `space_cannon`, `status_phase`, `strategic_action`, `timing` — już jedno API | zostaje | wszystkie TRIGGER-y |
-| 15 | Wyjątki na sztywno (długi) | `production.py::_PRODUCTION_FORBIDS` (Arborec), `movement.py` (alias Antimass), `unit_catalog.py` (aliasy technologii) | migrować do hooków w H2 | — |
+| 1 | Trade goods / commodities (gain, spend, convert) | `payment.py`, `production.py` (separate path), `objective_payment.py`, `exploration.py` (TG & commodities), `strategy_phase.py`, `transaction.py`, `strategy_cards/trade.py` | `core/economy.py`: `gain_tg`, `spend_tg`, `gain/spend_commodities`, `convert_commodities`, `payment_sources` | commodities counted as TG (Keleres), cost change, refund |
+| 2 | Resource/influence payment (planets + TG) | `payment.py` (cards), `production.py` (`Spend`, `auto_pay`), `objective_payment.py`, `exploration.py` | single `pay(...)` used by all; production rewired | cost modifiers, extra payment sources |
+| 3 | Command tokens (tactic/fleet/strategy) | `objective_payment.py`, `status_phase.py`, `strategic_action.py`, `tactical.py`, `strategy_cards/common.py` | `core/command_tokens.py`: `gain`, `spend`, `move_between_pools` | free activation, extra tokens |
+| 4 | Exhausting/readying planets & techs | `exhausted_planets` in ~11 files (e.g. `invasion.py`, `production.py`, `payment.py`), `exhausted_technologies` (`status_phase`, `board_edit`) | `core/exhaust.py`: `exhaust_planet/ready_planet`, `exhaust_tech/ready_tech` | readying planets, "exhaust this card" abilities |
+| 5 | Unit stats (move, capacity, cost, combat, production) | `resolve_unit_variant` called in ~11 files (16 calls) — good central point already exists | stays; MODIFY hook on result (`unit_stat(...)`) | move/combat bonuses, faction units |
+| 6 | Planet value (resources/influence) | `planet_stats.py` (`resources_of`, `influence_of`; uses: `production.py`, `tactical.py`, `payment.py`) | stays; MODIFY hook on value | attachments, traits |
+| 7 | Planet control change | writes to `planet_owners[...]=` in `invasion.py`, `tactical.py`, `faction_setup.py` (outside God-Mode `board_edit`) | `core/control.py`: `set_planet_control` (RULES.md 12, 23) | "after gaining control of a planet", exhaust on capture |
+| 8 | Destroy/place/remove units | `battle.py` (13), `invasion.py` (10), `space_cannon.py` (5), `movement.py`, `unit_catalog.py`; placing: `production.py`, `retreat.py`, `exploration.py` | `core/unit_ops.py`: `destroy`, `place`, `remove`, `move` (with fleet pool/reinforcements limit) | "when a unit is destroyed", respawn, limits |
+| 9 | Gaining technology | no central function (list mutated by setup/God-Mode; Technology card missing) | `core/technology.py`: `gain_technology`, `can_research`, prerequisites, skips | "when you research a tech", faction skips |
+| 10 | Victory points | `objectives.award_points` (exists) + writes in `status_phase.py`, `imperial.py`, `game_end.py` | ensure all go through `award_points`/`remove_points` | "when you gain/lose a point" |
+| 11 | Cards (draw/discard/hand) | `card_draw.py`, `deck_piles.py`, `status_phase.py` | single `draw`/`discard` | hand limit, extra draw |
+| 12 | Combat modifiers (rolls, hits, reroll, losses) | `battle.py`, `combat.py`, `components.py` | hook points in one roll pipeline | +1 to roll, reroll, ignore sustain |
+| 13 | Unit availability/limits (fleet pool, reinforcements) | `fleet_pool.py`, `capacity.py`, `production.py`, `retreat.py`, `unit_catalog.py` | stays in `unit_ops` (item 8) | limit changes |
+| 14 | Timing windows | `open_window` in `battle`, `capacity`, `fleet_pool`, `space_cannon`, `status_phase`, `strategic_action`, `timing` — already one API | stays | all TRIGGERs |
+| 15 | Hardcoded exceptions (debt) | `production.py::_PRODUCTION_FORBIDS` (Arborec), `movement.py` (Antimass literal), `unit_catalog.py` (tech literals) | migrate to hooks in H2 | — |
 
-Uwagi:
-- Pozycje 5, 6, 14 mają już dobry punkt centralny; wystarczy dodać punkt zaczepienia.
-- Najwięcej pracy: 1–4, 7, 8, 9 (rozproszone lub brak funkcji). To zakres fazy C.
-- Wyszukiwanie było wzorcowe (grep); mogą istnieć miejsca, których wzorce nie złapały (np. zmiany przez `setattr`,
-  przez serializację albo w warstwie `api/`). Blok C0 ma to doprecyzować, a testy architektury (niżej) pilnować na przyszłość.
-- Przykład z prośby użytkownika: „Keleres: może wyczerpać kartę, by każdy gracz wydawał commodities jak TG" —
-  po C to JEDEN wpis w `payment_sources`, bo wszystkie płatności idą przez `pay(...)`.
+Notes:
+- Items 5, 6, 14 already have a good central point; just add a hook point.
+- Most work: 1–4, 7, 8, 9 (scattered or missing function). This is Phase C's scope.
+- Search was pattern-based (grep); places missed by patterns may exist (e.g. via `setattr`,
+  serialization, or in `api/`). Block C0 will refine this, and architecture tests (below) will guard the future.
+- Example from user request: "Keleres: may exhaust card so each player spends commodities as TG" —
+  after C this is ONE entry in `payment_sources`, because all payments go through `pay(...)`.
 
-### Faza C — bloki (czysty refaktor, bez zmiany zachowania)
-**Stan wykonania fazy C (aktualizowane po każdym bloku):**
+### Phase C — Blocks (pure refactor, no behavior change)
+**Phase C execution status (updated after each block):**
 
-| Blok | Zakres | Status | Gdzie |
+| Block | Scope | Status | Where |
 |---|---|---|---|
-| C0 | Przegląd miejsc zapisu (skan AST per pole, nie sam grep) | ✅ robiony przy każdym bloku | — |
-| C1 | Ekonomia: trade goods, commodities (tabela, wiersze 1–2) | ✅ | `core/economy.py`; płatność za wydanie (planety + TG) przez `payment.apply_payment` |
-| C2 | Żetony dowodzenia: rezerwa + 3 pule (wiersz 3) | ✅ | `core/command_tokens.py` |
-| C3 | Wyczerpywanie/odświeżanie: planety, technologie, karty strategii, liderzy, przełom (wiersz 4) | ✅ | `core/exhaust.py` |
-| C4 | Kontrola planet: `planet_owners` + lustro `controlled_planets` (wiersz 7) | ✅ | `core/control.py` (`set_planet_control`) |
-| C5 | Operacje na jednostkach: postawienie/usunięcie/zniszczenie/ruch (wiersze 8, 13) | ✅ | `core/unit_ops.py` (`place/take/remove/transfer/replace`, `cause` = `UnitCause`); `damage.py` właścicielem uszkodzeń; `control.recompute_from_units` |
-| C6 | Zdobycie technologii (wiersz 9) | ✅ | `technology.grant_technology` (badanie i „gain" przez nią) |
-| C7 | Punkty zwycięstwa, karty akcji (ręka/talia/odrzucone), mówca (wiersze 10–11) | ✅ | `objectives.award_points`, `card_draw.py` (`draw/discard/seed`), `strategy_phase.set_speaker` |
-| C8 | Strażnik architektury | ✅ pilnuje 22 pól + `setattr`, z analizą aliasów (`units = system.space_units…; units[k] = …`) | `tests/test_central_points.py` |
-| C9 | Reszta zasobów i kart | ✅ (poza logiką w `api/`, patrz niżej) | `core/secret_objectives.py`, `core/promissory_notes.py`, `core/relic_fragments.py`, `card_draw.rearrange_agenda_top`; strażnik rozszerzony o talie agend/eksploracji, `purged`, `planet_attachments`, `breakthrough_*` |
+| C0 | Write-site review (AST scan per field, not grep alone) | ✅ done per block | — |
+| C1 | Economy: trade goods, commodities (table, rows 1–2) | ✅ | `core/economy.py`; spending payment (planets + TG) via `payment.apply_payment` |
+| C2 | Command tokens: reinforcements + 3 pools (row 3) | ✅ | `core/command_tokens.py` |
+| C3 | Exhausting/readying: planets, technologies, strategy cards, leaders, breakthrough (row 4) | ✅ | `core/exhaust.py` |
+| C4 | Planet control: `planet_owners` + `controlled_planets` mirror (row 7) | ✅ | `core/control.py` (`set_planet_control`) |
+| C5 | Unit operations: place/take/remove/destroy/move (rows 8, 13) | ✅ | `core/unit_ops.py` (`place/take/remove/transfer/replace`, `cause` = `UnitCause`); `damage.py` owns damage; `control.recompute_from_units` |
+| C6 | Gaining technology (row 9) | ✅ | `technology.grant_technology` (research and "gain" through it) |
+| C7 | Victory points, action cards (hand/deck/discard), speaker (rows 10–11) | ✅ | `objectives.award_points`, `card_draw.py` (`draw/discard/seed`), `strategy_phase.set_speaker` |
+| C8 | Architecture guard | ✅ guards 22 fields + `setattr`, with alias analysis (`units = system.space_units…; units[k] = …`) | `tests/test_central_points.py` |
+| C9 | Remaining resources and cards | ✅ (except logic in `api/`, see below) | `core/secret_objectives.py`, `core/promissory_notes.py`, `core/relic_fragments.py`, `card_draw.rearrange_agenda_top`; guard extended to agenda/exploration decks, `purged`, `planet_attachments`, `breakthrough_*` |
 
-Reguły wykonania: skan AST (a nie grep) znajduje też zapisy w krotkach, po kluczu słownika (`x.pole[k] = …`), `del` i mutacje list;
-refaktor nie zmienia zachowania (jedyny wyjątek: operacje ponad stan — np. wydanie żetonu/TG, którego nie ma — kończą się `ValueError`
-zamiast ujemnego licznika); każdy blok = kod + testy + QA (pytest/ruff/mypy) + commit.
+Execution rules: AST scan (not grep) also finds writes in tuples, by dict key (`x.field[k] = …`), `del`, and list mutations;
+refactor does not change behavior (only exception: over-budget ops — e.g. spending a token/TG you don't have — raise `ValueError`
+instead of a negative counter); each block = code + tests + QA (pytest/ruff/mypy) + commit.
 
-Opis zamierzonych bloków (historyczny):
-- **C0 — Przegląd:** dla każdego wiersza tabeli: pełna lista wywołań (grep + czytanie), decyzja nazwa/sygnatura, kolejność.
-- **C1 — Ekonomia (1–2):** `core/economy.py` + płatność; przepięte `payment`, `production`, `objective_payment`, `exploration`,
-  `strategy_phase`, `transaction`, `strategy_cards/trade`. Test regresji: istniejące testy bez zmian.
-- **C2 — Żetony dowodzenia (3)** i **C3 — Exhaust/ready (4).**
-- **C4 — Kontrola planet (7)** i **C5 — Operacje na jednostkach (8, 13).**
-- **C6 — Technologia (9):** funkcja `gain_technology` (także pod kartę Technology i efekty „zdobądź technologię").
-- **C7 — VP (10), karty (11).**
-- **C8 — Test architektury:** test, który skanuje `src/core/` i pada, gdy ktoś zmienia pole stanu (np. `trade_goods`,
-  `exhausted_planets`, `planet_owners`) poza funkcją centralną (lista wyjątków: God-Mode `board_edit`). To strażnik,
-  żeby rozproszenie nie wróciło.
-- DoD fazy C: pytest + ruff + mypy zielone, zachowanie niezmienione, strażnik C8 działa.
+Description of planned blocks (historical):
+- **C0 — Review:** for each table row: full call list (grep + reading), name/signature decision, order.
+- **C1 — Economy (1–2):** `core/economy.py` + payment; rewired `payment`, `production`, `objective_payment`, `exploration`,
+  `strategy_phase`, `transaction`, `strategy_cards/trade`. Regression test: existing tests unchanged.
+- **C2 — Command tokens (3)** and **C3 — Exhaust/ready (4).**
+- **C4 — Planet control (7)** and **C5 — Unit operations (8, 13).**
+- **C6 — Technology (9):** `gain_technology` function (also for Technology card and "gain a technology" effects).
+- **C7 — VP (10), cards (11).**
+- **C8 — Architecture test:** test that scans `src/core/` and fails if anyone mutates a state field (e.g. `trade_goods`,
+  `exhausted_planets`, `planet_owners`) outside the central function (exception list: God-Mode `board_edit`). This is a guard
+  so scattering never returns.
+- DoD Phase C: pytest + ruff + mypy green, behavior unchanged, C8 guard active.
 
-## Plan kart strategii (S0–S9) — ✅ ZREALIZOWANY (2026-11)
+## Strategy Cards Plan (S0–S9) — ✅ COMPLETED (2026-11)
 
-> Wszystkie 8 kart działa (primary + secondary) w `core/strategy_cards/` (moduł per karta, wspólne `base.py`/`common.py`).
-> Poniższy plan zostaje jako zapis decyzji; opis „Stan” niżej jest historyczny.
+> All 8 cards work (primary + secondary) in `core/strategy_cards/` (module per card, shared `base.py`/`common.py`).
+> The plan below remains as a decision record; "Status" below is historical.
 
-Stan (historyczny, sprzed realizacji): `core/strategic_action.py` ma okno secondary (`STRATEGY_SECONDARY`) i tablice dispatchu
-`_PRIMARY_EFFECTS`/`_SECONDARY_EFFECTS` po numerze inicjatywy. Realnie działa tylko primary Leadership
-(+3 żetony); secondary Leadership jest NO-OP (TODO: kupno żetonów za wpływ, wymaga modelu wydawania).
-Treść kart WYŁĄCZNIE z `assets/data/strategy_cards/*.json`; reguły z `docs/rules_tirules/` (`R_<karta>.md`,
-`R_strategic_action.md`); nic z pamięci. Wpis w RULES.md 30 rozszerzamy kartą po karcie (30.x).
+Status (historical, pre-implementation): `core/strategic_action.py` has a secondary window (`STRATEGY_SECONDARY`) and dispatch
+tables `_PRIMARY_EFFECTS`/`_SECONDARY_EFFECTS` by initiative number. Actually only Leadership primary works
+(+3 tokens); Leadership secondary is NO-OP (TODO: buy tokens with influence, requires spending model).
+Card content EXCLUSIVELY from `assets/data/strategy_cards/*.json`; rules from `docs/rules_tirules/` (`R_<card>.md`,
+`R_strategic_action.md`); nothing from memory. Entry in RULES.md 30 expands card by card (30.x).
 
-### S0 — Model wydawania zasobów i wpływu (fundament dla wszystkich kart)
-- Czysta funkcja `core/spending.py`: wyczerpanie planet (exhaust), sumowanie resources/influence z uwzględnieniem
-  flex/optimal (RULES.md 7, 27), trade goods jako zamiennik, walidacja „czy stać gracza", zwrot reszty/nadpłaty.
-- Wspólny punkt zaczepienia dla produkcji, technologii, głosowania, kart (jedno miejsce, później hook).
-- DoD: wydawanie testowane na przypadkach brzegowych; produkcja przepięta na ten model bez zmiany wyniku.
+### S0 — Resource and Influence Spending Model (foundation for all cards)
+- Pure function `core/spending.py`: exhausting planets, summing resources/influence accounting for
+  flex/optimal (RULES.md 7, 27), trade goods as substitute, "can player afford" validation, change/overpay handling.
+- Shared hook point for production, technology, voting, cards (one place, later a hook).
+- DoD: spending tested on edge cases; production rewired to this model without behavior change.
 
-### S1 — Przegląd danych i zależności 8 kart
-- Z JSON + tirules: tabela „karta → primary / secondary → od jakich podsystemów zależy" (np. talia kart akcji,
-  badanie technologii, stawianie struktur, produkcja, punktowanie, ruch). Wynik w RULES.md 30.
-- Ustalenie kolejności S2–S9 wg zależności (najpierw karty bez nowych podsystemów).
+### S1 — Data and Dependency Review of 8 Cards
+- From JSON + tirules: table "card → primary / secondary → which subsystems it depends on" (e.g. action card deck,
+  tech research, placing structures, production, scoring, movement). Output in RULES.md 30.
+- Determine order S2–S9 by dependencies (cards without new subsystems first).
 
-### S2–S9 — Karty strategii po jednej (kolejność wg S1)
-- Każda karta = osobny blok: RULES.md 30.x ze źródłem → primary + secondary w `strategic_action.py` (dispatch)
-  → test → endpointy/okno w UI (komponenty `StrategyCardDetailsCard` itp.) → QA → commit.
-- Nowe podsystemy dobudowane „na zamówienie" przez karty (np. talia kart akcji, badanie tech) — każdy z własnym RULES,
-  testem i oznaczeniem ⚠, jeśli reguła niejasna.
-- Secondary jest zagrywane w oknie, w którym wszyscy są pytani — nie wymaga STOP (RULES.md 43.4).
-- Każda karta strategii to osobny temat ⇒ osobny plik (`core/strategy_cards/<karta>.py`) + cienki dispatch w `strategic_action.py`.
-- DoD: 8 kart ma działające primary i secondary (lub jawnie ⚠ MANUAL, z uzasadnieniem), status w `effects_registry`.
+### S2–S9 — Strategy Cards One by One (order per S1)
+- Each card = separate block: RULES.md 30.x with source → primary + secondary in `strategic_action.py` (dispatch)
+  → test → endpoints/UI window (`StrategyCardDetailsCard` etc.) → QA → commit.
+- New subsystems built "on demand" by cards (e.g. action card deck, tech research) — each with its own RULES,
+  test, and `⚠` marker if rule is unclear.
+- Secondary is played in a window where everyone is prompted — does not require STOP (RULES.md 43.4).
+- Each strategy card is a separate topic ⇒ separate file (`core/strategy_cards/<card>.py`) + thin dispatch in `strategic_action.py`.
+- DoD: 8 cards have working primary and secondary (or explicitly `⚠ MANUAL`, with justification), status in `effects_registry`.
 
-### Zależności frakcyjne kart strategii
-- Wyjątki frakcji dotyczące kart strategii (modyfikujące primary/secondary) NIE wchodzą do S2–S9; dochodzą po H2
-  jako hooki (RULES.md 43), żeby nie wplatać `if faction == ...` w reguły kart.
+### Faction Dependencies of Strategy Cards
+- Faction exceptions for strategy cards (modifying primary/secondary) do NOT enter S2–S9; they arrive after H2
+  as hooks (RULES.md 43) so we don't weave `if faction == ...` into card rules.
 
-## Etap sieciowy (N) — W TOKU: N0–N3 ✅, N5 część 1 ✅, N4 ⬜ (RULES.md 44)
+## Network Stage (N) — IN PROGRESS: N0–N3 ✅, N5 part 1 ✅, N4 ⬜ (RULES.md 44)
 
-Cel: partia do 6 graczy (ludzie + boty) przez sieć. Fundamenty już są: logika w `core/`/`api/`, WebSocket
-(`ConnectionManager`), projekcja widoczności (`core/visibility.py`), okna czasowe z kolejką, `EventStore`.
-**Od teraz:** każdy nowy endpoint akcji ma `actor_id` (RULES.md 44.1).
+Goal: game up to 6 players (humans + bots) over network. Foundations already exist: logic in `core/`/`api/`, WebSocket
+(`ConnectionManager`), visibility projection (`core/visibility.py`), queued timing windows, `EventStore`.
+**From now on:** every new action endpoint has `actor_id` (RULES.md 44.1).
 
-- **N0 — Audyt + `actor_id` ✅ (2026-11-11):** wszystkie 102 endpointy zmieniające stan sklasyfikowane (akcja gracza /
-  stołu / host, RULES.md 44.1a), nagłówek `X-Actor-Id`, `core/actor.py`, strażnik `tests/test_actor_guard.py`.
-- ✅ (2026-11-11) **N1 — Tożsamość i autoryzacja:** token na miejsce przy stole (link zaproszenia), role host/observer,
-  `actor_id` ustalane z tokenu, `viewing_player` z tokenu w trybie sieciowym (44.2).
-- ✅ (2026-11-11) **N2 — Push per gracz:** WebSocket z własną projekcją dla każdego połączenia; wiadomości jawne/prywatne;
-  testy „nic nie wycieka" (44.3).
-- ✅ trwałość (2026-11-11; wiele gier naraz — dalej) **N3 — Wiele gier i trwałość:** `game_id`, lobby/pokoje, zapis `EventStore` na dysk, wznowienie po restarcie
-  i ponownym połączeniu (44.4).
-- **N4 — Współbieżność:** blokada na grę, idempotencja żądań, odtwarzanie stanu po reconnect (44.4).
-- 🟡 część 1 (2026-11-11: pasek oczekiwania, własne biurko, 403) **N5 — UI wielu graczy:** „czekamy na gracza X", równoległe odpowiedzi tam, gdzie reguły pozwalają,
-  timeouty i przejęcie przez bota/pas (44.5); STOP z jednolitym timerem (43.4).
-- DoD: partia 6 graczy (z botami) w sieci; żaden klient nie widzi cudzej ręki; restart serwera nie kasuje gry.
-- Ryzyko największe: wyciek informacji (autoryzacja + projekcja) — testy bezpieczeństwa przed udostępnieniem innym.
+- **N0 — Audit + `actor_id` ✅ (2026-11-11):** all 102 state-mutating endpoints classified (player /
+  table / host action, RULES.md 44.1a), `X-Actor-Id` header, `core/actor.py`, guard `tests/test_actor_guard.py`.
+- ✅ (2026-11-11) **N1 — Identity and authorization:** seat token (invite link), host/observer roles,
+  `actor_id` resolved from token, `viewing_player` from token in network mode (44.2).
+- ✅ (2026-11-11) **N2 — Per-player push:** WebSocket with its own projection per connection; public/private messages;
+  "nothing leaks" tests (44.3).
+- ✅ persistence (2026-11-11; multiple concurrent games — next) **N3 — Multi-game and persistence:** `game_id`, lobby/rooms, saving `EventStore` to disk, resume after restart
+  and reconnect (44.4).
+- **N4 — Concurrency:** per-game lock, request idempotency, state recovery on reconnect (44.4).
+- 🟡 part 1 (2026-11-11: waiting bar, own desk, 403) **N5 — Multiplayer UI:** "waiting for player X", parallel responses where rules allow,
+  timeouts and bot takeover/pass (44.5); STOP with unified timer (43.4).
+- DoD: 6-player game (with bots) over network; no client sees another's hand; server restart does not wipe the game.
+- Biggest risk: information leak (auth + projection) — security tests before sharing with others.
 
-## Plan hooków i wyjątków (E7 + E4 + E6) — W TOKU (H1–H4 ✅, H1b ✅, H5/H6 ⬜)
+## Hooks and Exceptions Plan (E7 + E4 + E6) — IN PROGRESS (H1–H4 ✅, H1b ✅, H5/H6 ⬜)
 
-Zasady architektury: **RULES.md 43** (hooki, kolejność, MANUAL vs IMPLEMENTED). Cel: dodawanie wyjątków
-(frakcje, karty akcji, agendy) bez ruszania reguł bazowych, kodowane po jednym, z wpisem w RULES + testem.
+Architecture rules: **RULES.md 43** (hooks, ordering, MANUAL vs IMPLEMENTED). Goal: adding exceptions
+(factions, action cards, agendas) without touching base rules, coded one by one, with a RULES entry + test.
 
-Baza, która już jest (nie budujemy od zera): `core/effects_registry.py` (status efektu per komponent:
-`NOT_IMPLEMENTED/IMPLEMENTED/MANUAL`), `core/timing_spec.py` (wyzwalacz → typ okna, RULES.md 34),
-`core/timing.py` (okna), `core/component_action.py` (szkielet akcji komponentu — bez efektów),
-`core/components.py` + `component_loader.py` (katalog komponentów z assetów). **Powstało (2026-11-08):**
-`core/rules_hooks.py` (rejestr hooków, efektów i opisów wyborów), pakiet `core/hooks/`, `core/action_cards.py`,
-raport `src/audit/hook_coverage.py`. Wyjątek Arborec przeniesiony do hooka.
+Base that already exists (not building from scratch): `core/effects_registry.py` (effect status per component:
+`NOT_IMPLEMENTED/IMPLEMENTED/MANUAL`), `core/timing_spec.py` (trigger → window type, RULES.md 34),
+`core/timing.py` (windows), `core/component_action.py` (component action skeleton — no effects),
+`core/components.py` + `component_loader.py` (component catalog from assets). **Built (2026-11-08):**
+`core/rules_hooks.py` (hook, effect, and choice descriptor registry), `core/hooks/` package, `core/action_cards.py`,
+`src/audit/hook_coverage.py` report. Arborec exception moved into a hook.
 
-### H0 — Przygotowanie (bez kodu gry)
-- Przejrzeć miejsca w `core/` z twardymi wyjątkami (grep po `faction`/`_FORBIDS`/id kart) — lista „długu".
-- Ustalić w RULES.md 43 ⚠ założenia z użytkownikiem (typy hooków, kolejność, MANUAL vs blokada).
-- DoD: lista punktów zaczepienia potrzebnych na start + zatwierdzone założenia.
+### H0 — Preparation (no game code)
+- Review places in `core/` with hardcoded exceptions (grep for `faction`/`_FORBIDS`/card ids) — "debt" list.
+- Agree in RULES.md 43 on `⚠` assumptions with user (hook types, ordering, MANUAL vs lock).
+- DoD: list of hook points needed to start + approved assumptions.
 
-### H1 — Szkielet `core/rules_hooks.py`
-- Rejestr: `(źródło komponentu, punkt zaczepienia, kategoria, funkcja)`; pobieranie hooków dla stanu
-  (kto posiada frakcję/kartę/tech/prawo) w deterministycznej kolejności (RULES.md 43.1 pkt 5).
+### H1 — Skeleton `core/rules_hooks.py`
+- Registry: `(component source, hook point, category, function)`; fetching hooks for state
+  (who owns faction/card/tech/law) in deterministic order (RULES.md 43.1 item 5).
 - API: `apply_modifiers(point, state, ctx, base)`, `check_permissions(...)`, `collect_triggers(...)`,
-  `resolve_replace(...)`. Czyste funkcje, zero HTTP.
-- Test regresji: pusty rejestr ⇒ wszystkie obecne testy bez zmian.
-- DoD: szkielet + testy jednostkowe kolejności/konfliktów; pytest + ruff + mypy zielone.
+  `resolve_replace(...)`. Pure functions, zero HTTP.
+- Regression test: empty registry ⇒ all current tests unchanged.
+- DoD: skeleton + unit tests for ordering/conflicts; pytest + ruff + mypy green.
 
-### H1b — Model reakcji: punkty kontrolne + STOP (RULES.md 43.4) ✅
-> Zrealizowane jako hold-play (`core/card_hold.py`, Sabotage) + hold-rewind (`core/hold_rewind.py`, przycisk HOLD) —
-> RULES.md 53.6, 53.7. Lista niżej to pierwotny plan.
-- Oznaczanie migawek `EventStore` jako punkt kontrolny / nieodwracalny (rzut, ujawnienie karty, dobór);
-  `goto(seq)` już istnieje, dochodzi tylko metadane i blokada cofania poza punktem kontrolnym.
-- Filtr po informacji jawnej (liczba kart akcji itp.) wyznaczający, kogo w ogóle można pytać.
-- Odpytywanie botów wewnętrzne (bez UI); STOP człowieka otwiera okno czasowe (`core/timing.py`)
-  z zatrzymującym graczem jako pierwszym.
-- UI: baner „ostatnia akcja" z przyciskiem STOP, aktywny do najbliższego punktu nieodwracalnego (w walce:
-  przycisk „Rzuć" jako naturalna granica).
-- Robimy PRZED kartami akcji (H4): od tego zależy, jak wchodzi każda reakcja.
-- DoD: jedna testowa reakcja (np. prosta karta „when/after") działa przez STOP bez pytania wszystkich
-  graczy; test: zachowanie dla gracza z kartą i bez karty jest identyczne z zewnątrz.
+### H1b — Reaction Model: Checkpoints + STOP (RULES.md 43.4) ✅
+> Implemented as hold-play (`core/card_hold.py`, Sabotage) + hold-rewind (`core/hold_rewind.py`, HOLD button) —
+> RULES.md 53.6, 53.7. List below is the original plan.
+- Marking `EventStore` snapshots as checkpoint / irreversible (roll, card reveal, draw);
+  `goto(seq)` already exists, only metadata and blocking rewind past a checkpoint are added.
+- Filter by public info (action card count, etc.) determining who can even be asked.
+- Internal bot polling (no UI); human STOP opens a timing window (`core/timing.py`)
+  with the stopping player first.
+- UI: "last action" banner with STOP button, active until nearest irreversible point (in combat:
+  "Roll" button as natural boundary).
+- Done BEFORE action cards (H4): how every reaction enters depends on it.
+- DoD: one test reaction (e.g. simple "when/after" card) works via STOP without prompting all
+  players; test: behavior for a player with and without the card is identical from the outside.
 
-### H2 — Punkty zaczepienia w istniejących regułach (cienkie wywołania)
-- Produkcja (`production.py`): `production_forbids`, `production_value`, `cost_modifier`.
-- Ruch (`movement.py`): `move_value`, `can_pass_system`, `ignore_anomaly`, `capacity`.
-- Walka (`combat.py`/`battle.py`/`space_cannon.py`/`invasion.py`): `roll_modifier`, `extra_dice`,
-  `reroll`, `hit_assignment`, `before_combat`/`after_combat` (przez okna).
+### H2 — Hook Points in Existing Rules (thin calls)
+- Production (`production.py`): `production_forbids`, `production_value`, `cost_modifier`.
+- Movement (`movement.py`): `move_value`, `can_pass_system`, `ignore_anomaly`, `capacity`.
+- Combat (`combat.py`/`battle.py`/`space_cannon.py`/`invasion.py`): `roll_modifier`, `extra_dice`,
+  `reroll`, `hit_assignment`, `before_combat`/`after_combat` (via windows).
 - Status/agenda: `status_start`, `status_end`, `vote_modifier`.
-- **Pierwszy przypadek:** przenieść wyjątek Arborec z `production.py` do hooka (zachowanie bez zmian, testy zielone).
-- DoD: żadna reguła bazowa nie zawiera `if faction == ...`; Arborec działa przez rejestr.
+- **First case:** move Arborec exception from `production.py` into a hook (behavior unchanged, tests green).
+- DoD: no base rule contains `if faction == ...`; Arborec runs through the registry.
 
-### H3 — Raport pokrycia (priorytetyzacja) ✅ (H0-H2 szkielet + punkty MODIFY/PERMIT/FORBID także ✅)
-- Rozszerzyć audyt (`src/audit/`, `effects_registry`) o: komponent → wymagany punkt zaczepienia
-  (z `timing_spec` + typ efektu). Wynik: ile kart/zdolności obsłuży każdy punkt.
-- DoD: raport w `docs/` (generowany, nie ręczny) + kolejka kolejnych kroków wg liczby obsłużonych komponentów.
+### H3 — Coverage Report (prioritization) ✅ (H0-H2 skeleton + MODIFY/PERMIT/FORBID points also ✅)
+- Extend audit (`src/audit/`, `effects_registry`) with: component → required hook point
+  (from `timing_spec` + effect type). Output: how many cards/abilities each point serves.
+- DoD: report in `docs/` (generated, not manual) + queue of next steps by number of served components.
 
-### H4 — Karty akcji (E4)
-- Dispatch po `component_id` w `component_action`/oknach REACTION; każda karta: tekst z assetów → wpis RULES →
-  hook → test; status w `effects_registry` na `IMPLEMENTED`. Karty bez hooka zostają `MANUAL`.
-- Kolejność: najpierw karty o prostym, jednofazowym efekcie (modyfikatory, +/- zasoby), potem z oknami reakcji,
-  na końcu „instead of"/zmiana kolejności.
-- DoD (iteracyjnie): % pokrycia kart akcji rośnie, brak regresji. **Stan:** zagrywanie ACTION + formularz +
-  zagrywalność + UI z przeciąganiem ✅, **143/143 kart ✅** (2026-11-11).
+### H4 — Action Cards (E4)
+- Dispatch by `component_id` in `component_action`/REACTION windows; each card: text from assets → RULES entry →
+  hook → test; status in `effects_registry` set to `IMPLEMENTED`. Cards without hook stay `MANUAL`.
+- Order: first cards with simple, single-phase effect (modifiers, +/- resources), then reaction windows,
+  finally "instead of"/order changes.
+- DoD (iterative): % action card coverage rises, no regressions. **Status:** ACTION play + form +
+  playability + drag UI ✅, **143/143 cards ✅** (2026-11-11).
 
-### H5 — Frakcje (E7)
-- **Szczegółowy plan w blokach na sesje: `PLAN_FRAKCJE.md`** (ma pierwszeństwo przed kolejnością niżej).
-- Wg tabel w sekcji „Frakcje": najpierw modyfikatory liczb/legalności (np. Sardakk, Jol-Nar, Sol, Letnev,
-  Winnu, Hacan), potem zdolności z oknami (Mentak, Xxcha, Saar), na końcu strukturalne
+### H5 — Factions (E7)
+- **Detailed session-by-session plan: `PLAN_FRAKCJE.md`** (takes precedence over order below).
+- Per tables in "Factions" section: first number/legality modifiers (e.g. Sardakk, Jol-Nar, Sol, Letnev,
+  Winnu, Hacan), then abilities with windows (Mentak, Xxcha, Saar), finally structural
   (Nekro, Creuss, Mahact, Naalu, Yssaril, Titans, Cabal, Obsidian, Firmament, Crimson, Deepwrought, Ral Nel,
-  Last Bastion). Liderzy, tech frakcyjne i jednostki specjalne jako osobne hooki tej samej frakcji.
-- Jedna frakcja = jeden blok: RULES.md + hooki + test + commit.
-- DoD: frakcja ma status `IMPLEMENTED` dla wszystkich swoich zdolności lub jawnie `MANUAL` dla wybranych.
+  Last Bastion). Leaders, faction techs, and special units as separate hooks of the same faction.
+- One faction = one block: RULES.md + hooks + test + commit.
+- DoD: faction has `IMPLEMENTED` status for all its abilities or explicitly `MANUAL` for selected ones.
 
-### H6 — Faza agendy i agendy (E6)
-- Warunek wstępny: `core/agenda_phase.py` (odsłonięcie, głosowanie wg wpływów, rozstrzygnięcie, okna
-  „when/after agenda revealed", remisy po stronie mówcy wg reguł) — NAJPIERW z tirules2 (`R_agenda_phase`).
-- Prawa jako hooki `PERSISTENT` (wygasanie przy odrzuceniu/zamianie), dyrektywy jako jednorazowe efekty.
-- DoD: pełna faza agendy działa bez agend-wyjątków; potem agendy po jednej wg tej samej procedury.
-- **Stan:** `core/agenda_phase.py` ✅ (głosowanie, remis, prawa zapisywane w `decks.agenda_laws`, punkt
-  `agenda.vote_modifier`); prawa są już źródłem hooków (`SOURCE_AGENDA`), ale ŻADNA agenda nie ma jeszcze efektu ⬜.
+### H6 — Agenda Phase and Agendas (E6)
+- Prerequisite: `core/agenda_phase.py` (reveal, voting by influence, resolution,
+  "when/after agenda revealed" windows, ties broken by speaker per rules) — FIRST from tirules2 (`R_agenda_phase`).
+- Laws as `PERSISTENT` hooks (expiring on discard/swap), directives as one-shot effects.
+- DoD: full agenda phase works without exception agendas; then agendas one by one via the same procedure.
+- **Status:** `core/agenda_phase.py` ✅ (voting, tie, laws saved in `decks.agenda_laws`,
+  `agenda.vote_modifier` point); laws are already a hook source (`SOURCE_AGENDA`), but NO agenda has an effect yet ⬜.
 
-### H7 — Dokumentacja i porządek
-- Po każdym bloku: RULES.md (43 + wpis komponentu), PROGRESS.md, `effects_registry`, QA
-  (`uv run pytest -q`, `uv run ruff check src tests`, `uv run mypy src tests`), commit (konkretne pliki).
-- Po H2 zaktualizować `docs/ARCHITEKTURA_KODU.md` (sekcja o `rules_hooks` i katalogu `hooks/`).
+### H7 — Documentation and Housekeeping
+- After each block: RULES.md (43 + component entry), PROGRESS.md, `effects_registry`, QA
+  (`uv run pytest -q`, `uv run ruff check src tests`, `uv run mypy src tests`), commit (specific files).
+- After H2, update `docs/ARCHITEKTURA_KODU.md` (section on `rules_hooks` and `hooks/` directory).
 
-### Ryzyka
-- Interakcje wielu efektów (np. dwa „instead of" na jednym kroku) → obsługa przez kolejność z RULES 43.1 pkt 5
-  i weryfikacja na tirules2; nierozstrzygnięte przypadki zostają ⚠ ZAŁOŻENIEM do decyzji użytkownika.
-- Thunder's Edge: część mechanik może odbiegać od LRR — źródłem są assety + potwierdzenie użytkownika.
-- Rozrost rejestru: pilnować podziału tematycznego plików (pkt 12) i raportu pokrycia (H3).
+### Risks
+- Multi-effect interactions (e.g. two "instead of" on one step) → handled by ordering from RULES 43.1 item 5
+  and verified on tirules2; unresolved cases stay `⚠ ASSUMPTION` for user decision.
+- Thunder's Edge: some mechanics may diverge from LRR — source is assets + user confirmation.
+- Registry growth: keep topic file splits (item 12) and coverage report (H3) clean.
 
-## Katalog punktów zaczepienia hooków (wynik fazy C) — co trzeba podpiąć w H1–H2
+## Hook Point Catalog (Phase C output) — what to wire in H1–H2
 
-Zasada: hook przyczepia się w funkcji centralnej (RULES.md 43.1a). Poniżej: gdzie jest punkt, jakie ma wejścia i jakie typy hooków (RULES.md 43.1 pkt 4) tu pasują.
-Nazwy kart/zdolności to tylko ILUSTRACJE rodzaju efektu; treść zawsze z assetów JSON i tirules2 (nigdy z pamięci).
+Rule: a hook attaches in the central function (RULES.md 43.1a). Below: where the point is, its inputs, and which hook types (RULES.md 43.1 item 4) fit here.
+Card/ability names are only ILLUSTRATIONS of effect kind; content always from JSON assets and tirules2 (never from memory).
 
-### A. Punkty ZAPISU (zmiana stanu) — typ TRIGGER / MODIFY / REPLACE
+### A. WRITE Points (state mutation) — TRIGGER / MODIFY / REPLACE type
 
-| Moduł | Funkcje | Co hook może zmienić lub na co zareagować |
+| Module | Functions | What a hook can change or react to |
 |---|---|---|
-| `core/economy.py` | `gain_trade_goods`, `spend_trade_goods`, `gain_commodities`, `replenish_commodities`, `spend_commodities`, `convert_commodities_to_trade_goods`, `give_to_player` | MODIFY ilości zdobywanej/wydawanej (np. +1 TG); TRIGGER „gdy zdobywasz/wydajesz TG"; REPLACE „commodity zamiast TG" |
-| `core/payment.py` | `validate_payment`, `apply_payment` | **PUNKT NA ŹRÓDŁA PŁATNOŚCI** (dziś planety + TG): hook dopisuje źródło (np. commodities liczone jak TG) i zmienia koszt (MODIFY) |
-| `core/command_tokens.py` | `spend_from_pool`, `spend_to_reinforcements`, `take_from_reinforcements`, `return_to_reinforcements`, `gain_from_reinforcements`, `set_pools`, `add_to_pool` | MODIFY ilości; PERMIT „aktywacja bez żetonu"; TRIGGER „gdy zdobywasz żeton" |
-| `core/exhaust.py` | `exhaust_planets`, `ready_planets`, `ready_all_planets`, `exhaust_technology`, `ready_all_technologies`, `exhaust_strategy_card`, `exhaust_leader`, `ready_all_leaders`, `exhaust_breakthrough`, `ready_breakthrough` | FORBID/PERMIT wyczerpania; REPLACE „odśwież zamiast wyczerpać"; TRIGGER „gdy odświeżasz" (status krok 6) |
-| `core/control.py` | `set_planet_control`, `recompute_from_units` | TRIGGER „gdy zdobywasz/tracisz kontrolę"; MODIFY „zdobyta planeta nie jest wyczerpana" (dziś wyczerpanie robi `invasion`) |
-| `core/unit_ops.py` | `place_units`, `take_units`, `remove_units`, `transfer_units`, `replace_zone_units` + `UnitCause` | TRIGGER wg `cause`: `DESTROYED` („gdy twoja jednostka zostanie zniszczona"), `PLACED` („po produkcji"), `MOVED`, `REMOVED`; REPLACE „zamiast zniszczenia"; PERMIT/FORBID miejsca postawienia |
-| `core/damage.py` | `set_damaged`, `move_damage`, `clear_zone_damage`, `repair_all` | MODIFY Sustain Damage; naprawa w statusie (hook „napraw dodatkowe jednostki") |
-| `core/technology.py` | `grant_technology`, `apply_research`, `gain_technology` | TRIGGER „gdy zdobywasz technologię"; MODIFY wymagań i specjalności (skip) w `plan_research` |
-| `core/objectives.py` | `award_points` | MODIFY/TRIGGER „gdy zdobywasz/tracisz punkt"; warunek wygranej |
-| `core/card_draw.py` | `draw_action_card`, `discard_action_cards`, `seed_action_deck` | MODIFY „dobierz dodatkową kartę"; TRIGGER „gdy dobierasz/odrzucasz" |
-| `core/strategy_phase.py` | `set_speaker` | TRIGGER „gdy zmienia się mówca" |
-| `core/timing.py` | `open_window`, `respond_current` | już JEDNO API okien — tędy idą WSZYSTKIE TRIGGER-y typu when/after/before/instead (RULES.md 34, 43.4) |
+| `core/economy.py` | `gain_trade_goods`, `spend_trade_goods`, `gain_commodities`, `replenish_commodities`, `spend_commodities`, `convert_commodities_to_trade_goods`, `give_to_player` | MODIFY amount gained/spent (e.g. +1 TG); TRIGGER "when you gain/spend TG"; REPLACE "commodity instead of TG" |
+| `core/payment.py` | `validate_payment`, `apply_payment` | **PAYMENT SOURCES POINT** (today planets + TG): hook adds a source (e.g. commodities counted as TG) and modifies cost (MODIFY) |
+| `core/command_tokens.py` | `spend_from_pool`, `spend_to_reinforcements`, `take_from_reinforcements`, `return_to_reinforcements`, `gain_from_reinforcements`, `set_pools`, `add_to_pool` | MODIFY amount; PERMIT "activate without token"; TRIGGER "when you gain a token" |
+| `core/exhaust.py` | `exhaust_planets`, `ready_planets`, `ready_all_planets`, `exhaust_technology`, `ready_all_technologies`, `exhaust_strategy_card`, `exhaust_leader`, `ready_all_leaders`, `exhaust_breakthrough`, `ready_breakthrough` | FORBID/PERMIT exhausting; REPLACE "ready instead of exhaust"; TRIGGER "when you ready" (status step 6) |
+| `core/control.py` | `set_planet_control`, `recompute_from_units` | TRIGGER "when you gain/lose control"; MODIFY "captured planet is not exhausted" (today `invasion` exhausts it) |
+| `core/unit_ops.py` | `place_units`, `take_units`, `remove_units`, `transfer_units`, `replace_zone_units` + `UnitCause` | TRIGGER by `cause`: `DESTROYED` ("when your unit is destroyed"), `PLACED` ("after production"), `MOVED`, `REMOVED`; REPLACE "instead of destruction"; PERMIT/FORBID placement sites |
+| `core/damage.py` | `set_damaged`, `move_damage`, `clear_zone_damage`, `repair_all` | MODIFY Sustain Damage; repair in status (hook "repair extra units") |
+| `core/technology.py` | `grant_technology`, `apply_research`, `gain_technology` | TRIGGER "when you research a tech"; MODIFY prerequisites and specialties (skips) in `plan_research` |
+| `core/objectives.py` | `award_points` | MODIFY/TRIGGER "when you gain/lose a point"; win condition |
+| `core/card_draw.py` | `draw_action_card`, `discard_action_cards`, `seed_action_deck` | MODIFY "draw an extra card"; TRIGGER "when you draw/discard" |
+| `core/strategy_phase.py` | `set_speaker` | TRIGGER "when speaker changes" |
+| `core/timing.py` | `open_window`, `respond_current` | already ONE window API — ALL when/after/before/instead TRIGGERs go through here (RULES.md 34, 43.4) |
 
-### B. Punkty ODCZYTU (liczą wynik, nie zmieniają stanu) — typ MODIFY / PERMIT / FORBID
+### B. READ Points (compute result, do not mutate state) — MODIFY / PERMIT / FORBID type
 
-| Gdzie | Co dziś | Hook |
+| Where | What today | Hook |
 |---|---|---|
-| `combat.resolve_unit_variant` (używana w 11 modułach) | wybór wariantu jednostki wg technologii/frakcji | MODIFY statystyk: ruch, pojemność, koszt, wartość walki, produkcja (`unit_stat`) |
-| `planet_stats.resources_of`, `influence_of` | wartość planety z danych + attachmentów | MODIFY wartości planety (attachmenty, zdolności) |
-| `movement` (`_node_passable_intermediate`, `_target_passable`, `_has_antimass`, `can_move`) | blokada przejścia przez obce statki, anomalie; literał technologii Antimass | PERMIT/FORBID przejścia i wejścia (pierwszy przypadek: Antimass, technologia „ruch przez systemy z obcymi statkami") |
-| `production` (`_PRODUCTION_FORBIDS`, `remaining_production`, `producers`, `available_budget`, `auto_pay`, `_validate_spend`) | zakaz piechoty z doku Arborec; limit PRODUCTION; budżet | FORBID/MODIFY typów, limitu i kosztu; **budżet powinien pytać `payment` o źródła** (dziś liczy TG sam) |
-| `objective_progress` (odczyt `trade_goods` itd.) | postęp celów | MODIFY razem ze źródłami płatności |
-| `capacity`, `fleet_pool` | limit pojemności i floty | MODIFY limitów |
-| `battle`, `combat`, `space_cannon`, `invasion` (rzuty, trafienia, AFB, bombardowanie) | pipeline rzutów | MODIFY rzutu, dodatkowe kości, reroll, ignorowanie Sustain; przypisanie strat |
-| `retreat` (`retreat_destinations`) | cele odwrotu | PERMIT/FORBID celów |
-| `tactical.activate_system` | koszt aktywacji z puli taktycznej, flaga `free` | PERMIT „bez żetonu" (przez `command_tokens`) |
+| `combat.resolve_unit_variant` (used in 11 modules) | unit variant choice by tech/faction | MODIFY stats: move, capacity, cost, combat value, production (`unit_stat`) |
+| `planet_stats.resources_of`, `influence_of` | planet value from data + attachments | MODIFY planet value (attachments, abilities) |
+| `movement` (`_node_passable_intermediate`, `_target_passable`, `_has_antimass`, `can_move`) | blocking passage through enemy ships, anomalies; Antimass tech literal | PERMIT/FORBID passage and entry (first case: Antimass, "move through systems with enemy ships" tech) |
+| `production` (`_PRODUCTION_FORBIDS`, `remaining_production`, `producers`, `available_budget`, `auto_pay`, `_validate_spend`) | Arborec dock infantry ban; PRODUCTION limit; budget | FORBID/MODIFY types, limit, and cost; **budget should query `payment` for sources** (today counts TG itself) |
+| `objective_progress` (reads `trade_goods` etc.) | objective progress | MODIFY together with payment sources |
+| `capacity`, `fleet_pool` | capacity and fleet limits | MODIFY limits |
+| `battle`, `combat`, `space_cannon`, `invasion` (rolls, hits, AFB, bombardment) | roll pipeline | MODIFY roll, extra dice, reroll, ignore Sustain; hit assignment |
+| `retreat` (`retreat_destinations`) | retreat targets | PERMIT/FORBID targets |
+| `tactical.activate_system` | activation cost from tactic pool, `free` flag | PERMIT "without token" (via `command_tokens`) |
 
-### C. Czego jeszcze NIE ma (trzeba dobudować przy hookach, nie w fazie C)
-- `core/rules_hooks.py`: rejestr, kolejność rozstrzygania, 5 typów hooków (RULES.md 43.1).
-- Akcje „zagraj kartę akcji / użyj lidera / użyj zdolności" (dziś `component_action` tylko zapisuje „wykonano akcję", bez efektu) — to tu hooki dostaną pierwsze realne wywołania; muszą korzystać z funkcji centralnych A.
-- Stan efektów trwałych (PERSISTENT: prawa agend, karty zostające w grze, wygasanie) i rejestr wyczerpywalnych zdolności („exhaust this card").
-- STOP / punkty kontrolne (RULES.md 43.4) i `actor_id` w endpointach akcji (RULES.md 44.1).
+### C. What Does NOT Exist Yet (build during hooks, not Phase C)
+- `core/rules_hooks.py`: registry, resolution order, 5 hook types (RULES.md 43.1).
+- Actions "play action card / use leader / use ability" (today `component_action` only logs "action performed", no effect) — here hooks get their first real calls; must use central functions A.
+- Persistent effects state (PERSISTENT: agenda laws, cards staying in play, expiry) and exhaustible abilities registry ("exhaust this card").
+- STOP / checkpoints (RULES.md 43.4) and `actor_id` in action endpoints (RULES.md 44.1).
 
-## C9 — domknięte; co zostało po fazie C
+## C9 — closed; what remains after Phase C
 
-Zrobione w C9 (strażnik `tests/test_central_points.py` pilnuje wszystkich pól):
-- tajne cele (talia, ręka, kandydaci, zdobyte) → `core/secret_objectives.py` (limit 3 i zwrot nadmiaru tu);
-- promissory notes (ręka, strefa gry) → `core/promissory_notes.py`;
-- fragmenty reliktów → `core/relic_fragments.py`;
-- talie agend (zasiew, układanie wierzchu Politics) → `card_draw.py`;
-- talie/odrzucone/purge eksploracji i `planet_attachments` → `exploration.py` (+ `deck_piles.py` jako debug);
-- `breakthrough_unlocked`, `breakthrough_tg` — chronione, dziś tylko God-Mode (logika dojdzie z hookami).
+Done in C9 (guard `tests/test_central_points.py` protects all fields):
+- secret objectives (deck, hand, candidates, scored) → `core/secret_objectives.py` (limit 3 and returning excess here);
+- promissory notes (hand, play area) → `core/promissory_notes.py`;
+- relic fragments → `core/relic_fragments.py`;
+- agenda decks (seeding, stacking top for Politics) → `card_draw.py`;
+- exploration decks/discards/purged and `planet_attachments` → `exploration.py` (+ `deck_piles.py` as debug);
+- `breakthrough_unlocked`, `breakthrough_tg` — protected, today God-Mode only (logic arrives with hooks).
 
-Nadal otwarte:
-- logika gry w endpointach `api/` (np. `game.py`: seating/mówca przy setupie) — przenieść do `core/` przy etapie sieciowym;
-- `board_edit.recompute_planet_control` (God-Mode) duplikuje `control.recompute_from_units` — świadomie, bo God-Mode omija reguły.
+Still open:
+- game logic in `api/` endpoints (e.g. `game.py`: seating/speaker at setup) — move to `core/` during network stage;
+- `board_edit.recompute_planet_control` (God-Mode) duplicates `control.recompute_from_units` — intentional, as God-Mode bypasses rules.

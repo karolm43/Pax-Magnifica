@@ -1,223 +1,223 @@
-# Scena wyboru frakcji (setup) — projekt, pliki, treść
+# Faction Picker Scene (Setup) — Design, Files, Content
 
-Dokument opisuje **aktualny stan** UI wyboru frakcji i kroku „Gracze" w kreatorze nowej gry
-oraz to, jak dodawać treść (portrety, cytaty, lore) i jakich pułapek unikać. Historia
-iteracji jest w `PROGRESS.md` / `PROGRESS_ARCHIWUM.md`; kod nadrzędny wobec tego opisu.
-
----
-
-## 1. Przepływ kreatora
-
-`StartScreen` (menu → „Graj") → `SetupWizard` z dwoma krokami (`setupSteps.ts`):
-
-1. **`name-color` — „Gracze"** (`steps/Step_NameColor.tsx`): per gracz nazwa, kolor oraz
-   **sterowanie Człowiek/Bot + poziom trudności bota** (zbiór trudności z `GET /engine/config`,
-   nie z frontu). Osobny krok „Człowiek/bot" został usunięty. Walidacja sterowania siedzi w
-   `validateStep("name-color")` (`useSetupStore.ts`). Liczba graczy i map string są
-   w nagłówku kreatora tylko na pierwszym kroku.
-2. **`faction` — scena pełnoekranowa** (`steps/Step_Faction.tsx`): wybór frakcji per gracz
-   wraz z technologiami startowymi (wbudowane w `FactionSummary`). Krok jest w
-   `STAGE_STEP_IDS` (`SetupWizard.tsx`), więc renderuje się **bez ramki kreatora** i sam
-   rysuje pasek górny (Wstecz · przełącznik graczy · Start gry). `StartScreen` w trybie
-   sceny zdejmuje padding/scroll kontenera (`.setupScreenStage`).
-
-Obsidian nie jest wybieralny — wchodzi tylko przez przycisk „Zobacz Obsidian" w panelu
-Firmamentu (`DERIVED_FACTION` w `FactionSummary.tsx`). Scena pokazuje wtedy jego portret/lore.
+This document describes the **current state** of the faction picker UI and the "Players" step in the new game
+wizard, as well as how to add content (portraits, quotes, lore) and what pitfalls to avoid. Iteration
+history is in `PROGRESS.md` / `PROGRESS_ARCHIWUM.md`; code is authoritative over this description.
 
 ---
 
-## 2. Układ sceny (od lewej do prawej)
+## 1. Wizard Flow
+
+`StartScreen` (menu → "Play") → `SetupWizard` with two steps (`setupSteps.ts`):
+
+1. **`name-color` — "Players"** (`steps/Step_NameColor.tsx`): per-player name, color, and
+   **Human/Bot control + bot difficulty** (difficulty set from `GET /engine/config`,
+   not from frontend). Separate "Human/bot" step was removed. Control validation lives in
+   `validateStep("name-color")` (`useSetupStore.ts`). Player count and map string are
+   in the wizard header only on the first step.
+2. **`faction` — fullscreen scene** (`steps/Step_Faction.tsx`): faction selection per player
+   along with starting technologies (embedded in `FactionSummary`). Step is in
+   `STAGE_STEP_IDS` (`SetupWizard.tsx`), so it renders **without the wizard frame** and draws
+   its own top bar (Back · player switcher · Start game). `StartScreen` in stage mode
+   removes container padding/scroll (`.setupScreenStage`).
+
+Obsidian is not selectable — entered only via the "View Obsidian" button in Firmament's
+panel (`DERIVED_FACTION` in `FactionSummary.tsx`). The scene then shows its portrait/lore.
+
+---
+
+## 2. Scene Layout (left to right)
 
 ```
-┌ pasek górny: ← Wstecz │ Gracz1 Gracz2 … │ Start gry → ──────────────────────────┐
-│ ┌ nagłówek (panel: ikona + nazwa + cytat + autor) ┐                              │
-│        [ POSTAĆ ]──lore (2 kolumny, nachodzi na prawą, wygaszoną część postaci)  │ detail │ lista │
-│                      ✦ Wybierz dla gracza N ✦  (przycisk na środku dołu)         │ (wąski)│ frakcji│
-└────────────────────────────────────────────────────────────────────────────────────┘
+┌ top bar: ← Back │ Player1 Player2 … │ Start game → ──────────────────────────────┐
+│ ┌ header (panel: icon + name + quote + author) ┐                                 │
+│        [ CHARACTER ]──lore (2 columns, overlaps faded right edge of character)   │ detail │ faction │
+│                      ✦ Pick for Player N ✦  (bottom-center button)               │(narrow)│  list   │
+└───────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Strefa postaci** (`.characterZone`, `Step_Faction.module.css`): portret przy lewej
-  i dolnej krawędzi ekranu; prawa krawędź zanika maską. Zmienne CSS: `--portrait-w`
-  (szerokość pasa), `--quote-h` (wysokość nagłówka; mniejsza bez cytatu), `--lore-top`,
-  `--pick-h` (wysokość dolnego rzędu z przyciskiem), `--figure-cx` (środek **zmierzonej**
-  sylwetki, ustawiany z JS).
-- **Panel szczegółów** (`FactionSummary`): wąski (`clamp(280px, 18.5vw, 350px)`), szkło
-  z blurem; zdolności, technologie, jednostki, liderzy, start gry. Pojawia się **szybko**.
-- **Lista frakcji** (prawo): pionowa, z wyszukiwarką; **sam klik** zmienia podgląd
-  (bez hover-popoverów — patrz gotcha „karta zostaje na hover"). Kafel „Losowa" wybiera od razu.
-- **Przycisk „Wybierz dla gracza N"** (`.pickBar`): osobny, wyśrodkowany na dole, złoty;
-  po wyborze „✓ Wybrana dla gracza N". Ostrzeżenie, gdy frakcję ma już inny gracz.
-- Poniżej 1100 px strefa postaci jest ukryta, a kolumny układają się pionowo.
+- **Character zone** (`.characterZone`, `Step_Faction.module.css`): portrait anchored to left
+  and bottom edges of the screen; right edge fades with a mask. CSS vars: `--portrait-w`
+  (strip width), `--quote-h` (header height; smaller without quote), `--lore-top`,
+  `--pick-h` (height of bottom row with button), `--figure-cx` (center of **measured**
+  silhouette, set from JS).
+- **Detail panel** (`FactionSummary`): narrow (`clamp(280px, 18.5vw, 350px)`), blurred
+  glass; abilities, technologies, units, leaders, game start. Appears **fast**.
+- **Faction list** (right): vertical, with search; **click only** changes preview
+  (no hover popovers — see gotcha "card sticks on hover"). "Random" tile picks immediately.
+- **"Pick for Player N" button** (`.pickBar`): separate, centered at bottom, gold;
+  once picked "✓ Picked for Player N". Warning when another player already has the faction.
+- Below 1100 px the character zone is hidden and columns stack vertically.
 
 ---
 
-## 3. Pliki
+## 3. Files
 
-| Plik | Odpowiedzialność |
+| File | Responsibility |
 |---|---|
-| `domains/setup/steps/Step_Faction.tsx` + `.module.css` | Układ sceny, stan podglądu/gracza, lista, przycisk wyboru |
-| `domains/setup/FactionBackdrop.tsx` + `.module.css` | Warstwy sceny: `FactionPortraitLayer`, `FactionHeader`, `FactionLore`, `splitLoreColumns`, akcent koloru |
-| `domains/setup/GlyphText.tsx` + `.module.css` | Hook `useDecode` + `DecodedText` — pismo ↔ tekst czytelny (efekt rozszyfrowania) |
-| `domains/setup/FactionSummary.tsx` + `.module.css` | Panel szczegółów frakcji (reużywa komponenty panelu gracza), podgląd frakcji pochodnej |
-| `domains/setup/factionLore.ts` | **Treść**: cytaty, autorzy, lore, ścieżki portretów, `glyphLore`, `glitchPhrases` |
-| `domains/setup/useSetupStore.ts`, `setupSteps.ts` | Stan i kroki kreatora, walidacja |
+| `domains/setup/steps/Step_Faction.tsx` + `.module.css` | Scene layout, preview/player state, list, pick button |
+| `domains/setup/FactionBackdrop.tsx` + `.module.css` | Scene layers: `FactionPortraitLayer`, `FactionHeader`, `FactionLore`, `splitLoreColumns`, color accent |
+| `domains/setup/GlyphText.tsx` + `.module.css` | `useDecode` hook + `DecodedText` — script ↔ readable text (decryption effect) |
+| `domains/setup/FactionSummary.tsx` + `.module.css` | Faction detail panel (reuses player panel components), derived faction preview |
+| `domains/setup/factionLore.ts` | **Content**: quotes, authors, lore, portrait paths, `glyphLore`, `glitchPhrases` |
+| `domains/setup/useSetupStore.ts`, `setupSteps.ts` | Wizard state and steps, validation |
 | `styles/fonts.css` | `@font-face`: Ambroise Firmin, Handel Gothic, Lazaxian |
 
-`FactionBackdrop.tsx` jest długi (≈560 linii) — świadomie zostawiony w jednym pliku
-(decyzja usera); podział lore do osobnego pliku to opcja na przyszłość.
+`FactionBackdrop.tsx` is long (≈560 lines) — intentionally kept in one file
+(user decision); splitting lore into a separate file is a future option.
 
 ---
 
-## 4. Portret postaci
+## 4. Character Portrait
 
-- Plik: `frontend/public/faction_portraits/<id>.{png,jpg,jpeg,webp}` (lub `portrait`
-  w `factionLore.ts`). Łańcuch zapasowy: portret → bohater frakcji `/leaders/<heroId>.webp`
-  → ikona frakcji (rysowana jako przygaszony symbol). Brak CDN.
-- **Przezroczyste tło** (PNG postaci). Po `onLoad` `measureAlphaInset` (canvas, alfa > 16)
-  mierzy przezroczysty margines od lewej/dołu oraz szerokość sylwetki. Korekta
-  `transform: translate(%)` dosuwa **widoczną** sylwetkę do krawędzi ekranu, a środek
-  sylwetki (`--figure-cx`) służy do centrowania nagłówka i ustawienia lore.
-- Obraz ma box = widoczna treść (`width/height: auto` + `max-*`, bez `object-fit`),
-  dzięki czemu przesunięcia w % są dokładne.
+- File: `frontend/public/faction_portraits/<id>.{png,jpg,jpeg,webp}` (or `portrait`
+  in `factionLore.ts`). Fallback chain: portrait → faction hero `/leaders/<heroId>.webp`
+  → faction icon (drawn as a dimmed symbol). No CDN.
+- **Transparent background** (character PNG). After `onLoad`, `measureAlphaInset` (canvas, alpha > 16)
+  measures the transparent margin from left/bottom and the silhouette width. `transform: translate(%)`
+  correction nudges the **visible** silhouette to the screen edge, and the silhouette center
+  (`--figure-cx`) is used to center the header and position the lore.
+- Image box = visible content (`width/height: auto` + `max-*`, no `object-fit`),
+  so `%` offsets are accurate.
 
 ---
 
-## 5. Nagłówek sceny (`FactionHeader`)
+## 5. Scene Header (`FactionHeader`)
 
-Panel w stylu nagłówka karty frakcji: ciemna płyta ze ściętymi rogami (`clip-path`),
-obrys w **kolorze frakcji** (`--accent`), ikona po lewej, po prawej nazwa (Handel Gothic D
-Bold), cytat (kursywa) i autor (`— Autor`, bez cudzysłowu). Tekst wyśrodkowany względem
-siebie; cały panel wyśrodkowany nad zmierzoną sylwetką; box przylega do tekstu
-(bez `text-wrap: balance`).
+Faction-sheet-style header panel: dark plate with chamfered corners (`clip-path`),
+border in **faction color** (`--accent`), icon on the left, name on the right (Handel Gothic D
+Bold), quote (italic), and author (`— Author`, no quotes). Text centered relative to
+itself; whole panel centered over the measured silhouette; box hugs the text
+(no `text-wrap: balance`).
 
-- **Akcent koloru**: wyliczany z lokalnej ikony `/static/factions/<id>.png`
-  (`useFactionAccent` — średnia ważona nasyceniem → `hsl(hue 72% 58%)`, cache po id).
-  Szara ikona → bursztyn. Żadnych kolorów wpisanych na sztywno.
-- **Cytat**: w `factionLore.ts` wpisuj `quote` **bez cudzysłowu** (komponent dodaje “ ”;
-  jeśli wkleisz z cudzysłowem — zdejmie je z brzegów). `quoteAuthor` — sam autor; wiodący
-  myślnik jest opcjonalny (komponent doda „— "). Autor pokazuje się tylko z cytatem.
+- **Color accent**: computed from local icon `/static/factions/<id>.png`
+  (`useFactionAccent` — saturation-weighted average → `hsl(hue 72% 58%)`, cached by id).
+  Grey icon → amber. No hardcoded colors.
+- **Quote**: in `factionLore.ts`, enter `quote` **without quotation marks** (component adds “ ”;
+  if you paste with quotes — it strips them from the ends). `quoteAuthor` — author only; leading
+  dash is optional (component prepends "— "). Author shows only when a quote is present.
 
 ---
 
 ## 6. Lore (`FactionLore`)
 
-- **Dwie jawne kolumny** (`splitLoreColumns`), obie zaczynają się na tej samej wysokości.
-  Podział wg liczby znaków; jeśli środek wypada w długim akapicie, cięcie następuje na
-  końcu zdania; śródtytuł nie zostaje sam na dole kolumny. (Wcześniej CSS `column-count`
-  — odrzucone: nierówne kolumny, rozdarte akapity.)
-- **Auto-dopasowanie czcionki** do boxa: binarne szukanie największego rozmiaru
-  (limit zależny od okna: `min(21, max(14, min(1.15vw, 2.1vh)))`, min 10.5 px), który
-  mieści się **bez przewijania** (test tylko wysokości — test szerokości zawodził przez
-  `::before` wystające poza `article`). Przelicza się przy zmianie rozmiaru strefy i fontów.
-- Lore zaczyna się przy prawej krawędzi sylwetki i **delikatnie na nią nachodzi**
-  (`margin-left` z `--figure-cx`), tło lore jest lekkie i przezroczyste.
-- Bloki w `lore`: `paragraph` / `heading` / `quote`; opcjonalnie `tone` (`red`/`dark-red`)
-  i `size` (`large`/`small`).
+- **Two explicit columns** (`splitLoreColumns`), both starting at the same height.
+  Split by character count; if the midpoint falls inside a long paragraph, it cuts at
+  a sentence boundary; a subheading is never left orphaned at the bottom of a column. (Previously CSS `column-count`
+  — rejected: uneven columns, torn paragraphs.)
+- **Auto-fit font** to box: binary search for the largest size
+  (window-dependent cap: `min(21, max(14, min(1.15vw, 2.1vh)))`, min 10.5 px) that
+  fits **without scrolling** (height test only — width test failed due to
+  `::before` protruding outside `article`). Recalculates on zone resize and font load.
+- Lore starts at the right edge of the silhouette and **gently overlaps it**
+  (`margin-left` from `--figure-cx`), lore background is light and translucent.
+- Blocks in `lore`: `paragraph` / `heading` / `quote`; optional `tone` (`red`/`dark-red`)
+  and `size` (`large`/`small`).
 
 ---
 
-## 7. Animacje (kolejność uwagi)
+## 7. Animations (attention order)
 
-Tempo jest **celowo zróżnicowane**: oprawa wolna, informacja robocza szybka.
+Pacing is **intentionally varied**: atmosphere is slow, working info is fast.
 
-| Element | Start | Czas |
+| Element | Start | Duration |
 |---|---|---|
-| Postać (krycie + przesunięcie + jasność; **rozmycie schodzi osobno w 2.2 s**) | 0.25 s | 5.5 s |
-| Panel nagłówka → nazwa → cytat → autor | 0.4 / 0.5 / 1.5 / 2.8 s | 1.6–2.2 s |
-| Lore (blok po bloku, 230 ms/blok) + jego tło | od 4.2 s | 2.4 s |
-| Panel szczegółów (nagłówek + sekcje) | 0.05–0.6 s | 0.4–0.45 s |
-| Przycisk wyboru | 0.4 s | 0.9 s |
+| Character (opacity + slide + brightness; **blur clears separately in 2.2 s**) | 0.25 s | 5.5 s |
+| Header panel → name → quote → author | 0.4 / 0.5 / 1.5 / 2.8 s | 1.6–2.2 s |
+| Lore (block by block, 230 ms/block) + its background | from 4.2 s | 2.4 s |
+| Detail panel (header + sections) | 0.05–0.6 s | 0.4–0.45 s |
+| Pick button | 0.4 s | 0.9 s |
 
-**Gdzie stroić tempo:** blok zmiennych `--t-*` na początku `.stage` w
-`steps/Step_Faction.module.css` (z opisem każdej). Mniejsza liczba = szybciej. Kluczowe:
-`--t-portrait-fade` (całe wyłanianie postaci), `--t-portrait-unblur` (jak długo postać jest
-rozmyta — osobna animacja `portraitUnblur`, domyślnie 2.2 s), `--t-quote-delay`,
-`--t-lore-delay`, `--t-lore-step`, `--t-detail-*`, `--t-pick-*`. Kształt samych animacji
-(ruch, kolejne etapy krycia/jasności) jest w `@keyframes` w `FactionBackdrop.module.css`
-(`portraitFade`, `portraitUnblur`, `portraitGrade`, `headIn`, `loreIn`) i `FactionSummary.module.css`
-(`sectionIn`). Postać składa się z trzech animacji na różnych właściwościach (warstwa:
-krycie/ruch + rozmycie; obrazek: jasność), dlatego rozmycie można skrócić niezależnie.
+**Where to tune pacing:** `--t-*` variable block at the top of `.stage` in
+`steps/Step_Faction.module.css` (with a comment on each). Smaller number = faster. Key vars:
+`--t-portrait-fade` (full character emergence), `--t-portrait-unblur` (how long character stays
+blurred — separate `portraitUnblur` animation, default 2.2 s), `--t-quote-delay`,
+`--t-lore-delay`, `--t-lore-step`, `--t-detail-*`, `--t-pick-*`. Animation curves themselves
+(motion, opacity/brightness stages) are in `@keyframes` in `FactionBackdrop.module.css`
+(`portraitFade`, `portraitUnblur`, `portraitGrade`, `headIn`, `loreIn`) and `FactionSummary.module.css`
+(`sectionIn`). The character consists of three animations on different properties (layer:
+opacity/motion + blur; image: brightness), so blur can be shortened independently.
 
-Wszystko odtwarza się przy każdej zmianie frakcji (`key` na warstwach).
-`prefers-reduced-motion`: bez ruchu/blura, ale **zostaje wolny, widoczny fade** (krótki fade
-sprawiał, że animacji „nie było widać"); panel szczegółów dostaje krótki fade.
-
----
-
-## 8. Lore pisane pismem z gry — Obsidian (`glyphLore`)
-
-Obsidian ma w `factionLore.ts` flagę `glyphLore: true`:
-
-- Tekst (wielkie litery, angielski) wyświetlany krojem **Lazaxian** (`GlyphText.module.css`).
-  Przycisk **„Przetłumacz" / „Pokaż oryginał"** przełącza na czytelny szeryfowy krój.
-- **Efekt rozszyfrowania** (`useDecode`, ~3.6 s): fala idzie blok po bloku, w bloku znak po
-  znaku; przed frontem znaki migoczą (część podmieniana na losowe litery), na froncie
-  świeci czerwony „kursor"; box drży, tekst dostaje aberrację czerwono-cyjanową, przez
-  box przesuwa się pasmo ze skanlinami. Losowość deterministyczna (hash klatki).
-  Dopasowanie czcionki robi się dopiero po zakończeniu przejścia (`busy`).
-- **Groza (tylko `glyphLore`)** — timery w `FactionLore`, wstrzymane w trakcie
-  rozszyfrowania i przy reduced-motion: losowy glitch akapitu (Web Animations API: skos,
-  rozdwojenie kolorów, ucięte pasy), przygasanie całego lore, krótki **błysk frazy** z
-  `glitchPhrases` w losowym miejscu oraz „bijące serce" (puls tła). Frazy autorstwa projektu
-  — do edycji w `factionLore.ts`.
-- Transkrypcja lore jest fanowska: ligatury `(TH)` zdjęte, uwagi usunięte, nieczytelne
-  fragmenty pominięte (m.in. „WHEN YOU'VE FINISHED PLAYING…", „EVERY TENTH CLOSE?",
-  „LIFE BRINGS DEAD", „THE WORLD DRAWS ??P"). Uzupełniaj w `factionLore.ts`.
+Everything replays on every faction change (`key` on layers).
+`prefers-reduced-motion`: no motion/blur, but **a slow, visible fade remains** (a short fade
+made the animation "invisible"); detail panel gets a short fade.
 
 ---
 
-## 9. Gotchas (czego nie robić)
+## 8. Lore Written in In-Game Script — Obsidian (`glyphLore`)
 
-- **Web Animations API: `easing` w `animate(keyframes, {easing})` działa na CAŁY przebieg**,
-  nie na krok. `steps(1, end)` tam trzyma animację w pierwszej klatce do końca → efekt
-  niewidoczny. Skokowość ustawiaj `easing` **w każdej klatce kluczowej**.
-- **Nie podmieniaj właściwości `animation` na elemencie z animacją wejścia** (np. dodając
-  klasę „glitch"): po zdjęciu klasy animacja wejścia restartuje się i tekst znów znika.
-  Efekty chwilowe rób przez WAAPI (nakłada się na animacje CSS bez restartu).
-- **`text-wrap: balance`** skraca linie, ale nie kontener — box zostaje szeroki. Dla boxa
-  przylegającego do tekstu zostaw zwykłe zawijanie.
-- Nie mierz szerokości `article` z pseudo-elementem wystającym (`::before` z ujemnym `inset`).
-- Układ wyśrodkowany względem **zmierzonej sylwetki**, nie pasa portretu (postać bywa węższa
-  → przesunięcie w prawo).
-- Hover-popover nad przewijaną listą bywa „przyklejony" — stąd klik zamiast hovera.
-- Niebieski = sygnał interakcji (zaznaczenie, focus), nie dekoracja; dekoracje w cieple TI4.
-  Bez ozdobnych pasków/linii u góry ekranu.
+Obsidian has `glyphLore: true` in `factionLore.ts`:
+
+- Text (uppercase, English) rendered in **Lazaxian** (`GlyphText.module.css`).
+  **"Translate" / "Show original"** button switches to a readable serif face.
+- **Decryption effect** (`useDecode`, ~3.6 s): wave moves block by block, character by
+  character inside a block; ahead of the front, characters flicker (some swapped for random letters), at the front
+  a red "cursor" glows; box jitters, text gets red-cyan aberration, a scanline band
+  sweeps across the box. Deterministic randomness (frame hash).
+  Font fitting runs only after the transition finishes (`busy`).
+- **Dread (`glyphLore` only)** — timers in `FactionLore`, paused during
+  decryption and under reduced-motion: random paragraph glitch (Web Animations API: skew,
+  color split, clipped bands), whole-lore dimming, brief **phrase flash** from
+  `glitchPhrases` at a random spot, and a "beating heart" (background pulse). Phrases authored by the project
+  — editable in `factionLore.ts`.
+- Lore transcription is fan-made: `(TH)` ligatures stripped, notes removed, illegible
+  fragments omitted (e.g. "WHEN YOU'VE FINISHED PLAYING…", "EVERY TENTH CLOSE?",
+  "LIFE BRINGS DEAD", "THE WORLD DRAWS ??P"). Fill in via `factionLore.ts`.
 
 ---
 
-## 10. Pliki zewnętrzne i licencje
+## 9. Gotchas (what NOT to do)
 
-- Fonty (`frontend/public/font/`): **Ambroise Firmin Bold**, **Handel Gothic D Bold**,
-  **Lazaxian-Bold.ttf** — kroje komercyjne/fanowskie; commit decyduje właściciel repo.
-  Brak pliku nie psuje UI (spadek na kolejny krój ze stosu `font-family`).
-  `@font-face` w `styles/fonts.css`.
-- Portrety: `frontend/public/faction_portraits/` (m.in. `obsidian.png`, `firmament.png`
-  mogą być jeszcze niezacommitowane w lokalnej kopii).
+- **Web Animations API: `easing` in `animate(keyframes, {easing})` applies to the ENTIRE timeline**,
+  not per step. `steps(1, end)` there holds the animation on the first frame until the end → effect
+  invisible. Put stepped `easing` **inside each keyframe**.
+- **Do not replace `animation` on an element with an entrance animation** (e.g. adding
+  a "glitch" class): removing the class restarts the entrance animation and text vanishes again.
+  Do transient effects via WAAPI (layers on top of CSS animations without restarting them).
+- **`text-wrap: balance`** shortens lines, not the container — the box stays wide. For a box
+  hugging the text, keep normal wrapping.
+- Do not measure `article` width with a protruding pseudo-element (`::before` with negative `inset`).
+- Layout centered relative to the **measured silhouette**, not the portrait strip (character can be narrower
+  → shifts right).
+- Hover-popover over a scrollable list tends to "stick" — hence click instead of hover.
+- Blue = interaction signal (selection, focus), not decoration; decorations in warm TI4 tones.
+  No ornamental bars/lines at the top of the screen.
+
+---
+
+## 10. External Files & Licenses
+
+- Fonts (`frontend/public/font/`): **Ambroise Firmin Bold**, **Handel Gothic D Bold**,
+  **Lazaxian-Bold.ttf** — commercial/fan typefaces; repo owner decides on committing.
+  Missing file does not break UI (falls back to next face in `font-family` stack).
+  `@font-face` in `styles/fonts.css`.
+- Portraits: `frontend/public/faction_portraits/` (including `obsidian.png`, `firmament.png`
+  which may still be uncommitted in a local copy).
 
 ---
 
 ## 11. QA
 
-Brak testów jednostkowych frontu. Po zmianie: `npm run type-check` (lub `npx tsc --noEmit`),
-`npm run lint`, `npm run build` w `frontend/`. Efekty wizualne (animacje, glitche,
-centrowanie) weryfikuje się wyłącznie w przeglądarce.
+No frontend unit tests. After a change: `npm run type-check` (or `npx tsc --noEmit`),
+`npm run lint`, `npm run build` in `frontend/`. Visual effects (animations, glitches,
+centering) are verified in the browser only.
 
 ---
 
-## 12. Plansza otwierająca grę (`GameIntro`)
+## 12. Game Opening Screen (`GameIntro`)
 
-Po „Start gry" (gra już utworzona przez `/game/new`), a przed wejściem na `/game`
-(pierwszy baner fazy strategii), `SetupWizard` pokazuje pełnoekranową planszę w portalu
-na `document.body` (przodkowie mają `transform` — `fixed` inaczej by się psuł).
+After "Start game" (game already created via `/game/new`), and before entering `/game`
+(first strategy phase banner), `SetupWizard` shows a fullscreen screen in a portal
+on `document.body` (ancestors have `transform` — `fixed` would break otherwise).
 
-- **Dane**: `introPlayers.ts` → `GET /bot/state` (frakcje losowe są dobierane przez
-  backend, więc czytamy faktyczny stan; kolejność = `seating_order`). Błąd/brak graczy =
-  intro pominięte, wejście prosto do gry.
-- **Treść**: tytuł „Twilight Imperium" (Ambroise + gradient jak logo menu), crawl kroniki
-  (`CHRONICLE` w `GameIntro.tsx`), rząd kart frakcji (portret z `portraitCandidates`,
-  akcent z `useFactionAccent`, nazwa, gracz + kolor, człowiek/bot), przycisk „Begin".
-- **Crawl**: trasa i czas liczone z pomiaru (stała prędkość — `CRAWL_VIEWPORTS_PER_SECOND`),
-  zmienne CSS `--from/--to/--dur`. „Begin" pojawia się po dojechaniu tekstu; Skip/Esc/
-  Enter/Spacja kończą w każdej chwili.
-- **Tempo**: zmienne `--t-*` na początku `.overlay` w `GameIntro.module.css`.
-- Reduced-motion: tekst stoi (przewijany ręcznie), karty i tytuł tylko wolny fade.
+- **Data**: `introPlayers.ts` → `GET /bot/state` (random factions are picked by the
+  backend, so we read the actual state; order = `seating_order`). Error/no players =
+  intro skipped, straight into the game.
+- **Content**: "Twilight Imperium" title (Ambroise + gradient like menu logo), chronicle crawl
+  (`CHRONICLE` in `GameIntro.tsx`), row of faction cards (portrait from `portraitCandidates`,
+  accent from `useFactionAccent`, name, player + color, human/bot), "Begin" button.
+- **Crawl**: distance and duration computed from measurement (constant speed — `CRAWL_VIEWPORTS_PER_SECOND`),
+  CSS vars `--from/--to/--dur`. "Begin" appears after text finishes; Skip/Esc/
+  Enter/Space finish at any time.
+- **Pacing**: `--t-*` vars at the top of `.overlay` in `GameIntro.module.css`.
+- Reduced-motion: text stands still (manually scrollable), cards and title only slow fade.

@@ -24,6 +24,9 @@ type DraggablePanel = {
   isMoved: boolean;
 };
 
+/** Ile pikseli od góry panelu (pasek uchwytu) musi zostać w oknie - reszta może zjechać niżej. */
+const HANDLE_STRIP = 48;
+
 function readPosition(storageKey: string): Position {
   try {
     const raw = localStorage.getItem(storageKey);
@@ -81,7 +84,9 @@ export function useDraggablePanel(storageKey: string): DraggablePanel {
       const drag = dragRef.current;
       const margin = 4;
       const w = drag?.width ?? 300;
-      const h = drag?.height ?? 120;
+      const h = drag?.height ?? HANDLE_STRIP;
+      // CAŁY panel (przyciski, nie tylko pasek) zostaje na ekranie; panel wyższy od okna
+      // trzyma górę (uchwyt) w zasięgu.
       const maxX = Math.max(margin, window.innerWidth - w - margin);
       const maxY = Math.max(margin, window.innerHeight - h - margin);
       return {
@@ -172,7 +177,7 @@ export function useDraggablePanel(storageKey: string): DraggablePanel {
         const margin = 4;
         const maxX = Math.max(margin, window.innerWidth - rect.width - margin);
         const maxY = Math.max(margin, window.innerHeight - rect.height - margin);
-        const x = Math.min(Math.max(margin, current.x), maxX);
+        const x =Math.min(Math.max(margin, current.x), maxX);
         const y = Math.min(Math.max(margin, current.y), maxY);
         return x === current.x && y === current.y ? current : { x, y };
       });
@@ -199,6 +204,9 @@ export function useDraggablePanel(storageKey: string): DraggablePanel {
         // lewego-górnego rogu.
         right: "auto",
         bottom: "auto",
+        // Góra panelu jest stała; zjechany niżej panel nie wychodzi poza ekran (przewija się
+        // w środku, jeśli ma overflow), a uchwyt zostaje w zasięgu.
+        maxHeight: `max(${HANDLE_STRIP * 2}px, calc(100vh - ${position.y}px - 8px))`,
       }
     : {};
 

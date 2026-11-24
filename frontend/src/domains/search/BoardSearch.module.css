@@ -5,7 +5,10 @@
 .root {
   position: relative;
   align-self: center;
+  /* Kurczy się razem z paskiem zakładek (min. 120 px), zamiast go wypychać. */
+  flex: 0 1 260px;
   width: 260px;
+  min-width: 120px;
   margin-left: 10px;
 }
 

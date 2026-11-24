@@ -29,9 +29,13 @@
   pointer-events: auto;
 }
 
-/* Pusta kolumna (nic do zrobienia) nie zasłania planszy - pasek też znika. */
-.stack:has(> .body:empty) {
-  display: none;
+/* Pusta kolumna zostaje (pasek + podpis) - gracz zawsze widzi centrum decyzji; zasłaniać
+   planszy nie musi (zwija się do pastylki, jest przeciągalne). */
+.body:empty::before {
+  content: "Nothing to decide right now";
+  padding: 6px 10px;
+  font-size: 12px;
+  opacity: 0.7;
 }
 
 .stack[data-dragging] {

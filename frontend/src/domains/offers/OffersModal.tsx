@@ -214,7 +214,9 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
  * `gameState.pendingOffers`; pierwsza decyzja to karta w centrum decyzji (`DecisionCenter`),
  * a decyzja badania otwiera pełne okno badania. Gracz zawsze wybiera sam.
  */
-export function useDecisionOffers(): { first: OfferView | null; queued: number } {
+export function useDecisionOffers(
+  forPlayer: string | null = null,
+): { first: OfferView | null; queued: number } {
   const params = useParams<{ mapid: string }>();
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const { data: gameState } = useGameState(gameId);
@@ -226,12 +228,14 @@ export function useDecisionOffers(): { first: OfferView | null; queued: number }
     if (pending) void refetch();
   }, [gameState, pending, refetch]);
 
-  if (!pending || !offers || offers.length === 0) return { first: null, queued: 0 };
+  // Gra sieciowa: decyzja cudzego gracza nie jest moją - nie pokazujemy jej (`forPlayer` = moje miejsce).
+  const mine = forPlayer ? (offers ?? []).filter((o) => o.player_id === forPlayer) : offers;
+  if (!pending || !mine || mine.length === 0) return { first: null, queued: 0 };
   // Decyzja badania czeka na końcu: najpierw zdolności „przed zapłatą” (Doctor Sucaban zdejmuje
   // piechotę), potem pełne okno badania z obniżonym kosztem.
   const ordered = [
-    ...offers.filter((o) => !isResearchOffer(o)),
-    ...offers.filter((o) => isResearchOffer(o)),
+    ...mine.filter((o) => !isResearchOffer(o)),
+    ...mine.filter((o) => isResearchOffer(o)),
   ];
   return { first: ordered[0], queued: ordered.length - 1 };
 }

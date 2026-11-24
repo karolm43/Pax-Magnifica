@@ -1,115 +1,115 @@
-# Plan: okna decyzji — spójność, czytelność, mniej clutteru
+# Plan: Decision Windows — Consistency, Readability, Less Clutter
 
-Stan: 2026-11-23. Podstawa: przegląd kodu + zrzuty z izolowanej gry (Sol + 5 botów, Leadership,
-karta akcji, technologia, faza statusu, faza agendy). Realizacja blokami U1–U6; każdy blok = kod +
-testy + sekcja w `PROGRESS.md` + commit.
+Status: 2026-11-23. Basis: code review + screenshots from an isolated game (Sol + 5 bots, Leadership,
+action card, technology, status phase, agenda phase). Executed in blocks U1–U6; each block = code +
+tests + section in `PROGRESS.md` + commit.
 
-## Zasady docelowe (jeden wzorzec dla wszystkich okien)
+## Target Principles (one pattern for all windows)
 
-1. **Jedna decyzja na ekranie naraz.** Okna decyzji zajmują jedno miejsce ("strefa decyzji");
-   kolejne czekają w kolejce jako licznik „+N more", nie jako drugie okno.
-2. **Jedna rama okna** (`DecisionFrame`): nagłówek = chip komponentu (ten sam co w panelu gracza,
-   ⓘ po kliknięciu) + plakietka rodzaju (Primary / Secondary / Action card / Required);
-   treść = pełny tekst normalnym kolorem; pola; stopka = [Never ask] [Skip/Cancel Esc] [Akcja Enter].
-   Bez drugiego tytułu nad ramą.
-3. **Jeden zestaw widżetów:** jeden `Stepper`, jedna płatność (`Payment`), jeden rozdział żetonów
-   (`CommandPools`), jeden kafelek opcji (`Tile`). „Auto" zawsze w tym samym miejscu i stylu
-   (przycisk pomocniczy przy polu; akcja główna zawsze w stopce, najmocniejszy kolor).
-4. **Każda informacja raz.** Kto decyduje — w ramie okna (nie dodatkowo w panelu bocznym i pasku);
-   liczby (głosy, kolejka) — w jednym miejscu.
-5. **Nic nie zasłania okna decyzji**: dymki planet, toasty reakcji, dok ręki, panel „Decisions"
-   ustępują strefie decyzji.
-   6. przydało by sie jeszcze przebudować jak czegoś nie robisz np nie uzywasz hero do not place jest to zbyt nieczytelne 
+1. **One decision on screen at a time.** Decision windows occupy one spot ("decision zone");
+   queued ones wait as a "+N more" counter, not as a second window.
+2. **One window frame** (`DecisionFrame`): header = component chip (same as in player panel,
+   ⓘ on click) + kind badge (Primary / Secondary / Action card / Required);
+   body = full text in normal color; fields; footer = [Never ask] [Skip/Cancel Esc] [Action Enter].
+   No second title above the frame.
+3. **One widget set:** one `Stepper`, one payment (`Payment`), one token allocation
+   (`CommandPools`), one option tile (`Tile`). "Auto" always in the same place and style
+   (helper button beside the field; primary action always in the footer, strongest color).
+4. **Every piece of info once.** Who decides — in the window frame (not repeated in side panel and bar);
+   counts (votes, queue) — in one place.
+5. **Nothing obscures the decision window:** planet tooltips, reaction toasts, hand dock, "Decisions" panel
+   yield to the decision zone.
+6. Also need to rework "don't do something" cases, e.g. not using hero / do not place — currently too hard to read.
 
-## Co pokazały zrzuty (dowody)
+## What Screenshots Showed (evidence)
 
-| # | Miejsce | Problem |
-|---|---------|---------|
-| Z1 | Faza statusu | Dwa okna decyzji naraz: panel statusu (Sol) + oferta Mitosis (Arborec), do tego panel „Reaction window”, taca Effects i karta „PLAYED” |
-| Z2 | Agenda | Panel „Decisions / Timing windows” leży na tekście karty Ballot (nieczytelny); toast reakcji zasłania listę Senatu i wyniki; dok ręki zasłania dół wyników |
-| Z3 | Agenda | „Głosy dostępne” pokazane 3×: łuk Senatu + lista pod łukiem, lista miejsc „N to spend”, każdy wynik „N votes available”; „Agenda 1 of 2” 2× |
-| Z4 | Leadership primary/secondary | Podwójny nagłówek: „STRATEGIC ACTION” / „STRATEGY CARD — SECONDARY ABILITY” + rama „Leadership PRIMARY” |
-| Z5 | Leadership | Rozdział żetonów bez „Auto”; inny wygląd niż `CommandPools` w fazie statusu (wiersze vs kolumny) |
-| Z6 | Faza statusu | „Auto” pomarańczowe i mocniejsze niż „Confirm”; w innych oknach „Auto” jest subtelne |
-| Z7 | Secondary Leadership | „Follow” dostępne, choć gracz ma 2 wpływu (nic nie kupi) → ślepa uliczka z samym „Back” |
-| Z8 | Secondary | Respondent pokazany 3× (pasek górny, panel boczny „Responding”, okno „Your call”); kolejka 2× („Remaining in queue: 5” i „Remaining after you: 4”) |
-| Z9 | Component action | Lista dubluje karty akcji widoczne w ręce; tekst wstępu nieaktualny; brak opisu i ⓘ |
-| Z10 | Sling Relay | Dymek planety (Mecatol Rex) wyskakuje nad formularzem i zasłania pole wyboru |
-| Z11 | Modale użycia (karta/tech/lider/legendarna) | Tekst karty szary (`dimmed`), tytuł gołym tekstem zamiast chipu, brak Enter/Esc |
-| Z12 | Oferta Mitosis | Tytuł „Mitosis” 2× (nagłówek + etykieta pola); tekst dwóch zdolności sklejony bez kropki („…infantry At the start…”); plakietka „Required” prawie niewidoczna |
-| Z13 | Pasek/coach | W fazie statusu pasek mówi „take a turn”; coach „What now?” w trybie testowym mówi „Watch the map”, choć to tura gracza; powiadomienie „Player p1 revealed…” zamiast nazwy frakcji |
-| Z14 | Planszy brak | Przy otwartym oknie strategii plansza prawie niewidoczna: lewy panel + okno + prawy panel + dok ręki + strefa kart strategii |
+| # | Location | Problem |
+|---|---|---|
+| Z1 | Status phase | Two decision windows at once: status panel (Sol) + Mitosis offer (Arborec), plus "Reaction window" panel, Effects tray, and "PLAYED" card |
+| Z2 | Agenda | "Decisions / Timing windows" panel sits on top of the Ballot card text (unreadable); reaction toast covers Senate list and outcomes; hand dock covers bottom of outcomes |
+| Z3 | Agenda | "Votes available" shown 3×: Senate arc + list under arc, seat list "N to spend", each outcome "N votes available"; "Agenda 1 of 2" 2× |
+| Z4 | Leadership primary/secondary | Double header: "STRATEGIC ACTION" / "STRATEGY CARD — SECONDARY ABILITY" + "Leadership PRIMARY" frame |
+| Z5 | Leadership | Token allocation without "Auto"; different look from `CommandPools` in status phase (rows vs columns) |
+| Z6 | Status phase | "Auto" is orange and stronger than "Confirm"; in other windows "Auto" is subtle |
+| Z7 | Secondary Leadership | "Follow" available even though player has 2 influence (can't buy anything) → dead end with only "Back" |
+| Z8 | Secondary | Respondent shown 3× (top bar, side panel "Responding", window "Your call"); queue 2× ("Remaining in queue: 5" and "Remaining after you: 4") |
+| Z9 | Component action | List duplicates action cards visible in hand; intro text outdated; missing description and ⓘ |
+| Z10 | Sling Relay | Planet tooltip (Mecatol Rex) pops up over the form and covers the selection field |
+| Z11 | Use modals (card/tech/leader/legendary) | Card text grey (`dimmed`), title as plain text instead of chip, no Enter/Esc |
+| Z12 | Mitosis offer | Title "Mitosis" 2× (header + field label); text of two abilities glued without a period ("…infantry At the start…"); "Required" badge barely visible |
+| Z13 | Bar/coach | In status phase bar says "take a turn"; "What now?" coach in test mode says "Watch the map" even though it's player's turn; notification "Player p1 revealed…" instead of faction name |
+| Z14 | No board | With strategy window open, board is barely visible: left panel + window + right panel + hand dock + strategy cards zone |
 
-## Bloki realizacji
+## Implementation Blocks
 
-### U1 — Wspólna rama okna decyzji (fundament)
-- `shared/ui/DecisionFrame` wyciągnięty z `OfferDock`: nagłówek z chipem komponentu
-  (`Tech`, `ComponentInfoButton`, karta strategii po `ComponentRef`), plakietki, tekst
-  (normalny kolor, zwijanie > 420 znaków), slot pól, stopka z Enter/Esc.
-- Przepiąć: `OfferDock`, `ActionCardPlayModal`, `TechnologyUseModal`, `LegendaryUseModal`,
-  `FactionComponentUseModal` (4 modale → jeden `ComponentUseModal` + konfiguracja rodzaju).
-- `PromptShell` kart strategii = `DecisionFrame`; usunąć tytuł `AppModal` (Z4).
-- Jednolite teksty: „Cancel”, „Use”, jeden komunikat braku celów; wyczerpane = komunikat
-  zamiast formularza (Z11).
-- Testy: vitest ramy (Enter/Esc, Required, chip), aktualizacja testów modali; e2e (komponent
-  montowany zawsze).
+### U1 — Shared Decision Window Frame (foundation)
+- `shared/ui/DecisionFrame` extracted from `OfferDock`: header with component chip
+  (`Tech`, `ComponentInfoButton`, strategy card by `ComponentRef`), badges, text
+  (normal color, collapse > 420 chars), fields slot, footer with Enter/Esc.
+- Rewire: `OfferDock`, `ActionCardPlayModal`, `TechnologyUseModal`, `LegendaryUseModal`,
+  `FactionComponentUseModal` (4 modals → one `ComponentUseModal` + kind config).
+- Strategy cards `PromptShell` = `DecisionFrame`; remove `AppModal` title (Z4).
+- Unified copy: "Cancel", "Use", one no-targets message; exhausted = message
+  instead of form (Z11).
+- Tests: frame vitest (Enter/Esc, Required, chip), update modal tests; e2e (always-mounted
+  component).
 
-### U2 — Jeden zestaw widżetów
-- Jeden `Stepper` (z `DecisionTiles`) zamiast 5 kopii (PromptParts, TradingTable,
+### U2 — One Widget Set
+- One `Stepper` (from `DecisionTiles`) instead of 5 copies (PromptParts, TradingTable,
   RemovalWindowModal, CommandPools).
-- Płatność: jeden widżet = kafelki (`PaymentField`); `PaymentPicker` (karty planet z Leadership)
-  usunąć (decyzja P1). Leadership: bez wymogu wielokrotności 3 + „Auto”.
-- Rozdział żetonów: `CommandPools` wszędzie (Leadership, Warfare, Predictive Intelligence, status),
-  zawsze z „Auto” (Z5).
-- „Auto”: jeden komponent `AutoButton`, zawsze przy polu, styl pomocniczy; główna akcja w stopce
-  (Z6). Dodać brakujące: `multi`, Leadership (cel = pełne wielokrotności 3), głosowanie agendy.
+- Payment: one widget = tiles (`PaymentField`); remove `PaymentPicker` (planet cards from Leadership)
+  (decision P1). Leadership: no multiple-of-3 requirement + "Auto".
+- Token allocation: `CommandPools` everywhere (Leadership, Warfare, Predictive Intelligence, status),
+  always with "Auto" (Z5).
+- "Auto": one `AutoButton` component, always beside the field, helper style; primary action in footer
+  (Z6). Add missing ones: `multi`, Leadership (target = full multiples of 3), agenda voting.
 
-### U3 — Strefa decyzji i kolejka (clutter)
-- Jedna strefa decyzji: jeśli otwarte jest okno fazy (status, agenda, karta strategii), oferty
-  własne wchodzą do niego jako kolejny krok lub czekają jako „+N”, nie jako drugie okno (Z1).
-- Panel „Decisions / Timing windows” chowa się, gdy działa okno decyzji, i nie zachodzi na
-  overlay agendy (Z2).
-- Toast reakcji i dymki mapy nie zachodzą na okno decyzji (warstwa z-index + pozycja) (Z2, Z10).
-- Dok ręki zwija się, gdy okno decyzji go przykrywa.
-- **Stan (2026-11-23): zrobione** — znaczniki `data-decision-zone` / `data-phase-window`
-  (`hooks/useDecisionZone.ts`); oferty przy oknie fazy czekają jako pastylka „+N” (nie jako krok
-  wewnątrz okna fazy); baner reakcji przy oknie decyzji jedzie na górę.
+### U3 — Decision Zone and Queue (clutter)
+- One decision zone: if a phase window is open (status, agenda, strategy card), own
+  offers enter it as the next step or wait as "+N", never as a second window (Z1).
+- "Decisions / Timing windows" panel hides while a decision window is active, and does not overlap
+  the agenda overlay (Z2).
+- Reaction toast and map tooltips do not overlap the decision window (z-index layer + position) (Z2, Z10).
+- Hand dock collapses when a decision window covers it.
+- **Status (2026-11-23): done** — `data-decision-zone` / `data-phase-window` markers
+  (`hooks/useDecisionZone.ts`); offers alongside a phase window wait as a "+N" pill (not as a step
+  inside the phase window); reaction banner moves to the top when a decision window is open.
 
-### U4 — Usunięcie duplikatów informacji
-- Respondent: tylko w ramie okna; panel boczny pokazuje kolejkę bez „Responding” (Z8).
-- Agenda: jedno miejsce na „głosy dostępne” (proponuję: lista miejsc Senatu); z wyników usunąć
-  „N votes available”; licznik agend tylko w nagłówku (Z3). Tiebreak = klik na podium.
-- Kafelki: usunąć natywne `title` (dymek przez ⓘ i Tooltip). Oferta: etykieta pola nie powtarza
-  tytułu (Z12).
-- Component action: tylko komponenty spoza ręki (karty akcji = przeciąganie), opis + ⓘ (Z9).
-- **Stan (2026-11-23): zrobione** — patrz `PROGRESS.md` (U4).
+### U4 — Removing Duplicate Info
+- Respondent: only in window frame; side panel shows queue without "Responding" (Z8).
+- Agenda: one place for "votes available" (propose: Senate seat list); remove
+  "N votes available" from outcomes; agenda counter only in header (Z3). Tiebreak = click on podium.
+- Tiles: remove native `title` (tooltip via ⓘ and Tooltip). Offer: field label does not repeat
+  title (Z12).
+- Component action: only non-hand components (action cards = drag), description + ⓘ (Z9).
+- **Status (2026-11-23): done** — see `PROGRESS.md` (U4).
 
-### U5 — Czytelność i ślepe uliczki
-- Secondary: koszt follow jako osobna wyraźna linia; „Follow” nieaktywne z powodem, gdy nie da
-  się nic uzyskać (Leadership < 3 wpływu) (Z7).
-- `Required` czytelną plakietką; tekst zdolności z separatorami (backend: łączenie tekstów) (Z12).
-- Pasek statusu i coach zgodne z fazą i trybem testowym; nazwy frakcji zamiast „Player p1” (Z13).
-- Leadership: `base_gain` z silnika zamiast stałej 3.
-- **Stan (2026-11-23): zrobione** — patrz `PROGRESS.md` (U5); tu też pkt 6 zasad (czytelne „nie robię”).
+### U5 — Readability and Dead Ends
+- Secondary: follow cost as a separate clear line; "Follow" disabled with reason when nothing can
+  be gained (Leadership < 3 influence) (Z7).
+- `Required` as a legible badge; ability text with separators (backend: joining texts) (Z12).
+- Status bar and coach aligned with phase and test mode; faction names instead of "Player p1" (Z13).
+- Leadership: `base_gain` from engine instead of constant 3.
+- **Status (2026-11-23): done** — see `PROGRESS.md` (U5); also rule #6 (clear "skip / don't do").
 
-### U6 — Wybór planet tylko na mapie (zasady użytkownika)
-- Agenda „Elect Planet”: wybór wyniku klikiem na mapie (podświetlone planety) + lista wyników
-  tylko jako podgląd głosów.
-- DecisionFields: zamiast `Select`/`MultiSelect` → siatka dużych chipów, drag/klik zamiast list (decyzja P2).
-- **Stan (2026-11-23): zrobione** — patrz `PROGRESS.md` (U6). Drag&drop w siatce nie dodany (klik wystarcza).
+### U6 — Planet Selection Only on Map (user rules)
+- Agenda "Elect Planet": outcome selection by clicking on map (highlighted planets) + outcome list
+  only as vote preview.
+- DecisionFields: instead of `Select`/`MultiSelect` → grid of large chips, drag/click instead of lists (decision P2).
+- **Status (2026-11-23): done** — see `PROGRESS.md` (U6). Drag&drop in grid not added (click suffices).
 
-## Decyzje użytkownika (odpowiedzi na pytania)
-- **P1 — Płatność: ujednolicić, ma być ładna.** Wygląd z Leadership (wiersze/karty planet) NIE podoba się
-  użytkownikowi „wcale” — usunąć. Jeden widżet płatności w całej grze = kompaktowe kafelki z wartością
-  (wzór ofert/`PaymentField`), spójny z resztą. W Leadership:
-  - USUNĄĆ ograniczenie „płacić można tylko po 3 influence” (dowolna kwota; liczba żetonów = `base_gain`
-    z silnika wg reguły karty, nie wymuszone wielokrotności 3 w UI),
-  - DODAĆ „Auto” (sensowna domyślna kwota/rozdział; ⚠️ ZAŁOŻENIE wpisać do `rules/R<NN>.md`).
-- **P2 — Wiele opcji (>18) nie-planet/nie-tech: najwygodniej, preferować przeciąganie i klikanie, nie listy.**
-  Siatka dużych klikalnych chipów (bez `Select`/`MultiSelect`), tam gdzie sensowne drag&drop; wyszukiwarka/
-  grupowanie tylko pomocniczo. Zasada ogólna dla wszystkich okien: drag/klik > lista.
-- **Kolejka decyzji = „kolejka do Twojej decyzji”.** Oczekujące decyzje gracza stoją w kolejce widocznej
-  jako licznik „+N” przy jednym otwartym oknie (pkt 1 zasad); nie jako dodatkowe okna ani osobna lista
-  (Z1, Z8). Kolejność obsługi = kolejność nadejścia, gracz decyduje po kolei.
-- **P3** Kolejność bloków bez zmian: U1 → U2 → U3 → U4 → U5 → U6 (U2 zawiera powyższe zmiany płatności
-  i Leadership; U5 „`base_gain` z silnika” dotyczy tego samego miejsca).
+## User Decisions (answers to questions)
+- **P1 — Payment: unify, make it look good.** User dislikes the Leadership look (planet rows/cards)
+  "at all" — remove it. One payment widget across the whole game = compact tiles with value
+  (pattern: offers/`PaymentField`), consistent with the rest. In Leadership:
+  - REMOVE the "can only pay in multiples of 3 influence" restriction (any amount; token count = `base_gain`
+    from engine per card rule, not forced multiples of 3 in UI),
+  - ADD "Auto" (sensible default amount/allocation; document `⚠️ ASSUMPTION` in `rules/R<NN>.md`).
+- **P2 — Many options (>18) non-planet/non-tech: most convenient, prefer dragging and clicking, not lists.**
+  Grid of large clickable chips (no `Select`/`MultiSelect`), drag&drop where sensible; search/
+  grouping only as helpers. General rule for all windows: drag/click > list.
+- **Decision queue = "queue for your decision".** Pending player decisions sit in a queue shown
+  as a "+N" counter on one open window (rule #1); not as extra windows or a separate list
+  (Z1, Z8). Handling order = arrival order, player decides one by one.
+- **P3** Block order unchanged: U1 → U2 → U3 → U4 → U5 → U6 (U2 includes the payment and Leadership
+  changes above; U5 "`base_gain` from engine" touches the same spot).

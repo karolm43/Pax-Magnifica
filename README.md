@@ -2,121 +2,121 @@
 
 # ⚜️ Custodian Engine
 
-**Silnik rozgrywki Twilight Imperium 4 — sędzia reguł, gra sieciowa i (docelowo) bot-przeciwnik**
+**Twilight Imperium 4 gameplay engine — rules referee, networked multiplayer, and (ultimately) AI bot opponent**
 
-*Projekt Pax Magnifica*
+*Project Pax Magnifica*
 
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-REST%20%2B%20WebSocket-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-Vite-3178C6?logo=typescript&logoColor=white)
-![Testy](https://img.shields.io/badge/testy-2000%2B%20pytest%20%2B%20E2E-brightgreen)
+![Tests](https://img.shields.io/badge/tests-2000%2B%20pytest%20%2B%20E2E-brightgreen)
 ![mypy](https://img.shields.io/badge/mypy-strict-blue)
-![Status](https://img.shields.io/badge/status-silnik%20w%20toku-orange)
+![Status](https://img.shields.io/badge/status-engine%20in%20progress-orange)
 
-[Pobierz](#-pobierz-i-graj) · [Funkcje](#-co-już-działa) · [Status](#-status) · [Architektura](#-architektura) · [Uruchomienie](#-uruchomienie) · [Gra sieciowa](#-gra-sieciowa) · [Dokumentacja](#-dokumentacja)
+[Download](#-download-and-play) · [Features](#-whats-working) · [Status](#-status) · [Architecture](#-architecture) · [Running](#-running) · [Multiplayer](#-multiplayer) · [Documentation](#-documentation)
 
 </div>
 
 ---
 
-Custodian Engine to lokalna aplikacja do rozgrywania pełnych partii **Twilight Imperium: 4th Edition**
-(z Prophecy of Kings, Codexami I–IV i Thunder's Edge). Silnik **pilnuje reguł** — nielegalny ruch zostaje
-odrzucony, a przebieg rundy prowadzą **okna czasowe**, w których każdy gracz po kolei może zareagować.
-Grać można przez sieć (do 6 graczy, ludzie + boty); gra solo z botami to szczególny przypadek.
+Custodian Engine is a local application for playing full matches of **Twilight Imperium: 4th Edition**
+(with Prophecy of Kings, Codexes I–IV, and Thunder's Edge). The engine **enforces the rules** — illegal moves are
+rejected, and round flow is driven by **timing windows** where each player in turn order can react.
+Playable over the network (up to 6 players, humans + bots); solo against bots is a special case.
 
-Cel końcowy: **autonomiczny bot**, który sam prowadzi frakcję — wybiera strategie, rusza flotami, walczy,
-głosuje na agendzie i punktuje cele. Silnik reguł jest jego „prawami fizyki”.
+End goal: an **autonomous bot** that pilots a faction on its own — picks strategy cards, moves fleets, fights,
+votes in the agenda phase, and scores objectives. The rules engine serves as its "laws of physics".
 
-## 📥 Pobierz i graj
+## 📥 Download and Play
 
-Nie musisz instalować Pythona ani Node.js:
+No need to install Python or Node.js:
 
-1. Pobierz `PaxMagnifica-<data>.zip` z zakładki [**Releases**](https://github.com/karolm43/Pax-Magnifica/releases/latest) (~1,4 GB).
-2. Rozpakuj cały folder i uruchom `PaxMagnifica.exe` (Windows). Gra otworzy się w przeglądarce.
-3. SmartScreen może ostrzec, bo plik nie jest podpisany: „Więcej informacji” → „Uruchom mimo to”.
+1. Download `PaxMagnifica-<date>.zip` from the [**Releases**](https://github.com/karolm43/Pax-Magnifica/releases/latest) tab (~1.4 GB).
+2. Extract the entire folder and run `PaxMagnifica.exe` (Windows). The game opens in your browser.
+3. SmartScreen may warn because the binary is unsigned: "More info" → "Run anyway".
 
-Szczegóły (gra sieciowa, zapisy) są w `JAK_GRAC.txt` w paczce. Budowanie paczki samemu: `uv run python packaging/build_release.py`.
+Details (multiplayer, saves) are in `JAK_GRAC.txt` inside the package. Build the release yourself: `uv run python packaging/build_release.py`.
 
-## ✨ Co już działa
+## ✨ What's Working
 
-| Obszar | Zakres |
+| Area | Scope |
 |---|---|
-| 🗺️ **Plansza** | Mapa heksowa z map stringa AsyncTI4, tunele czasoprzestrzenne, anomalie, The Fracture. God-Mode z Undo/Redo. |
-| 🔁 **Pełna runda** | Faza strategii → akcji → statusu → agendy; ścisła kolejność inicjatywy, pas, limit rund i ekran zwycięstwa z epilogiem. |
-| 🃏 **Karty strategii** | Wszystkie 8 kart (primary + secondary), z wyborami na mapie i oknem secondary dla wszystkich graczy. |
-| ⚔️ **Akcja taktyczna** | Aktywacja, ruch (zasięg, mgławice, Ion Storm), Space Cannon, walka kosmiczna i naziemna, AFB, Sustain Damage, odwrót, bombardowanie, inwazja, produkcja. |
-| 🎲 **Kości** | Każdy rzut to fizyczny d10 na scenie 3D; wynik liczy silnik z seedowalnego RNG. |
-| 🎴 **Karty akcji** | **143/143** z efektem — zagrywane przeciąganiem z ręki, karty reakcji w oknach czasowych, Sabotage (hold-play) i HOLD (cofnięcie do kroku historii). |
-| 💎 **Relikty** | 23/23 aktywnych z efektem (akcje, pasywy, walka). |
-| 🔬 **Technologie** | Wszystkie 33 technologie ogólne jako hooki; wskaźniki „ta technologia działa tutaj” w UI. |
-| 🎯 **Cele** | 80/80 celów sprawdzanych automatycznie (publiczne i tajne, także te zdobywane zdarzeniami). |
-| 🏛️ **Agenda** | Rada Galaktyczna: ujawnienie, głosowanie, remis, prawa w grze. |
-| 🌌 **Eksploracja i więcej** | Karty eksploracji i frontier, fragmenty reliktów, transakcje i żetony długu, ekspedycje Thunder's Edge, żeton Custodians. |
-| 🌐 **Gra sieciowa** | Lobby z graficznym kreatorem, tokeny miejsc, widok każdego gracza tylko jego kart, zapis partii w pliku, zegar szachowy. |
+| 🗺️ **Board** | Hex map from AsyncTI4 map string, wormholes, anomalies, The Fracture. God-Mode with Undo/Redo. |
+| 🔁 **Full round** | Strategy → Action → Status → Agenda phases; strict initiative order, passing, round limit, and victory screen with epilogue. |
+| 🃏 **Strategy cards** | All 8 cards (primary + secondary), with map picks and a secondary window for all players. |
+| ⚔️ **Tactical action** | Activation, movement (range, nebulae, Ion Storm), Space Cannon, space & ground combat, AFB, Sustain Damage, retreat, bombardment, invasion, production. |
+| 🎲 **Dice** | Every roll is a physical d10 on a 3D stage; results computed by the engine from seedable RNG. |
+| 🎴 **Action cards** | **143/143** with effects — played by dragging from hand, reaction cards in timing windows, Sabotage (hold-play), and HOLD (rewind to history step). |
+| 💎 **Relics** | 23/23 active with effects (actions, passives, combat). |
+| 🔬 **Technologies** | All 33 general technologies as hooks; "this technology applies here" indicators in UI. |
+| 🎯 **Objectives** | 80/80 objectives checked automatically (public and secret, including event-scored ones). |
+| 🏛️ **Agenda** | Galactic Council: reveal, voting, tie-breaking, laws in play. |
+| 🌌 **Exploration & more** | Exploration and frontier cards, relic fragments, transactions and debt tokens, Thunder's Edge expeditions, Custodians token. |
+| 🌐 **Multiplayer** | Lobby with visual wizard, seat tokens, per-player hidden hand views, file-based game saves, chess clock. |
 
 ## 📊 Status
 
-| Etap | Zakres | Stan |
+| Stage | Scope | State |
 |---|---|---|
-| 1 | Cyfrowa plansza + God-Mode | ✅ gotowe |
-| 2 | Silnik rozgrywki egzekwujący reguły | 🔧 w toku — szczegóły niżej; 15 frakcji z hookami (Arborec, Argent, Hacan, Jol-Nar, L1Z1X, Letnev, Mentak, Muaat, Naaz-Rokha, Saar, Sardakk, Sol, Winnu, Xxcha, Yin) |
-| 3 | Bot AI (strategiczny → operacyjny → taktyczny) | 🔧 pierwsze kroki: bot prowadzi akcję taktyczną, bada technologie, jest fuzzer partii botów |
+| 1 | Digital board + God-Mode | ✅ done |
+| 2 | Rule-enforcing gameplay engine | 🔧 in progress — details below; 15 factions with hooks (Arborec, Argent, Hacan, Jol-Nar, L1Z1X, Letnev, Mentak, Muaat, Naaz-Rokha, Saar, Sardakk, Sol, Winnu, Xxcha, Yin) |
+| 3 | AI Bot (strategic → operational → tactical) | 🔧 early steps: bot executes tactical actions, researches technologies, bot game fuzzer exists |
 
-Pokrycie komponentów hookami (z generowanego raportu [`docs/POKRYCIE_HOOKOW.md`](docs/POKRYCIE_HOOKOW.md)):
+Component hook coverage (from generated report [`docs/POKRYCIE_HOOKOW.md`](docs/POKRYCIE_HOOKOW.md)):
 
-| Komponenty | Z efektem | |
+| Components | With effect | |
 |---|---:|---|
-| Karty akcji | 143 / 143 | ✅ |
-| Relikty | 23 / 24 | ✅ |
-| Agendy | 50 / 63 | ✅ cała oficjalna talia (50/50); ⬜ fanowskie warianty (Absol) |
-| Technologie | 66 / 102 | 🔧 wszystkie ogólne; frakcyjne w toku |
+| Action cards | 143 / 143 | ✅ |
+| Relics | 23 / 24 | ✅ |
+| Agendas | 50 / 63 | ✅ entire official deck (50/50); ⬜ fan variants (Absol) |
+| Technologies | 66 / 102 | 🔧 all general; faction techs in progress |
 | Promissory notes | 20 / 40 | 🔧 |
-| Liderzy | 45 / 102 | 🔧 |
-| Zdolności frakcji | 30 / 73 | 🔧 |
-| Przełomy | 15 / 31 | 🔧 |
-| Eksploracja | 4 / 80 | ⬜ |
+| Leaders | 45 / 102 | 🔧 |
+| Faction abilities | 30 / 73 | 🔧 |
+| Breakthroughs | 15 / 31 | 🔧 |
+| Exploration | 4 / 80 | ⬜ |
 
-**Następne kroki:** kolejne frakcje (zdolności, liderzy, promissory notes, przełomy) → reszta okien czasowych → eksploracja → rozbudowa bota.
-Bieżący dziennik prac: [`docs/PROGRESS.md`](docs/PROGRESS.md).
+**Next steps:** remaining factions (abilities, leaders, promissory notes, breakthroughs) → remaining timing windows → exploration → bot expansion.
+Current work log: [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
-## 🏗️ Architektura
+## 🏗️ Architecture
 
 ```mermaid
 flowchart TD
-    UI["Frontend · React 19 + Vite + TS<br/>plansza, ręka kart, okna walki, lobby"]
-    API["api/ · FastAPI<br/>cienkie routery + WebSocket push<br/>tożsamość graczy (actor_id), projekcja widoczności"]
-    CORE["core/ · czyste funkcje state → state<br/>reguły, okna czasowe, hooki, punkty centralne"]
-    DATA["assets/ · dane AsyncTI4 (JSON)<br/>StaticDataRegistry + Katalog komponentów"]
-    AI["engine/ · przyszły bot AI"]
+    UI["Frontend · React 19 + Vite + TS<br/>board, card hand, combat windows, lobby"]
+    API["api/ · FastAPI<br/>thin routers + WebSocket push<br/>player identity (actor_id), visibility projection"]
+    CORE["core/ · pure functions state → state<br/>rules, timing windows, hooks, central points"]
+    DATA["assets/ · AsyncTI4 data (JSON)<br/>StaticDataRegistry + ComponentCatalog"]
+    AI["engine/ · future AI bot"]
 
     UI <-->|REST / WebSocket| API
     API --> CORE
-    AI -.->|te same reguły| CORE
+    AI -.->|same rules| CORE
     CORE --> DATA
 ```
 
-Zasady, które trzymają projekt w ryzach:
+Principles keeping the project coherent:
 
-- **Silnik = sędzia.** Zwykła akcja waliduje legalność (`ValueError` → HTTP 422). God-Mode celowo omija walidację jako wentyl korekty.
-- **Zero reguł z pamięci.** Statystyki i teksty kart tylko z assetów; każda mechanika ma wpis ze źródłem w [`docs/rules/`](docs/RULES.md) zanim trafi do kodu.
-- **Asymetria = hooki.** Frakcje, technologie i karty modyfikują reguły przez rejestr hooków, nie przez `if faction == ...`.
-- **Punkty centralne.** Płatność, trade goods, żetony, kontrola planet, jednostki, VP — każde ma jedną funkcję w `core/`, pilnowaną testem.
-- **Zależności tylko w dół:** `api/` → `core/` → dane. Przyszłe `engine/` woła te same funkcje co UI.
+- **Engine = referee.** Normal actions validate legality (`ValueError` → HTTP 422). God-Mode intentionally bypasses validation as a correction valve.
+- **Zero rules from memory.** Stats and card texts come only from assets; every mechanic gets an entry with a source in [`docs/rules/`](docs/RULES.md) before entering code.
+- **Asymmetry = hooks.** Factions, technologies, and cards modify rules via the hook registry, not `if faction == ...`.
+- **Central points.** Payment, trade goods, tokens, planet control, units, VP — each has one function in `core/`, guarded by a test.
+- **Downward dependencies only:** `api/` → `core/` → data. Future `engine/` calls the exact same functions as the UI.
 
-Więcej: [`docs/ARCHITEKTURA_KODU.md`](docs/ARCHITEKTURA_KODU.md).
+More: [`docs/ARCHITEKTURA_KODU.md`](docs/ARCHITEKTURA_KODU.md).
 
-## 🚀 Uruchomienie
+## 🚀 Running
 
-### Wymagania
+### Requirements
 
-| Narzędzie | Do czego |
+| Tool | Purpose |
 |---|---|
 | [Python ≥ 3.12](https://www.python.org/downloads/) + [uv](https://docs.astral.sh/uv/getting-started/installation/) | backend |
 | [Node.js ≥ 20](https://nodejs.org/) | frontend |
 ### Exe
 uv run python packaging/build_release.py
-### Instalacja
+### Installation
 
 ```bash
 git clone https://github.com/karolm43/Pax-Magnifica.git "Pax Magnifica"
@@ -125,97 +125,97 @@ uv sync --extra dev
 cd frontend && npm install && cd ..
 ```
 
-Dane gry (JSON) są w repo, więc klon jest od razu grywalny. **Grafiki i fonty są poza repo** — bez nich w miejscu
-obrazków pojawią się zaślepki (gotowa paczka z Releases ma je w środku). Jeśli masz lokalną kopię grafik AsyncTI4,
-skopiuj brakujące pliki według manifestu:
+Game data (JSON) is in the repo, so a fresh clone is playable immediately. **Graphics and fonts are outside the repo** — without them,
+placeholders appear instead of images (the prebuilt Releases zip includes them). If you have a local copy of AsyncTI4 graphics,
+copy missing files per the manifest:
 
 ```bash
-uv run python -m src.audit sync_assets --from <katalog-z-grafikami>
+uv run python -m src.audit sync_assets --from <graphics-dir>
 ```
 
 ### Start
 
-**Windows:** dwuklik w `start.cmd` (albo `./start.ps1`) — wstaje backend (:8000), frontend (:5173) i otwiera się przeglądarka.
+**Windows:** double-click `start.cmd` (or `./start.ps1`) — starts backend (:8000), frontend (:5173), and opens the browser.
 
-**Ręcznie, dwa terminale:**
+**Manual, two terminals:**
 
 ```bash
 uv run python -m src.api          # backend  → http://127.0.0.1:8000
 cd frontend && npm run dev        # frontend → http://localhost:5173
 ```
 
-Partia zapisuje się w `saves/` i wznawia po restarcie serwera. `--save PLIK` wybiera inny plik, `--fresh` zaczyna od zera.
+Matches auto-save in `saves/` and resume after server restart. `--save FILE` picks another file, `--fresh` starts from scratch.
 
 <details>
-<summary><b>Typowe problemy</b></summary>
+<summary><b>Troubleshooting</b></summary>
 
-- **Biała strona / „Update Needed”** — backend nie działa albo nie oddał `web-data`; sprawdź jego okno.
-- **Rejestr ładuje 0 jednostek** — brak `assets/data/`; sprawdź: `uv run python -m src.core.registry`.
-- **Brak obrazków** — grafiki są poza repo, patrz `sync_assets` wyżej (albo użyj paczki z Releases).
-- **Spójność danych** — `uv run python -m src.audit` (liczby wpisów, referencje, brakujące pliki).
+- **Blank page / "Update Needed"** — backend isn't running or didn't return `web-data`; check its terminal.
+- **Registry loads 0 units** — missing `assets/data/`; check: `uv run python -m src.core.registry`.
+- **Missing images** — graphics are outside the repo, see `sync_assets` above (or use the Releases package).
+- **Data consistency** — `uv run python -m src.audit` (entry counts, references, missing files).
 
 </details>
 
-## 🌐 Gra sieciowa
+## 🌐 Multiplayer
 
-1. Host uruchamia grę normalnie (`start.cmd`) i wybiera w menu **Play** → otwiera się lobby.
-2. Pozostali gracze (LAN albo ZeroTier) wchodzą z linku z lobby i wybierają frakcję w kreatorze na żywo.
-3. Każdy widzi tylko swoje karty; akcje cudzego gracza backend odrzuca (403), a pasek pokazuje, na kogo czekamy.
+1. Host launches the game normally (`start.cmd`) and chooses **Play** in the menu → opens the lobby.
+2. Other players (LAN or ZeroTier) join via the lobby invite link and pick their faction live in the wizard.
+3. Each player sees only their own cards; actions for another player are rejected by backend (403), and a bar shows who we are waiting for.
 
-Ręcznie: `uv run python -m src.api --network` + `npm run dev -- --host`. Model tożsamości i widoczności: [`docs/rules/R44.md`](docs/rules/R44.md).
+Manual: `uv run python -m src.api --network` + `npm run dev -- --host`. Identity and visibility model: [`docs/rules/R44.md`](docs/rules/R44.md).
 
-## 🧪 Jakość
+## 🧪 Quality
 
 ```bash
-uv run pytest -q -n auto          # ~2000 testów, równolegle
+uv run pytest -q -n auto          # ~2000 tests, parallel
 uv run ruff check src tests
 uv run mypy src tests             # --strict
 
 cd frontend
 npx tsc --noEmit -p tsconfig.app.json
 npm run lint && npm run build && npx vitest --run
-npm run e2e                        # Playwright: gra solo + gra sieciowa host + gość
+npm run e2e                        # Playwright: solo game + networked host + guest
 ```
 
-E2E stawia własny backend (:8100) i front (:5273), więc nie dotyka trwającej partii.
+E2E spins up its own backend (:8100) and frontend (:5273), leaving any running match untouched.
 
-## 📚 Dokumentacja
+## 📚 Documentation
 
-| Dokument | Po co |
+| Document | Purpose |
 |---|---|
-| [`docs/README.md`](docs/README.md) | Indeks dokumentacji i mapa kodu — zacznij tutaj |
-| [`docs/PROGRESS.md`](docs/PROGRESS.md) | Stan prac i ostatnie bloki |
-| [`docs/PLAN_PELNA_ROZGRYWKA.md`](docs/PLAN_PELNA_ROZGRYWKA.md) | Plan silnika, frakcje i ich gimmicki |
-| [`docs/RULES.md`](docs/RULES.md) | Indeks reguł mechanicznych ze źródłami (`docs/rules/R<NN>.md`) |
-| [`docs/rules_tirules/`](docs/rules_tirules/INDEX.md) | Offline zrzut reguł (LRR 2.0, Codexy, Thunder's Edge) |
-| [`docs/ARCHITEKTURA_KODU.md`](docs/ARCHITEKTURA_KODU.md) | Warstwy, hooki, przepis „karta od A do Z” |
+| [`docs/README.md`](docs/README.md) | Documentation index and code map — start here |
+| [`docs/PROGRESS.md`](docs/PROGRESS.md) | Work status and recent blocks |
+| [`docs/PLAN_PELNA_ROZGRYWKA.md`](docs/PLAN_PELNA_ROZGRYWKA.md) | Engine plan, factions, and their gimmicks |
+| [`docs/RULES.md`](docs/RULES.md) | Index of mechanical rules with sources (`docs/rules/R<NN>.md`) |
+| [`docs/rules_tirules/`](docs/rules_tirules/INDEX.md) | Offline rules dump (LRR 2.0, Codexes, Thunder's Edge) |
+| [`docs/ARCHITEKTURA_KODU.md`](docs/ARCHITEKTURA_KODU.md) | Layers, hooks, "card from A to Z" recipe |
 
-## Stos technologiczny
+## Tech Stack
 
-**Backend:** Python 3.12, FastAPI + Uvicorn, Pydantic v2, NumPy, NetworkX, SQLite (zapis partii i historia Undo) ·
-**Frontend:** React 19, TypeScript, Vite, Zustand, react-query, własny design system ·
+**Backend:** Python 3.12, FastAPI + Uvicorn, Pydantic v2, NumPy, NetworkX, SQLite (game saves & Undo history) ·
+**Frontend:** React 19, TypeScript, Vite, Zustand, react-query, custom design system ·
 **QA:** pytest (+ hypothesis, xdist, testmon), ruff, mypy --strict, Vitest, Playwright.
 
-## Podziękowania i licencja
+## Credits & License
 
-Dane gry pochodzą z projektu społecznościowego **[AsyncTI4](https://github.com/AsyncTI4/TI4_map_generator_bot)**,
-a frontend planszy wyrósł z jego viewera `ti4_web`. Reguły: [tirules2.com](https://tirules2.com) i Living Rules Reference.
+Game data comes from the community project **[AsyncTI4](https://github.com/AsyncTI4/TI4_map_generator_bot)**,
+and the board frontend grew out of its `ti4_web` viewer. Rules: [tirules2.com](https://tirules2.com) and Living Rules Reference.
 
-Licencja kodu: do ustalenia. *Twilight Imperium* jest znakiem towarowym Fantasy Flight Games; to nieoficjalny projekt
-fanowski. Dane i grafiki AsyncTI4 podlegają warunkom tamtego projektu.
+Code license: TBD. *Twilight Imperium* is a trademark of Fantasy Flight Games; this is an unofficial fan
+project. AsyncTI4 data and graphics are subject to that project's terms.
 
-## ⚖️ Informacja prawna
+## ⚖️ Legal Notice
 
-- **Projekt nieoficjalny, fanowski i niekomercyjny.** Nie jest powiązany z Fantasy Flight Games, Asmodee ani
-  żadnym wydawcą. *Twilight Imperium*, jego nazwy, frakcje, karty, teksty i grafiki są własnością ich właścicieli
-  (Fantasy Flight Games / Asmodee) i są użyte wyłącznie w celach fanowskich. Projekt nie zastępuje wersji pudełkowej.
-- **AsyncTI4.** Dane gry (JSON/properties) oraz grafiki, fonty i muzyka w paczce pochodzą z projektu
-  [AsyncTI4](https://github.com/AsyncTI4/TI4_map_generator_bot) i jego społeczności. Kod AsyncTI4 jest na
-  licencji Unlicense (domena publiczna), ale **licencja ta nie obejmuje grafik** („NOT art assets”) — one
-  pozostają własnością swoich autorów. Nie rościmy do nich żadnych praw.
-- **Kod Custodian Engine** (`src/`, `frontend/`, `tests/`): licencja nie została jeszcze wybrana — do czasu jej
-  dodania obowiązują domyślne prawa autora.
-- **Bez gwarancji.** Oprogramowanie dostarczane „tak jak jest”, bez żadnej gwarancji; autor nie odpowiada za
-  szkody wynikające z jego użycia.
-- **Usunięcie na prośbę.** Jeśli jesteś właścicielem praw do któregoś elementu i chcesz go usunąć z repozytorium
-  lub paczki, napisz w zakładce Issues — zostanie niezwłocznie usunięty.
+- **Unofficial, fan-made, non-commercial project.** Not affiliated with Fantasy Flight Games, Asmodee, or
+  any publisher. *Twilight Imperium*, its names, factions, cards, texts, and artwork are property of their owners
+  (Fantasy Flight Games / Asmodee) and used solely for fan purposes. This project does not replace the physical board game.
+- **AsyncTI4.** Game data (JSON/properties) as well as graphics, fonts, and music in the package come from
+  [AsyncTI4](https://github.com/AsyncTI4/TI4_map_generator_bot) and its community. AsyncTI4 code is under the
+  Unlicense (public domain), but **that license does not cover art assets** ("NOT art assets") — they
+  remain the property of their respective authors. We claim no rights to them.
+- **Custodian Engine code** (`src/`, `frontend/`, `tests/`): license not yet chosen — until added,
+  default author copyright applies.
+- **No warranty.** Software is provided "as is", without warranty of any kind; the author is not liable for
+  any damages arising from its use.
+- **Takedown on request.** If you own the rights to any item and want it removed from the repository
+  or package, open an issue in the Issues tab — it will be removed promptly.

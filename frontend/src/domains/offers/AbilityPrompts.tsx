@@ -106,10 +106,12 @@ export function DecisionCenter() {
   const [playing, setPlaying] = useState<HandPlay | null>(null);
   const [minimized, setMinimized] = useState(false);
   const drag = useDraggablePanel("decisionCenter.pos.v2");
-  const offer = useDecisionOffers();
+  const { data: me } = useNetworkMe();
+  // Gra sieciowa: widzę tylko decyzje MOJEGO miejsca (cudze okna nic mi nie dają).
+  const mySeat = me?.network ? (me.player_id ?? "") : null;
+  const offer = useDecisionOffers(mySeat);
   const research = offer.first !== null && isResearchOffer(offer.first);
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
-  const { data: me } = useNetworkMe();
   // Okna czasowe otwarte teraz - jawne, dla wszystkich (RULES.md 54.9).
   const { data: windowsData } = useOpenWindows(gameState);
   const openWindows = useMemo(() => windowsData ?? [], [windowsData]);
@@ -124,7 +126,9 @@ export function DecisionCenter() {
     setDismissed((cur) => pruneDismissed(cur, available));
   }, [available]);
 
-  const visible = available.filter((row) => !dismissed.has(promptKey(row)));
+  const visible = available.filter(
+    (row) => !dismissed.has(promptKey(row)) && (mySeat === null || row.player_id === mySeat),
+  );
   const moments = visible.filter((row) => !row.standing);
   const standing = visible.filter((row) => row.standing);
   const dismiss = (row: AvailableNow) => setDismissed((cur) => new Set(cur).add(promptKey(row)));

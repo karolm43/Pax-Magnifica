@@ -250,6 +250,28 @@ export function StrategyCardTable(): ReactElement | null {
     [offset.dx, offset.dy],
   );
 
+  // Stół zmienia rozmiar (wybrane karty, minimalizacja) i okno bywa zmniejszane: przycinamy
+  // bieżące przesunięcie, żeby stół nie wyjechał poza ekran.
+  const tableRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = tableRef.current;
+    if (!el) return;
+    const fit = () => {
+      const fix = clampDragDelta(el.getBoundingClientRect(), 0, 0);
+      if (fix.dx === 0 && fix.dy === 0) return;
+      setOffset((cur) => ({ dx: cur.dx + fix.dx, dy: cur.dy + fix.dy }));
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    const observer =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(fit) : null;
+    observer?.observe(el);
+    return () => {
+      window.removeEventListener("resize", fit);
+      observer?.disconnect();
+    };
+  });
+
   // Gating fazy: render tylko w fazie strategii (Requirement 8.1). Poza nią —
   // komponent nie istnieje w drzewie (zwraca ``null``), więc nie dubluje się z
   // innymi nakładkami i nie wpływa na pozostałe fazy.
@@ -315,6 +337,7 @@ export function StrategyCardTable(): ReactElement | null {
     // klikalne. Wyłącznie struktura/layout — ZERO zmian logiki interakcji i danych.
     <div className={styles.overlay}>
       <div
+        ref={tableRef}
         className={styles.table}
         data-minimized={minimized || undefined}
         // ``data-intro`` włącza animacje wejścia TYLKO na starcie (patrz stan
