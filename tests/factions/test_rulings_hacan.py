@@ -187,6 +187,7 @@ def test_trade_convoys_jedna_transakcja_na_ture(registry: StaticDataRegistry) ->
     assert not transaction.can_transact_with(done, _grid(), "p1", "p2")
 
 
+@ruling("promissory_notes:convoys#2")
 def test_trade_convoys_na_rece_bez_efektu(registry: StaticDataRegistry) -> None:
     state = _convoys_state(holder_note="hand")
     assert not transaction.can_transact_with(state, _grid(), "p1", "p2")
@@ -333,6 +334,7 @@ def test_carth_uzupelnia_pelne_commodities_i_otwiera_trade_agreement(
     assert [w.ctx.get("player") for w in windows] == ["p2"]  # „when … replenishes” i tak
 
 
+@ruling("R_commodities/rules-reference/2")
 def test_carth_hacan_maks_szesc_commodities(registry: StaticDataRegistry) -> None:
     state = _state()
     assert registry.factions["hacan"].commodities == 6
@@ -358,7 +360,7 @@ def test_carth_nie_w_trakcie_innej_zdolnosci(registry: StaticDataRegistry) -> No
 # =========================================================================== Gila the Silvertongue
 
 
-@ruling("F_hacan/gila-the-silvertongue/1")
+@ruling("F_hacan/gila-the-silvertongue/1", "R_agenda_phase/rules-reference/6")
 def test_gila_glosy_do_tego_samego_wyniku(registry: StaticDataRegistry) -> None:
     """Dodatkowe głosy to modyfikator TEGO SAMEGO oddania głosów (jeden wynik); 0 głosów = 0."""
     state = _state()
@@ -377,6 +379,7 @@ def test_gila_odblokowanie_dziesiec_tg(registry: StaticDataRegistry) -> None:
     assert hacan._commander_unlocked(state, registry, "p1")
 
 
+@ruling("R_agenda_phase/rules-reference/6")
 def test_gila_przez_alliance(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "hacan")
     color = flow.state()["players"][flow.me]["color"]

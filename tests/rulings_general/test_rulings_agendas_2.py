@@ -614,6 +614,7 @@ def _nebula(registry: StaticDataRegistry) -> str:
                 if "NEBULA" in {a.upper() for a in d.anomalies} and not d.planets)
 
 
+@ruling("R_nebula/rules-reference/1")
 def test_shared_research_cannot_end_in_a_non_active_nebula(registry: StaticDataRegistry) -> None:
     nebula = _nebula(registry)
     grid = _line(registry, ("101", "19"), ("102", nebula), ("103", "20"))
@@ -631,6 +632,7 @@ def test_shared_research_cannot_end_in_a_non_active_nebula(registry: StaticDataR
     assert movement.route_error(state, grid, ["101", "102"], "p1", "cruiser") is None
 
 
+@ruling("R_nebula/rules-reference/2")
 def test_shared_research_ship_leaving_a_nebula_has_move_one(registry: StaticDataRegistry) -> None:
     nebula = _nebula(registry)
     grid = _line(registry, ("101", nebula), ("102", "19"), ("103", "20"))

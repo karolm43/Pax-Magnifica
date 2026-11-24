@@ -199,6 +199,7 @@ def test_neural_motivator_only_in_the_status_phase_draw() -> None:
 # ============================================================================ Psychoarchaeology
 
 
+@ruling("R_technology/rules-reference/12")
 def test_psychoarchaeology_planet_ignores_only_one_prerequisite(
     registry: StaticDataRegistry,
 ) -> None:
@@ -397,7 +398,6 @@ def _sar_state(techs: list[str]) -> GameState:
     )
 
 
-@ruling("C_technology/psychoarchaeology/2")
 def test_self_assembly_trade_goods_one_at_a_time_even_when_exhausted(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -509,6 +509,7 @@ def test_duranium_repairs_only_units_in_the_combat() -> None:
     assert damage.damaged_count(state.systems["000"], "pl", "p1", "mech") == 1
 
 
+@ruling("C_technology/duranium-armor/5")
 def test_duranium_repairs_unit_without_sustain_damage() -> None:
     state = _techs(battle_state({"p1": {"carrier": 1}, "p2": {"cruiser": 1}}), "p1", "da")
     damage.set_damaged(state.systems["000"], "space", "p1", "carrier", 1)
@@ -576,6 +577,7 @@ def test_predictive_intelligence_redistribution_needs_a_ready_card() -> None:
     assert state.pending_offers == []
 
 
+@ruling("R_fleet_pool/rules-reference/3")
 def test_predictive_intelligence_fleet_pool_limit_applies_at_once(
     registry: StaticDataRegistry,
 ) -> None:
@@ -701,6 +703,7 @@ def test_integrated_economy_ships_blocked_by_enemy_ships(registry: StaticDataReg
 # ============================================================================ Graviton Laser System
 
 
+@ruling("R_space_cannon/notes/5")
 def test_capacity_resolved_after_each_space_cannon_player(registry: StaticDataRegistry) -> None:
     """Po przypisaniu trafień jednego strzelca nadwyżkę ładunku usuwa się, zanim strzeli kolejny."""
     from src.core import space_cannon

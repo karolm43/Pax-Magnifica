@@ -106,6 +106,7 @@ def _reclamation_values(
     return [o["value"] for o in winnu.reclamation_inputs(state, registry, "p1", ctx)[0]["options"]]
 
 
+@ruling("R_reinforcements/notes/1")
 def test_reclamation_pusta_rezerwa_bierze_dok_z_planszy(registry: StaticDataRegistry) -> None:
     """F_winnu / R_component_limitations: bez doków w rezerwie dok zdejmuje się z systemu bez
     własnego żetonu dowodzenia i stawia na Mecatol Rex."""

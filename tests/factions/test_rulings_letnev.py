@@ -163,6 +163,7 @@ def test_war_funding_obronca_nie_dostanie_notki(registry: StaticDataRegistry) ->
         )
 
 
+@ruling("R_transactions/rules-reference/1")
 def test_war_funding_jedna_transakcja_na_ture(registry: StaticDataRegistry) -> None:
     after = _give_note(_rolled_three(), registry)
     after.players["p2"].private.promissory_notes = []
@@ -171,6 +172,7 @@ def test_war_funding_jedna_transakcja_na_ture(registry: StaticDataRegistry) -> N
         _give_note(after, registry)
 
 
+@ruling("F_letnev/war-funding-omega/2")
 def test_war_funding_odzyskana_nie_drugi_raz_w_rundzie(registry: StaticDataRegistry) -> None:
     state = _rolled_three()
     state.players["p1"].private.promissory_notes = []
@@ -186,6 +188,7 @@ def test_war_funding_odzyskana_nie_drugi_raz_w_rundzie(registry: StaticDataRegis
     assert _playable(regained, registry, "p2")["playable"] is True  # kolejna runda walki
 
 
+@ruling("F_letnev/war-funding-omega/2")
 def test_war_funding_po_obroncy_atakujacy_czeka(registry: StaticDataRegistry) -> None:
     state = _rolled_three()
     state.players["p1"].private.promissory_notes = []
@@ -482,6 +485,7 @@ def test_darktalon_do_konca_rundy_gry(registry: StaticDataRegistry) -> None:
     assert leaders.state_of(nxt, registry, "p1", letnev.HERO) == leaders.PURGED
 
 
+@ruling("R_fleet_pool/rules-reference/3")
 def test_darktalon_po_rundzie_nadwyzka_do_usuniecia(registry: StaticDataRegistry) -> None:
     state = _hero_played(registry)
     state.players["p1"].fleet_cc = 3
@@ -515,7 +519,7 @@ def _reaper_round(state: GameState, round_no: int) -> None:
     triggers.fire(state, GameEvent.COMBAT_ROUND, Moment.START, ctx=ctx)
 
 
-@ruling("F_letnev/dunlain-reaper/1")
+@ruling("F_letnev/dunlain-reaper/1", "R_deploy/rules-reference/3")
 def test_reaper_jeden_na_runde_kolejne_pozniej(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].trade_goods = 6
@@ -532,7 +536,7 @@ def test_reaper_jeden_na_runde_kolejne_pozniej(registry: StaticDataRegistry) -> 
     assert again.systems["102"].planet_units["industrex"]["p1"] == {"infantry": 1, "mech": 2}
 
 
-@ruling("F_letnev/dunlain-reaper/2")
+@ruling("F_letnev/dunlain-reaper/2", "R_deploy/rules-reference/2")
 def test_reaper_tylko_z_rezerwy(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems["102"].planet_units["industrex"] = {"p1": {"infantry": 2}, "p2": {"mech": 1}}

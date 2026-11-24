@@ -220,6 +220,7 @@ def _strategy_with_checks(registry: StaticDataRegistry) -> GameState:
     return state
 
 
+@ruling("R_strategy_phase/rules-reference/1.1")
 def test_checks_trade_goods_go_to_the_chooser(registry: StaticDataRegistry) -> None:
     state = _strategy_with_checks(registry)
     state.strategy_card_tg = {1: 2}
@@ -333,7 +334,7 @@ def test_classified_discarded_objective_stays_but_is_not_scorable(
         objectives.score_public(out, registry, HexGrid(), "p2", "dp")  # …ale nikt go nie zdobędzie
 
 
-@ruling("C_agendas/miscount-disclosed/3.1")
+@ruling("C_agendas/miscount-disclosed/3.1", "C_agendas/classified-document-leaks/2")
 def test_miscount_on_classified_cannot_reelect_the_public_objective(
     registry: StaticDataRegistry,
 ) -> None:
@@ -543,7 +544,7 @@ def test_fleet_regulations_letnev_armada_six_ships(registry: StaticDataRegistry)
 # ======================================================================= Galactic Crisis Pact
 
 
-@ruling("C_agendas/galactic-crisis-pact/2")
+@ruling("C_agendas/galactic-crisis-pact/2", "R_agenda_phase/notes/7")
 def test_crisis_pact_secondary_now_in_speaker_order(registry: StaticDataRegistry) -> None:
     out = _resolve(registry, _state(registry, ["crisis"]), "5")
     assert out.phase is Phase.AGENDA  # w trakcie fazy agendy
@@ -620,6 +621,7 @@ def _arbiter_state(registry: StaticDataRegistry) -> GameState:
     return state
 
 
+@ruling("R_strategy_phase/notes/1")
 def test_arbiter_swap_leaves_trade_goods_with_the_chooser(registry: StaticDataRegistry) -> None:
     state = _arbiter_state(registry)
     state.players["p2"].trade_goods = 2  # TG z karty 5 wziął p2 przy wyborze

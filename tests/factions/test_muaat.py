@@ -165,6 +165,7 @@ def test_magmus_reactor_wejscie_i_odwrot_do_supernowej(registry: StaticDataRegis
     assert NOVA in retreat.retreat_destinations(state, grid, RIVAL, "p1")
 
 
+@ruling("technologies:mr#1", "F_norr/ghom-sekkus/6")
 def test_magmus_reactor_wejscie_sil_do_supernowej(registry: StaticDataRegistry) -> None:
     """Wejście jednostek spoza ruchu (G'hom Sek'kus) do supernowej - tylko z Magmus Reactor."""
     state = _state("sardakk")

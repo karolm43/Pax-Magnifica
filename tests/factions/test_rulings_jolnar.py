@@ -171,6 +171,7 @@ def _conduit(state: GameState, active: str) -> GameState:
     return _accept(state, "p1", "Spatial Conduit")
 
 
+@ruling("R_gravity_rift/rules-reference/2")
 def test_scc_wyjscie_z_gravity_rift_wymaga_rzutu(grid: HexGrid) -> None:
     """101 (gravity rift) nie sąsiaduje ze 105; trasa 101 → 105 przez SCC nadal rzuca
     za szczelinę."""
@@ -502,16 +503,18 @@ def test_compounds_ta_sama_planeta_nie_placi_i_nie_pomija(registry: StaticDataRe
         })
 
 
-@ruling("breakthroughs:jolnarbt#1")
-def test_compounds_bez_synergii(registry: StaticDataRegistry) -> None:
-    """Wyczerpana planeta wiąże kolor badania z JEJ specjalnością („you must research a technology
-    of that color”) - synergia (zielony/żółty) tego nie odwraca: Wellon (żółta) nie zapłaci za
-    zieloną technologię, Industrex (czerwona) za żółtą; Wellon za żółtą - tak, zamiast zasobów."""
+@ruling("breakthroughs:jolnarbt#1", "F_jol_nar/specialized-compounds/1")
+def test_compounds_synergia_zolty_zielony(registry: StaticDataRegistry) -> None:
+    """Wyczerpana planeta wiąże kolor badania z jej specjalnością („you must research a technology
+    of that color”), a synergia przełomu (zielony/żółty) czyni oba kolory wymiennymi (ruling 1,
+    zrzut 2026-11-22 - wcześniej zakazane): Wellon (żółta) płaci za zieloną i za żółtą
+    technologię; Industrex (czerwona, poza parą synergii) za żółtą - nie."""
     state = _compound_state()
-    with pytest.raises(ValueError, match="color"):
-        _compound(state, registry, {"tech": "nm", "compound_planet": "wellon"})
+    assert "BIOTIC" in technology.specialty_payment_planets(state, registry, "p1")["wellon"]
     with pytest.raises(ValueError, match="color"):
         _compound(state, registry, {"tech": "sdn", "compound_planet": "industrex"})
+    assert _compound(state, registry, {"tech": "nm", "compound_planet": "wellon"}) == "nm"
+    state.players["p1"].exhausted_planets.remove("wellon")
     assert _compound(state, registry, {"tech": "sdn", "compound_planet": "wellon"}) == "sdn"
     assert "wellon" in state.players["p1"].exhausted_planets
     assert state.players["p1"].trade_goods == 3

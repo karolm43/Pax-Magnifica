@@ -122,6 +122,7 @@ def test_struktury_po_akcji_po_kroku_produkcji(registry: StaticDataRegistry) -> 
     assert production.production_system(after) is None  # nowy dok nie ma już czego produkować
 
 
+@ruling("R_reinforcements/notes/1")
 def test_reclaimer_pusta_rezerwa_struktura_z_planszy(registry: StaticDataRegistry) -> None:
     """Bez PDS w rezerwie Reclaimer bierze PDS z systemu bez własnego żetonu dowodzenia."""
     state = _state()

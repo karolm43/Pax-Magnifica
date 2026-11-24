@@ -360,6 +360,7 @@ def test_van_hauge_nie_niszczy_floating_factory(registry: StaticDataRegistry) ->
     assert system.space_units["p2"]["spacedock"] == 1
 
 
+@ruling("R_space_combat/rules-reference/10")
 def test_van_hauge_walka_konczy_sie_remisem(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     system = state.systems["102"]
@@ -384,8 +385,7 @@ def _milor_state(registry: StaticDataRegistry) -> GameState:
     return state
 
 
-@ruling("F_yin/brother-milor-replaced-by-omega/2",
-        "leaders:yinagent#1")
+@ruling("leaders:yinagent#1", "F_yin/brother-milor-omega-omega/2")
 def test_milor_po_van_hauge_yin_wygrywa(registry: StaticDataRegistry) -> None:
     state = _milor_state(registry)
     system = state.systems["102"]

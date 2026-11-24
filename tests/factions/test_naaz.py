@@ -232,17 +232,20 @@ def test_fabrication_zeton_i_pusta_rezerwa(registry: StaticDataRegistry) -> None
     assert after.players["p1"].relic_fragments == ["irf2"]
 
 
-@ruling("F_naaz_rokha/black-market-forgery/2")
+@ruling("F_naaz_rokha/black-market-forgery/1", "F_naaz_rokha/black-market-forgery/2")
 def test_black_market_forgery_warunki(registry: StaticDataRegistry) -> None:
+    """Unknown = dowolny typ (2); pusta talia reliktów nie blokuje - purge bez reliktu (1)."""
     state = _state()
     state.players["p2"].relic_fragments = ["hrf1", "urf1"]
-    assert naaz._forgery_blocker(state, registry, "p2") is None  # Unknown = dowolny typ (2)
+    assert naaz._forgery_blocker(state, registry, "p2") is None
     from src.core import relics
 
     relics.ensure_relic_deck(state, registry)
     state.decks.relic_deck = []
     state.decks.relic_discard = []
-    assert "empty" in (naaz._forgery_blocker(state, registry, "p2") or "")  # (1)
+    assert naaz._forgery_blocker(state, registry, "p2") is None
+    naaz.black_market_forgery(state, registry, "p2", {"fragments": ["hrf1", "urf1"]})
+    assert state.players["p2"].relic_fragments == [] and state.players["p2"].relics == []
 
 
 # ==================================================================== Pre-Fab Arcologies

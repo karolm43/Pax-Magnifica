@@ -337,6 +337,7 @@ def test_bombarduje_tylko_aktywny_gracz(registry: StaticDataRegistry) -> None:
     assert [g.base_type for g in invasion.bombard_groups(state, registry)] == ["dreadnought"]
 
 
+@ruling("R_invasion/rules-reference/3")
 def test_ghom_space_cannon_defense_strzela(registry: StaticDataRegistry) -> None:
     state = _ghom_committed(registry)
     state.systems["102"].planet_units["industrex"]["p2"] = {"pds": 1}
@@ -368,6 +369,7 @@ def test_ghom_dominus_orb_z_systemu_z_zetonem(registry: StaticDataRegistry) -> N
     assert _sources(state, registry) == ["000"]
 
 
+@ruling("leaders:sardakkcommander#1")
 def test_ghom_odblokowany_przy_establish_control_za_pozno(registry: StaticDataRegistry) -> None:
     state = _ghom_state()
     state.players["p1"].technologies = ["amd"]
@@ -376,6 +378,7 @@ def test_ghom_odblokowany_przy_establish_control_za_pozno(registry: StaticDataRe
     assert reason is not None and "Commit Ground Forces" in reason
 
 
+@ruling("C_exploration_cards/demilitarized-zone/2")
 def test_ghom_nie_na_demilitarized_zone(registry: StaticDataRegistry) -> None:
     state = _ghom_state()
     state.players["p1"].technologies = ["amd"]
@@ -415,6 +418,7 @@ def test_hero_parley_usuwa_piechote_bez_statkow(registry: StaticDataRegistry) ->
     assert capacity.players_with_excess(state, registry, "102") == ["p1"]
 
 
+@ruling("R_invasion/rules-reference/3")
 def test_hero_space_cannon_defense_zostaje(registry: StaticDataRegistry) -> None:
     state = _hero_landed(registry, pds=True)
     after = invasion.advance(state, build_demo_grid(registry), registry)

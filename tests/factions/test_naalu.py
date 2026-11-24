@@ -322,6 +322,11 @@ def test_foresight_zeton_nie_jest_wydany_scepter_nie_dziala() -> None:
     assert _SCEPTER not in me.exhausted_relics  # Scepter nie zastępuje żetonu
 
 
+@ruling(
+    "R_nebula/rules-reference/1",
+    "R_supernova/rules-reference/1",
+    "R_asteroid_field/rules-reference/1",
+)
 def test_foresight_cele_bez_mglawicy_supernowej_i_asteroid() -> None:
     state = _foresight_state()
     state.systems[EAST].system_id = "42"  # mgławica
@@ -358,6 +363,7 @@ def test_foresight_z_gravity_rift_rzut_a_zeton_i_tak_w_celu(
     assert "p1" in after.systems[EAST].command_tokens  # 5.1
 
 
+@ruling("R_capacity/notes/1", "R_fleet_pool/rules-reference/3")
 def test_foresight_limity_w_celu(registry: StaticDataRegistry) -> None:
     state = _foresight_state()
     state.systems[EAST].space_units = {"p1": {"dreadnought": 2}}
@@ -407,6 +413,7 @@ def test_neuroglaive_aktywujacy_traci_zeton_puli_floty(registry: StaticDataRegis
     assert empty.players["p2"].fleet_cc == 3
 
 
+@ruling("R_fleet_pool/rules-reference/3")
 def test_neuroglaive_limit_puli_floty_przed_ruchem(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].technologies = [naalu.NEUROGLAIVE]

@@ -354,6 +354,7 @@ def test_mech_usuniety_przez_pojemnosc_nie_strzela(registry: StaticDataRegistry)
     assert not space_cannon.offense_shooters(cleared, _grid(), registry, "p1")
 
 
+@ruling("R_invasion/rules-reference/3")
 def test_space_cannon_defense_tylko_nieaktywni(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     planet = _planet(registry, "21")

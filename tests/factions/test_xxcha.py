@@ -101,7 +101,7 @@ def test_peace_accords_cele(registry: StaticDataRegistry) -> None:
     assert ("102", free) not in xxcha.peace_targets(with_units, "p1")  # planeta z jednostkami
 
 
-@ruling("abilities:peace_accords#1")
+@ruling("abilities:peace_accords#1", "F_xxcha/peace-accords/4", "R_control/rules-reference/1")
 def test_peace_accords_cudza_planeta_i_wyczerpana(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     free = _planet(registry, "21")
@@ -114,6 +114,7 @@ def test_peace_accords_cudza_planeta_i_wyczerpana(registry: StaticDataRegistry) 
     assert state.exploration is None  # kontrolowana wcześniej - bez eksploracji (F_xxcha)
 
 
+@ruling("R_control/rules-reference/1.3")
 def test_peace_accords_niekontrolowana_eksploracja(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     free = _planet(registry, "21")

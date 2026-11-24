@@ -570,3 +570,17 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   dump files unchanged.
 - QA: tsc (app), eslint rules domain, vitest `src/domains/rules`; checked in browser (F_nekro: 26 card links, 0 wiki
   links). Skipped: backend QA (frontend-only), build, e2e (rules page not part of game flow).
+
+## Rulings Update Review: 93 Tests That Lost Their Ruling (2026-11-24)
+- Reviewed every test listed in `rules_tirules/ZMIANY_2026-11-24.md` › "Testy, które straciły ruling" against the new
+  tirules2 dump. Three engine behaviours contradicted the new rulings and were fixed:
+  - Gravity rift: the same rift gives +1 move only once per ship, each exit still rolls (`movement_paths.rift_bonus`
+    counts distinct rifts; R_gravity_rift notes/2, F_vuilraith dimensional-tear/2). Old test asserted +1 per exit.
+  - Specialized Compounds: synergy pair now counts as one color — yellow planet pays for green tech and vice versa
+    (`technology.specialty_payment_planets`; F_jol_nar specialized-compounds/1). Old test asserted the ban.
+  - Black Market Forgery: playable with an empty relic deck (fragments purged, no relic; F_naaz_rokha bmf/1).
+- Remaining tests: behaviour still correct; re-tagged to the current source (general R_/C_ rulings, card-text clauses,
+  renumbered faction rulings). Removed wrong auto-remap tags (Self-Assembly test carried a Psychoarchaeology ID; Milor
+  test pointed at the original card — asset text is ΩΩ). Uncovered rulings in `test_ruling_coverage` 211 → 202.
+- QA: affected suites (factions, rulings_general, exploration — 1209 passed), ruff, mypy (changed files).
+  `test_ruling_coverage` still red (pre-existing debt of new rulings). Skipped: full suite, frontend (no change).

@@ -936,11 +936,13 @@ def specialty_payment_planets(
 ) -> dict[str, list[str]]:
     """Gotowe planety, którymi wolno ZAPŁACIĆ za badanie z karty Technology (Specialist Compounds).
 
-    Hook PERMIT ``technology.specialty_pays``; kolory = WŁASNE specjalności planety (bez
-    rozszerzenia synergią - F_jol_nar). Pusty słownik, gdy gracz nie ma tej zdolności.
+    Hook PERMIT ``technology.specialty_pays``; kolory = specjalności planety rozszerzone o parę
+    synergii gracza (F_jol_nar specialized-compounds/1: planeta z żółtą specjalnością płaci za
+    zieloną technologię i odwrotnie). Pusty słownik, gdy gracz nie ma tej zdolności.
     """
     if not rules_hooks.permits(rules_hooks.POINT_TECHNOLOGY_SPECIALTY_PAYS, state, player_id):
         return {}
+    pair = synergy(state, registry, player_id) or ()
     exhausted = set(state.players[player_id].exhausted_planets)
     result: dict[str, list[str]] = {}
     for system in state.systems.values():
@@ -949,7 +951,10 @@ def specialty_payment_planets(
                 continue
             stats = planet_stats(state, registry, planet_id)
             if stats is not None and stats.tech_specialties:
-                result[planet_id] = [s.upper() for s in stats.tech_specialties]
+                colors = [s.upper() for s in stats.tech_specialties]
+                if any(c in pair for c in colors):
+                    colors += [c for c in pair if c not in colors]
+                result[planet_id] = colors
     return result
 
 

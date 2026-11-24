@@ -133,6 +133,7 @@ def test_zeal_argent_glosuje_pierwszy_takze_jako_mowca(registry: StaticDataRegis
     assert agenda_phase.vote_order(state) == ["p1", "p2", "p3"]
 
 
+@ruling("R_agenda_phase/rules-reference/6")
 def test_zeal_dodatkowe_glosy_na_ten_sam_wynik(registry: StaticDataRegistry) -> None:
     state = _agenda_state(registry, [LAW])
     state.players["p1"].faction = "argent"
@@ -203,6 +204,7 @@ def test_raid_formation_przed_przypisaniem_i_bez_sustain(registry: StaticDataReg
     assert out.systems["102"].space_units["p2"].get("fighter", 0) == 0
 
 
+@ruling("F_argent/raid-formation/2")
 def test_raid_formation_liczy_kosci_po_przerzucie(registry: StaticDataRegistry) -> None:
     state = _afb_combat(_state(registry), {"destroyer": 1}, {"dreadnought": 2},
                         [_afb_roll([7, 1, 1])])
@@ -229,6 +231,7 @@ def test_raid_formation_wybor_argent_takze_uszkodzonego(registry: StaticDataRegi
     assert out.active_combat is not None and out.active_combat.step is not CombatStep.TRIGGERS
 
 
+@ruling("C_technology/duranium-armor/5")
 def test_raid_formation_duranium_naprawia_pozniej(registry: StaticDataRegistry) -> None:
     state = _afb_combat(_state(registry), {"destroyer": 1}, {"dreadnought": 1},
                         [_afb_roll([7, 1, 1])])
@@ -527,7 +530,12 @@ def test_helix_piechota_tylko_ze_statkiem_z_tego_samego_systemu(
                               _mv("103", ["101|carrier|0", "102|infantry|0"]))
 
 
-@ruling("F_argent/mirik-aun-sissiri-helix-protocol/6")
+@ruling(
+    "F_argent/mirik-aun-sissiri-helix-protocol/6",
+    "R_nebula/rules-reference/1",
+    "R_supernova/rules-reference/1",
+    "R_asteroid_field/notes/1",
+)
 def test_helix_cele_bez_mglawicy_supernowej_asteroid(registry: StaticDataRegistry) -> None:
     state = _helix_state(registry)
     nebula = next(s for s, d in sorted(registry.systems.items()) if d.is_nebula)
@@ -544,6 +552,7 @@ def test_helix_cele_bez_mglawicy_supernowej_asteroid(registry: StaticDataRegistr
     assert argent.helix_destinations(state, "p1") == ["000", "103"]
 
 
+@ruling("F_argent/mirik-aun-sissiri-helix-protocol/6", "R_gravity_rift/rules-reference/2")
 def test_helix_szczelina_rzut_przy_wyjsciu(registry: StaticDataRegistry) -> None:
     state = _helix_state(registry)
     rift = next(

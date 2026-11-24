@@ -411,6 +411,7 @@ def test_bez_flagowca_trafienia_dowolnie(registry: StaticDataRegistry) -> None:
 # ============================================================================= Annihilator
 
 
+@ruling("units:l1z1x_mech#1")
 def test_annihilator_w_kroku_bombardment(registry: StaticDataRegistry) -> None:
     state = _state()
     system = state.systems["102"]

@@ -249,6 +249,7 @@ def test_demilitarized_zone_clears_the_planet(registry: StaticDataRegistry) -> N
     assert system.space_units.get("p1", {}) == {}
 
 
+@ruling("R_purge/rules-reference/1", "R_exploration/rules-reference/7")
 def test_token_card_is_purged(registry: StaticDataRegistry) -> None:
     state = _with_card(_state(), registry, "Gamma Wormhole")
     done = exploration.resolve(state, registry, "place")
@@ -334,6 +335,7 @@ def test_attachments_feed_production_budget(registry: StaticDataRegistry) -> Non
 # ------------------------------------------------------------------------- Freelancers
 
 
+@ruling("R_planets/notes/3")
 def test_freelancers_opens_one_unit_production_paid_with_influence(
     registry: StaticDataRegistry,
 ) -> None:

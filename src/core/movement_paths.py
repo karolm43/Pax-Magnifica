@@ -438,9 +438,11 @@ def rift_nodes(
 
 
 def rift_bonus(state: GameState, grid: HexGrid, route: list[str], player_id: str) -> int:
-    """Premia ruchu z gravity rift na trasie: +1 za każde wyjście/przelot, plus JEDNO +1, gdy jest
-    choć jedna szczelina i działa efekt Crucible (F_vuilraith Crucible 1-1.5)."""
-    nodes = rift_nodes(state, grid, route, player_id)
+    """Premia ruchu z gravity rift na trasie: +1 za każdą RÓŻNĄ szczelinę, z której statek wychodzi
+    lub przez którą przelatuje (ta sama szczelina wielokrotnie = +1 raz, ale rzut za każde wyjście
+    - R_gravity_rift notes/2, F_vuilraith dimensional-tear/2), plus JEDNO +1, gdy jest choć jedna
+    szczelina i działa efekt Crucible (F_vuilraith crucible/2)."""
+    nodes = set(rift_nodes(state, grid, route, player_id))
     # Nav Suite zeruje zwykłe +1, ale Crucible nadal daje swoje +1 (F_vuilraith Crucible 6).
     through = any(_GRAVITY_RIFT in grid.anomalies_at(node) for node in route[:-1])
     extra = through and rules_hooks.permits(

@@ -160,13 +160,18 @@ def test_cabal_nie_rzuca_za_wlasna_szczeline(registry: StaticDataRegistry) -> No
         assert movement.rift_bonus(state, grid, route, "p1") == 1  # bez dodatkowego efektu
 
 
-@ruling("F_vuilraith/dimensional-tear/2")
-def test_kazde_wyjscie_ze_szczeliny_daje_plus_jeden(registry: StaticDataRegistry) -> None:
+@ruling("F_vuilraith/dimensional-tear/2", "R_gravity_rift/notes/2")
+def test_ta_sama_szczelina_plus_jeden_raz_rzut_za_kazde_wyjscie(
+    registry: StaticDataRegistry,
+) -> None:
+    """Trasa wychodzi dwa razy z HOME i dwa razy z ARENA (obie to szczeliny): +1 za każdą RÓŻNĄ
+    szczelinę (= 2), ale rzut za każde wyjście (gracz bez Dimensional Tear - p2)."""
     state = _state()
     state.systems[ARENA].planet_units = {WELLON: {"p1": {"spacedock": 1}}}
     grid = _grid(state, registry)
     route = [HOME, ARENA, HOME, ARENA, EAST]
-    assert movement.rift_bonus(state, grid, route, "p1") == 4
+    assert movement.rift_bonus(state, grid, route, "p1") == 2
+    assert movement.rift_roll_nodes(state, grid, route, "p2") == [HOME, ARENA, HOME, ARENA]
 
 
 @ruling("F_vuilraith/dimensional-tear/6")
@@ -647,6 +652,7 @@ def test_crucible_trasa_liczona_z_premia(registry: StaticDataRegistry) -> None:
     assert ok, reason
 
 
+@ruling("R_abilities/notes/6")
 def test_crucible_nie_dwa_razy_w_jednym_oknie(registry: StaticDataRegistry) -> None:
     state = _state()
     assert cabal._crucible_condition(state, registry, "p2", None) is None  # type: ignore[arg-type]

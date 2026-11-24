@@ -129,6 +129,7 @@ def test_relics_cannot_be_traded(registry: StaticDataRegistry) -> None:
 # ============================================================================ karty planet
 
 
+@ruling("R_capacity/rules-reference/3")
 def test_dmz_ground_forces_without_capacity_open_the_capacity_check(
     registry: StaticDataRegistry,
 ) -> None:
@@ -251,6 +252,7 @@ def test_player_chooses_ion_storm_or_the_systems_own_wormhole(
     assert ion_storm.flip_used(state) == ["a"] and state.systems["a"].ion_storm == "BETA"
 
 
+@ruling("R_adjacency/rules-reference/2.1")
 def test_a_system_is_never_adjacent_to_itself(registry: StaticDataRegistry) -> None:
     state, grid = _storm_grid(registry)
     assert not grid.are_adjacent("a", "a")

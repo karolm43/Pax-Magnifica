@@ -205,6 +205,7 @@ def test_miscount_law_stays_in_force_during_the_revote(registry: StaticDataRegis
     assert out.agenda is not None and out.agenda.votes["p3"].votes == 1
 
 
+@ruling("C_agendas/miscount-disclosed/2")
 def test_miscount_articles_of_war_still_strip_mechs(registry: StaticDataRegistry) -> None:
     out = _miscount(registry, "articles_war")
     out.players["p1"].faction = "hacan"
@@ -223,6 +224,7 @@ def test_miscount_committee_owner_may_use_it_on_the_revote(registry: StaticDataR
     assert "committee" not in out.decks.agenda_discard
 
 
+@ruling("C_agendas/miscount-disclosed/2")
 def test_miscount_defense_act_for_again_keeps_pds(registry: StaticDataRegistry) -> None:
     out = _miscount(registry, "defense_act")
     planet = _planet(out, "p1")
@@ -271,6 +273,7 @@ def test_miscount_veto_on_the_law_discards_and_replaces(registry: StaticDataRegi
     assert out.agenda is not None and out.agenda.agenda_id == "mutiny"
 
 
+@ruling("C_agendas/miscount-disclosed/3")
 def test_miscount_political_secret_on_the_law(registry: StaticDataRegistry) -> None:
     out = _miscount(registry, "conscription")
     out.players["p3"].private.promissory_notes = ["p1_ps"]

@@ -216,12 +216,6 @@ def _forge_relic(state: GameState, registry: StaticDataRegistry, player_id: str,
                              detail={"fragments": list(cards)})
 
 
-def _relic_deck_empty(state: GameState, registry: StaticDataRegistry) -> bool:
-    probe = state.clone()  # talia powstaje leniwie - sprawdzamy na kopii
-    relics.ensure_relic_deck(probe, registry)
-    return not probe.decks.relic_deck and not probe.decks.relic_discard
-
-
 @faction_components.blocker("ability", FABRICATION)
 def _fabrication_blocker(state: GameState, _registry_: StaticDataRegistry, player_id: str
                          ) -> str | None:
@@ -284,8 +278,8 @@ def _forgery_owner(state: GameState, registry: StaticDataRegistry) -> str | None
 
 def _forgery_blocker(state: GameState, registry: StaticDataRegistry, player_id: str
                      ) -> str | None:
-    if _relic_deck_empty(state, registry):
-        return "The relic deck is empty - you cannot gain a relic."
+    # Pusta talia reliktów NIE blokuje: purge 2 fragmentów bez reliktu (F_naaz_rokha
+    # black-market-forgery/1, zrzut tirules2 2026-11-22 - wcześniej zakazane).
     registry_ = _registry()
     frags = _fragments(state, player_id)
     if not any(_same_type_pair(registry_, [a, b])
@@ -318,9 +312,13 @@ def black_market_forgery(
     state: GameState, registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
 ) -> None:
     """Black Market Forgery: ACTION: Purge 2 of your relic fragments of the same type to gain 1
-    relic. Then, return this card to the Naaz-Rokha player (zwrot - ``promissory_play``)."""
+    relic. Then, return this card to the Naaz-Rokha player (zwrot - ``promissory_play``).
+
+    Pusta talia reliktów: purge bez reliktu (F_naaz_rokha black-market-forgery/1)."""
     cards = _picked_fragments(state, player_id, params)
-    _forge_relic(state, registry, player_id, cards, "black_market_forgery")
+    relic = _forge_relic(state, registry, player_id, cards, "black_market_forgery")
+    ability_notes.note(state, player_id, f"promissory_notes:{FORGERY}",
+                       "gained a relic" if relic else "relic deck empty - no relic")
 
 
 # ------------------------------------------------------------------- Pre-Fab Arcologies

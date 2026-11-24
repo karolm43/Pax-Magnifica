@@ -146,7 +146,8 @@ def test_space_cannon_neither_from_nor_into_scar(registry: StaticDataRegistry) -
 
 @ruling("R_entropic_scars/notes/2")
 def test_no_production_from_units_in_scar(registry: StaticDataRegistry) -> None:
-    """Dok na Lemox nie produkuje - także tekst doku definiujący X nie działa (2.2)."""
+    """Dok na Lemox nie może UŻYĆ zdolności Production (notes/2). Uwaga: od zrzutu 2026-11-22
+    notes/2.2 mówi odwrotnie niż dawniej - tekst wymagający jednostki ze zdolnością nadal działa."""
     state = _state(LEMOX_TILE, planet={"p1": {"spacedock": 1}})
     state.systems["000"].planet_owners[LEMOX] = "p1"
     assert production.producers(state, registry, "p1", "000") == []
@@ -276,6 +277,7 @@ def test_no_offer_without_strategy_token(registry: StaticDataRegistry) -> None:
     assert _scar_offers(_start_status(_status_state(registry, tokens=0))) == []
 
 
+@ruling("R_entropic_scars/notes/5")
 def test_ground_forces_in_scar_do_not_count(registry: StaticDataRegistry) -> None:
     assert _scar_offers(_start_status(_status_state(registry, ground_only=True))) == []
 

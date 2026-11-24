@@ -194,6 +194,7 @@ def test_military_support_z_transakcji_na_poczatku_tury(registry: StaticDataRegi
     assert row["playable"] is True, row["reason"]
 
 
+@ruling("R_transactions/rules-reference/1")
 def test_military_support_jedna_transakcja_na_ture(registry: StaticDataRegistry) -> None:
     received = _give_support(_sol_turn_starts(_state()), registry)
     received.players["p2"].private.promissory_notes = []
@@ -401,6 +402,7 @@ def test_claire_gibson_bez_sil_naziemnych_brak_walki(registry: StaticDataRegistr
     assert flow.battle().get("active") is not True
 
 
+@ruling("R_invasion/rules-reference/4")
 def test_claire_gibson_atak_zniszczony_przed_walka(registry: StaticDataRegistry) -> None:
     flow, (a, b) = _two_planet_invasion(registry, (1, 1), (2, 2))
     # Space Cannon Defense niszczy wszystkie siły zlądowane na ``b`` - walki tam nie ma.

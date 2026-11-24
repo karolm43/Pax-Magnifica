@@ -512,6 +512,7 @@ def test_tellurian_anuluje_trafienie(registry: StaticDataRegistry) -> None:
     assert after.players["p1"].leader_states[titans.AGENT] == "exhausted"
 
 
+@ruling("F_ul/tellurian/1")
 def test_tellurian_bez_trafien_do_przypisania(registry: StaticDataRegistry) -> None:
     state = _state()
     state.active_combat = ActiveCombat(kind="space", position=ARENA, attacker="p1",
@@ -676,7 +677,11 @@ def test_terraform_eksplorujacy_wybiera_talie(registry: StaticDataRegistry) -> N
 # -------------------------------------------------------------------- Slumberstate Computing
 
 
-@ruling("breakthroughs:titansbt#3", "F_ul/slumberstate-computing/2")
+@ruling(
+    "breakthroughs:titansbt#3",
+    "F_ul/slumberstate-computing/2",
+    "F_ul/slumberstate-computing/3",
+)
 def test_slumberstate_zeton_na_cudzej_planecie_za_zgoda(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].breakthrough_unlocked = True

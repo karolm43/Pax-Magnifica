@@ -116,6 +116,7 @@ def test_mitosis_mech_zamiast_piechoty() -> None:
     assert _ground(after, "102", "industrex") == {"infantry": 1, "mech": 1}
 
 
+@ruling("abilities:mitosis#1")
 def test_mitosis_bez_planet_nic() -> None:
     state = _state()
     state.systems["102"].planet_owners = {}
@@ -330,6 +331,7 @@ def test_psychospore_bez_zetonu(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------- rulingi: żeton z arkusza, statek z planszy
 
 
+@ruling("R_command_tokens/rules-reference/3.2")
 def test_stymie_pusta_rezerwa_zeton_z_arkusza(registry: StaticDataRegistry) -> None:
     state = _state()
     _moved_into(state)

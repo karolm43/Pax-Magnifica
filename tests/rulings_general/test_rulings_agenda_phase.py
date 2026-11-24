@@ -226,7 +226,7 @@ def _gain_order(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     return order
 
 
-@ruling("R_agenda_card/notes/2")
+@ruling("R_agenda_card/notes/2", "R_agenda_phase/notes/7")
 def test_outcome_affects_players_in_speaker_order(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
 ) -> None:

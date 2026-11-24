@@ -429,6 +429,7 @@ def test_przelom_po_wygranej_walce_zeton(registry: StaticDataRegistry) -> None:
     assert after.players["p1"].fleet_cc == fleet + 1
 
 
+@ruling("breakthroughs:sardakkbt#1", "R_technology/notes/1")
 def test_przelom_badanie_ulepszenia(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].breakthrough_unlocked = True
