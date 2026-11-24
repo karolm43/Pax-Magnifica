@@ -146,7 +146,7 @@ Dane strukturalne: [`tirules.json`](tirules.json).
 - [The Xxcha Kingdom](F_xxcha.md)
 - [The Yin Brotherhood](F_yin.md)
 - [The Yssaril Tribes](F_yssaril.md)
-- [⚪ The Firmament / ✖ The Obsidian](F_firmament.md)
+- [o The Firmament / x The Obsidian](F_firmament.md)
 
 ## Komponenty (C) — 10
 

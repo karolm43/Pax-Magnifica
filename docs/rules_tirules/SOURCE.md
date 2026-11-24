@@ -27,8 +27,8 @@ Treść/parametry konkretnej karty czy zdolności frakcji → z assetów JSON. D
 - **Strona:** https://www.tirules2.com/
 - **Repozytorium źródłowe:** https://github.com/dangothemango/tirules
 - Treść pobrana z plików `R_*.php` / `F_*.php` / `C_*.php` tego repo (czyste fragmenty
-  HTML) i przekonwertowana do Markdown + JSON skryptem `scripts/scrape_tirules.py`.
-- Data zrzutu: 2026-10-30. Źródło odzwierciedla **Living Rules Reference 2.0** (PoK),
+  HTML) i przekonwertowana do Markdown + JSON skryptem `scripts/scrape_tirules.py` (parser pomija przypisy źródłowe `<sup>1,2</sup>` i linki w nagłówkach h2 dodane przez upstream).
+- Data zrzutu: 2026-11-24 (upstream HEAD `015e4a9` z 2026-11-22; poprzedni zrzut 2026-10-30). Różnice: `ZMIANY_2026-11-24.md`. Źródło odzwierciedla **Living Rules Reference 2.0** (PoK),
   z notami do **Codexów I–IV** (06/2025) i wstępnymi notami do **Thunder's Edge** (10/2025).
 
 ## Lokalne adaptacje (NIE pochodzą z tirules2.com)

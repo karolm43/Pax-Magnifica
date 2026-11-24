@@ -12,7 +12,7 @@ An asteroid field is an anomaly that affects movement.
 ## Notes
 
 - A player with the *Antimass Deflectors* technology may move their ships through asteroid fields.
-- A future rule change will place the ship movement restrictions of anomalies upon all units.
+- The movement restrictions of anomalies are intended to apply to all units, not only ships.
 
 ## Related Topics
 

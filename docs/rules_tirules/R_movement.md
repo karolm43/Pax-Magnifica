@@ -30,19 +30,24 @@ To resolve movement, players perform the following steps:
 
 ## Notes
 
-- When an effect moves a unit to an adjacent system, modifying that unit’s move value will have no effect.
-- An ability may move a player’s ship out of a system containing one of the player’s faction’s command tokens. However, the transport rules prevent a player’s units from being transported from systems containing one of that player’s command tokens, other than the active system. An ability that moves a player’s ship must also explicitly allow it to transport units from non–active systems containing that player’s faction’s command token for it to be able to do so.
+- When an effect, such as retreating, moves a unit to an adjacent system, modifying that unit’s move value will have no effect.
+- When an ability moves a player’s ships outside of a tactical action, those ships may transport units out of systems that contain that player’s command tokens; this restriction only applies during tactical actions.
     - During a retreat, units may be transported from the active system.
 - A ship that can both move and be transported (i.e. Fighter II) cannot do both by “meeting” a ship with capacity partway through a tactical action movement, as all movement is simultaneous.
 - Ships only move “into” the destination system. A ship may move “through” other systems.
-- Fighters alone will block other player’s ships from moving through that system, whether they are accompanied by a Space Dock or they are Fighters II.
+- Fighters alone will block other players’ ships from moving through that system, whether they are accompanied by a Space Dock or they are Fighters II.
+- Another player’s ground forces and PDS do not prevent a ship from moving through a system.
+- A deal cannot allow a player’s ships to move through a system that contains another player’s ships.
+- When an ability moves ships outside of a tactical action, the movement restrictions of anomalies still apply, unless the ability says otherwise.
 
 ## Related Topics
 
+- [Action Phase](https://www.tirules2.com/R_action_phase)
 - [Active System](https://www.tirules2.com/R_active_system)
 - [Adjacency](https://www.tirules2.com/R_adjacency)
 - [Anomalies](https://www.tirules2.com/R_anomalies)
 - [Capacity](https://www.tirules2.com/R_capacity)
+- [Deals](https://www.tirules2.com/R_deals)
 - [Hyperlanes](https://www.tirules2.com/R_hyperlanes)
 - [Move](https://www.tirules2.com/R_move)
 - [Ships](https://www.tirules2.com/R_ships)

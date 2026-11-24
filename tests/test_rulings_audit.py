@@ -253,7 +253,7 @@ def test_produkcja_wymaga_wskazania_zrodla_przy_pustej_rezerwie(
 # --- F_norr ---------------------------------------------------------------------------------
 
 
-@ruling("F_norr/ghom-sekkus/8.5")
+@ruling("F_norr/ghom-sekkus/6.4")
 def test_ghom_sekkus_nie_przez_wormhole_przy_travel_ban(registry: StaticDataRegistry) -> None:
     """F_norr: „cannot commit ground forces through a wormhole if Enforced Travel Ban…”."""
     grid = HexGrid()

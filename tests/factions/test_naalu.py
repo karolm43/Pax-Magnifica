@@ -257,7 +257,7 @@ def _p2_moved(state: GameState, position: str = ARENA) -> GameState:
 
 
 @ruling("abilities:foresight#1", "abilities:foresight#2", "F_naalu/foresight/3",
-        "F_naalu/foresight/8")
+        "F_naalu/foresight/6")
 def test_foresight_przenosi_statki_i_kladzie_zeton() -> None:
     state = _p2_moved(_foresight_state())
     assert _offers(state, "p1", "Foresight")
@@ -322,7 +322,6 @@ def test_foresight_zeton_nie_jest_wydany_scepter_nie_dziala() -> None:
     assert _SCEPTER not in me.exhausted_relics  # Scepter nie zastępuje żetonu
 
 
-@ruling("F_naalu/foresight/4", "F_naalu/foresight/4.1")
 def test_foresight_cele_bez_mglawicy_supernowej_i_asteroid() -> None:
     state = _foresight_state()
     state.systems[EAST].system_id = "42"  # mgławica
@@ -340,7 +339,7 @@ def test_foresight_cel_bez_cudzych_statkow() -> None:
     assert EAST not in naalu.foresight_destinations(state, "p1", ARENA)
 
 
-@ruling("F_naalu/foresight/5", "F_naalu/foresight/5.1", "C_action_cards/nav-suite/7.1")
+@ruling("F_naalu/foresight/4", "F_naalu/foresight/4.2", "C_action_cards/nav-suite/7.1")
 def test_foresight_z_gravity_rift_rzut_a_zeton_i_tak_w_celu(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -359,7 +358,6 @@ def test_foresight_z_gravity_rift_rzut_a_zeton_i_tak_w_celu(
     assert "p1" in after.systems[EAST].command_tokens  # 5.1
 
 
-@ruling("F_naalu/foresight/6")
 def test_foresight_limity_w_celu(registry: StaticDataRegistry) -> None:
     state = _foresight_state()
     state.systems[EAST].space_units = {"p1": {"dreadnought": 2}}
@@ -370,7 +368,7 @@ def test_foresight_limity_w_celu(registry: StaticDataRegistry) -> None:
     assert window.context["position"] == EAST
 
 
-@ruling("F_naalu/foresight/7")
+@ruling("F_naalu/foresight/5")
 def test_foresight_zeton_juz_w_celu_wraca_do_rezerwy() -> None:
     state = _foresight_state()
     state.systems[EAST].command_tokens = ["p1"]
@@ -409,7 +407,6 @@ def test_neuroglaive_aktywujacy_traci_zeton_puli_floty(registry: StaticDataRegis
     assert empty.players["p2"].fleet_cc == 3
 
 
-@ruling("F_naalu/neuroglaive/1")
 def test_neuroglaive_limit_puli_floty_przed_ruchem(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].technologies = [naalu.NEUROGLAIVE]
@@ -478,7 +475,7 @@ def _invasion_state(registry: StaticDataRegistry, *, infantry: int = 0) -> GameS
     return state
 
 
-@ruling("units:naalu_flagship#1", "F_naalu/matriarch/4")
+@ruling("units:naalu_flagship#1", "F_naalu/matriarch/5")
 def test_matriarch_mysliwce_laduja_i_walcza(registry: StaticDataRegistry) -> None:
     state = _invasion_state(registry)
     after = invasion.commit_ground_forces(state, registry, {WELLON: {"fighter": 2}})
@@ -497,7 +494,7 @@ def test_bez_matriarch_mysliwce_nie_laduja(registry: StaticDataRegistry) -> None
         invasion.commit_ground_forces(state, registry, {WELLON: {"fighter": 1}})
 
 
-@ruling("units:naalu_flagship#2", "F_naalu/matriarch/1", "F_naalu/matriarch/2")
+@ruling("units:naalu_flagship#2", "F_naalu/matriarch/2", "F_naalu/matriarch/3")
 def test_matriarch_mysliwce_wracaja_i_nie_daja_kontroli(registry: StaticDataRegistry) -> None:
     state = _invasion_state(registry)
     state.systems[ARENA].planet_units = {WELLON: {"p2": {"pds": 1}}}  # bez sił naziemnych p2
@@ -535,7 +532,7 @@ def test_matriarch_powrot_po_walce_tylko_z_tej_planety(registry: StaticDataRegis
     assert after.systems[ARENA].space_units["p1"]["fighter"] == 3
 
 
-@ruling("F_naalu/matriarch/3")
+@ruling("F_naalu/matriarch/4")
 def test_matriarch_dacxive_bez_sil_naziemnych_nie_daje_planety(
     registry: StaticDataRegistry,
 ) -> None:

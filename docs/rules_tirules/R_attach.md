@@ -15,12 +15,13 @@ Some game effects instruct a player to attach a card to a planet card. The attac
 
 ## Notes
 
-- There is no limit on how many attachments a single planet may have.
-- The Custodians Token is not an attachment.
+- A single planet may have multiple attachments.
+- The custodians token is not an attachment.*
 
 ## Related Topics
 
 - [Agenda Card](https://www.tirules2.com/R_agenda_card)
 - [Control](https://www.tirules2.com/R_control)
+- [Custodians Token](https://www.tirules2.com/R_custodians_token)
 - [Exploration](https://www.tirules2.com/R_exploration)
 - [Planets](https://www.tirules2.com/R_planets)

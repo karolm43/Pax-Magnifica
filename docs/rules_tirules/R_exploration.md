@@ -27,12 +27,11 @@ Planets and some space areas can be explored, yielding varying results determine
 
 ## Notes
 
-- An exploration cards that purges itself is not discarded into its respective discard pile.
-- *Enigmatic Device* and *Ion Storm* are placed into play, not into the frontier discard pile.
-- If a player is to gain multiple planets in a system, they choose the order in which they gain them, and explore each planet as they gain it before gaining the next.
-- A player may perform transactions after revealing an exploration card and before resolving it.
+- When a player gains control of a planet that is not controlled by another player, they explore it before resolving any “after you gain control of a planet” abilities, such as the *Integrated Economy* technology.
 - Before resolving an exploration card, it is revealed to all players.
-- For notes about specific exploration cards, see the [exploration cards notes page](https://www.tirules2.com/C_exploration_cards).
+- A player may perform transactions after revealing an exploration card and before resolving it.
+- If a player is to gain multiple planets in a system, they choose the order in which they gain them, and explore each planet as they gain it before gaining the next.
+- *Ion Storm* is placed into play, not into the frontier discard pile.
 
 ## Related Topics
 
@@ -41,6 +40,6 @@ Planets and some space areas can be explored, yielding varying results determine
 - [Frontier Tokens](https://www.tirules2.com/R_frontier_tokens)
 - [Invasion](https://www.tirules2.com/R_invasion)
 - [Planets](https://www.tirules2.com/R_planets)
-- [Purge](R_purge)
+- [Purge](https://www.tirules2.com/R_purge)
 - [Relics](https://www.tirules2.com/R_relics)
 - [Transactions](https://www.tirules2.com/R_transactions)

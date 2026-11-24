@@ -14,7 +14,7 @@ If a component type is depleted during the game, players obey the following rule
     - Trade Good Tokens
     - Infantry Tokens
 - If any of the above tokens are depleted, players can use a suitable substitute, such as a coin or bead.
-- Units: Units are limited to those included in the game, except for fighters and ground forces.
+- Units: Units are limited to those included in the game, except for fighters and infantry.
     - When a player would place a unit, if there are none of that type left in their reinforcements, that player can remove a unit from any system that does not contain one of their command tokens and place that unit in their reinforcements. A player can remove any number of their units in this way; however, any units that are removed must be placed immediately. Abilities cannot force a player to remove and place a unit in this manner.
     - When producing a fighter or infantry unit, a player can use a fighter or infantry token, as appropriate, from the supply instead of a plastic piece. These tokens must be accompanied by at least one plastic piece of the same type; players can swap infantry and fighter tokens for plastic pieces at any time.
 - Cards: When a deck is depleted, players shuffle the deck’s discard pile and place it facedown to create a new deck.
@@ -32,7 +32,9 @@ If a component type is depleted during the game, players obey the following rule
 
 ## Related Topics
 
+- [Deploy](https://www.tirules2.com/R_deploy)
 - [Fighter Tokens](https://www.tirules2.com/R_fighter_tokens)
 - [Infantry Tokens](https://www.tirules2.com/R_infantry_tokens)
 - [Producing Units](https://www.tirules2.com/R_producing_units)
+- [Reinforcements](https://www.tirules2.com/R_reinforcements)
 - [Units](https://www.tirules2.com/R_units)

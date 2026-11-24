@@ -145,7 +145,7 @@ def test_dok_rusza_sie_jak_statek_bez_puli_floty(registry: StaticDataRegistry) -
     assert fleet_report(after, PLAIN, "p1", registry).ships == {"carrier": 1}
 
 
-@ruling("F_saar/floating-factory/4")
+@ruling("F_saar/floating-factory/6")
 def test_dok_z_efektem_ruchu_statkow(registry: StaticDataRegistry) -> None:
     """Gravity Drive (+1 dla jednego statku) przenosi dok o 2 systemy."""
     state = _state()
@@ -161,7 +161,7 @@ def test_dok_z_efektem_ruchu_statkow(registry: StaticDataRegistry) -> None:
     assert after.systems[RIVAL].space_units["p1"] == {"spacedock": 1}
 
 
-@ruling("F_saar/floating-factory/5")
+@ruling("F_saar/floating-factory/7")
 def test_dok_rzuca_przy_wylocie_ze_szczeliny(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems[RIFT].space_units = {"p1": {"spacedock": 1}}
@@ -202,7 +202,7 @@ def test_dok_bez_statkow_niszczony_po_wlocie_wroga(registry: StaticDataRegistry)
     assert after.tactical_step is TacticalStep.MOVEMENT  # jeszcze przed Space Cannon Offense
 
 
-@ruling("F_saar/floating-factory/11.2", "F_saar/floating-factory/10")
+@ruling("F_saar/floating-factory/11.2", "F_saar/floating-factory/8")
 def test_dok_nie_ginie_bez_przylotu_ani_przy_przelocie(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems[PLAIN].space_units = {"p1": {"spacedock": 1}}
@@ -215,7 +215,7 @@ def test_dok_nie_ginie_bez_przylotu_ani_przy_przelocie(registry: StaticDataRegis
     assert state.systems[PLAIN].space_units["p1"] == {"spacedock": 1}
 
 
-@ruling("F_saar/floating-factory/6", "F_saar/floating-factory/8")
+@ruling("F_saar/floating-factory/15", "F_saar/floating-factory/14")
 def test_dok_ginie_na_koniec_walki_bez_statkow(registry: StaticDataRegistry) -> None:
     """Saar bez statków po walce, przeciwnik ma same myśliwce: dok ginie przed usunięciem
     myśliwców za capacity (COMBAT/END idzie przed sprawdzeniem pojemności)."""
@@ -226,7 +226,7 @@ def test_dok_ginie_na_koniec_walki_bez_statkow(registry: StaticDataRegistry) -> 
     assert not state.systems[PLAIN].space_units.get("p1")
 
 
-@ruling("F_saar/floating-factory/6.1")
+@ruling("F_saar/floating-factory/15.1")
 def test_dok_zostaje_gdy_obie_strony_bez_statkow(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems[PLAIN].space_units = {"p1": {"spacedock": 1}}
@@ -235,7 +235,7 @@ def test_dok_zostaje_gdy_obie_strony_bez_statkow(registry: StaticDataRegistry) -
     assert state.systems[PLAIN].space_units["p1"] == {"spacedock": 1}
 
 
-@ruling("F_saar/floating-factory/7")
+@ruling("F_saar/floating-factory/13")
 def test_direct_hit_na_ostatni_statek_niszczy_dok(registry: StaticDataRegistry) -> None:
     state = _state()
     system = state.systems[PLAIN]
@@ -244,7 +244,7 @@ def test_direct_hit_na_ostatni_statek_niszczy_dok(registry: StaticDataRegistry) 
     assert not system.space_units.get("p1")
 
 
-@ruling("F_saar/floating-factory/7.1")
+@ruling("F_saar/floating-factory/13.1")
 def test_straty_rundy_i_brak_wroga_nie_niszcza_doku(registry: StaticDataRegistry) -> None:
     """Straty przypisywane w rundzie są równoczesne (okno przypisywania - bez blokady), a
     zniszczenie ostatniego statku bez wrogich statków w systemie nie blokuje doku."""
@@ -262,7 +262,7 @@ def test_straty_rundy_i_brak_wroga_nie_niszcza_doku(registry: StaticDataRegistry
     assert lone.systems[PLAIN].space_units["p1"] == {"spacedock": 1}
 
 
-@ruling("F_saar/floating-factory/2")
+@ruling("F_saar/floating-factory/3")
 def test_dok_produkuje_sily_naziemne_w_przestrzen_albo_na_planete(
     registry: StaticDataRegistry,
 ) -> None:
@@ -272,7 +272,7 @@ def test_dok_produkuje_sily_naziemne_w_przestrzen_albo_na_planete(
     assert production.producers(state, registry, "p1", HOME)[0].value == 5
 
 
-@ruling("F_saar/floating-factory/3")
+@ruling("F_saar/floating-factory/9")
 def test_dok_nie_jest_statkiem_w_walce(registry: StaticDataRegistry) -> None:
     """Dok nie jest celem trafień (Space Cannon, walka): nie jest statkiem."""
     from src.core.battle import combat_units
@@ -283,7 +283,7 @@ def test_dok_nie_jest_statkiem_w_walce(registry: StaticDataRegistry) -> None:
     assert {u.base_type for u in units} == {"carrier"}
 
 
-@ruling("F_saar/floating-factory/9", "F_saar/floating-factory/9.1")
+@ruling("F_saar/floating-factory/5", "F_saar/floating-factory/5.1")
 def test_construction_dok_w_przestrzeni_systemu_planety(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems[PLAIN].planet_owners = {VEFUTII: "p1"}
@@ -295,7 +295,7 @@ def test_construction_dok_w_przestrzeni_systemu_planety(registry: StaticDataRegi
         place_structure(state, "p1", VEFUTII, "spacedock")
 
 
-@ruling("F_saar/floating-factory/12")
+@ruling("F_saar/floating-factory/17")
 def test_dok_nie_liczy_sie_do_struktur_poza_domem(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems[PLAIN].planet_owners = {VEFUTII: "p1"}
@@ -369,7 +369,7 @@ def test_nomadic_cele_bez_planet_domowych(registry: StaticDataRegistry) -> None:
 # ======================================================================= Chaos Mapping
 
 
-@ruling("technologies:cm#1", "F_saar/chaos-mapping/5")
+@ruling("technologies:cm#1", "F_saar/chaos-mapping/6")
 def test_chaos_mapping_blokuje_aktywacje_pola_asteroid(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].technologies = ["cm"]
@@ -385,7 +385,7 @@ def test_chaos_mapping_blokuje_aktywacje_pola_asteroid(registry: StaticDataRegis
     assert after.active_system == ASTEROID
 
 
-@ruling("F_saar/chaos-mapping/4")
+@ruling("F_saar/chaos-mapping/5")
 def test_chaos_mapping_nie_chroni_przed_kartami(registry: StaticDataRegistry) -> None:
     """Zdolność zabrania tylko AKTYWACJI - jednostki w polu asteroid pozostają celem efektów."""
     state = _state()
@@ -395,7 +395,7 @@ def test_chaos_mapping_nie_chroni_przed_kartami(registry: StaticDataRegistry) ->
                                    {"activator": "p2", "position": PLAIN})
 
 
-@ruling("technologies:cm#2", "F_saar/chaos-mapping/1", "F_saar/chaos-mapping/3")
+@ruling("technologies:cm#2", "F_saar/chaos-mapping/2", "F_saar/chaos-mapping/1")
 def test_chaos_mapping_produkcja_na_starcie_tury(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].technologies = ["cm"]
@@ -406,7 +406,7 @@ def test_chaos_mapping_produkcja_na_starcie_tury(registry: StaticDataRegistry) -
     assert "cm" not in after.players["p1"].exhausted_technologies  # bez wyczerpania
 
 
-@ruling("F_saar/chaos-mapping/3.1", "F_saar/chaos-mapping/2")
+@ruling("F_saar/chaos-mapping/1.1", "F_saar/chaos-mapping/3")
 def test_chaos_mapping_w_turze_pasu_i_ruch_po_produkcji(registry: StaticDataRegistry) -> None:
     """Oferta zależy tylko od startu tury (także tej, w której gracz spasuje); wyprodukowana
     jednostka stoi na planszy jak każda inna (może ruszyć w akcji taktycznej tej tury)."""
@@ -436,7 +436,7 @@ def _mendosa_state() -> GameState:
     return state
 
 
-@ruling("leaders:saaragent#1", "F_saar/captain-mendosa/1", "F_saar/captain-mendosa/2")
+@ruling("leaders:saaragent#1", "F_saar/captain-mendosa/1")
 def test_mendosa_podnosi_ruch_jednego_statku(registry: StaticDataRegistry) -> None:
     state = _activate(_mendosa_state(), registry, FAR, pid="p2")
     offer = _offers(state, "p1", "Captain Mendosa")[0]
@@ -451,14 +451,14 @@ def test_mendosa_podnosi_ruch_jednego_statku(registry: StaticDataRegistry) -> No
     assert after.systems[FAR].space_units["p2"] == {"dreadnought": 1}
 
 
-@ruling("F_saar/captain-mendosa/2.1", "F_saar/captain-mendosa/2.2")
+@ruling("F_saar/captain-mendosa/1.1", "F_saar/captain-mendosa/1.2")
 def test_mendosa_wartosc_bez_premii_po_aktywacji(registry: StaticDataRegistry) -> None:
     state = _mendosa_state()
     state.players["p1"].technologies = ["cr2", "gd"]  # Gravity Drive nie wchodzi do wartości
     assert saar.highest_move_value(state, registry) == 3
 
 
-@ruling("F_saar/captain-mendosa/3")
+@ruling("F_saar/captain-mendosa/2")
 def test_mendosa_nadpisuje_mglawice(registry: StaticDataRegistry) -> None:
     state = _mendosa_state()
     state.systems["106"] = SystemState(position="106", system_id="42")  # mgławica
@@ -522,7 +522,7 @@ def test_rowl_sarrig_mysliwce_do_innego_doku(registry: StaticDataRegistry) -> No
     assert after.systems[HOME].space_units["p1"]["fighter"] == 1
 
 
-@ruling("F_saar/rowl-sarring/1")
+@ruling("F_saar/rowl-sarrig/1")
 def test_rowl_sarrig_nie_omija_blokady_produkcji(registry: StaticDataRegistry) -> None:
     """Commander przenosi tylko już wyprodukowane jednostki - produkcja w zablokowanym doku
     rządzi się zwykłymi regułami (statków nie wolno)."""
@@ -613,7 +613,7 @@ def _ragh_state() -> GameState:
 
 
 @ruling("promissory_notes:ragh#1", "promissory_notes:ragh#2", "F_saar/raghs-call/1",
-        "F_saar/raghs-call/3", "F_saar/raghs-call/4")
+        "F_saar/raghs-call/3")
 def test_raghs_call_zabiera_sily_saar(registry: StaticDataRegistry) -> None:
     state = _ragh_state()
     after, _ = promissory_play.play(state, registry, "p2", "ragh",

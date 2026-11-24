@@ -545,3 +545,12 @@ Warstwa PREZENTACYJNA (nic w regułach). Użytkownik pisze teksty sam; ja dałem
 - Wpis dziennika COMBAT ma `early` (strony, które rzuciły wcześniej osobno) — UI nie odgrywa ich salwy drugi raz,
   a wstrzymanie skutków (`battleHoldMs`) czeka tylko na drugą stronę.
 - Testy: `test_sides_roll_separately_and_round_closes_after_both` (+`early`). Nie sprawdzone wizualnie w przeglądarce; pominięte build, e2e. Restart backendu.
+
+## tirules2: aktualizacja zrzutu z upstreamu + przemapowanie rulingów (2026-11-24)
+- `docs/rules_tirules/` odświeżone z github.com/dangothemango/tirules (HEAD `015e4a9`, 2026-11-22); 137/149 tematów
+  zmienionych. `R_construction`/`R_warfare` (lokalne adaptacje TE) zachowane. Różnice: `rules_tirules/ZMIANY_2026-11-24.md`.
+- `scripts/scrape_tirules.py`: pomija przypisy źródłowe `<sup>1,2</sup>` (ale nie `<sup>th</sup>`) i linki w nagłówkach h2.
+- ID rulingów: 314 przepisanych na nowe numery (`@ruling`, `rulings_status.json`), 105 usuniętych (ruling zniknął lub zmienił
+  znaczenie); wildcardy wariantów → sekcje `*-replaced-by-omega*`; dług 210 → 199.
+- ⚠️ Strażnik `test_ruling_coverage.py` CZERWONY: 211 nowych rulingów bez testu + 93 testy, które straciły ruling (do przeglądu,
+  np. Specialized Compounds odwrócony) — lista w `ZMIANY_2026-11-24.md`. Pominięte: pełny pytest, front.

@@ -195,7 +195,7 @@ def _miscount(registry: StaticDataRegistry, law: str, outcome: str = "for",
     return out
 
 
-@ruling("C_agendas/miscount-disclosed/2", "C_agendas/miscount-disclosed/2.7")
+@ruling("C_agendas/miscount-disclosed/2", "C_agendas/miscount-disclosed/2.3")
 def test_miscount_law_stays_in_force_during_the_revote(registry: StaticDataRegistry) -> None:
     out = _miscount(registry, "rep_govt")
     assert out.decks.agenda_laws == {"rep_govt": "for"}
@@ -205,14 +205,13 @@ def test_miscount_law_stays_in_force_during_the_revote(registry: StaticDataRegis
     assert out.agenda is not None and out.agenda.votes["p3"].votes == 1
 
 
-@ruling("C_agendas/miscount-disclosed/2.1")
 def test_miscount_articles_of_war_still_strip_mechs(registry: StaticDataRegistry) -> None:
     out = _miscount(registry, "articles_war")
     out.players["p1"].faction = "hacan"
     assert rules_hooks.unit_abilities_lost(out, "p1", "mech")  # Pride of Kenara bez zdolności
 
 
-@ruling("C_agendas/miscount-disclosed/2.3")
+@ruling("C_agendas/miscount-disclosed/2.1")
 def test_miscount_committee_owner_may_use_it_on_the_revote(registry: StaticDataRegistry) -> None:
     out = _miscount(registry, "committee", outcome="p1")
     offer = _offer(out, "p1")
@@ -224,7 +223,6 @@ def test_miscount_committee_owner_may_use_it_on_the_revote(registry: StaticDataR
     assert "committee" not in out.decks.agenda_discard
 
 
-@ruling("C_agendas/miscount-disclosed/2.4")
 def test_miscount_defense_act_for_again_keeps_pds(registry: StaticDataRegistry) -> None:
     out = _miscount(registry, "defense_act")
     planet = _planet(out, "p1")
@@ -234,7 +232,7 @@ def test_miscount_defense_act_for_again_keeps_pds(registry: StaticDataRegistry) 
     assert out.systems["101"].planet_units[planet]["p1"] == {"pds": 4}
 
 
-@ruling("C_agendas/miscount-disclosed/2.5", "C_agendas/political-censure/1")
+@ruling("C_agendas/miscount-disclosed/2.2", "C_agendas/political-censure/1")
 def test_censure_owner_silenced_new_elect_may_react(registry: StaticDataRegistry) -> None:
     out = _miscount(registry, "censure", outcome="p1")
     out.players["p1"].private.action_cards = ["confounding"]
@@ -247,7 +245,7 @@ def test_censure_owner_silenced_new_elect_may_react(registry: StaticDataRegistry
     assert _playable(out, registry, "p3", "confusing")  # wybrany zagra przed rozstrzygnięciem
 
 
-@ruling("C_agendas/miscount-disclosed/3", "C_agendas/miscount-disclosed/3.4")
+@ruling("C_agendas/miscount-disclosed/3", "C_agendas/miscount-disclosed/3.3")
 def test_miscount_riders_resolve_then_new_riders_on_the_law(registry: StaticDataRegistry) -> None:
     state = _state(registry, ["miscount"])
     state.decks.agenda_laws = {"conscription": "for"}
@@ -273,7 +271,6 @@ def test_miscount_veto_on_the_law_discards_and_replaces(registry: StaticDataRegi
     assert out.agenda is not None and out.agenda.agenda_id == "mutiny"
 
 
-@ruling("C_agendas/miscount-disclosed/3.3")
 def test_miscount_political_secret_on_the_law(registry: StaticDataRegistry) -> None:
     out = _miscount(registry, "conscription")
     out.players["p3"].private.promissory_notes = ["p1_ps"]

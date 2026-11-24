@@ -9,8 +9,7 @@ During either a space or ground combat, the player who is not the active player 
 
 ## Notes
 
-- When the Mahact player resolves their *Benediction* hero ability, the player that had their ships already in the system will be the defender.
-    - Resolving abilities will be by initiative order, starting with the Mahact player. As such, the defender may resolve abilities before the attacker, depending on what order those two players are in.
+- When the [Mahact](https://www.tirules2.com/F_mahact) player resolves their [*Benediction*](https://twilight-imperium.fandom.com/wiki/The_Mahact_Gene-Sorcerers#Leaders:~:text=Benediction) hero ability, the player that had their ships already in the system will be the defender.
 
 ## Related Topics
 

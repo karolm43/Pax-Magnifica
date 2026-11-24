@@ -137,7 +137,7 @@ def _fl_state(techs: list[str]) -> GameState:
     )
 
 
-@ruling("C_technology/fleet-logistics/1")
+@ruling("C_technology/fleet-logistics/6")
 def test_fleet_logistics_no_turn_start_or_end_between_actions(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -157,7 +157,7 @@ def test_fleet_logistics_no_turn_start_or_end_between_actions(
     assert (GameEvent.TURN, Moment.END) in fired
 
 
-@ruling("C_technology/fleet-logistics/2")
+@ruling("C_technology/fleet-logistics/1")
 def test_fleet_logistics_works_on_the_turn_it_is_gained() -> None:
     state = component_action.play_component_action(_fl_state([]), "p1")
     assert action_budget.actions_left(state, "p1") == 0
@@ -165,14 +165,14 @@ def test_fleet_logistics_works_on_the_turn_it_is_gained() -> None:
     assert action_budget.actions_left(state, "p1") == 1
 
 
-@ruling("C_technology/fleet-logistics/3")
+@ruling("C_technology/fleet-logistics/2")
 def test_turn_ended_by_an_effect_gives_no_second_action() -> None:
     state = component_action.play_component_action(_fl_state(["fl"]), "p1")
     ended = turn_flow.end_turn(state, "p1", forced=True)  # np. Coup d'Etat kończy turę
     assert ended.active_player_id == "p2"
 
 
-@ruling("C_technology/fleet-logistics/4")
+@ruling("C_technology/fleet-logistics/3")
 def test_fleet_logistics_cannot_pass_after_an_action() -> None:
     state = component_action.play_component_action(_fl_state(["fl"]), "p1")
     assert action_budget.actions_left(state, "p1") == 1
@@ -183,7 +183,7 @@ def test_fleet_logistics_cannot_pass_after_an_action() -> None:
 # ============================================================================ Neural Motivator
 
 
-@ruling("C_technology/neural-motivator/1", "C_technology/neural-motivator/2")
+@ruling("C_technology/neural-motivator/1")
 def test_neural_motivator_only_in_the_status_phase_draw() -> None:
     state = GameState(
         phase=Phase.ACTION,
@@ -199,7 +199,6 @@ def test_neural_motivator_only_in_the_status_phase_draw() -> None:
 # ============================================================================ Psychoarchaeology
 
 
-@ruling("C_technology/psychoarchaeology/1")
 def test_psychoarchaeology_planet_ignores_only_one_prerequisite(
     registry: StaticDataRegistry,
 ) -> None:
@@ -215,7 +214,7 @@ def test_psychoarchaeology_planet_ignores_only_one_prerequisite(
     assert tier2 in done.players["p1"].technologies
 
 
-@ruling("C_technology/psychoarchaeology/3")
+@ruling("C_technology/psychoarchaeology/2")
 def test_psychoarchaeology_trade_goods_one_at_a_time(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -294,8 +293,8 @@ def test_x89_ships_fighting_as_ground_forces_double_their_hits() -> None:
 
 
 @ruling(
-    "C_technology/x89-bacterial-weapon-omega-omega/5",
-    "C_technology/x89-bacterial-weapon-omega-omega/5.1",
+    "C_technology/x89-bacterial-weapon-omega-omega/6",
+    "C_technology/x89-bacterial-weapon-omega-omega/6.1",
 )
 def test_unit_bombardment_dice_and_plasma_die_target_one_planet(
     registry: StaticDataRegistry,
@@ -398,7 +397,7 @@ def _sar_state(techs: list[str]) -> GameState:
     )
 
 
-@ruling("C_technology/selfassembly-routines/1", "C_technology/selfassembly-routines/4")
+@ruling("C_technology/psychoarchaeology/2")
 def test_self_assembly_trade_goods_one_at_a_time_even_when_exhausted(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -425,7 +424,7 @@ def _sar_offer(state: GameState) -> Any:
     return state.pending_offers[0]
 
 
-@ruling("C_technology/selfassembly-routines/2")
+@ruling("C_technology/selfassembly-routines/1")
 def test_self_assembly_mech_only_on_a_planet(registry: StaticDataRegistry) -> None:
     from src.core import offers
 
@@ -441,7 +440,7 @@ def test_self_assembly_mech_only_on_a_planet(registry: StaticDataRegistry) -> No
     assert no_planet.pending_offers == []
 
 
-@ruling("C_technology/selfassembly-routines/3")
+@ruling("C_technology/selfassembly-routines/2")
 def test_self_assembly_takes_a_mech_from_a_system_without_own_token() -> None:
     state = _sar_state(["sar"])
     state.systems["101"].planet_units["pl"]["p1"]["mech"] = 1
@@ -510,7 +509,6 @@ def test_duranium_repairs_only_units_in_the_combat() -> None:
     assert damage.damaged_count(state.systems["000"], "pl", "p1", "mech") == 1
 
 
-@ruling("C_technology/duranium-armor/7")
 def test_duranium_repairs_unit_without_sustain_damage() -> None:
     state = _techs(battle_state({"p1": {"carrier": 1}, "p2": {"cruiser": 1}}), "p1", "da")
     damage.set_damaged(state.systems["000"], "space", "p1", "carrier", 1)
@@ -578,7 +576,6 @@ def test_predictive_intelligence_redistribution_needs_a_ready_card() -> None:
     assert state.pending_offers == []
 
 
-@ruling("C_technology/predictive-intelligence/2")
 def test_predictive_intelligence_fleet_pool_limit_applies_at_once(
     registry: StaticDataRegistry,
 ) -> None:
@@ -665,8 +662,7 @@ def _ie_state(registry: StaticDataRegistry) -> tuple[GameState, str]:
 @ruling(
     "C_technology/integrated-economy/1",
     "C_technology/integrated-economy/2",
-    "C_technology/integrated-economy/3",
-)
+    )
 def test_integrated_economy_paid_any_number_fighters_in_pairs(
     registry: StaticDataRegistry,
 ) -> None:
@@ -705,7 +701,6 @@ def test_integrated_economy_ships_blocked_by_enemy_ships(registry: StaticDataReg
 # ============================================================================ Graviton Laser System
 
 
-@ruling("C_technology/graviton-laser-system/1")
 def test_capacity_resolved_after_each_space_cannon_player(registry: StaticDataRegistry) -> None:
     """Po przypisaniu trafień jednego strzelca nadwyżkę ładunku usuwa się, zanim strzeli kolejny."""
     from src.core import space_cannon

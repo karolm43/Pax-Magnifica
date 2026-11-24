@@ -6,7 +6,6 @@ import pytest
 
 from src.core.registry import StaticDataRegistry
 from tests.factions.flow_harness import Flow, Json, covers
-from tests.rulings import ruling
 
 
 @pytest.fixture(scope="module")
@@ -145,7 +144,6 @@ def test_sleeper_cell_stawia_statki_za_zniszczone(registry: StaticDataRegistry) 
     assert placed == theirs
 
 
-@ruling("F_mentak/ipswitch-loose-cannon-sleeper-cell/3")
 def test_sleeper_cell_ponad_pule_floty_usuwa_od_razu(registry: StaticDataRegistry) -> None:
     """RULES.md 42.1 / F_mentak: nadwyżkę ponad pulę floty usuwa się NATYCHMIAST, w walce."""
     flow = Flow(registry, "mentak")

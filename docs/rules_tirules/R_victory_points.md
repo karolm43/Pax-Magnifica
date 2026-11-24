@@ -20,6 +20,10 @@ The first player to gain 10 victory points wins the game.
 
 ## Notes
 
+- During the action phase, if multiple players gain victory points at the same time, they gain them in initiative order, starting with the player who has the lowest initiative number, regardless of who the active player is.
+- During the agenda phase, if multiple players gain victory points at the same time, they gain them in speaker order, starting with the speaker and proceeding clockwise.
+- A player can lose victory points. For example, a player who has another player’s *Support for the Throne* promissory note in their play area loses one victory point when it is returned.
+
 ## Related Topics
 
 - [Agenda Card](https://www.tirules2.com/R_agenda_card)

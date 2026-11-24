@@ -18,7 +18,7 @@ Technology cards allow players to upgrade units and acquire powerful abilities.
 - Each technology that is not a unit upgrade has a colored symbol displayed in the lower–right corner of the card and on its card back that indicates that technology’s color.
     - A technology’s color has no inherent game effect; however, each technology a player owns can satisfy a prerequisite of a matching color when researching other technology.
     - Unit upgrades do not have a color and do not satisfy prerequisites.
-    - There are four colors of technologies. `See your rulebook for images.`
+    - There are four colors of technologies: blue (propulsion), red (warfare), green (biotic), and yellow (cybernetic).
 - Most technology cards have a column of colored symbols displayed in the lower–left corner of the card. Each symbol in this column is a prerequisite.
     - A technology card’s prerequisites indicate the number and color of technologies a player must own to research that technology card.
 
@@ -39,15 +39,16 @@ A player can research technology by resolving either the primary or secondary ab
 A technology specialty is a technology symbol found on some planets.
 
 - When researching technology, a player can exhaust a planet they control that has a technology specialty to ignore one prerequisite symbol of the matching type on the technology card they are researching.
+    - (Thunder’s Edge) A planet with two technology specialties can be exhausted to ignore either or both of the matching prerequisite symbols.
 - If the planet card is already exhausted, it cannot be used to ignore a prerequisite.
 
 **Valefar Assimilator**
 
-The Nekro Virus faction can use its faction abilities in combination with its two *Valefar Assimilator* faction technologies to gain faction technologies that have been researched by other players, including unit upgrades.
+The [Nekro](https://www.tirules2.com/F_nekro) Virus faction can use its faction abilities in combination with its two [*Valefar Assimilator*](https://twilight-imperium.fandom.com/wiki/The_Nekro_Virus#Faction_Technologies:~:text=Valefar%20Assimilator) faction technologies to gain faction technologies that have been researched by other players, including unit upgrades.
 
 - Basic units printed on faction sheets are not technologies and are not eligible targets for *Valefar Assimilator*.
 - If a player becomes eliminated while one of their technologies has a Valefar Assimilator token on it, the Nekro Virus player places that technology in their play area; it is not removed from the game.
-- If a Valefar Assimilator token is removed from the Saar *Floating Factory* unit upgrade, each of the Nekro Virus’ space docks must be placed on an eligible planet they control in that space dock’s system, or the space dock is returned to their reinforcements.
+- If a Valefar Assimilator token is removed from the [Saar](https://www.tirules2.com/F_saar) [*Floating Factory*](https://twilight-imperium.fandom.com/wiki/The_Clan_of_Saar#Space_Dock:~:text=Floating%20Factory) unit upgrade, each of the Nekro Virus’ space docks must be placed on an eligible planet they control in that space dock’s system, or the space dock is returned to their reinforcements.
 - If a Valefar Assimilator token is removed from a war sun unit upgrade and the Nekro Virus player does not have the standard war sun unit upgrade, each of the Nekro Virus player’s war suns are returned to their reinforcements.
 - The Nekro Virus player may upgrade their units with units of the same type (e.g., “dreadnought” or “infantry”) even if those unit’s names do not match. If the Nekro Virus gains a unit upgrade technology of the same unit type as a unit upgrade technology they already have, the previous upgrade is removed, and they must use the same Valefar Assimilator token that was used to copy the previous upgrade.
 - When a Valefar Assimilator token is on a technology, that technology’s color and type count toward objectives.
@@ -55,17 +56,22 @@ The Nekro Virus faction can use its faction abilities in combination with its tw
 ## Notes
 
 - If a player is instructed to research a technology by any game effect, that player must meet the prerequisites for the technology they research.
-- If a player is instructed to gain a technology, that player does not have to meet the prerequisites, although most game effects that do this will specify what technologies may be gained by that effect.
-- If a player is playing a faction with a faction–specific unit upgrade, they cannot research the generic upgrade for that unit type.
-- For notes about specific generic technologies, see the [technology notes page](https://www.tirules2.com/C_technology).
-- For notes about specific generic unit upgrades, see the [unit notes page](https://www.tirules2.com/C_units).
-- For notes about a technologies of a specific faction, see that faction’s notes page.
+- If a player is instructed to gain a technology, that player does not have to meet the prerequisites.
+- If a player is playing a faction with a faction–specific unit upgrade, they cannot research or otherwise gain the generic upgrade for that unit type.
+- An exhausted technology still satisfies prerequisites.
+- The first technology researched with the primary ability of the *Technology* strategy card may satisfy a prerequisite of the second technology researched with that ability.
+- If an exhausted technology is returned to a player’s technology deck and later researched again, it is gained readied.
 
 ## Related Topics
 
 - [Abilities](https://www.tirules2.com/R_abilities)
+- [Command Tokens](https://www.tirules2.com/R_command_tokens)
 - [Component Action](https://www.tirules2.com/R_component_action)
 - [Exhausted](https://www.tirules2.com/R_exhausted)
+- [Initiative Order](https://www.tirules2.com/R_initiative_order)
 - [Readied](https://www.tirules2.com/R_readied)
+- [Resources](https://www.tirules2.com/R_resources)
+- [Strategic Action](https://www.tirules2.com/R_strategic_action)
+- [Strategy Card](https://www.tirules2.com/R_strategy_card)
 - [Technology (S.C.)](https://www.tirules2.com/R_technology_sc)
 - [Unit Upgrades](https://www.tirules2.com/R_unit_upgrades)

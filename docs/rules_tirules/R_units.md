@@ -24,9 +24,11 @@ A unit is represented by a plastic figure.
 
 ## Notes
 
-- If an effect allows a player produce a ship of a specific type, then factional variations do not prevent that player from producing that type of ship.
 - Units are component limited.
     - Fighters and infantry are semi–limited, via the use of tokens.
+- A faction–specific unit counts as its base unit type for all purposes. For example, the [Muaat](https://www.tirules2.com/F_muaat) player’s [Prototype War Sun](https://twilight-imperium.fandom.com/wiki/The_Embers_of_Muaat#War_Sun:~:text=Prototype%20War%20Sun) is a war sun. Only the researched unit upgrade card is a technology; the unit printed on a faction sheet is not.
+- If an effect allows a player to produce a ship of a specific type, then factional variations do not prevent that player from producing that type of ship.
+- A player cannot remove their own units from the game board at will; units are only removed by game effects, such as being destroyed or captured. The exception is that a player may remove a unit from the board in order to place it when there are none of that type in their reinforcements.
 
 ## Related Topics
 

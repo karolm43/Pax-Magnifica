@@ -19,12 +19,14 @@ Cards have a readied state, which indicates that a player can exhaust or resolve
 ## Notes
 
 - Passive abilities on an exhausted card are still in effect while that card is exhausted.
-- Planets will also ready at the end of each agenda phase. Leaders, relics and technologies will not.
-- If a game effect instructs a player to ready a planet, the readied planet must be controlled by that player, unless the game effect specifies otherwise.
+- Planets will also ready at the end of each agenda phase.
+    - This includes the Deepwrought player’s [ocean cards](https://www.tirules2.com/F_deepwrought), space stations and *The Triad*.
+- If a game effect instructs a player to ready a planet, the readied planet must be controlled by that player, unless the game effect specifies otherwise.*
 
 ## Related Topics
 
 - [Abilities](https://www.tirules2.com/R_abilities)
+- [Agenda Phase](https://www.tirules2.com/R_agenda_phase)
 - [Diplomacy](https://www.tirules2.com/R_diplomacy)
 - [Exhausted](https://www.tirules2.com/R_exhausted)
 - [Leaders](https://www.tirules2.com/R_leaders)

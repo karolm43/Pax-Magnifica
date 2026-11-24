@@ -17,6 +17,8 @@ A system tile represents an area of the galaxy. Players place system tiles durin
 
 ## Notes
 
+- A home system remains its original owner’s home system, even if another player gains control of its planets.
+
 ## Related Topics
 
 - [Active System](https://www.tirules2.com/R_active_system)
@@ -25,4 +27,5 @@ A system tile represents an area of the galaxy. Players place system tiles durin
 - [Game Board](https://www.tirules2.com/R_game_board)
 - [Hyperlanes](https://www.tirules2.com/R_hyperlanes)
 - [Planets](https://www.tirules2.com/R_planets)
+- [Ships](https://www.tirules2.com/R_ships)
 - [Wormholes](https://www.tirules2.com/R_wormholes)

@@ -15,7 +15,7 @@ The *Leadership* strategy card allows players to gain command tokens. This cardâ
 ## Notes
 
 - The secondary ability of *Leadership* does not require a player to spend a strategy token.
-- A player may spend one or two more influence than the amount necessary for the tokens they gain; however, this influence is wasted.
+- A player may spend one or two more influence than the amount necessary for the tokens they gain; however, this influence is wasted.*
 
 ## Related Topics
 

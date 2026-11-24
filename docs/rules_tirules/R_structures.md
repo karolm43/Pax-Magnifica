@@ -8,7 +8,7 @@
 A structure is a type of unit. PDS units and space docks are structures.
 
 - Structures are always placed on planets.
-    - The Clan of Saar’s “Floating Factory” faction–specific space dock is placed in a system’s space area.
+    - The Clan of [Saar](https://www.tirules2.com/F_saar)’s “Floating Factory” faction–specific space dock is placed in a system’s space area.
 - Structures are primarily placed on planets using the *Construction* strategy card.
 - Structures cannot move or be transported.
 - A player can have a maximum of **one** space dock on each planet.
@@ -20,6 +20,6 @@ A structure is a type of unit. PDS units and space docks are structures.
 ## Related Topics
 
 - [Construction](https://www.tirules2.com/R_construction)
-- [Space Dock](https://www.tirules2.com/R_space_dock)
 - [PDS](https://www.tirules2.com/R_pds)
+- [Space Dock](https://www.tirules2.com/R_space_dock)
 - [Units](https://www.tirules2.com/R_units)

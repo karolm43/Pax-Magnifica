@@ -132,7 +132,7 @@ def test_planets_without_traits_are_not_explored(registry: StaticDataRegistry) -
     assert state.exploration is None
 
 
-@ruling("R_exploration/rules-reference/2.4", "R_exploration/notes/3")
+@ruling("R_exploration/rules-reference/2.4", "R_exploration/notes/4")
 def test_multiple_planets_player_chooses_order(registry: StaticDataRegistry) -> None:
     state = exploration.begin_exploration(_state(), registry, "p1", "000", [_CULT, _IND])
     ex = state.exploration
@@ -249,7 +249,6 @@ def test_demilitarized_zone_clears_the_planet(registry: StaticDataRegistry) -> N
     assert system.space_units.get("p1", {}) == {}
 
 
-@ruling("R_exploration/notes/1")
 def test_token_card_is_purged(registry: StaticDataRegistry) -> None:
     state = _with_card(_state(), registry, "Gamma Wormhole")
     done = exploration.resolve(state, registry, "place")
@@ -335,7 +334,6 @@ def test_attachments_feed_production_budget(registry: StaticDataRegistry) -> Non
 # ------------------------------------------------------------------------- Freelancers
 
 
-@ruling("C_exploration_cards/freelancers/1")
 def test_freelancers_opens_one_unit_production_paid_with_influence(
     registry: StaticDataRegistry,
 ) -> None:

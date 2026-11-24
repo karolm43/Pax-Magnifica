@@ -165,7 +165,7 @@ def test_psychoarchaeology_gracz_wybiera_planety_i_dostaje_po_1_tg(
         technology_abilities.use_free_ability(state, registry, "p1", "pa", {"planets": ["x"]})
 
 
-@ruling("C_technology/psychoarchaeology/2")
+@ruling("C_technology/psychoarchaeology/1")
 def test_psychoarchaeology_tylko_w_fazie_akcji_i_nie_w_trakcie_innej_zdolnosci(
     registry: StaticDataRegistry,
 ) -> None:

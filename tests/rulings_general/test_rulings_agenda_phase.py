@@ -71,7 +71,7 @@ def test_planet_gives_its_full_influence(registry: StaticDataRegistry) -> None:
     assert "votes" not in inspect.signature(agenda_phase.cast_vote).parameters  # bez części
 
 
-@ruling("R_agenda_phase/rules-reference/5.2")
+@ruling("R_agenda_phase/notes/2")
 def test_space_stations_and_the_triad_give_votes(registry: StaticDataRegistry) -> None:
     """Stacja kosmiczna (TE) i The Triad głosują wpływem jak planety; Oceany należą do frakcji
     Deepwrought (jeszcze bez modułu frakcji)."""
@@ -206,7 +206,7 @@ def test_predictions_after_reveal_before_votes(registry: StaticDataRegistry) -> 
     assert not _playable(voted, registry, "p1", "trade_rider")  # po pierwszym głosie za późno
 
 
-@ruling("R_agenda_phase/notes/2")
+@ruling("R_agenda_phase/notes/1")
 def test_voting_is_not_the_voters_turn(registry: StaticDataRegistry) -> None:
     out = _voting(registry)
     out.players["p3"].private.action_cards = ["f_researched"]  # ACTION: tylko w swojej turze
@@ -226,7 +226,7 @@ def _gain_order(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     return order
 
 
-@ruling("R_agenda_phase/notes/3", "R_agenda_card/notes/2")
+@ruling("R_agenda_card/notes/2")
 def test_outcome_affects_players_in_speaker_order(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -235,7 +235,7 @@ def test_outcome_affects_players_in_speaker_order(
     assert order == ["p2", "p3", "p1"]
 
 
-@ruling("R_agenda_phase/notes/4")
+@ruling("R_agenda_phase/notes/8")
 def test_riders_resolve_after_the_agenda_in_speaker_order(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -252,7 +252,7 @@ def test_riders_resolve_after_the_agenda_in_speaker_order(
     assert order == ["p2", "p3", "p1", "p3", "p1"]  # efekt agendy, potem riders od mówcy
 
 
-@ruling("R_agenda_phase/notes/7")
+@ruling("R_agenda_phase/notes/11")
 def test_only_planets_ready_at_the_end_of_the_phase(registry: StaticDataRegistry) -> None:
     state = _state(registry, [])
     state.agenda.agenda_number = 2  # type: ignore[union-attr]

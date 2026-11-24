@@ -19,8 +19,7 @@ Agenda cards represent galactic laws and policies. During each agenda phase, pla
 ## Notes
 
 - When resolving the primary ability of the *Politics* card, the active player cannot show the agenda cards they drew to any other player.
-- If the outcome of an agenda affects multiple players, it will do so in speaker order.
-- For notes about specific agenda cards, see the [agenda card component notes page](https://www.tirules2.com/C_agendas).
+- During the agenda phase, if the outcome of an agenda affects multiple players, it does so in speaker order, starting with the speaker and proceeding clockwise. If an agenda is resolved during the action phase, such as with the [Keleres](https://www.tirules2.com/F_keleres) player’s [*Executive Order*](https://twilight-imperium.fandom.com/wiki/The_Council_Keleres#Thunder's_Edge_2:~:text=Executive%20Order) technology, it does so in initiative order.
 
 ## Related Topics
 

@@ -221,7 +221,6 @@ def test_thalnos_rerolls_only_combat_rolls(registry: StaticDataRegistry) -> None
 
 @ruling(
     "C_relics/the-crown-of-thalnos/2",
-    "C_relics/the-crown-of-thalnos/2.1",
     "C_relics/the-crown-of-thalnos/4",
     "C_relics/the-crown-of-thalnos/5",
 )
@@ -300,7 +299,7 @@ def test_dynamis_core_returns_commodities_over_the_printed_value(
 # ============================================================================ Heart of Ixth
 
 
-@ruling("C_relics/heart-of-ixth/1", "C_relics/the-silver-flame/1")
+@ruling("C_relics/heart-of-ixth/1", "C_relics/the-silver-flame/3")
 def test_d10_zero_is_ten_and_heart_turns_ten_into_nine_and_back(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -529,7 +528,7 @@ def test_neuraloop_purging_obsidian_lowers_the_secret_limit(registry: StaticData
     assert secret_objectives.secret_limit(state, "p1") == 3
 
 
-@ruling("C_relics/neuraloop/8", "C_relics/neuraloop/12", "C_relics/neuraloop/12.1")
+@ruling("C_relics/neuraloop/11", "C_relics/neuraloop/12", "C_relics/neuraloop/12.1")
 def test_neuraloop_can_replace_the_replacement_and_bring_back_the_original(
     registry: StaticDataRegistry,
 ) -> None:
@@ -542,7 +541,7 @@ def test_neuraloop_can_replace_the_replacement_and_bring_back_the_original(
     assert state.objectives.revealed == [old]  # oryginał może wrócić po kolejnym purge
 
 
-@ruling("C_relics/neuraloop/9", "C_relics/neuraloop/11")
+@ruling("C_relics/neuraloop/9", "C_relics/neuraloop/8")
 def test_secret_objective_revealed_by_neuraloop_is_public(registry: StaticDataRegistry) -> None:
     from src.core import secret_objectives
 
@@ -584,7 +583,7 @@ def test_prophets_tears_not_on_direct_gain(
 # ============================================================================ Scepter of Emelpar
 
 
-@ruling("C_relics/scepter-of-emelpar/1")
+@ruling("C_relics/scepter-of-emelpar/2")
 def test_scepter_without_reinforcements_means_spending_from_the_sheet(
     registry: StaticDataRegistry,
 ) -> None:
@@ -597,7 +596,7 @@ def test_scepter_without_reinforcements_means_spending_from_the_sheet(
     assert player.strategic_cc == 1
 
 
-@ruling("C_relics/scepter-of-emelpar/2")
+@ruling("C_relics/scepter-of-emelpar/1")
 def test_scepter_works_for_objectives_and_faction_abilities(registry: StaticDataRegistry) -> None:
     from src.core import objective_payment
     from src.core.hooks.factions import sol
@@ -679,7 +678,7 @@ def _converter_setup(registry: StaticDataRegistry) -> tuple[GameState, str, str,
     raise AssertionError
 
 
-@ruling("C_relics/stellar-converter/1", "C_relics/stellar-converter/3")
+@ruling("C_relics/stellar-converter/2")
 def test_converter_targets_adjacent_systems_only_and_never_own_planets(
     registry: StaticDataRegistry,
 ) -> None:
@@ -690,7 +689,7 @@ def test_converter_targets_adjacent_systems_only_and_never_own_planets(
     assert not any(state.systems[pos].planet_owners.get(p) == "p1" for p, pos in targets.items())
 
 
-@ruling("C_relics/stellar-converter/2")
+@ruling("C_relics/stellar-converter/1")
 def test_system_with_only_a_destroyed_planet_has_no_planets(registry: StaticDataRegistry) -> None:
     from src.core.system_planets import planets_of_system
 
@@ -703,7 +702,7 @@ def test_system_with_only_a_destroyed_planet_has_no_planets(registry: StaticData
 # ============================================================================ The Triad
 
 
-@ruling("C_relics/the-triad/1", "C_relics/the-triad/2.7")
+@ruling("C_relics/the-triad/2", "C_relics/the-triad/2.1")
 def test_triad_votes_and_readies_at_the_end_of_the_agenda_phase(
     registry: StaticDataRegistry,
 ) -> None:
@@ -716,13 +715,13 @@ def test_triad_votes_and_readies_at_the_end_of_the_agenda_phase(
 
 
 @ruling(
-    "C_relics/the-triad/2",
-    "C_relics/the-triad/2.1",
-    "C_relics/the-triad/2.2",
-    "C_relics/the-triad/2.3",
-    "C_relics/the-triad/2.4",
-    "C_relics/the-triad/2.5",
-    "C_relics/the-triad/2.6",
+    "C_relics/the-triad/1",
+    "C_relics/the-triad/1.1",
+    "C_relics/the-triad/1.2",
+    "C_relics/the-triad/1.3",
+    "C_relics/the-triad/1.4",
+    "C_relics/the-triad/1.5",
+    "C_relics/the-triad/1.6",
 )
 def test_triad_is_not_a_planet_for_other_effects(registry: StaticDataRegistry) -> None:
     from src.core.hooks import card_targets_economy

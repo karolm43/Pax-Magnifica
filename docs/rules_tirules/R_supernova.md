@@ -11,8 +11,10 @@ A supernova is an anomaly that affects movement.
 
 ## Notes
 
-- If a ship finds itself in a supernova by some uncommon game effect, it may remain there and move out without harm.
-- A future rule change will place the ship movement restrictions of anomalies upon all units.
+- A supernova may be activated, and ships in a supernova may move out of it; only ships moving into or through a supernova are prevented.
+- If a ship finds itself in a supernova by some uncommon game effect, it may remain there without harm.
+- The movement restrictions of anomalies are intended to apply to all units, not only ships.
+- The Mirage planet can be placed in a supernova, as nothing prevents a planet from being in a supernova.
 
 ## Related Topics
 

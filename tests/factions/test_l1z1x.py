@@ -93,7 +93,7 @@ def _capture(state: GameState, registry: StaticDataRegistry, planet: str = THIBA
     control.set_planet_control(state, "102", planet, "p1", registry)
 
 
-@ruling("abilities:assimilate#1", "F_lizix/assimilate/4")
+@ruling("abilities:assimilate#1", "F_lizix/assimilate/3")
 def test_assimilate_wymienia_pds_i_dok(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems["102"].planet_units = {THIBAH: {"p2": {"pds": 2, "spacedock": 1}}}
@@ -159,7 +159,7 @@ def test_pusta_rezerwa_struktura_z_planszy(registry: StaticDataRegistry) -> None
     assert state.systems["102"].planet_units[THIBAH]["p1"] == {"pds": 1}
 
 
-@ruling("F_lizix/assimilate/4")
+@ruling("F_lizix/assimilate/3")
 def test_pusta_rezerwa_bez_wymiany_struktura_ginie(registry: StaticDataRegistry) -> None:
     """Rezerwa pusta, a PDS na planszy tylko w systemie z żetonem L1Z1X - wymiana niewymuszona,
     cudzy PDS ginie (zwykła reguła przejęcia)."""
@@ -212,7 +212,7 @@ def test_harrow_bombarduje_po_rundzie(registry: StaticDataRegistry) -> None:
     assert combat.round_end_hits.get("p2", 0) == entry["hits"]["p1"]
 
 
-@ruling("F_lizix/harrow/1", "leaders:l1z1xcommander#1", "F_lizix/2ram/1")
+@ruling("F_lizix/harrow/1", "leaders:l1z1xcommander#1", "F_lizix/2ram/1.1")
 def test_harrow_tarcza_blokuje_chyba_ze_2ram(registry: StaticDataRegistry) -> None:
     state = _harrow_state()
     state.systems["102"].planet_units[THIBAH]["p2"]["pds"] = 1
@@ -224,7 +224,7 @@ def test_harrow_tarcza_blokuje_chyba_ze_2ram(registry: StaticDataRegistry) -> No
     assert present and active
 
 
-@ruling("F_lizix/harrow/2", "F_norr/ghom-sekkus/6.1")
+@ruling("F_lizix/harrow/2", "F_norr/ghom-sekkus/9.1")
 def test_harrow_tylko_jako_aktywny_gracz(registry: StaticDataRegistry) -> None:
     state = _harrow_state()
     state.active_player_id = "p2"
@@ -307,7 +307,7 @@ def _tech_state(registry: StaticDataRegistry) -> tuple[GameState, str]:
     return state, tech.id
 
 
-@ruling("technologies:is#1", "technologies:is#2", "F_lizix/inheritance-systems/1")
+@ruling("technologies:is#1", "technologies:is#2", "F_lizix/inheritance-systems/1.1")
 def test_inheritance_ignoruje_wszystkie_prerekwizyty_za_osobne_2(
     registry: StaticDataRegistry,
 ) -> None:
@@ -411,7 +411,6 @@ def test_bez_flagowca_trafienia_dowolnie(registry: StaticDataRegistry) -> None:
 # ============================================================================= Annihilator
 
 
-@ruling("F_lizix/annihilator/2")
 def test_annihilator_w_kroku_bombardment(registry: StaticDataRegistry) -> None:
     state = _state()
     system = state.systems["102"]
@@ -526,8 +525,7 @@ def _mv(dest: str, units: list[str]) -> dict[str, list[str]]:
 
 @ruling("leaders:l1z1xhero#1", "leaders:l1z1xhero#2",
         "F_lizix/the-helmsman-dark-space-navigation/1",
-        "F_lizix/the-helmsman-dark-space-navigation/2.1",
-        "F_lizix/the-helmsman-dark-space-navigation/2.2",
+        "F_lizix/the-helmsman-dark-space-navigation/2",
         "F_lizix/the-helmsman-dark-space-navigation/3")
 def test_dark_space_navigation_flagowiec_i_pancerniki_z_ladunkiem(
     registry: StaticDataRegistry,
@@ -560,7 +558,7 @@ def test_dark_space_navigation_tylko_jeden_cel_i_tylko_pancerniki(
 
 
 @ruling("F_lizix/the-helmsman-dark-space-navigation/5",
-        "F_lizix/the-helmsman-dark-space-navigation/5.1")
+        "F_lizix/the-helmsman-dark-space-navigation/5.2")
 def test_dark_space_navigation_cele_bez_mglawicy_i_asteroid(
     registry: StaticDataRegistry,
 ) -> None:

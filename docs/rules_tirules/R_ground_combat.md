@@ -20,12 +20,14 @@ During the **Ground Combat** step of an invasion, if the active player has groun
 
 ## Notes
 
-- The “start of combat” and “start of combat round” windows occur before the **Roll Dice** step.
-- The “end of combat” and “end of combat round” windows occur after the **Assign Hits** step.
 - If ground combat is to happen on multiple planets during a single invasion step, they will be resolved planet by planet, after the **Space Cannon Defense** step has been resolved on all planets and before the **Establish Control** step is resolved on any planet. The active player chooses the order combats are fought in.
-- A player may score up to one secret objective per ground combat. If there is combat on multiple planets, a player may score a secret objective in each.
+- The “start of combat” and “start of combat round” windows occur before the **Roll Dice** step.
+- The “end of combat” and “end of combat round” windows occur after the **Assign Hits** step.*
+- Abilities that trigger “at the start of a combat”, other than those on agents, can only be resolved during a combat in which the player resolving them is participating.
 - A player may use the `Sustain Damage` ability of a unit involved in a combat, usually a mech, to cancel a hit produced by their opponent.
 - No player may retreat from a ground combat.
+- A player may score up to one secret objective per ground combat.
+- A player only wins a combat if a space combat or ground combat occurred. Destroying all opposing ships with the Space Cannon ability, destroying all opposing ground forces with the Bombardment ability, landing ground forces on a planet without opposing ground forces, or the opposing player avoiding the combat with the [Naalu](https://www.tirules2.com/F_naalu) player’s Foresight faction ability does not count as winning a combat. A planet containing only another player’s structures does not cause a ground combat.
 - The “0” side of the d10 represents a result of 10.
 
 ## Related Topics

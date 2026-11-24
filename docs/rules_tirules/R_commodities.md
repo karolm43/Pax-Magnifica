@@ -23,6 +23,8 @@ Commodities represent goods that are plentiful for their own faction and are des
 
 - A player starts the game with zero commodities.
 - If a player has their maximum number of commodities, and is instructed to replenish their commodities, they will take no commodities. However, they will still trigger any “when [this] player replenishes commodities” effects, most notably the *Trade Agreement* promissory note.
+- For each space station a player controls, their commodity value is increased by one.
+- A player may exhaust a space station at any time to convert any commodities that they have into trade goods.
 
 ## Related Topics
 

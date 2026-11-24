@@ -230,7 +230,7 @@ def test_hit_target_if_able(registry: StaticDataRegistry) -> None:
 # --------------------------------------------------------------------- Brother Milor Ω
 
 
-@ruling("F_yin/brother-milor-omega/1")
+@ruling("F_yin/brother-milor-omega-replaced-by-omega-omega/2")
 def test_milor_tylko_w_fazie_akcji_i_w_walce(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     ctx = {"player": "p2", "base_type": "destroyer", "zone": "space", "position": "102"}

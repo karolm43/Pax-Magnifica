@@ -17,10 +17,8 @@ The wormhole nexus is a system tile where several wormholes converge.
 ## Notes
 
 - The wormhole nexus will flip if a unit exists in the system while inactive, even if that unit did not move through a gamma wormhole.
-- As the wormhole nexus becomes active at the end of the **Movement** step, only units with the `Deep Space Cannon` ability in systems containing a gamma wormhole will be able to produce hits during the **Space Cannon Offense** step during that action.
-- If the Creuss player moves their *Hil Colish* flagship into the inactive wormhole nexus, the wormhole nexus will not flip before they move any other ships. Any other ships they wish to move into the wormhole nexus must do so via either a delta wormhole or a gamma wormhole, unless the Creuss player is utilizing the ability of their agent, Emissary Taivra.
-- Any units and tokens on the inactive side are transferred to the active side when the wormhole nexus flips.
-- A ship in the wormhole will single–handedly qualify for the *Become the Gatekeeper* objective.
+- Any units and tokens on the inactive side are transferred to the active side when the wormhole nexus flips.*
+- A ship in the wormhole nexus will single–handedly qualify for the *Become the Gatekeeper* objective.*
 
 ## Related Topics
 

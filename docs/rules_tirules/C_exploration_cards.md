@@ -13,18 +13,17 @@
 
 ## Cultural Relic Fragment
 
-- If the relic deck is empty, a player may still purge three Cultural Relic Fragments as an action.
-- If an eliminated player had any Cultural Relic Fragments, they are discarded to the cultural planet exploration discard pile.
+- If the relic deck is empty, a player may still purge three Cultural Relic Fragments.
+- If an eliminated player had any Cultural Relic Fragments, they are discarded.
 
 ## Cybernetic Research Facility
 
 ## Dead World
 
-- If the relic deck is empty, *Dead World* will be discarded with no effect.
-
 ## Demilitarized Zone
 
-- After the active player has returned ground forces on the planet to the space area, if they do not have enough capacity in the space area for the returned ground forces, including zero capacity, they will have to remove fighters and/or ground forces to meet capacity limits.
+- The [Xxcha](https://www.tirules2.com/F_xxcha) player may use their [`Peace Accords`](https://twilight-imperium.fandom.com/wiki/The_Xxcha_Kingdom#Faction_Abilities:~:text=Peace%20Accords) faction ability to gain control of a planet with *Demilitarized Zone* attached.
+- Ground forces cannot be committed to a planet with *Demilitarized Zone* attached.*
 
 ## Derelict Vessel
 
@@ -34,7 +33,7 @@
 
 ## Enigmatic Device
 
-- A player cannot play *Enigmatic Device* as a component action if they have less than six resources available.
+- A player cannot play *Enigmatic Device* as a component action if they have less than six resources available.*
 
 ## Entropic Field
 
@@ -42,7 +41,6 @@
 
 ## Freelancers
 
-- A planet may be exhausted to spend its influence or resources, but not both.
 - If a player is to gain multiple planets in a system, they choose the order in which they gain them, and explore each planet as they gain it before gaining the next. As such, a player cannot place ground forces produced by *Freelancers* on a planet in the active system that they are yet to gain and explore.
 - If a player wishes to place a unit, but there are none of that type left in their reinforcements, they may remove a unit of that type from any system that does not contain one of their command tokens and place that instead. This unit will be placed undamaged.
 
@@ -56,22 +54,22 @@
 
 ## Hazardous Relic Fragment
 
-- If the relic deck is empty, a player may still purge three Hazardous Relic Fragments as an action.
-- If an eliminated player had any Hazardous Relic Fragments, they are discarded to the hazardous planet exploration discard pile.
+- If the relic deck is empty, a player may still purge three Hazardous Relic Fragments.
+- If an eliminated player had any Hazardous Relic Fragments, they are discarded.
 
 ## Industrial Relic Fragment
 
-- If the relic deck is empty, a player may still purge three Industrial Relic Fragments as an action.
-- If an eliminated player had any Industrial Relic Fragments, they are discarded to the industrial planet exploration discard pile.
+- If the relic deck is empty, a player may still purge three Industrial Relic Fragments.
+- If an eliminated player had any Industrial Relic Fragments, they are discarded.
 
 ## Ion Storm
 
-- The active player chooses which side of the Ion Storm token is initially face up.
-- All ship movement is simultaneous. If the Ion Storm token system is the active system, and the token is currently on the alpha side, a player cannot move a ship from a system with an alpha wormhole, flip the token, then move a ship from a system with the beta wormhole (then flip the token again).
-    - The Creuss player may do this by moving their *Hil Colish* flagship before or after their other ships.
+- The active player chooses which side of the Ion Storm token is initially face up.*
+- All ships move simultaneously, so a player cannot move some ships through one side of the Ion Storm token, flip it, and then move other ships through the other side.*
+    - The [Creuss](https://www.tirules2.com/F_creuss) player may do this by moving their [*Hil Colish*](https://twilight-imperium.fandom.com/wiki/The_Ghosts_of_Creuss#Flagship:~:text=Hil%20Colish) flagship before or after their other ships; the token flips after the flagship moves.
 - If the Ion Storm token is in a system containing a wormhole of the same type, a player chooses which wormhole they use when moving through a wormhole of that type. The Ion Storm token only flips if it was the chosen wormhole.
-    - As a system is never adjacent to itself, a ship cannot move out through one wormhole and in through the other while remaining in the system. The ship must pass through another system with a wormhole to use both wormholes.
-- If ships are moved through the Ion Storm token wormhole outside of the **Move Ship** or **Retreat** substeps of a tactical action, such as by the effect of the *Skilled Retreat* action card, the Ion Storm token is not flipped.
+- If ships are moved through the Ion Storm token wormhole outside of the **Move Ship** or **Retreat** substeps of a tactical action, such as by the effect of the *Skilled Retreat* action card, the Ion Storm token is not flipped.*
+- If the Ion Storm token would be placed in an entropic scar, the *Ion Storm* card is still placed in the common play area, and the token is discarded.
 
 ## Keleres Ship
 
@@ -96,6 +94,8 @@
 
 ## Mirage
 
+- The player that gains the Mirage planet card gains control of Mirage and places a control token on it. As it was not controlled by another player, they explore it as a cultural planet.
+
 ## Paradise World
 
 ## Propulsion Research Facility
@@ -106,8 +106,8 @@
 
 ## Unknown Relic Fragment
 
-- A player cannot purge three Unknown Relic Fragments to gain a relic. At least one cultural, hazardous or industrial relic fragment must be purged.
-- If an eliminated player had any Unknown Relic Fragments, they are discarded to the frontier exploration discard pile.
+- A player cannot purge three Unknown Relic Fragments to gain a relic. At least one cultural, hazardous or industrial relic fragment must be purged.*
+- If an eliminated player had any Unknown Relic Fragments, they are discarded.
 
 ## Volatile Fuel Source
 

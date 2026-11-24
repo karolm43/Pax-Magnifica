@@ -51,33 +51,36 @@ Cards and faction sheets each have abilities that players can resolve to trigger
     - `Production`
     - `Space Cannon`
     - `Sustain Damage`
-- _[Dane ruling]_ Whenever a game effect uses or grants a unit ability, treat it as if a unit were using or having that unit ability.
-    - _[Dane ruling]_ This means abilities that reference unit abilities, such as the Argent Commander, combo with these effects. Similarly, effects that shut down unit abilities, such as the Crimson Flagship, will affect these abilities as well.
 - If a unit’s ability uses the phrase “this system” or “this planet”, the ability is referring to the system or planet that contains that unit.
 
 ## Notes
 
-- An ability may be triggered during the timing window it was gained, if applicable. For example, if a player receives the Creuss player’s *Creuss Iff* promissory note at the start of their turn, they may use it immediately.
+- An ability may be triggered during the timing window it was gained, if applicable. For example, if a player receives the [Creuss](https://www.tirules2.com/F_creuss) player’s [*Creuss Iff*](https://twilight-imperium.fandom.com/wiki/The_Ghosts_of_Creuss#Faction_Promissory_Note:~:text=Creuss%20Iff) promissory note at the start of their turn, they may use it immediately.
     - Note that some triggers check their conditions when they trigger, while some check their conditions when they would resolve.
-    - The Ul player’s `Awaken` ability is an example of an ability that checks its condition when it triggers; activating a system without a sleeper token will not trigger `Awaken`, even if a sleeper token is later added during the activation step of that tactical action.
-    - The *Assault Cannon* technology is an example of an ability that checks its condition when it would resolve; a player without three or more non–fighter ships in the system cannot use *Assault Cannon*, even if they previously had more ships.
+        - The [Ul](https://www.tirules2.com/F_ul) player’s [`Awaken`](https://twilight-imperium.fandom.com/wiki/The_Titans_of_Ul#Faction_Abilities:~:text=Awaken) ability is an example of an ability that checks its condition when it triggers; activating a system without a sleeper token will not trigger `Awaken`, even if a sleeper token is later added during the activation step of that tactical action.
+        - The *Assault Cannon* technology is an example of an ability that checks its condition when it would resolve; a player without three or more non–fighter ships in the system cannot use *Assault Cannon*, even if they previously had more ships.
+- All abilities that occur “when” an event occurs all trigger before any abilities that occur “after” the same event occurs.
+- All abilities that occur “after” an event occurs all trigger before any abilities that occur “before” the next event occurs.
+- Each paragraph on a card is a separate ability, and is resolved independently of the others. For example, a promissory note’s final paragraph instructing the player to return the card is still resolved, even if an earlier paragraph had no effect.
+- An ability that refers to “a player” may be used on the player resolving it. Only an ability that refers to “another player” excludes that player.
 - An ability from a single physical object cannot be resolved more than once in one timing window. For example, if a player starts their turn with the Creuss player’s *Creuss Iff* promissory note in their hand (having received it on a previous turn) and uses it, they will not be able to use it a second time this turn, if they receive it again as part of a transaction.
-    - Each unit on the board is its own separate physical object. For example, two or more of the N’orr player’s *Exotrireme II* in a system may use their ability to destroy themselves and other ships, as the ability is linked to the units on the game board, and not the unit upgrade technology card.
-- Multiple action cards with the same name cannot be played during a single timing window to affect the same units or game effect. See the [action cards page](https://www.tirules2.com/R_action_cards) for more details.
+    - Each unit on the board is its own separate physical object. For example, two or more of the [N’orr](https://www.tirules2.com/F_norr) player’s [*Exotrireme II*](https://twilight-imperium.fandom.com/wiki/Sardakk_N'orr#:~:text=Exotrireme) in a system may use their ability to destroy themselves and other ships, as the ability is linked to the units on the game board, and not the unit upgrade technology card.
+- An ability that has not finished resolving cannot be triggered again within a timing window that it creates.
 - During the action phase, abilities are resolved in the current relative turn order, starting with the active player. For example, if it is currently the *Trade* (5) player’s turn, they will have the option to resolve first, then the *Warfare* (6) player, then the *Technology* (7) player, and so on.
     - If a player has multiple abilities they wish to resolve, they must be resolved one at a time. Between each ability being resolved, each other player will have the opportunity to resolve one ability.
     - For example, Alice, the active player, wishes to resolve four abilities during the current timing window. Bob, the next player in order, wishes to resolve one. Cheng, later in the order, wishes to resolve two. The order of resolution would be: Alice #1; Bob #1; Cheng #1; Alice #2; Cheng #2; Alice #3; Alice #4.
     - Once every player has consecutively declined to resolve an ability during a timing window, no more abilities may be resolved during that window.
     - A player may decline to resolve an ability during a timing window, but later choose to resolve an ability during that same timing window, but only if another player chooses to resolve an ability after the player declined.
-    - Following on from the above example, had Alice declined to resolve “Alice #2”, she could still resolve “Alice #3”, as Cheng resolved “Cheng #2”, breaking the series of consecutive declinations. However, if Alice had instead declined to resolve “Alice #3”, she would be unable to resolve “Alice #4”, as then each player would have consecutively declined to resolve an ability.
+- If there are multiple abilities that players wish to resolve at the same time during the status phase, such as two players each using the Creuss player’s [*Wormhole Generator*](https://twilight-imperium.fandom.com/wiki/The_Ghosts_of_Creuss#Faction_Technologies:~:text=Wormhole%20Generator) faction technology, they are resolved in initiative order.
 - The secondary abilities of strategy cards are resolved in clockwise order, after the primary ability.
 - A player may resolve “at the start of your turn” and “at the end of your turn” abilities on the turn that they pass.
-- All abilities that occur “when” an event occurs all trigger before any abilities that occur “after” the same event occurs.
-- All abilities that occur “after” an event occurs all trigger before any abilities that occur “before” the next event occurs.
+- Whenever a game effect uses or grants a unit ability, treat it as if a unit were using or having that unit ability.
+    - This means abilities that reference unit abilities, such as the [Argent](https://www.tirules2.com/F_argent) player’s commander, [Trrakan Aun Zulok](https://twilight-imperium.fandom.com/wiki/The_Argent_Flight#Leaders:~:text=Trrakan%20Aun%20Zulok), combo with these effects. Similarly, effects that shut down unit abilities, such as the [Rebellion](https://www.tirules2.com/F_rebellion) player’s flagship, the [*Quietus*](https://twilight-imperium.fandom.com/wiki/The_Crimson_Rebellion#Flagship:~:text=Quietus), will affect these abilities as well.
 
 ## Related Topics
 
 - [Action Cards](https://www.tirules2.com/R_action_cards)
+- [Action Phase](https://www.tirules2.com/R_action_phase)
 - [Active Player](https://www.tirules2.com/R_active_player)
 - [Initiative Order](https://www.tirules2.com/R_initiative_order)
 - [Leaders](https://www.tirules2.com/R_leaders)

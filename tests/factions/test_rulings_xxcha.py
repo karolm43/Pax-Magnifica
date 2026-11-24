@@ -98,7 +98,7 @@ def test_peace_accords_planeta_w_tym_samym_systemie(registry: StaticDataRegistry
 # ======================================================================= Quash / Political Favor
 
 
-@ruling("F_xxcha/quash/1", "F_xxcha/political-favor/1")
+@ruling("F_xxcha/quash/1", "F_xxcha/political-favor/2")
 def test_quash_favor_secret_i_veto_w_jednym_oknie_przed_riderami(
     registry: StaticDataRegistry,
 ) -> None:
@@ -120,7 +120,7 @@ def test_quash_favor_secret_i_veto_w_jednym_oknie_przed_riderami(
     assert not _playable(promissory_play.playability(after, registry, "p2"), "note_id", "favor")
 
 
-@ruling("F_xxcha/quash/1.1", "abilities:quash#1", "abilities:quash#2")
+@ruling("F_xxcha/quash/2", "abilities:quash#1", "abilities:quash#2")
 def test_quash_po_political_secret_notka_wraca_bez_efektu(registry: StaticDataRegistry) -> None:
     state = _agenda_state(registry)
     state.players["p1"].private.promissory_notes = ["blue_ps"]  # Political Secret gracza p2
@@ -138,7 +138,7 @@ def test_quash_po_political_secret_notka_wraca_bez_efektu(registry: StaticDataRe
 
 
 @ruling(
-    "F_xxcha/political-favor/1.1", "F_xxcha/political-favor/3",
+    "F_xxcha/quash/2", "F_xxcha/quash/5",
     "promissory_notes:favor#1", "promissory_notes:favor#2", "promissory_notes:favor#3",
     "promissory_notes:favor#4",
 )
@@ -354,7 +354,6 @@ def test_mech_usuniety_przez_pojemnosc_nie_strzela(registry: StaticDataRegistry)
     assert not space_cannon.offense_shooters(cleared, _grid(), registry, "p1")
 
 
-@ruling("F_xxcha/indomitus/2")
 def test_space_cannon_defense_tylko_nieaktywni(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     planet = _planet(registry, "21")
@@ -404,7 +403,6 @@ def test_elder_qanoj_political_secret_blokuje_karty_i_quash_nie_glos(
     assert agenda_phase.current_voter(secret) == "p1"
 
 
-@ruling("F_xxcha/elder-qanoj/5")
 def test_elder_qanoj_representative_government_jeden_glos(registry: StaticDataRegistry) -> None:
     state = _commander(_agenda_state(registry))
     state.decks.agenda_laws = {"rep_govt": "for"}
@@ -459,7 +457,7 @@ def _amass_state(registry: StaticDataRegistry) -> GameState:
     return state
 
 
-@ruling("F_xxcha/archons-gift/2", "F_xxcha/archons-gift/2.1", "F_xxcha/archons-gift/3")
+@ruling("F_xxcha/archons-gift/1", "F_xxcha/archons-gift/1.2", "F_xxcha/archons-gift/2")
 def test_archons_gift_amass_wealth_planeta_na_jedno(registry: StaticDataRegistry) -> None:
     state = _amass_state(registry)
     grid = grid_from_state(state, registry)
@@ -478,7 +476,7 @@ def test_archons_gift_amass_wealth_planeta_na_jedno(registry: StaticDataRegistry
     assert paid.players["p1"].trade_goods == 0
 
 
-@ruling("F_xxcha/archons-gift/3", "F_xxcha/archons-gift/3.1")
+@ruling("F_xxcha/archons-gift/2", "F_xxcha/archons-gift/2.1")
 def test_archons_gift_nie_zmienia_production_doku(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     mine = _planet(registry, "20")
@@ -490,7 +488,7 @@ def test_archons_gift_nie_zmienia_production_doku(registry: StaticDataRegistry) 
     assert production.production_limit(_gift(state), grid, registry, "p1") == plain
 
 
-@ruling("F_xxcha/archons-gift/3.2")
+@ruling("F_xxcha/archons-gift/2.2")
 def test_archons_gift_nie_zmienia_integrated_economy(registry: StaticDataRegistry) -> None:
     state = _gift(_state(registry))
     planet = _planets_where(
@@ -502,7 +500,7 @@ def test_archons_gift_nie_zmienia_integrated_economy(registry: StaticDataRegistr
     assert state.production_grant.max_cost == resources_of(state, registry, planet)
 
 
-@ruling("F_xxcha/archons-gift/3.3", "leaders:xxchacommander#unlock")
+@ruling("F_xxcha/archons-gift/2.3", "leaders:xxchacommander#unlock")
 def test_archons_gift_nie_odblokowuje_elder_qanoj(registry: StaticDataRegistry) -> None:
     state = _gift(_state(registry))
     state.systems["101"].planet_owners = {}
@@ -515,7 +513,7 @@ def test_archons_gift_nie_odblokowuje_elder_qanoj(registry: StaticDataRegistry) 
     assert not xxcha._commander_unlocked(state, registry, "p1")
 
 
-@ruling("F_xxcha/archons-gift/3.4")
+@ruling("F_xxcha/archons-gift/2.4")
 def test_archons_gift_nie_dotyczy_establish_hegemony_i_hoard(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     grid = grid_from_state(state, registry)
@@ -527,7 +525,7 @@ def test_archons_gift_nie_dotyczy_establish_hegemony_i_hoard(registry: StaticDat
         assert objective_progress.evaluate(state, registry, grid, "p1", objective)[0] == value
 
 
-@ruling("F_xxcha/archons-gift/3.5")
+@ruling("F_xxcha/archons-gift/2.5")
 def test_archons_gift_mining_initiative_i_uprising_wg_zasobow(registry: StaticDataRegistry) -> None:
     state = _gift(_state(registry))
     planet = _planets_where(

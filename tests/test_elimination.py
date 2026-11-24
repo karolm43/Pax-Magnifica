@@ -52,8 +52,7 @@ def _state() -> GameState:
 @ruling(
     "R_elimination/rules-reference/1", "R_elimination/rules-reference/1.1",
     "R_elimination/rules-reference/1.2", "R_elimination/rules-reference/1.3",
-    "R_elimination/notes/1",
-)
+    )
 def test_eliminated_only_when_all_three_conditions_hold(registry: StaticDataRegistry) -> None:
     state = _state()
     # Flagowiec Arboreców produkuje, ale nie ma PRODUCTION - nie chroni przed eliminacją.

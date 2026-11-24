@@ -21,7 +21,6 @@ When voting during the agenda phase, a player can cast votes for a specific outc
 
 - To cast votes, a player exhausts any number of their planets and chooses an outcome. The number of votes cast for that outcome is equal to the combined influence values of the planets that the player exhausts.
     - When a player exhausts a planet to cast votes, that player must cast the full amount of votes provided by that planet.
-    - _[Dane ruling]_ A player may exhaust space stations, *The Triad*, and Oceans to cast votes, using their influence values in the same manner as planets.
 - A player cannot cast votes for multiple outcomes of the same agenda. Each vote a player casts must be for the same outcome.
 - Some agendas have “For” and “Against” outcomes. When a player casts votes on such an agenda, that player must cast their votes either “For” or “Against”.
 - Some agendas instruct players to elect either a player or a planet. When a player casts votes for such an agenda, that player must cast their vote for an eligible player or planet as described on the agenda.
@@ -29,6 +28,7 @@ When voting during the agenda phase, a player can cast votes for a specific outc
     - When resolving these agendas, the “elected player” is the player for whom the most votes are cast.
 - When electing a planet, a player must cast votes for a planet that is controlled by a player.
     - When resolving these agendas, the “elected planet” is the planet that had the most votes cast for it.
+    - (Thunder’s Edge) A space station cannot be elected, although its influence can be used to cast votes.
 - When casting votes, a player must declare aloud the outcome for which their votes are being cast.
 - Trade goods cannot be spent to cast votes.
 - A player may choose to abstain by not casting any votes.
@@ -48,20 +48,27 @@ When voting during the agenda phase, a player can cast votes for a specific outc
 
 ## Notes
 
-- A player cannot cast zero votes for an outcome. Casting zero votes is the same as abstaining.
 - When a player casts votes during the agenda phase, it is not that player’s turn for the purpose of game effects.
-- If an agenda outcome affects multiple players, it does so in speaker order.
+- A player may cast votes with space stations, *The Triad*, and the [Deepwrought](https://www.tirules2.com/F_deepwrought) player’s ocean cards.
+- Players may exhaust planets during the agenda phase for purposes other than casting votes, such as spending resources or using technology specialties. Planets exhausted this way cannot then be used to cast votes.
+- Casting zero votes for an outcome is the same as abstaining. A player that casts zero votes gains no positive or negative effects of voting for that outcome.
+- The speaker decides tied outcomes even if they cannot vote on that agenda, such as when they are the [Nekro](https://www.tirules2.com/F_nekro) player or have played a rider, as deciding a tie is not a vote.
+- An agenda’s outcome affects every player, regardless of how they voted or whether they abstained, unless the agenda states otherwise, such as the *Mutiny* agenda.
+- During the agenda phase, if the outcome of an agenda affects multiple players, it does so in speaker order, starting with the speaker and proceeding clockwise. If an agenda is resolved during the action phase, such as with the [Keleres](https://www.tirules2.com/F_keleres) player’s [*Executive Order*](https://twilight-imperium.fandom.com/wiki/The_Council_Keleres#Thunder's_Edge_2:~:text=Executive%20Order) technology, it does so in initiative order.
 - Riders are resolved after the agenda is fully resolved, in speaker order.
 - If a player successfully predicts multiple riders, they resolve one at a time, in the order that player chooses, with each other player having the opportunity to resolve an ability between each.
 - Each pair of players may resolve one transaction during each agenda.
-- Only planets ready at the end of the phase. Technologies, leaders, relics, and other cards do not.
-- For notes about specific agenda cards, see the [agenda card component notes page](https://www.tirules2.com/C_agendas).
+- Planets are readied at the end of the agenda phase; other exhausted cards, such as technologies and agents, stay exhausted.
+    - The Deepwrought player’s ocean cards, space stations and *The Triad* are also readied at the end of the agenda phase.
 
 ## Related Topics
 
 - [Agenda Cards](https://www.tirules2.com/R_agenda_card)
+- [Agenda Card Notes](https://www.tirules2.com/C_agendas)
 - [Custodians Token](https://www.tirules2.com/R_custodians_token)
+- [Exhausted](https://www.tirules2.com/R_exhausted)
 - [Game Round](https://www.tirules2.com/R_game_round)
 - [Influence](https://www.tirules2.com/R_influence)
+- [Space Stations](https://www.tirules2.com/R_space_stations)
 - [Speaker](https://www.tirules2.com/R_speaker)
 - [Transactions](https://www.tirules2.com/R_transactions)

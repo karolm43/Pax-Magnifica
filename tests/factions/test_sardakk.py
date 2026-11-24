@@ -344,7 +344,7 @@ def _ghom_state() -> GameState:
     return state
 
 
-@ruling("F_norr/ghom-sekkus/8", "F_norr/ghom-sekkus/8.2")
+@ruling("F_norr/ghom-sekkus/6", "F_norr/ghom-sekkus/6.2")
 def test_commander_nie_do_asteroid_ani_supernowej(registry: StaticDataRegistry) -> None:
     """F_norr: siły muszą legalnie wejść do aktywnego systemu (Mirage w asteroidach/supernowej)."""
     previous = board_graph._PROVIDER
@@ -360,7 +360,7 @@ def test_commander_nie_do_asteroid_ani_supernowej(registry: StaticDataRegistry) 
         board_graph.bind_grid_provider(previous)
 
 
-@ruling("F_norr/ghom-sekkus/8.4")
+@ruling("F_norr/ghom-sekkus/6.3")
 def test_commander_z_gravity_rift_rzuca(registry: StaticDataRegistry) -> None:
     """F_norr: siły wychodzące z systemu z gravity rift rzucają na usunięcie (1–3)."""
     previous = board_graph._PROVIDER
@@ -385,7 +385,7 @@ def test_commander_z_gravity_rift_rzuca(registry: StaticDataRegistry) -> None:
 
 @ruling(
     "leaders:sardakkhero#1", "leaders:sardakkhero#2",
-    "F_norr/shval-harbinger-tekklar-conditioning/2",
+    "F_norr/shval-harbinger-tekklar-conditioning/1",
 )
 def test_hero_pomija_do_ladowania_i_zwraca_statki(registry: StaticDataRegistry) -> None:
     state = _state()
@@ -429,7 +429,6 @@ def test_przelom_po_wygranej_walce_zeton(registry: StaticDataRegistry) -> None:
     assert after.players["p1"].fleet_cc == fleet + 1
 
 
-@ruling("F_norr/norr-supremacy/1")
 def test_przelom_badanie_ulepszenia(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].breakthrough_unlocked = True

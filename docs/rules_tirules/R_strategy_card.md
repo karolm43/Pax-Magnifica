@@ -24,6 +24,7 @@ Strategy cards determine initiative order and provide each player with a powerfu
 
 - During three– and four–player games, each player will choose two strategy cards during the strategy phase.
     - Players will use the lower of the two initiative numbers on their strategy cards to determine the initiative order.
+- A player with two strategy cards may perform the strategic actions of those cards in either order. They still take only one action per turn.
 
 ## Related Topics
 

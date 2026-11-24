@@ -23,19 +23,24 @@ During the status phase, players score objectives and prepare for the next game 
 ## Notes
 
 - A player cannot score public objectives if that player does not control each planet in their home system.
-- If there are few cards remaining in the action card deck, they will be dealt out first to the players lowest in initiative order. After those players have discarded down to their seven card hand limit, if necessary, the discard pile will be shuffled to form a new deck. The remaining players (including the player who received the last action card from the previous deck, if applicable) will then be dealt their action cards.
+    - A player coexisting on, but not controlling, planets in their home system may still score public objectives.
+    - During the *Wild, Wild Galaxy* galactic event, a player with no planets in their home system may still score public objectives.
+    - If the [Saar](https://www.tirules2.com/F_saar) player’s home system is purged by *The Silver Flame* relic, they may still score public objectives.
+- If there are few cards remaining in the action card deck, they will be dealt out first to the players lowest in initiative order. After those players have discarded down to their seven card hand limit, if necessary, the discard pile will be shuffled to form a new deck. The remaining players (including the player who received the last action card from the previous deck, if applicable) will then be dealt their action cards.*
 - All damaged units will be repaired, even if a game effect has caused those units to no longer have the `Sustain Damage` ability.
+- If there are multiple abilities that players wish to resolve at the same time during the status phase, such as two players each using the [Creuss](https://www.tirules2.com/F_creuss) player’s [*Wormhole Generator*](https://twilight-imperium.fandom.com/wiki/The_Ghosts_of_Creuss#Faction_Technologies:~:text=Wormhole%20Generator) faction technology, they are resolved in initiative order.
 
 ## Related Topics
 
 - [Action Cards](https://www.tirules2.com/R_action_cards)
 - [Agenda Phase](https://www.tirules2.com/R_agenda_phase)
-- [Custodians Token](https://www.tirules2.com/R_custodians_token)
 - [Command Tokens](https://www.tirules2.com/R_command_tokens)
+- [Custodians Token](https://www.tirules2.com/R_custodians_token)
 - [Game Round](https://www.tirules2.com/R_game_round)
 - [Initiative Order](https://www.tirules2.com/R_initiative_order)
 - [Objective Cards](https://www.tirules2.com/R_objective_cards)
 - [Readied](https://www.tirules2.com/R_readied)
 - [Strategy Card](https://www.tirules2.com/R_strategy_card)
+- [Strategy Phase](https://www.tirules2.com/R_strategy_phase)
 - [Sustain Damage](https://www.tirules2.com/R_sustain_damage)
 - [Victory Points](https://www.tirules2.com/R_victory_points)

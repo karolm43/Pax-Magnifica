@@ -11,10 +11,12 @@ Mecatol Rex is the planet placed in the center of the game board during setup.
 
 ## Notes
 
-- Mecatol Rex on tile 18 is not a legendary planet. Mecatol Rex on tile 112 is a legendary planet.
+- Mecatol Rex on tile 18 is not a legendary planet. Mecatol Rex on tile 112 is a legendary planet; its legendary planet ability card is [*The Galactic Council*](https://www.tirules2.com/C_legendary_planets).
 
 ## Related Topics
 
 - [Custodians Token](https://www.tirules2.com/R_custodians_token)
 - [Imperial](https://www.tirules2.com/R_imperial)
+- [Legendary Planets](https://www.tirules2.com/R_legendary_planets)
+- [Legendary Planet Notes](https://www.tirules2.com/C_legendary_planets)
 - [Planets](https://www.tirules2.com/R_planets)

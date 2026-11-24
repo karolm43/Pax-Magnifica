@@ -144,7 +144,7 @@ def test_space_cannon_neither_from_nor_into_scar(registry: StaticDataRegistry) -
     assert space_cannon.offense_shooters(plain, _grid(PLAIN), registry, "p2")
 
 
-@ruling("R_entropic_scars/notes/2", "R_entropic_scars/notes/2.2")
+@ruling("R_entropic_scars/notes/2")
 def test_no_production_from_units_in_scar(registry: StaticDataRegistry) -> None:
     """Dok na Lemox nie produkuje - także tekst doku definiujący X nie działa (2.2)."""
     state = _state(LEMOX_TILE, planet={"p1": {"spacedock": 1}})
@@ -276,12 +276,11 @@ def test_no_offer_without_strategy_token(registry: StaticDataRegistry) -> None:
     assert _scar_offers(_start_status(_status_state(registry, tokens=0))) == []
 
 
-@ruling("R_entropic_scars/notes/5.2")
 def test_ground_forces_in_scar_do_not_count(registry: StaticDataRegistry) -> None:
     assert _scar_offers(_start_status(_status_state(registry, ground_only=True))) == []
 
 
-@ruling("R_entropic_scars/notes/5.3")
+@ruling("R_entropic_scars/notes/5.2")
 def test_ships_in_two_scars_gain_both_faction_techs(registry: StaticDataRegistry) -> None:
     state = _start_status(_status_state(registry, scars=2))
     techs = scar_hooks.missing_faction_techs(state, "p1")

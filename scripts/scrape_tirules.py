@@ -80,6 +80,8 @@ class TiruleParser(HTMLParser):
         self._sekcja: Sekcja | None = None
         self._pending_lrr = False  # następna ol ma klasę lrr
         self._href: str | None = None
+        self._a_pominiety = False
+        self._sup_start: int | None = None  # początek <sup> w buforze (przypisy)
 
     # -- pomocnicze --
     def _flush(self) -> str:
@@ -91,6 +93,13 @@ class TiruleParser(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         a = dict(attrs)
+        if tag == "sup":
+            self._sup_start = len(self._buf)
+            return
+        if tag == "a" and (self._w_h2 or self._h2_w_liscie):
+            # link w nagłówku (upstream: do wiki) — sam tekst
+            self._a_pominiety = True
+            return
         if tag == "header":
             self._w_header = True
             self._buf = []
@@ -169,6 +178,17 @@ class TiruleParser(HTMLParser):
             self._buf.append("`")
 
     def handle_endtag(self, tag: str) -> None:
+        if tag == "sup":
+            # przypisy źródłowe upstreamu (<sup>1,2</sup>) pomijamy; <sup>th</sup> zostaje
+            if self._sup_start is not None:
+                tekst = "".join(self._buf[self._sup_start :])
+                if re.fullmatch(r"[\d,\s]*", tekst):
+                    del self._buf[self._sup_start :]
+                self._sup_start = None
+            return
+        if tag == "a" and self._a_pominiety:
+            self._a_pominiety = False
+            return
         if tag == "header":
             self._w_header = False
         elif tag == "h1":

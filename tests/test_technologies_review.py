@@ -164,7 +164,7 @@ def test_predictive_intelligence_exhausts_only_when_outcome_loses(
 # --- X-89 ΩΩ: bombardowanie planety bez sił naziemnych -------------------------------------
 
 
-@ruling("C_technology/x89-bacterial-weapon-omega-omega/6")
+@ruling("C_technology/x89-bacterial-weapon-omega-omega/7")
 def test_x89_allows_bombarding_empty_enemy_planet(registry: StaticDataRegistry) -> None:
     planets = sorted(p for p in registry.planets if registry.planets[p].resources >= 0)
     planet = next(

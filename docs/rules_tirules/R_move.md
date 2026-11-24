@@ -11,7 +11,7 @@ Move is an attribute of some units that is presented on faction sheets and unit 
 
 ## Notes
 
-- When an effect moves a unit to an adjacent system, modifying that unit’s move value will have no effect.
+- When an effect, such as retreating, moves a unit to an adjacent system, modifying that unit’s move value will have no effect.
 
 ## Related Topics
 

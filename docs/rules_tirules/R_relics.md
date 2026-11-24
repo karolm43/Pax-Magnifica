@@ -16,9 +16,8 @@ Relics are powerful artifacts with unique abilities.
 
 ## Notes
 
-- If the relic deck is empty, a player may still purge three relic fragments as an action.
-- If an eliminated player had any relic fragments, they are discarded to their respective exploration discard piles. If an eliminated player had any relics, they are purged.
-- For notes about specific relics, see the [relic notes page](https://www.tirules2.com/C_relics).
+- If the relic deck is empty, a player may still purge relic fragments; they do not gain a relic.
+- If an eliminated player had any relic fragments, they are discarded. If an eliminated player had any relics, they are purged.
 
 ## Related Topics
 
@@ -28,3 +27,4 @@ Relics are powerful artifacts with unique abilities.
 - [Exploration](https://www.tirules2.com/R_exploration)
 - [Purge](https://www.tirules2.com/R_purge)
 - [Readied](https://www.tirules2.com/R_readied)
+- [Relic Notes](https://www.tirules2.com/C_relics)

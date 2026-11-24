@@ -104,7 +104,7 @@ def _devotion_ready(flow: Flow, theirs: dict[str, int], damaged: dict[str, int])
     return position
 
 
-@ruling("F_yin/devotion/1", "abilities:devotion#1")
+@ruling("F_yin/devotion/2", "abilities:devotion#1")
 @covers("abilities:devotion")
 def test_devotion_yin_wskazuje_uszkodzony_statek(registry: StaticDataRegistry) -> None:
     """F_yin: Yin wybiera KONKRETNY statek - uszkodzony pancernik ginie, Sustain nie ratuje."""
@@ -130,7 +130,7 @@ def test_devotion_yin_wskazuje_uszkodzony_statek(registry: StaticDataRegistry) -
     assert system["space_units"][flow.me]["cruiser"] == 1
 
 
-@ruling("F_yin/devotion/1.2")
+@ruling("F_yin/devotion/2.2")
 @covers("abilities:devotion")
 def test_devotion_nieuszkodzony_cel_moze_uzyc_sustain(registry: StaticDataRegistry) -> None:
     """Wskazany nieuszkodzony statek może anulować trafienie swoim Sustain Damage (F_yin)."""
@@ -149,7 +149,7 @@ def test_devotion_nieuszkodzony_cel_moze_uzyc_sustain(registry: StaticDataRegist
     flow.fight()
 
 
-@ruling("F_yin/devotion/3")
+@ruling("F_yin/devotion/5")
 @covers("abilities:devotion")
 def test_devotion_nie_po_odwrocie_przeciwnika(registry: StaticDataRegistry) -> None:
     """F_yin: po odwrocie przeciwnika Devotion nie ma celu - koniec rundy idzie PO kroku Retreat

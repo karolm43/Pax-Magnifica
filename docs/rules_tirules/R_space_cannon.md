@@ -37,14 +37,15 @@ During the invasion step of a tactical action, after ground forces have been com
 
 ## Notes
 
-- “`Deep Space Cannon`” is not a term with meaning within the rules. It is, however, used within the notes on this website as a shorthand for `Space Cannon` abilities that can be used against ships in an adjacent system.
+- “`Deep Space Cannon`” is not a term with meaning within the rules. It is, however, used within the notes on this website as a shorthand for `Space Cannon` abilities that can be used against ships in an adjacent system.*
 - The **Space Cannon Offense** step happens before combat. Any secret objectives that require winning a combat or similar cannot be scored if all of one player’s ships in a system are destroyed during this step.
-- If a player chooses to use the `Space Cannon` ability of their units, they must do so for all of their eligible units with the `Space Cannon` ability. This includes units in adjacent systems, if applicable.
-    - A player that chooses to use the `Space Cannon` ability of their units may choose whether or not they use the ability of the *Plasma Scoring* technology, if they own it, and any similar abilities, independent of one another.
-- A player may use the `Sustain Damage` ability of a ship in the active system to cancel a hit produced during the **Space Cannon Offense** step.
-- A player may use the `Sustain Damage` ability of a mech committed to a planet to cancel a hit produced during the **Space Cannon Defense** step by a unit on that planet.
+- Each unit with the Space Cannon ability may use it once during the Space Cannon Offense step, regardless of how many ships moved into the active system, and again during the Space Cannon Defense step if ground forces are committed to its planet. A PDS does not need ground forces on its planet to use its Space Cannon ability, and may do so even if its system contains its owner’s command token.
+- If a player chooses to use the `Space Cannon` ability of their units, they must do so for all of their eligible units with the `Space Cannon` ability. This includes units in adjacent systems, if applicable.*
+    - A player that chooses to use the `Space Cannon` ability of their units may choose whether or not they use the ability of the *Plasma Scoring* technology, if they own it.
 - If multiple players are resolving the `Space Cannon` ability of their units against the active player, the active player must resolve capacity limits after assigning one player’s hits and before the next player makes their space cannon roll.
 - A player cannot assign hits produced by a space cannon roll to their own units.
+- A player may use the `Sustain Damage` ability of a ship in the active system to cancel a hit produced during the **Space Cannon Offense** step.
+- A player may use the `Sustain Damage` ability of a mech committed to a planet to cancel a hit produced during the **Space Cannon Defense** step by a unit on that planet.
 - The “0” side of the d10 represents a result of 10.
 
 ## Related Topics
@@ -53,8 +54,12 @@ During the invasion step of a tactical action, after ground forces have been com
 - [Active Player](https://www.tirules2.com/R_active_player)
 - [Active System](https://www.tirules2.com/R_active_system)
 - [Adjacency](https://www.tirules2.com/R_adjacency)
+- [Attacker](https://www.tirules2.com/R_attacker)
+- [Capacity](https://www.tirules2.com/R_capacity)
+- [Defender](https://www.tirules2.com/R_defender)
 - [Destroyed](https://www.tirules2.com/R_destroyed)
 - [Invasion](https://www.tirules2.com/R_invasion)
 - [Movement](https://www.tirules2.com/R_movement)
 - [PDS](https://www.tirules2.com/R_pds)
 - [Sustain Damage](https://www.tirules2.com/R_sustain_damage)
+- [Tactical Action](https://www.tirules2.com/R_tactical_action)

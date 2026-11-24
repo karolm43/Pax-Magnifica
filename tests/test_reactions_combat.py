@@ -471,7 +471,7 @@ def test_odwrot_emituje_zdarzenie_retreat_declared(
 # ------------------------------------------------------------------------- Shields Holding
 
 
-@ruling("C_action_cards/shields-holding/4")
+@ruling("C_action_cards/shields-holding/1")
 def test_shields_holding_anuluje_do_dwoch_trafien(
     grid: HexGrid, registry: StaticDataRegistry
 ) -> None:
@@ -494,7 +494,7 @@ def test_shields_holding_anuluje_do_dwoch_trafien(
     assert assigned.active_combat.pending_hits["p2"] == 0
 
 
-@ruling("C_action_cards/shields-holding/3")
+@ruling("C_action_cards/shields-holding/6")
 def test_shields_holding_tylko_przed_przypisaniem(
     grid: HexGrid, registry: StaticDataRegistry
 ) -> None:
@@ -890,7 +890,7 @@ def _afb_assign(grid: HexGrid, registry: StaticDataRegistry, hand2: list[str]) -
     return out
 
 
-@ruling("C_action_cards/shields-holding/4.1")
+@ruling("C_action_cards/shields-holding/1.1")
 def test_shields_holding_anuluje_trafienie_afb(grid: HexGrid, registry: StaticDataRegistry) -> None:
     state = _afb_assign(grid, registry, ["sh2"])
     assert _can(state, registry, "p2", "sh2")
@@ -902,7 +902,7 @@ def test_shields_holding_anuluje_trafienie_afb(grid: HexGrid, registry: StaticDa
     assert after.systems["000"].space_units["p2"]["fighter"] == 1  # myśliwiec przeżył
 
 
-@ruling("C_action_cards/shields-holding/5")
+@ruling("C_action_cards/shields-holding/3")
 def test_shields_holding_raz_na_ten_sam_rzut(grid: HexGrid, registry: StaticDataRegistry) -> None:
     state = _assign_state(grid, registry, [], ["sh2", "sh3"])
     assert state.active_combat is not None
@@ -915,7 +915,7 @@ def test_shields_holding_raz_na_ten_sam_rzut(grid: HexGrid, registry: StaticData
     assert _can(new, registry, "p2", "sh3")
 
 
-@ruling("C_action_cards/shields-holding/1", "C_action_cards/shields-holding/2")
+@ruling("C_action_cards/shields-holding/4", "C_action_cards/shields-holding/5")
 def test_shields_holding_bez_space_cannon_i_bez_zniszczen_wprost(
     grid: HexGrid, registry: StaticDataRegistry
 ) -> None:

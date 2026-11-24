@@ -16,16 +16,18 @@ Some cards can be exhausted. A player cannot resolve abilities or spend the reso
 
 ## Notes
 
-- Planets will also ready at the end of each agenda phase. Leaders, relics and technologies will not.
-- If a game effect instructs a player to exhaust a planet, the exhausted planet must be controlled by that player, unless the game effect specifies otherwise.
+- Planets will also ready at the end of each agenda phase.
+    - This includes the Deepwrought player’s [ocean cards](https://www.tirules2.com/F_deepwrought), space stations and *The Triad*.
+- If a game effect instructs a player to exhaust a planet, the exhausted planet must be controlled by that player, unless the game effect specifies otherwise.*
 
 ## Related Topics
 
+- [Agenda Phase](https://www.tirules2.com/R_agenda_phase)
 - [Influence](https://www.tirules2.com/R_influence)
 - [Leaders](https://www.tirules2.com/R_leaders)
 - [Planets](https://www.tirules2.com/R_planets)
 - [Relics](https://www.tirules2.com/R_relics)
 - [Resources](https://www.tirules2.com/R_resources)
-- [Strategy Card](https://www.tirules2.com/R_strategy_card)
 - [Status Phase](https://www.tirules2.com/R_status_phase)
+- [Strategy Card](https://www.tirules2.com/R_strategy_card)
 - [Technology](https://www.tirules2.com/R_technology)

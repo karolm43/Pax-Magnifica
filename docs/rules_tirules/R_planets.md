@@ -11,6 +11,7 @@ Planets provide players with resources and influence. Planets are on system tile
 - A planet’s influence is indicated by the value on its planet card and system tile that is surrounded by a blue hexagonal border.
 - A planet’s trait has no inherent effects, but some game effects refer to a planet’s trait. There are three traits: cultural, hazardous, and industrial.
 - Some planets have a technology specialty, which allows those planets to be exhausted to satisfy a prerequisite when researching technology.
+    - (Thunder’s Edge) Some planets have two technology specialties, and can be exhausted to satisfy either or both prerequisites simultaneously.
 - Some planets are legendary planets, as indicated by the legendary planet icon. When a player gains control of a legendary planet, they also gain control of its legendary planet ability card.
 
 **Planet Card**
@@ -27,13 +28,13 @@ Each planet has a corresponding planet card that displays its name, resource val
 - Planets with traits can be explored.
 - A planet cannot be spent for both its influence and resources during a single exhaustion.
 - If a planet is exhausted for its technology specialty, it does not provide influence or resources.
-- A player may only exhaust their own planets, unless a game effect specifies otherwise.
+- A player may only exhaust their own planets, unless a game effect specifies otherwise.*
 
 ## Related Topics
 
 - [Control](https://www.tirules2.com/R_control)
-- [Exploration](https://www.tirules2.com/R_exploration)
 - [Exhausted](https://www.tirules2.com/R_exhausted)
+- [Exploration](https://www.tirules2.com/R_exploration)
 - [Influence](https://www.tirules2.com/R_influence)
 - [Invasion](https://www.tirules2.com/R_invasion)
 - [Legendary Planets](https://www.tirules2.com/R_legendary_planets)

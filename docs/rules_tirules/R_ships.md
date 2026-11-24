@@ -14,7 +14,7 @@ A ship is a unit type consisting of carriers, cruisers, dreadnoughts, destroyers
 
 ## Notes
 
-- A Fighter II may count towards either the fleet pool limit or a player’s capacity.
+- A Fighter II may count toward either the fleet pool limit or a player’s capacity.
 
 ## Related Topics
 

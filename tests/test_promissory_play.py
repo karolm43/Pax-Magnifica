@@ -107,7 +107,7 @@ def test_ceasefire_poza_oknem(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------------- Trade Agreement
 
 
-@ruling("C_promissory_notes/trade-agreement/2")
+@ruling("C_promissory_notes/trade-agreement/3")
 def test_trade_agreement_po_uzupelnieniu(registry: StaticDataRegistry) -> None:
     state = _state()
     assert _rows(state, registry, "p2")["red_ta"]["playable"] is False

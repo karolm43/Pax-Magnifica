@@ -155,7 +155,7 @@ def test_moyins_ashes_zniszczony_wraca_do_rezerwy(registry: StaticDataRegistry) 
 # ==================================================================================== Devotion
 
 
-@ruling("F_yin/devotion/1.1", "F_yin/brother-omar-omega/1", "leaders:yincommander#unlock")
+@ruling("F_yin/devotion/2.1", "F_yin/brother-omar-omega-omega/1", "leaders:yincommander#unlock")
 def test_devotion_cel_tylko_wrogi_i_odblokowuje_omara(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "yin")
     _devotion_ready(flow, {"dreadnought": 1}, {})
@@ -168,7 +168,7 @@ def test_devotion_cel_tylko_wrogi_i_odblokowuje_omara(registry: StaticDataRegist
     assert flow.state()["players"][flow.me]["leader_states"]["yincommander"] == "unlocked"
 
 
-@ruling("F_yin/devotion/2")
+@ruling("F_yin/devotion/3")
 def test_devotion_trafienie_anuluje_shields_holding(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "yin")
     position = _devotion_ready(flow, {"dreadnought": 2}, {})
@@ -186,7 +186,7 @@ def test_devotion_trafienie_anuluje_shields_holding(registry: StaticDataRegistry
     assert flow.state()["systems"][position]["space_units"][flow.other]["dreadnought"] == 2
 
 
-@ruling("F_yin/devotion/4")
+@ruling("F_yin/devotion/6")
 def test_devotion_i_exotrireme_kolejnosc_od_atakujacego(registry: StaticDataRegistry) -> None:
     """Koniec rundy: Yin (atakujący) rozstrzyga przed N'orr (obrońca) - kolejka okna REACTION."""
     state = _state(registry)
@@ -211,7 +211,7 @@ def test_devotion_i_exotrireme_kolejnosc_od_atakujacego(registry: StaticDataRegi
 # ================================================================================ Impulse Core
 
 
-@ruling("F_yin/impulse-core/1", "F_yin/impulse-core/2", "technologies:ic#2")
+@ruling("F_yin/impulse-core/1", "technologies:ic#2")
 def test_impulse_core_przeciwnik_wybiera_i_moze_sustain(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "yin")
     flow.player(lambda p: p["technologies"].append("ic"))
@@ -225,7 +225,7 @@ def test_impulse_core_przeciwnik_wybiera_i_moze_sustain(registry: StaticDataRegi
     assert theirs == {"dreadnought": 1, "destroyer": 1}
 
 
-@ruling("F_yin/impulse-core/3", "technologies:ic#1")
+@ruling("F_yin/impulse-core/2", "technologies:ic#1")
 def test_impulse_core_przed_afb(registry: StaticDataRegistry) -> None:
     """Zniszczony Impulse Core niszczyciel nie rzuca anti-fighter barrage."""
     flow = Flow(registry, "yin")
@@ -287,7 +287,7 @@ def test_greyfire_w_transakcji_w_trakcie_walki(registry: StaticDataRegistry) -> 
         )
 
 
-@ruling("F_yin/greyfire-mutagen-omega/1.3", "F_yin/greyfire-mutagen-omega/1.4",
+@ruling("F_yin/greyfire-mutagen-omega/1.2", "F_yin/greyfire-mutagen-omega/1.3",
         "promissory_notes:greyfire#1")
 def test_greyfire_nie_drugi_raz_w_tej_samej_walce(registry: StaticDataRegistry) -> None:
     state = _greyfire_combat(registry)
@@ -360,7 +360,6 @@ def test_van_hauge_nie_niszczy_floating_factory(registry: StaticDataRegistry) ->
     assert system.space_units["p2"]["spacedock"] == 1
 
 
-@ruling("F_yin/van-hauge/3")
 def test_van_hauge_walka_konczy_sie_remisem(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     system = state.systems["102"]
@@ -385,8 +384,8 @@ def _milor_state(registry: StaticDataRegistry) -> GameState:
     return state
 
 
-@ruling("F_yin/brother-milor-omega/4", "F_yin/brother-milor-omega/2",
-        "F_yin/brother-milor-omega/2.1", "leaders:yinagent#1")
+@ruling("F_yin/brother-milor-replaced-by-omega/2",
+        "leaders:yinagent#1")
 def test_milor_po_van_hauge_yin_wygrywa(registry: StaticDataRegistry) -> None:
     state = _milor_state(registry)
     system = state.systems["102"]
@@ -405,7 +404,7 @@ def test_milor_po_van_hauge_yin_wygrywa(registry: StaticDataRegistry) -> None:
     assert combat is not None and combat.step is CombatStep.DONE and combat.winner == "p1"
 
 
-@ruling("F_yin/brother-milor-omega/3")
+@ruling("F_yin/brother-milor-omega-replaced-by-omega-omega/4")
 def test_milor_mysliwce_bez_wolnej_pojemnosci(registry: StaticDataRegistry) -> None:
     state = _milor_state(registry)
     system = state.systems["102"]
@@ -417,7 +416,10 @@ def test_milor_mysliwce_bez_wolnej_pojemnosci(registry: StaticDataRegistry) -> N
     assert system.space_units["p2"]["fighter"] == 2
 
 
-@ruling("F_yin/brother-milor-omega/5", "F_yin/brother-milor-omega/5.1")
+@ruling(
+    "F_yin/brother-milor-omega-replaced-by-omega-omega/5",
+    "F_yin/brother-milor-replaced-by-omega/4.1",
+)
 def test_milor_nadwyzka_trafien_przepada(registry: StaticDataRegistry) -> None:
     """Trafienia ponad liczbę jednostek nie przechodzą na nowo postawione myśliwce: wymagane
     trafienia liczy się z jednostek strony w chwili przypisania."""
@@ -438,7 +440,7 @@ def test_milor_nadwyzka_trafien_przepada(registry: StaticDataRegistry) -> None:
     assert system.space_units["p2"]["fighter"] == 2
 
 
-@ruling("F_yin/brother-milor-omega/6")
+@ruling("F_yin/brother-milor-replaced-by-omega/5")
 def test_milor_turn_their_fleets_to_dust_przed_mysliwcami(registry: StaticDataRegistry) -> None:
     from src.core.game_state import TacticalStep, TimingWindow, WindowType
 
@@ -459,7 +461,7 @@ def test_milor_turn_their_fleets_to_dust_przed_mysliwcami(registry: StaticDataRe
     })
 
 
-@ruling("F_yin/brother-milor-omega/7")
+@ruling("F_yin/brother-milor-omega-replaced-by-omega-omega/7")
 def test_milor_make_an_example_przed_piechota(registry: StaticDataRegistry) -> None:
     from src.core.game_state import InvasionPhase, InvasionState
 
@@ -480,7 +482,7 @@ def test_milor_make_an_example_przed_piechota(registry: StaticDataRegistry) -> N
 # ============================================================================= Brother Omar Ω
 
 
-@ruling("F_yin/brother-omar-omega/2", "F_yin/brother-omar-omega/2.1")
+@ruling("F_yin/brother-omar-omega-omega/2", "F_yin/brother-omar-omega-omega/2.1")
 def test_omar_nie_daje_ulepszenia_frakcyjnego_ani_ogolnego_przez_nie(
     registry: StaticDataRegistry,
 ) -> None:
@@ -525,7 +527,7 @@ def test_dannel_odblokowanie_trzy_cele(registry: StaticDataRegistry) -> None:
     assert state.players["p1"].leader_states["yinhero"] == "unlocked"
 
 
-@ruling("F_yin/dannel-of-the-tenth-omega-quantum-dissemination-omega/4.1")
+@ruling("F_yin/dannel-of-the-tenth-omega-omega-quantum-dissemination-omega-omega/4.1")
 def test_dissemination_bez_sil_z_orbity(registry: StaticDataRegistry) -> None:
     from src.core import invasion
 
@@ -540,10 +542,10 @@ def test_dissemination_bez_sil_z_orbity(registry: StaticDataRegistry) -> None:
 
 
 @ruling("leaders:yinhero#1", "leaders:yinhero#2", "leaders:yinhero#3",
-        "F_yin/dannel-of-the-tenth-omega-quantum-dissemination-omega/1",
-        "F_yin/dannel-of-the-tenth-omega-quantum-dissemination-omega/3",
-        "F_yin/dannel-of-the-tenth-omega-quantum-dissemination-omega/5",
-        "F_yin/dannel-of-the-tenth-omega-quantum-dissemination-omega/6")
+        "F_yin/dannel-of-the-tenth-omega-omega-quantum-dissemination-omega-omega/1",
+        "F_yin/dannel-of-the-tenth-omega-omega-quantum-dissemination-omega-omega/3",
+        "F_yin/dannel-of-the-tenth-omega-omega-quantum-dissemination-omega-omega/5",
+        "F_yin/dannel-of-the-tenth-omega-omega-quantum-dissemination-omega-omega/6")
 def test_dissemination_przejmuje_kontrole_przez_api(registry: StaticDataRegistry) -> None:
     """Błąd zgłoszony przez użytkownika: po bohaterze nie działało przejęcie kontroli. Planeta
     bez obrońców była „prostą” inwazją (panel kroku INVASION, którego bez akcji taktycznej nie
@@ -591,7 +593,7 @@ def test_dissemination_przejmuje_kontrole_przez_api(registry: StaticDataRegistry
     assert state["systems"][defended]["planet_units"][enemy_planet][flow.me]["infantry"] >= 1
 
 
-@ruling("F_yin/dannel-of-the-tenth-omega-quantum-dissemination-omega/2")
+@ruling("F_yin/dannel-of-the-tenth-omega-omega-quantum-dissemination-omega-omega/2")
 def test_dissemination_mallice_przed_odwroceniem(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "yin")
     position, _ = flow.plain_pair()
@@ -613,7 +615,7 @@ def test_dissemination_mallice_przed_odwroceniem(registry: StaticDataRegistry) -
     assert flow.state()["systems"][position]["planet_owners"]["mallice"] == flow.me
 
 
-@ruling("F_yin/dannel-of-the-tenth-omega-quantum-dissemination-omega/4")
+@ruling("F_yin/dannel-of-the-tenth-omega-omega-quantum-dissemination-omega-omega/4")
 def test_dissemination_wszystkie_ladowania_przed_walkami(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     a, b = _planet(registry, "20"), _planet(registry, "21")
@@ -628,9 +630,8 @@ def test_dissemination_wszystkie_ladowania_przed_walkami(registry: StaticDataReg
     assert state.active_combat is None
 
 
-@ruling("F_yin/dannel-of-the-tenth-omega-quantum-dissemination-omega/7",
-        "F_yin/dannel-of-the-tenth-omega-quantum-dissemination-omega/7.1",
-        "F_yin/dannel-of-the-tenth-omega-quantum-dissemination-omega/7.2")
+@ruling("F_yin/dannel-of-the-tenth-omega-omega-quantum-dissemination-omega-omega/7",
+        "F_yin/dannel-of-the-tenth-omega-omega-quantum-dissemination-omega-omega/7.1")
 def test_dissemination_parley(registry: StaticDataRegistry) -> None:
     from src.core.hooks import reactions_invasion
 

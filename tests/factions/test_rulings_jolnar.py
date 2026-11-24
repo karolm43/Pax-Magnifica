@@ -171,7 +171,6 @@ def _conduit(state: GameState, active: str) -> GameState:
     return _accept(state, "p1", "Spatial Conduit")
 
 
-@ruling("F_jol_nar/spatial-conduit-cylinder/2")
 def test_scc_wyjscie_z_gravity_rift_wymaga_rzutu(grid: HexGrid) -> None:
     """101 (gravity rift) nie sąsiaduje ze 105; trasa 101 → 105 przez SCC nadal rzuca
     za szczelinę."""
@@ -188,7 +187,7 @@ def test_scc_wyjscie_z_gravity_rift_wymaga_rzutu(grid: HexGrid) -> None:
     assert movement.rift_nodes(after, grid, path, "p1") == ["101"]
 
 
-@ruling("F_jol_nar/spatial-conduit-cylinder/3", "technologies:scc#2")
+@ruling("technologies:scc#2")
 def test_scc_statek_leci_przez_inne_systemy(grid: HexGrid) -> None:
     """Krążownik ze 104 leci przez 103 (piechota Jol-Nar; 103 nie sąsiaduje ze 105) do aktywnego
     105 w 2 ruchach - może tam zabrać ładunek. Bez SCC ta trasa jest dłuższa."""
@@ -240,7 +239,7 @@ def test_ra_kilka_badan_wybor_kazdego(registry: StaticDataRegistry) -> None:
     assert {o["value"] for o in options} == {"nm", "sdn"}
 
 
-@ruling("F_jol_nar/research-agreement/2", "F_jol_nar/research-agreement/2.1")
+@ruling("F_jol_nar/research-agreement/2")
 def test_ra_z_transakcji_tuz_po_badaniu(registry: StaticDataRegistry, grid: HexGrid) -> None:
     state = _state()
     _neighbors(state)
@@ -257,7 +256,7 @@ def test_ra_z_transakcji_tuz_po_badaniu(registry: StaticDataRegistry, grid: HexG
         transaction.validate_transaction(after, grid, "p2", give, TransactionSide())
 
 
-@ruling("F_jol_nar/research-agreement/2.2", "promissory_notes:ra#2")
+@ruling("F_jol_nar/research-agreement/2.1", "promissory_notes:ra#2")
 def test_ra_raz_na_jedno_badanie(registry: StaticDataRegistry, grid: HexGrid) -> None:
     """Notka wraca do Jol-Nar; przekazana trzeciemu graczowi nie da tej samej technologii."""
     state = _state()
@@ -275,7 +274,7 @@ def test_ra_raz_na_jedno_badanie(registry: StaticDataRegistry, grid: HexGrid) ->
         promissory_play.play(after, registry, "p3", "ra", {"technology": "nm"})
 
 
-@ruling("F_jol_nar/research-agreement/2.3")
+@ruling("F_jol_nar/research-agreement/2.2")
 def test_ra_odzyskana_transakcja_dziala_przy_kolejnym_badaniu(
     registry: StaticDataRegistry, grid: HexGrid
 ) -> None:
@@ -381,7 +380,7 @@ def test_sucaban_piechota_bez_infantry_ii(registry: StaticDataRegistry) -> None:
 # ===================================================================================== Agnlan Oln
 
 
-@ruling("F_jol_nar/ta-zern-agnlan-oln/1")
+@ruling("F_jol_nar/ta-zern-agnlan-oln/3")
 def test_agnlan_nie_dla_rzutow_combat(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].leader_states = {"jolnarcommander": "unlocked"}
@@ -395,7 +394,7 @@ def test_agnlan_nie_dla_rzutow_combat(registry: StaticDataRegistry) -> None:
     assert rows["jolnarcommander"]["playable"] is False
 
 
-@ruling("F_jol_nar/ta-zern-agnlan-oln/2")
+@ruling("F_jol_nar/ta-zern-agnlan-oln/4")
 def test_agnlan_nie_dla_infantry_ii(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].leader_states = {"jolnarcommander": "unlocked"}
@@ -472,7 +471,7 @@ def _compound_state() -> GameState:
     return state
 
 
-@ruling("F_jol_nar/specialized-compounds/1")
+@ruling("F_jol_nar/specialized-compounds/3")
 def test_compounds_nie_dla_ulepszen(registry: StaticDataRegistry) -> None:
     state = _compound_state()
     state.players["p1"].technologies = ["ps", "asc"]  # dd2 wymaga RR
@@ -492,7 +491,7 @@ def test_compounds_kolor_nawet_bez_prerekwizytow(registry: StaticDataRegistry) -
     assert _compound(state, registry, {"tech": "ps", "compound_planet": "industrex"}) == "ps"
 
 
-@ruling("F_jol_nar/specialized-compounds/3")
+@ruling("F_jol_nar/specialized-compounds/5")
 def test_compounds_ta_sama_planeta_nie_placi_i_nie_pomija(registry: StaticDataRegistry) -> None:
     """Assault Cannon (RRR): Plasma Scoring + Analytical + Industrex jako skip - nie zapłaci nią."""
     state = _compound_state()
@@ -503,7 +502,7 @@ def test_compounds_ta_sama_planeta_nie_placi_i_nie_pomija(registry: StaticDataRe
         })
 
 
-@ruling("F_jol_nar/specialized-compounds/4", "breakthroughs:jolnarbt#1")
+@ruling("breakthroughs:jolnarbt#1")
 def test_compounds_bez_synergii(registry: StaticDataRegistry) -> None:
     """Wyczerpana planeta wiąże kolor badania z JEJ specjalnością („you must research a technology
     of that color”) - synergia (zielony/żółty) tego nie odwraca: Wellon (żółta) nie zapłaci za

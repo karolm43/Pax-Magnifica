@@ -148,7 +148,7 @@ def _pds2(registry: StaticDataRegistry) -> str:
     )
 
 
-@ruling("C_agendas/enforced-travel-ban/4", "C_agendas/nexus-sovereignty/3")
+@ruling("C_agendas/nexus-sovereignty/3")
 @pytest.mark.parametrize("law", ["travel_ban", "nexus"])
 def test_travel_ban_deep_space_cannon_still_shoots(registry: StaticDataRegistry, law: str) -> None:
     state, grid = _wormhole_pair(registry, law)
@@ -210,7 +210,7 @@ def _commerce_state(registry: StaticDataRegistry) -> GameState:
     return state
 
 
-@ruling("C_agendas/minister-of-commerce/1", "C_agendas/minister-of-commerce/2")
+@ruling("C_agendas/minister-of-commerce/1", "C_agendas/minister-of-commerce/3")
 def test_commerce_any_replenish_pays_all_neighbors_at_once(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -366,7 +366,7 @@ def test_policy_draws_one_more_card_at_the_end_of_status(registry: StaticDataReg
     assert state.players["p2"].private.action_cards == []
 
 
-@ruling("C_agendas/minister-of-war/1")
+@ruling("C_agendas/minister-of-war/3")
 def test_minister_of_war_extra_action_without_turn_events(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -614,7 +614,6 @@ def _nebula(registry: StaticDataRegistry) -> str:
                 if "NEBULA" in {a.upper() for a in d.anomalies} and not d.planets)
 
 
-@ruling("C_agendas/shared-research/1")
 def test_shared_research_cannot_end_in_a_non_active_nebula(registry: StaticDataRegistry) -> None:
     nebula = _nebula(registry)
     grid = _line(registry, ("101", "19"), ("102", nebula), ("103", "20"))
@@ -632,7 +631,6 @@ def test_shared_research_cannot_end_in_a_non_active_nebula(registry: StaticDataR
     assert movement.route_error(state, grid, ["101", "102"], "p1", "cruiser") is None
 
 
-@ruling("C_agendas/shared-research/2")
 def test_shared_research_ship_leaving_a_nebula_has_move_one(registry: StaticDataRegistry) -> None:
     nebula = _nebula(registry)
     grid = _line(registry, ("101", nebula), ("102", "19"), ("103", "20"))
@@ -654,7 +652,7 @@ def test_shared_research_ship_leaving_a_nebula_has_move_one(registry: StaticData
 # ======================================================================= Swords to Plowshares
 
 
-@ruling("C_agendas/swords-to-plowshares/1")
+@ruling("C_agendas/swords-to-plowshares/2")
 def test_plowshares_for_ignores_mechs(registry: StaticDataRegistry) -> None:
     state = _state(registry, ["plowshares"])
     planet = _planet(state, "p1")
@@ -698,7 +696,7 @@ def _wr_state(registry: StaticDataRegistry) -> GameState:
     return state
 
 
-@ruling("C_agendas/wormhole-research/1", "C_agendas/wormhole-research/5")
+@ruling("C_agendas/wormhole-research/1", "C_agendas/wormhole-research/3")
 def test_wormhole_research_delta_ships_research_and_survive(registry: StaticDataRegistry) -> None:
     out = _resolve(registry, _wr_state(registry), "for")
     assert {o.player_id for o in out.pending_offers} == {"p1", "p3"}  # p2 bez wormhole
@@ -714,7 +712,7 @@ def test_wormhole_research_nexus_like_system_is_destroyed(registry: StaticDataRe
     assert out.systems["101"].space_units.get("p1", {}) == {}
 
 
-@ruling("C_agendas/wormhole-research/2")
+@ruling("C_agendas/wormhole-research/4")
 def test_wormhole_research_needs_prerequisites(registry: StaticDataRegistry) -> None:
     from src.core import research_offer
 
@@ -725,7 +723,7 @@ def test_wormhole_research_needs_prerequisites(registry: StaticDataRegistry) -> 
         research_offer.resolve(out, registry, "p1", {"params": {"research": {"tech": hard.id}}})
 
 
-@ruling("C_agendas/wormhole-research/3")
+@ruling("C_agendas/wormhole-research/2")
 def test_wormhole_research_ground_forces_removed_fighters_destroyed(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
 ) -> None:

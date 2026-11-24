@@ -12,6 +12,12 @@ Various game effects can cause a unit to be destroyed. When a player’s unit is
 
 ## Notes
 
+- A ship removed by a gravity rift is not destroyed.
+- Units that are removed due to capacity limits are not destroyed. For example, removed Infantry II units do not roll for the Infantry II unit upgrade’s ability.
+- Ships that are removed because they exceed a player’s fleet pool limit are not destroyed.
+- If a player has a fighter token or infantry token that is not accompanied by a plastic piece of the same type and cannot replace it, the token is removed instead of destroyed.
+- Units destroyed by space cannon or bombardment rolls are not destroyed during combat. Units destroyed by anti–fighter barrage rolls are destroyed during combat.
+
 ## Related Topics
 
 - [Anti–Fighter Barrage](https://www.tirules2.com/R_anti_fighter_barrage)

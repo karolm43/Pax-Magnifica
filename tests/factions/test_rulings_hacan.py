@@ -147,7 +147,7 @@ def test_arbiters_odbiorca_ponad_limit_odrzuca(registry: StaticDataRegistry) -> 
     assert hand_limit.over_limit_reason(done, "p2") is not None
 
 
-@ruling("F_hacan/arbiters/3")
+@ruling("F_hacan/arbiters/2")
 def test_arbiters_hacan_nie_oddaje_nadwyzki(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].private.action_cards = _cards(8)
@@ -156,7 +156,7 @@ def test_arbiters_hacan_nie_oddaje_nadwyzki(registry: StaticDataRegistry) -> Non
         transaction.validate_transaction(state, _grid(), "p2", side, TransactionSide())
 
 
-@ruling("F_hacan/arbiters/4")
+@ruling("F_hacan/arbiters/3")
 def test_arbiters_dziala_pod_political_secret(registry: StaticDataRegistry) -> None:
     state = _state()
     active_effects.add_effect(state, POLITICAL_SECRET_EFFECT, Duration.AGENDA, owner="p1")
@@ -169,7 +169,7 @@ def test_arbiters_dziala_pod_political_secret(registry: StaticDataRegistry) -> N
 
 
 @ruling(
-    "F_hacan/trade-convoys/1", "F_hacan/trade-convoys/2", "promissory_notes:convoys#2",
+    "F_hacan/guild-ships/1", "F_hacan/guild-ships/2", "promissory_notes:convoys#2",
 )
 def test_trade_convoys_bez_sasiedztwa_inicjuje_kazdy(registry: StaticDataRegistry) -> None:
     state = _convoys_state()
@@ -179,7 +179,7 @@ def test_trade_convoys_bez_sasiedztwa_inicjuje_kazdy(registry: StaticDataRegistr
     assert transaction.can_transact_with(state, _grid(), "p2", "p1")  # inicjuje posiadacz
 
 
-@ruling("F_hacan/trade-convoys/3")
+@ruling("F_hacan/guild-ships/3")
 def test_trade_convoys_jedna_transakcja_na_ture(registry: StaticDataRegistry) -> None:
     side = TransactionSide(trade_goods=1)
     state = _convoys_state()
@@ -187,13 +187,12 @@ def test_trade_convoys_jedna_transakcja_na_ture(registry: StaticDataRegistry) ->
     assert not transaction.can_transact_with(done, _grid(), "p1", "p2")
 
 
-@ruling("F_hacan/trade-convoys/4")
 def test_trade_convoys_na_rece_bez_efektu(registry: StaticDataRegistry) -> None:
     state = _convoys_state(holder_note="hand")
     assert not transaction.can_transact_with(state, _grid(), "p1", "p2")
 
 
-@ruling("F_hacan/trade-convoys/6", "promissory_notes:convoys#3")
+@ruling("F_hacan/trade-convoys/2", "promissory_notes:convoys#3")
 def test_trade_convoys_wraca_przy_samych_strukturach(registry: StaticDataRegistry) -> None:
     state = _convoys_state()
     planet = registry.systems["20"].planets[0]
@@ -216,7 +215,7 @@ def test_trade_convoys_wraca_przy_samych_strukturach(registry: StaticDataRegistr
     assert hacan.CONVOYS in again.players["p2"].promissory_notes_in_play
 
 
-@ruling("F_hacan/trade-convoys/7")
+@ruling("F_hacan/trade-convoys/3")
 def test_trade_convoys_zeton_z_diplomacy_nie_zwraca(registry: StaticDataRegistry) -> None:
     state = _convoys_state()
     state.systems["000"].space_units["p3"] = {"carrier": 1}  # jednostki Hacan w systemie
@@ -334,7 +333,6 @@ def test_carth_uzupelnia_pelne_commodities_i_otwiera_trade_agreement(
     assert [w.ctx.get("player") for w in windows] == ["p2"]  # „when … replenishes” i tak
 
 
-@ruling("F_hacan/carth-of-golden-sands/2")
 def test_carth_hacan_maks_szesc_commodities(registry: StaticDataRegistry) -> None:
     state = _state()
     assert registry.factions["hacan"].commodities == 6
@@ -344,7 +342,7 @@ def test_carth_hacan_maks_szesc_commodities(registry: StaticDataRegistry) -> Non
     assert state.players["p1"].commodities == 6
 
 
-@ruling("F_hacan/carth-of-golden-sands/3")
+@ruling("F_hacan/carth-of-golden-sands/2")
 def test_carth_nie_w_trakcie_innej_zdolnosci(registry: StaticDataRegistry) -> None:
     state = _state()
     assert hacan._agent_window(state, registry, "p1") is None
@@ -360,7 +358,7 @@ def test_carth_nie_w_trakcie_innej_zdolnosci(registry: StaticDataRegistry) -> No
 # =========================================================================== Gila the Silvertongue
 
 
-@ruling("F_hacan/gila-the-silvertongue/1", "F_hacan/gila-the-silvertongue/1.1")
+@ruling("F_hacan/gila-the-silvertongue/1")
 def test_gila_glosy_do_tego_samego_wyniku(registry: StaticDataRegistry) -> None:
     """Dodatkowe głosy to modyfikator TEGO SAMEGO oddania głosów (jeden wynik); 0 głosów = 0."""
     state = _state()
@@ -379,7 +377,6 @@ def test_gila_odblokowanie_dziesiec_tg(registry: StaticDataRegistry) -> None:
     assert hacan._commander_unlocked(state, registry, "p1")
 
 
-@ruling("F_hacan/gila-the-silvertongue/1.2")
 def test_gila_przez_alliance(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "hacan")
     color = flow.state()["players"][flow.me]["color"]

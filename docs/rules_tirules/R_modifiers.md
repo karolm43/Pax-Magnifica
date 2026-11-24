@@ -13,7 +13,7 @@ A modifier is a number that is applied by an ability to increase or decrease the
 ## Notes
 
 - “Combat roll” modifiers do not modify anti–fighter barrage, bombardment or space cannon rolls.
-- When an effect moves a unit to an adjacent system, modifying that unit’s move value will have no effect.
+- When an effect, such as retreating, moves a unit to an adjacent system, modifying that unit’s move value will have no effect.
 
 ## Related Topics
 

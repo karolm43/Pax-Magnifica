@@ -71,7 +71,7 @@ def _accept(
 # =================================================================================== Blood Ties
 
 
-@ruling("F_winnu/blood-ties/1", "abilities:blood_ties#1")
+@ruling("abilities:blood_ties#1")
 def test_blood_ties_bez_wplywu_ale_z_silami_naziemnymi(registry: StaticDataRegistry) -> None:
     """Winnu zdejmuje żeton bez wpływu, ale nadal musi mieć siły naziemne i zlądować."""
     state = custodians_tests._state(trade_goods=0)
@@ -103,7 +103,7 @@ def _gained_in_action(state: GameState, registry: StaticDataRegistry, position: 
 
 
 @ruling(
-    "F_winnu/reclamation/1", "F_winnu/reclaimer/1", "abilities:reclamation#1", "units:winnu_mech#1",
+    "F_winnu/reclamation/1", "F_winnu/reclaimer/2", "abilities:reclamation#1", "units:winnu_mech#1",
 )
 def test_struktury_po_akcji_po_kroku_produkcji(registry: StaticDataRegistry) -> None:
     """Reclamation i Reclaimer: oferta dopiero PO akcji taktycznej (po kroku Production);
@@ -122,7 +122,6 @@ def test_struktury_po_akcji_po_kroku_produkcji(registry: StaticDataRegistry) -> 
     assert production.production_system(after) is None  # nowy dok nie ma już czego produkować
 
 
-@ruling("F_winnu/reclaimer/2")
 def test_reclaimer_pusta_rezerwa_struktura_z_planszy(registry: StaticDataRegistry) -> None:
     """Bez PDS w rezerwie Reclaimer bierze PDS z systemu bez własnego żetonu dowodzenia."""
     state = _state()
@@ -171,7 +170,7 @@ def _secondary_window(state: GameState, initiative: int, **extra: str | int) -> 
     )
 
 
-@ruling("F_winnu/acquiescence-omega/1", "promissory_notes:acq#1")
+@ruling("promissory_notes:acq#1")
 def test_acquiescence_construction_bez_zetonu(registry: StaticDataRegistry) -> None:
     """Construction z Acquiescence: struktura bez wydania żetonu i bez żetonu na planszy."""
     state = _secondary_window(_state(), 4)
@@ -187,7 +186,7 @@ def test_acquiescence_construction_bez_zetonu(registry: StaticDataRegistry) -> N
     assert all(not s.command_tokens for s in after.systems.values())
 
 
-@ruling("F_winnu/acquiescence-omega/2")
+@ruling("F_winnu/acquiescence-omega/1")
 def test_acquiescence_nie_wydaje_zetonu_strategii(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -225,7 +224,7 @@ def _dock_on_mecatol(registry: StaticDataRegistry) -> GameState:
     return state
 
 
-@ruling("F_winnu/hegemonic-trade-policy/1")
+@ruling("F_winnu/hegemonic-trade-policy/2")
 def test_htp_zmienia_production_doku(registry: StaticDataRegistry) -> None:
     state = _dock_on_mecatol(registry)
     stats = registry.planets[_MR]
@@ -275,7 +274,7 @@ def test_lgf_wyczerpana_nadal_tunel(registry: StaticDataRegistry) -> None:
     assert action_adjacency.extra_adjacent(state, "000") == frozenset()
 
 
-@ruling("F_winnu/lazax-gate-folding/2.2", "F_winnu/lazax-gate-folding/2.3")
+@ruling("F_winnu/lazax-gate-folding/2.2")
 def test_lgf_deep_space_cannon_innych_graczy(
     registry: StaticDataRegistry, _grid: HexGrid
 ) -> None:
@@ -314,7 +313,7 @@ def test_lgf_akcja_z_kontrola_i_bez(registry: StaticDataRegistry) -> None:
 # ======================================================================= Berekar Berekon
 
 
-@ruling("F_winnu/berekar-berekon/1", "leaders:winnuagent#1")
+@ruling("leaders:winnuagent#1")
 def test_berekar_obniza_koszt_nie_limit(registry: StaticDataRegistry, _grid: HexGrid) -> None:
     state = _dock_on_mecatol(registry)
     state.players["p1"].trade_goods = 20
@@ -408,7 +407,7 @@ def test_mathis_wskazani_placa_zeton_poza_leadership(registry: StaticDataRegistr
     assert CARDS[1].secondary_costs_token is False  # Leadership: bez żetonu
 
 
-@ruling("F_winnu/mathis-mathinus-imperial-seal/2")
+@ruling("F_winnu/mathis-mathinus-imperial-seal/1.1")
 def test_mathis_trade_wskazany_primary_musi(registry: StaticDataRegistry) -> None:
     """Trade z bohatera: wskazany primary (p3) MUSI i nie płaci; wskazany bohaterem (p2) może,
     ale płaci żeton."""
@@ -426,7 +425,7 @@ def test_mathis_trade_wskazany_primary_musi(registry: StaticDataRegistry) -> Non
     assert "p3" in after_p2.last_replenished and "p2" not in after_p2.last_replenished
 
 
-@ruling("F_winnu/mathis-mathinus-imperial-seal/3")
+@ruling("F_winnu/mathis-mathinus-imperial-seal/2")
 def test_mathis_nie_wyzwala_acquiescence(registry: StaticDataRegistry) -> None:
     state = _three_players()
     state.players["p2"].private.promissory_notes = ["acq"]

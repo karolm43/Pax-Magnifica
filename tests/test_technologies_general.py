@@ -92,7 +92,7 @@ def test_fleet_logistics_daje_druga_akcje_ale_nie_trzecia() -> None:
         component_action.play_component_action(state, "p1")
 
 
-@ruling("C_technology/fleet-logistics/5")
+@ruling("C_technology/fleet-logistics/4")
 def test_fleet_logistics_pozwala_oddac_ture_po_jednej_akcji_i_zeruje_licznik() -> None:
     state = component_action.play_component_action(_action_state(["fl"]), "p1")
     state = turn_flow.end_turn(state, "p1")

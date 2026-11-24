@@ -101,7 +101,7 @@ def test_peace_accords_cele(registry: StaticDataRegistry) -> None:
     assert ("102", free) not in xxcha.peace_targets(with_units, "p1")  # planeta z jednostkami
 
 
-@ruling("F_xxcha/peace-accords/3", "abilities:peace_accords#1")
+@ruling("abilities:peace_accords#1")
 def test_peace_accords_cudza_planeta_i_wyczerpana(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     free = _planet(registry, "21")
@@ -114,7 +114,6 @@ def test_peace_accords_cudza_planeta_i_wyczerpana(registry: StaticDataRegistry) 
     assert state.exploration is None  # kontrolowana wcześniej - bez eksploracji (F_xxcha)
 
 
-@ruling("F_xxcha/peace-accords/2")
 def test_peace_accords_niekontrolowana_eksploracja(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     free = _planet(registry, "21")
@@ -154,7 +153,7 @@ def test_quash_okno_i_zeton(registry: StaticDataRegistry) -> None:
     assert "agenda is revealed" in str(xxcha._quash_window(outside, registry, "p1"))
 
 
-@ruling("F_xxcha/quash/2", "F_xxcha/quash/3", "abilities:quash#2")
+@ruling("F_xxcha/quash/5", "F_xxcha/quash/3", "abilities:quash#2")
 def test_quash_podmiana_political_secret_i_transakcje(registry: StaticDataRegistry) -> None:
     """F_xxcha: Political Secret wraca bez efektu na nowej agendzie; każda agenda = nowa
     transakcja; Quash wolno użyć na agendzie zastępczej."""
@@ -180,7 +179,7 @@ def test_political_secret_blokuje_quash(registry: StaticDataRegistry) -> None:
     assert reason is not None and "Political Secret" in reason
 
 
-@ruling("F_xxcha/political-favor/2")
+@ruling("F_xxcha/political-favor/3")
 def test_political_favor_bez_zetonu_xxcha(registry: StaticDataRegistry) -> None:
     state = _agenda_state(registry)
     window = next(
@@ -448,7 +447,7 @@ def test_space_cannon_na_sasiedni_system(registry: StaticDataRegistry) -> None:
 # ------------------------------------------------------------------- Archon's Gift (BT)
 
 
-@ruling("F_xxcha/archons-gift/3", "breakthroughs:xxchabt#1", "breakthroughs:xxchabt#2")
+@ruling("F_xxcha/archons-gift/2", "breakthroughs:xxchabt#1", "breakthroughs:xxchabt#2")
 def test_archons_gift_tylko_wydawanie(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     mine = _planet(registry, "20")

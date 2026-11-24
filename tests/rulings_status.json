@@ -1,5 +1,5 @@
 {
-  "F_ul/heltitan/3": {
+  "F_ul/heltitan/2": {
     "gap": "Decoy Operation i Transit Diodes przenoszą tylko piechotę i mechy (GROUND_FORCES) - Hel-Titan (struktura i siła naziemna) nie jest jeszcze ich celem (RULES.md 62.18)."
   },
   "breakthroughs:titansbt#1": {
@@ -8,70 +8,61 @@
   "breakthroughs:titansbt#2": {
     "gap": "Koegzystencja (blok I4) niezaimplementowana - brak dodatkowych kart akcji za koegzystujących graczy w fazie statusu (RULES.md 62.18)."
   },
-  "F_naalu/neuroglaive/2": {
+  "F_naalu/neuroglaive/1": {
     "requires": ["faction:mahact"],
     "reason": "Żetony innych graczy w puli floty Mahact (Edict) - frakcja Mahact niezaimplementowana."
   },
-  "F_naalu/zeu/*": {
+  "F_naalu/zeu-replaced-by-omega/*": {
     "na": "Nieaktywny wariant agenta: grą gra Z'eu z Thunder's Edge (naaluagent-te = rulingi Z'eu ΩΩ, RULES.md 62.16)."
   },
-  "F_naalu/zeu-omega/*": {
+  "F_naalu/zeu-omega-replaced-by-omega-omega/*": {
     "na": "Nieaktywny wariant agenta (Codex: tactical action innego gracza) - grą gra Z'eu z Thunder's Edge (naaluagent-te)."
   },
-  "F_naalu/maban/*": {
+  "F_naalu/maban-replaced-by-omega/*": {
     "na": "Nieaktywny wariant commandera (PoK: dodatkowe myśliwce przy produkcji) - grą gra M'aban z Codexu (rulingi M'aban Ω)."
   },
-  "F_naalu/iconoclast/*": {
+  "F_naalu/iconoclast-replaced-by-omega/*": {
     "na": "Nieaktywny wariant mecha (PoK: +2 przeciw graczowi z fragmentem reliktu) - grą gra Iconoclast TE (naalu_mech_te = rulingi Iconoclast ΩΩ)."
   },
-  "F_naalu/iconoclast-omega/*": {
+  "F_naalu/iconoclast-omega-replaced-by-omega-omega/*": {
     "na": "Nieaktywny wariant mecha (Codex: zakaz AFB) - grą gra Iconoclast TE (naalu_mech_te)."
   },
-  "F_naaz_rokha/eidolon-zgrav-eidolon/2.1": {
-    "gap": "Brak okna „po flipie Eidolon inni gracze mogą użyć jednej zdolności przed kolejną” - hooki startu walki rozstrzygają się po kolei (jak C_technology/assault-cannon/3.1)."
-  },
-  "F_naaz_rokha/eidolon-maximum/1": {
+  "F_naaz_rokha/eidolon-maximum/3": {
     "gap": "Eidolon Maximum w przestrzeni liczy się zawsze do puli floty (statek), nigdy do pojemności - wariant „albo pojemność” niedostępny (test: test_eidolon_maximum_rusza_sie_i_liczy_do_puli)."
   },
-  "F_naaz_rokha/eidolon-maximum/6.1": {
+  "F_naaz_rokha/eidolon-maximum/2.3": {
     "gap": "Direct Hit na Eidolon Maximum działa w walce kosmicznej (ślad Sustain Damage), ale nie w walce naziemnej - Direct Hit w silniku obsługuje tylko walkę kosmiczną i Space Cannon."
   },
   "_opis": "Rulingi/zdania kart BEZ testu, z jawnym powodem (tests/rulings.py, strażnik tests/test_ruling_coverage.py). 'na' = nie dotyczy (powód). 'requires' = wymaga niezaimplementowanych elementów (faction:<moduł>, <kategoria>:<id> jak w rules_hooks.covered_components) - gdy wszystkie będą gotowe, strażnik wymusi test. Klucz zakończony '/*' = cała sekcja.",
-  "F_xxcha/xxekir-grom-political-data-nexus/*": {
+  "F_xxcha/xxekir-grom-political-data-nexus-replaced-by-omega/*": {
     "na": "Nieaktywny wariant bohatera: grę gra Xxekir Grom z Thunder's Edge (xxchahero-te), decyzja użytkownika 2026-11-16."
   },
-  "F_xxcha/xxekir-grom-political-data-nexus-omega/*": {
+  "F_xxcha/xxekir-grom-political-data-nexus-omega-replaced-by-omega-omega/*": {
     "na": "Nieaktywny wariant bohatera (Codex Ω): grę gra Xxekir Grom z Thunder's Edge (xxchahero-te), decyzja użytkownika 2026-11-16."
   },
   "F_xxcha/elder-qanoj/4": {
     "requires": ["faction:nekro"],
     "reason": "Nekro z notką Alliance Xxcha głosuje i nadal przewiduje wynik (Galactic Threat)."
   },
-  "F_arborec/stymie/*": {
+  "F_arborec/stymie-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko Stymie Ω („After another player moves ships into a system…”, karta wraca od razu); ta sekcja opisuje starą kartę leżącą w strefie gry."
   },
-  "F_arborec/letani-warrior/1": {
-    "na": "Ruling dotyczy Warfare z PoK („PRODUCTION 1 of your space docks”). W grze obowiązuje te6warfare z Thunder's Edge (RULES.md 30.4, decyzja użytkownika): secondary używa „Production abilities of the units in your home system”, więc ta blokada nie obowiązuje."
-  },
-  "F_arborec/letani-behemoth/2": {
-    "na": "Ruling dotyczy Warfare z PoK („PRODUCTION 1 of your space docks”). W grze obowiązuje te6warfare z Thunder's Edge (RULES.md 30.4, decyzja użytkownika): secondary używa „Production abilities of the units in your home system”, więc ta blokada nie obowiązuje."
-  },
-  "F_yin/greyfire-mutagen/*": {
+  "F_yin/greyfire-mutagen-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Greyfire Mutagen Ω - notka zastępująca piechotę, nie kopiowanie zdolności frakcji); ta sekcja opisuje starą kartę z PoK."
   },
-  "F_yin/yin-spinner/*": {
+  "F_yin/yin-spinner-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Yin Spinner Ω - „After you produce units…”); ta sekcja opisuje starą kartę z PoK."
   },
-  "F_yin/brother-milor/*": {
+  "F_yin/brother-milor-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Brother Milor Ω - „After a player's unit is destroyed during combat…”); ta sekcja opisuje starą kartę z PoK."
   },
-  "F_yin/brother-omar/*": {
+  "F_yin/brother-omar-replaced-by-omega-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Brother Omar Ω - zielony prerekwizyt i zwrot piechoty przy badaniu); ta sekcja opisuje starą kartę z PoK."
   },
-  "F_yin/dannel-of-the-tenth-spinner-overdrive/*": {
+  "F_yin/dannel-of-the-tenth-spinner-overdrive-replaced-by-omega-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Dannel of the Tenth Ω - Quantum Dissemination); ta sekcja opisuje starą kartę z PoK."
   },
-  "F_argent/raid-formation/4.3": {
+  "F_argent/raid-formation/4.2": {
     "requires": ["faction:empyrean"],
     "reason": "Dynamo (flagowiec Empyrean) nie naprawia statków uszkodzonych przez Raid Formation - frakcja niezaimplementowana."
   },
@@ -79,11 +70,8 @@
     "requires": ["faction:nekro"],
     "reason": "Mechy Nekro w walce kosmicznej (The Alastor) mogą zostać uszkodzone przez Raid Formation - frakcja niezaimplementowana."
   },
-  "F_lizix/cybernetic-enhancements/1": {
+  "F_lizix/cybernetic-enhancements-replaced-by-omega/2": {
     "na": "Ruling dotyczy starej wersji notki (żeton z puli strategii L1Z1X). Assety mają tekst „When you gain command tokens during the status phase: Gain 1 additional command token” - bez puli L1Z1X (RULES.md 62.12)."
-  },
-  "F_lizix/the-helmsman-dark-space-navigation/2": {
-    "na": "Zastąpione rulingiem FAQ the-helmsman-dark-space-navigation/2.2 (podany przez użytkownika 2026-11-18): przy ruchu bohaterem wolno transportować z systemu z własnym żetonem (test 2.2 w tests/factions/test_l1z1x.py)."
   },
   "F_argent/mirik-aun-sissiri-helix-protocol/3": {
     "na": "Zastąpione rulingiem FAQ helix-protocol/3.2 (podany przez użytkownika 2026-11-18): przy ruchu bohaterem wolno transportować z systemu z własnym żetonem (test 3.2 w tests/factions/test_argent.py)."
@@ -95,34 +83,31 @@
     "requires": ["faction:nekro"],
     "reason": "Commander Nekro (Alliance u Jol-Nar) nie dobiera kart akcji przy Genetic Memory - Genetic Memory nie wywołuje badania (grant_technology), test po wdrożeniu Nekro."
   },
-  "F_mentak/pillage/3": {
+  "F_mentak/pillage/2": {
     "requires": ["faction:creuss"],
     "reason": "Sąsiedztwo przez Quantum Entanglement (Creuss: alfa = beta) - frakcja niezaimplementowana; Pillage liczy sąsiedztwo z neighbors_of, które wtedy je uwzględni."
   },
-  "F_mentak/pillage/9.1": {
+  "F_mentak/pillage/6.1": {
     "na": "Umowy między graczami są niewiążące i poza silnikiem (R_trade, RULES.md 47); Pillage jest ofertą po rozstrzygnięciu transakcji (TRANSACTION AFTER) - silnik nie przyjmuje deklaracji wcześniej."
   },
   "F_mentak/corsair/3": {
     "requires": ["faction:nekro"],
     "reason": "Valefar Assimilator (Nekro) na Corsairze - frakcja niezaimplementowana."
   },
-  "F_letnev/war-funding/*": {
+  "F_letnev/war-funding-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko War Funding Ω z Codexu („After you and your opponent roll dice during space combat…”, bez utraty TG Letneva); ta sekcja opisuje starą kartę z PoK."
   },
-  "F_letnev/arc-secundus/3": {
+  "F_letnev/arc-secundus/2": {
     "na": "Nieaktywny wariant: w grze jest tylko Magen Defense Grid ΩΩ (md, codex4) - md_base jest zastąpiony (technologies_combat.declare_superseded); ruling 3.1 ma test."
   },
-  "F_winnu/acquiescence/*": {
+  "F_winnu/acquiescence-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko Acquiescence Ω („When the Winnu player resolves a strategic action: You do not have to spend or place a command token…”); ta sekcja opisuje starą notkę z zamianą kart strategii."
-  },
-  "F_winnu/mathis-mathinus-imperial-seal/1.1": {
-    "na": "Ruling dotyczy Construction z PoK (żeton w systemie struktury). W grze obowiązuje te4construction (RULES.md 30.12, R_construction): secondary tylko wydaje żeton ze strategy pool, nie kładzie go na planszy."
   },
   "F_winnu/salai-sai-corian/2": {
     "requires": ["faction:nekro"],
     "reason": "Siły naziemne Nekro w walce w przestrzeni przez flagowiec The Alastor - frakcja niezaimplementowana; Salai Sai Corian liczy dziś statki bez myśliwców w przestrzeni."
   },
-  "F_winnu/lazax-gate-folding/2.5": {
+  "F_winnu/lazax-gate-folding/2.4": {
     "requires": ["faction:creuss"],
     "reason": "Dimensional Splicer Creuss w Mecatol Rex w akcji Winnu - frakcja niezaimplementowana; sąsiedztwo z akcji liczy action_adjacency, z którego skorzysta."
   },
@@ -146,12 +131,6 @@
     "requires": ["faction:creuss"],
     "reason": "Hil Colish (flagowiec Creuss) rusza się przed/po innych statkach i może użyć obu stron Ion Storm."
   },
-  "R_exploration/notes/6": {
-    "na": "Odnośnik do strony rulingów kart eksploracji (C_exploration_cards) - bez treści reguły."
-  },
-  "R_relics/notes/3": {
-    "na": "Odnośnik do strony rulingów reliktów (C_relics) - bez treści reguły."
-  },
   "R_attach/rules-reference/2.1": {
     "na": "Żadna karta attach w aktywnych assetach nie ma stanu wyczerpania - silnik trzyma attachmenty jako listę kart przy planecie (planet_attachments), stan planety jest osobny."
   },
@@ -174,25 +153,19 @@
     "gap": "Brak okna „po dołożeniu statków na starcie walki każdy inny gracz może użyć jednej zdolności przed Assault Cannon” - hooki startu walki rozstrzygają się po kolei bez takiego okna."
   },
   "C_technology/assault-cannon/3.2": {
-    "requires": [
-      "faction:nekro",
-      "faction:naaz"
-    ],
+    "requires": ["faction:nekro", "faction:naaz"],
     "reason": "Przykłady dokładania statków na starcie walki: The Alastor (Nekro), Eidolon (Naaz-Rokha), Sleeper Cell + Ambush (Mentak, bohater)."
-  },
-  "C_promissory_notes/alliance/5": {
-    "na": "Odnośnik do stron rulingów commanderów frakcji (F_<frakcja>) - bez treści reguły."
   },
   "C_promissory_notes/ceasefire/3": {
     "gap": "Pod Ceasefire aktywny gracz nie może przenieść sił naziemnych z planet aktywnego systemu do jego przestrzeni na statki, które już tam są - silnik pobiera ładunek z planet tylko przy ruchu statków (movement.move_fleet), a Ceasefire blokuje każdy ruch."
   },
-  "F_muaat/magmus-reactor/1": {
+  "F_muaat/magmus-reactor-replaced-by-omega/2": {
     "na": "Ruling dotyczy starej wersji Magmus Reactor (TG za war suna przy produkcji). Assety mają tekst Ω: „Your ships can move into supernovas. Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability...” (RULES.md 62.13)."
   },
-  "F_muaat/magmus-reactor/2": {
+  "F_muaat/magmus-reactor-replaced-by-omega/3": {
     "na": "Ruling dotyczy starej wersji Magmus Reactor (TG za war suna przy produkcji). Assety mają tekst Ω: „Your ships can move into supernovas. Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability...” (RULES.md 62.13)."
   },
-  "F_saar/floating-factory/8.1": {
+  "F_saar/floating-factory/14.1": {
     "requires": ["faction:nekro"],
     "reason": "Alastor (Nekro): siły naziemne walczące jak statki blokują dok - po implementacji Nekro (blokada liczy dziś statki w przestrzeni)."
   },
@@ -214,27 +187,36 @@
     "requires": ["faction:empyrean"],
     "reason": "Agent Empyrean (Acamar) po Nova Seed na systemie z planetami."
   },
-  "F_vuilraith/devour/3": {
-    "na": "Odsyłacz do R_capture - rulingi capture testuje tests/test_capture.py (RULES.md 61.5)."
-  },
   "F_vuilraith/amalgamation/5": {
     "gap": "Alliance commandera Naalu/Yin (dodatkowy myśliwiec/piechota za 1 zasób) + Amalgamation - kombinacja niezweryfikowana testem; aktywne warianty tych commanderów nie dają darmowej sztuki przy produkcji."
-  },
-  "F_vuilraith/crucible/5": {
-    "na": "Umowy między graczami są niewiążące (RULES.md 47) - poza silnikiem."
   },
   "F_vuilraith/the-stillness-of-stars/4": {
     "gap": "Trade primary zbiera wybór graczy z darmowym secondary (krok choose_free_players) PRZED wykonaniem primary - oferta agenta pojawia się po uzupełnieniu commodities, ale już po tym wyborze."
   },
-  "F_vuilraith/it-feeds-on-carrion-dimensional-anchor/5": {
+  "F_vuilraith/it-feeds-on-carrion-dimensional-anchor/6": {
     "requires": ["faction:nekro"],
     "reason": "Valefar Assimilator kopiujący Dimensional Tear II - frakcja Nekro niezaimplementowana."
   },
-  "R_capture/notes/1": {
-    "na": "Odsyłacz do F_vuilraith - rulingi Cabal testuje tests/factions/test_cabal.py."
-  },
-  "R_capture/notes/4": {
+  "R_capture/notes/3": {
     "requires": ["faction:nekro", "faction:yssaril"],
     "reason": "Przechwytywanie skopiowaną zdolnością bez wydawania - frakcje Nekro i Yssaril niezaimplementowane."
+  },
+  "F_lizix/cybernetic-enhancements-replaced-by-omega/1": {
+    "na": "Nagłówek tirules bez treści reguły: karta zastąpiona wersją Ω (rulingi wersji aktywnej są w osobnej sekcji)."
+  },
+  "F_muaat/magmus-reactor-replaced-by-omega/1": {
+    "na": "Nagłówek tirules bez treści reguły: karta zastąpiona wersją Ω (rulingi wersji aktywnej są w osobnej sekcji)."
+  },
+  "F_yin/brother-milor-omega-replaced-by-omega-omega/1": {
+    "na": "Nagłówek tirules bez treści reguły: karta zastąpiona wersją Ω (rulingi wersji aktywnej są w osobnej sekcji)."
+  },
+  "C_action_cards/counterstroke/1": {
+    "na": "Nagłówek tirules bez treści reguły: karta zastąpiona wersją Ω (rulingi wersji aktywnej są w osobnej sekcji)."
+  },
+  "C_action_cards/insider-information/1": {
+    "na": "Nagłówek tirules bez treści reguły: karta zastąpiona wersją Ω (rulingi wersji aktywnej są w osobnej sekcji)."
+  },
+  "C_technology/x89-bacterial-weapon/1": {
+    "na": "Nagłówek tirules bez treści reguły: karta zastąpiona wersją Ω (rulingi wersji aktywnej są w osobnej sekcji)."
   }
 }

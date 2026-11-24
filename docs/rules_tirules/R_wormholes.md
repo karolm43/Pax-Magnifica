@@ -11,19 +11,20 @@ Some systems contain wormholes. Systems that contain identical wormholes are adj
 - If a player has a PDS unit upgrade technology, they can use the `Space Cannon` abilities of their PDS units through wormholes.
 - Players can be neighbors and perform transactions through wormholes.
 - There are two advanced types of wormhole: delta and gamma. These wormholes follow all other wormhole rules.
-    - The delta wormholes are present on the Creuss Gate system tile and the Ghosts of Creuss home system tile.
+    - (Thunder’s Edge) There are three advanced types of wormhole: delta, gamma, and epsilon.
+    - The delta wormholes are present on the [Creuss Gate](https://twilight-imperium.fandom.com/wiki/The_Ghosts_of_Creuss#Faction_Abilities:~:text=Creuss%20gate) system tile and the Ghosts of [Creuss](https://www.tirules2.com/F_creuss) home system tile.
     - The gamma wormholes are present on the wormhole nexus and can be discovered during exploration.
+    - (Thunder’s Edge) The epsilon wormholes are present on [The Sorrow](https://twilight-imperium.fandom.com/wiki/The_Crimson_Rebellion#Faction_Abilities:~:text=The%20Sorrow) system tile and the [Crimson Rebellion](https://www.tirules2.com/F_rebellion) home system tile.*
 
 ## Notes
 
-- A system with a wormhole is not an anomaly.
-- If a system contains multiple wormholes of the same type, those are treated as separate wormholes.
+- A system containing a wormhole is not an anomaly.
+- If a system contains multiple wormholes of the same type, those are treated as separate wormholes.*
 - A system cannot be adjacent to itself, even if it has multiple wormholes in it.
-- A player chooses the path of adjacent systems each ship moves through during movement. If two systems on that path are adjacent because of a wormhole, that ship moves through that wormhole.
+- A player chooses the path of adjacent systems each ship moves through during movement.
     - If the two systems are adjacent because of a wormhole and because of a shared edge or another reason, the player may choose whether or not the ship moves through the wormhole.
     - If the two systems are adjacent because of two types of wormholes, the player chooses which type of wormhole the ship moves through.
-    - A player may move a ship back and forth through a wormhole between two systems any number of times, if its movement value is high enough.
-- For additional information on how the Creuss interact with wormholes, see [their faction notes page](https://www.tirules2.com/F_creuss).
+    - A player may move a ship back and forth through a wormhole between two systems any number of times, if its movement value is high enough.*
 
 ## Related Topics
 

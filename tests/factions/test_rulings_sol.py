@@ -148,7 +148,7 @@ def test_military_support_zeton_sola_piechota_i_zwrot(registry: StaticDataRegist
     assert MS in skipped.players["p1"].private.promissory_notes
 
 
-@ruling("F_sol/military-support/1")
+@ruling("F_sol/military-support/2")
 def test_military_support_przed_orbital_drop(registry: StaticDataRegistry) -> None:
     state = _p2_holds_support(registry)
     state.systems["102"].planet_owners = {"industrex": "p1"}
@@ -160,7 +160,7 @@ def test_military_support_przed_orbital_drop(registry: StaticDataRegistry) -> No
     assert _support_row(dropped, registry, "p2")["playable"] is False
 
 
-@ruling("F_sol/military-support/2")
+@ruling("F_sol/military-support/3")
 def test_military_support_w_turze_pasu_sola(registry: StaticDataRegistry) -> None:
     state = _p2_holds_support(registry)
     state.players["p1"].strategy_cards = [1]
@@ -172,7 +172,7 @@ def test_military_support_w_turze_pasu_sola(registry: StaticDataRegistry) -> Non
     assert passed.players["p1"].passed is True
 
 
-@ruling("F_sol/military-support/3")
+@ruling("F_sol/military-support/4")
 def test_military_support_bez_zetonow_strategii(registry: StaticDataRegistry) -> None:
     state = _p2_holds_support(registry)
     state.players["p1"].strategic_cc = 0
@@ -185,7 +185,7 @@ def test_military_support_bez_zetonow_strategii(registry: StaticDataRegistry) ->
     assert _infantry(after, "p2") == 2
 
 
-@ruling("F_sol/military-support/4")
+@ruling("F_sol/military-support/1")
 def test_military_support_z_transakcji_na_poczatku_tury(registry: StaticDataRegistry) -> None:
     state = _sol_turn_starts(_state())
     received = _give_support(state, registry)  # transakcja nie zamyka pauzy „początek tury”
@@ -194,7 +194,6 @@ def test_military_support_z_transakcji_na_poczatku_tury(registry: StaticDataRegi
     assert row["playable"] is True, row["reason"]
 
 
-@ruling("F_sol/military-support/4.1")
 def test_military_support_jedna_transakcja_na_ture(registry: StaticDataRegistry) -> None:
     received = _give_support(_sol_turn_starts(_state()), registry)
     received.players["p2"].private.promissory_notes = []
@@ -203,7 +202,7 @@ def test_military_support_jedna_transakcja_na_ture(registry: StaticDataRegistry)
         _give_support(received, registry)
 
 
-@ruling("F_sol/military-support/4.2")
+@ruling("F_sol/military-support/1.1")
 def test_military_support_odzyskana_nie_drugi_raz_w_oknie(registry: StaticDataRegistry) -> None:
     state = _p2_holds_support(registry)
     played, _ = promissory_play.play(state, registry, "p2", MS, {"planet": "none"})
@@ -402,7 +401,6 @@ def test_claire_gibson_bez_sil_naziemnych_brak_walki(registry: StaticDataRegistr
     assert flow.battle().get("active") is not True
 
 
-@ruling("F_sol/claire-gibson/3")
 def test_claire_gibson_atak_zniszczony_przed_walka(registry: StaticDataRegistry) -> None:
     flow, (a, b) = _two_planet_invasion(registry, (1, 1), (2, 2))
     # Space Cannon Defense niszczy wszystkie siły zlądowane na ``b`` - walki tam nie ma.
@@ -508,7 +506,7 @@ def test_bellum_gloriosum_koszt_laczny_z_para_piechoty(registry: StaticDataRegis
     assert production.order_cost(state, registry, "p1", orders) == 5  # 4 + para piechoty za 1
 
 
-@ruling("F_sol/military-support/4")
+@ruling("F_sol/military-support/1")
 def test_military_support_sol_nie_gra_wlasnej(registry: StaticDataRegistry) -> None:
     """Notka działa tylko u innego gracza - Sol musi ją oddać w transakcji."""
     state = _sol_turn_starts(_state())

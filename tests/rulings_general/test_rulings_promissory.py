@@ -59,8 +59,8 @@ def _activate_by_p2(state: GameState, position: str) -> None:
 
 
 @ruling(
+    "C_promissory_notes/support-for-the-throne/1",
     "C_promissory_notes/alliance/1",
-    "C_promissory_notes/alliance/1.1",
     "C_promissory_notes/support-for-the-throne/1",
     "C_promissory_notes/support-for-the-throne/1.1",
 )
@@ -74,10 +74,10 @@ def test_received_note_goes_straight_to_play_area(note: str) -> None:
 
 
 @ruling(
-    "C_promissory_notes/alliance/2",
-    "C_promissory_notes/alliance/4",
     "C_promissory_notes/support-for-the-throne/2",
-    "C_promissory_notes/support-for-the-throne/4",
+    "C_promissory_notes/alliance/3",
+    "C_promissory_notes/support-for-the-throne/2",
+    "C_promissory_notes/support-for-the-throne/3",
 )
 @pytest.mark.parametrize("note", ["red_an", "red_sftt"])
 def test_activating_system_with_only_owner_structures_returns_note(note: str) -> None:
@@ -90,7 +90,7 @@ def test_activating_system_with_only_owner_structures_returns_note(note: str) ->
     assert state.players["p2"].victory_points == 0
 
 
-@ruling("C_promissory_notes/alliance/3", "C_promissory_notes/support-for-the-throne/3")
+@ruling("C_promissory_notes/alliance/2", "C_promissory_notes/support-for-the-throne/5")
 @pytest.mark.parametrize("note", ["blue_an", "blue_sftt"])
 def test_diplomacy_token_does_not_return_note(
     registry: StaticDataRegistry, note: str
@@ -121,7 +121,7 @@ def test_diplomacy_token_does_not_return_note(
     assert note in state.players["p1"].promissory_notes_in_play
 
 
-@ruling("C_promissory_notes/support-for-the-throne/5")
+@ruling("C_promissory_notes/support-for-the-throne/7")
 def test_simultaneous_support_trade_active_player_scores_first() -> None:
     state = _sftt_trade_state(Phase.ACTION)
     done = transaction.resolve_transaction(
@@ -132,7 +132,7 @@ def test_simultaneous_support_trade_active_player_scores_first() -> None:
     assert done.winner_id == "p1"  # aktywny dostaje punkt pierwszy
 
 
-@ruling("C_promissory_notes/support-for-the-throne/5.1")
+@ruling("C_promissory_notes/support-for-the-throne/7.1")
 def test_simultaneous_support_trade_in_agenda_speaker_order_first() -> None:
     state = _sftt_trade_state(Phase.AGENDA)
     done = transaction.resolve_transaction(
@@ -248,7 +248,7 @@ def _silence(state: GameState) -> None:
     )
 
 
-@ruling("C_promissory_notes/political-secret/1")
+@ruling("C_promissory_notes/political-secret/2")
 def test_political_secret_leaves_leaders_and_technology(registry: StaticDataRegistry) -> None:
     state = pn_state()
     _silence(state)
@@ -260,7 +260,7 @@ def test_political_secret_leaves_leaders_and_technology(registry: StaticDataRegi
         assert reason is None or "Political Secret" not in reason
 
 
-@ruling("C_promissory_notes/political-secret/1.1")
+@ruling("C_promissory_notes/political-secret/2.1")
 def test_political_secret_other_notes_of_that_player_still_playable(
     registry: StaticDataRegistry,
 ) -> None:
@@ -270,7 +270,7 @@ def test_political_secret_other_notes_of_that_player_still_playable(
     assert _rows(state, registry, "p2")["red_ta"]["playable"] is True
 
 
-@ruling("C_promissory_notes/political-secret/2")
+@ruling("C_promissory_notes/political-secret/3")
 def test_political_secret_ends_when_the_agenda_is_discarded(registry: StaticDataRegistry) -> None:
     from tests.test_agenda_phase import DIRECTIVE, LAW
     from tests.test_agenda_phase import _state as agenda_state
@@ -285,7 +285,7 @@ def test_political_secret_ends_when_the_agenda_is_discarded(registry: StaticData
     assert vetoed.agenda is not None and "p1" not in vetoed.agenda.blocked
 
 
-@ruling("C_promissory_notes/political-secret/3")
+@ruling("C_promissory_notes/political-secret/1")
 def test_political_secret_keeps_passive_faction_abilities() -> None:
     state = pn_state()  # p1 = Sol (Versatile: +1 żeton w fazie statusu)
     _silence(state)
@@ -296,7 +296,7 @@ def test_political_secret_keeps_passive_faction_abilities() -> None:
 # ============================================================================ Trade Agreement
 
 
-@ruling("C_promissory_notes/trade-agreement/1")
+@ruling("C_promissory_notes/trade-agreement/2")
 def test_trade_agreement_playable_when_replenishing_at_maximum(
     registry: StaticDataRegistry,
 ) -> None:
@@ -307,7 +307,7 @@ def test_trade_agreement_playable_when_replenishing_at_maximum(
     assert _rows(state, registry, "p2")["red_ta"]["playable"] is True
 
 
-@ruling("C_promissory_notes/trade-agreement/3")
+@ruling("C_promissory_notes/trade-agreement/1")
 def test_trade_agreement_not_playable_on_gaining_commodities(
     registry: StaticDataRegistry,
 ) -> None:

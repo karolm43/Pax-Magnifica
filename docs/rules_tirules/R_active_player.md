@@ -13,7 +13,6 @@ The active player is the player taking a turn during the action phase.
 
 ## Notes
 
-- During the strategy, status and agenda phases, no player is the active player.
 - During combat, the active player is the attacker.
 - The active player will have the first opportunity to resolve abilities during each timing window.
 - All transactions during the action phase must involve the active player.
@@ -26,3 +25,4 @@ The active player is the player taking a turn during the action phase.
 - [Attacker](https://www.tirules2.com/R_attacker)
 - [Initiative Order](https://www.tirules2.com/R_initiative_order)
 - [Space Cannon](https://www.tirules2.com/R_space_cannon)
+- [Transactions](https://www.tirules2.com/R_transactions)

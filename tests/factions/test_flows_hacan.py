@@ -91,7 +91,7 @@ def test_harrugh_gefhara_przy_produkcji(registry: StaticDataRegistry) -> None:
 
 
 @covers("promissory_notes:convoys")
-@ruling("promissory_notes:convoys#1", "F_hacan/trade-convoys/5")
+@ruling("promissory_notes:convoys#1", "F_hacan/trade-convoys/1")
 def test_trade_convoys_akcja_i_zwrot(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "hacan")
     note = flow.give_note("convoys", flow.other)

@@ -17,13 +17,15 @@ The *Imperial* strategy card allows players to score victory points and draw sec
 - A player must control every planet in their home system to score a public objective using the first primary ability of *Imperial*.
 - A player who controls Mecatol Rex does not need to control every planet in their home system to gain a victory point from the second primary ability of *Imperial*.
 - A player who controls Mecatol Rex while resolving the primary ability of *Imperial* must gain a victory point; they cannot instead draw a secret objective.
-- A player who needs to discard a secret objective must do so and reshuffle the deck before the next player may draw from the deck.
+- A player coexisting on Mecatol Rex does not control it for the primary ability of *Imperial*, and so does not gain a victory point; coexisting only counts as control for scoring objectives.
+- Scoring a public objective with the primary ability of Imperial does not prevent a player from scoring another public objective during the status phase of the same round. A status phase public objective may be scored immediately with Imperial.
 
 ## Related Topics
 
 - [Initiative Order](https://www.tirules2.com/R_initiative_order)
 - [Mecatol Rex](https://www.tirules2.com/R_mecatol_rex)
 - [Objective Cards](https://www.tirules2.com/R_objective_cards)
+- [Status Phase](https://www.tirules2.com/R_status_phase)
 - [Strategic Action](https://www.tirules2.com/R_strategic_action)
 - [Strategy Card](https://www.tirules2.com/R_strategy_card)
 - [Victory Points](https://www.tirules2.com/R_victory_points)

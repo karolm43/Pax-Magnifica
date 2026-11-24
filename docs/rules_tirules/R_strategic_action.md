@@ -18,4 +18,6 @@ During the action phase, the active player may perform a strategic action to res
 ## Related Topics
 
 - [Action Phase](https://www.tirules2.com/R_action_phase)
+- [Objective Cards](https://www.tirules2.com/R_objective_cards)
 - [Strategy Card](https://www.tirules2.com/R_strategy_card)
+- [Victory Points](https://www.tirules2.com/R_victory_points)

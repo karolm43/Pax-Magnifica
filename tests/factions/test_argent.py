@@ -114,7 +114,7 @@ def test_kompletnosc_argent(registry: StaticDataRegistry) -> None:
 # ===================================================================================== Zeal
 
 
-@ruling("F_argent/zeal/1.1", "abilities:zeal#1")
+@ruling("F_argent/zeal/3", "abilities:zeal#1")
 def test_zeal_glosy_tylko_przy_wlasnych_glosach(registry: StaticDataRegistry) -> None:
     state = _agenda_state(registry, [LAW])
     state.players["p1"].faction = "argent"
@@ -123,7 +123,7 @@ def test_zeal_glosy_tylko_przy_wlasnych_glosach(registry: StaticDataRegistry) ->
     assert agenda_phase.extra_votes(state, registry, "p3", base_votes=2) == 0
 
 
-@ruling("F_argent/zeal/2", "F_argent/zeal/3", "abilities:zeal#2")
+@ruling("F_argent/zeal/1", "F_argent/zeal/2", "abilities:zeal#2")
 def test_zeal_argent_glosuje_pierwszy_takze_jako_mowca(registry: StaticDataRegistry) -> None:
     state = _agenda_state(registry, [LAW])  # mówca p2: zwykle p3, p1, p2
     assert agenda_phase.vote_order(state) == ["p3", "p1", "p2"]
@@ -133,7 +133,6 @@ def test_zeal_argent_glosuje_pierwszy_takze_jako_mowca(registry: StaticDataRegis
     assert agenda_phase.vote_order(state) == ["p1", "p2", "p3"]
 
 
-@ruling("F_argent/zeal/1")
 def test_zeal_dodatkowe_glosy_na_ten_sam_wynik(registry: StaticDataRegistry) -> None:
     state = _agenda_state(registry, [LAW])
     state.players["p1"].faction = "argent"
@@ -150,7 +149,7 @@ def test_zeal_dodatkowe_glosy_na_ten_sam_wynik(registry: StaticDataRegistry) -> 
     assert vote.outcome == "for" and vote.votes == influence + 3
 
 
-@ruling("C_action_cards/bribery/3.1")
+@ruling("C_action_cards/bribery/4.1")
 def test_bribery_mowca_argent_tylko_od_razu_po_glosie(registry: StaticDataRegistry) -> None:
     state = _agenda_state(registry, [LAW])
     state.players["p1"].faction = "argent"
@@ -204,7 +203,6 @@ def test_raid_formation_przed_przypisaniem_i_bez_sustain(registry: StaticDataReg
     assert out.systems["102"].space_units["p2"].get("fighter", 0) == 0
 
 
-@ruling("F_argent/raid-formation/2.1")
 def test_raid_formation_liczy_kosci_po_przerzucie(registry: StaticDataRegistry) -> None:
     state = _afb_combat(_state(registry), {"destroyer": 1}, {"dreadnought": 2},
                         [_afb_roll([7, 1, 1])])
@@ -231,7 +229,6 @@ def test_raid_formation_wybor_argent_takze_uszkodzonego(registry: StaticDataRegi
     assert out.active_combat is not None and out.active_combat.step is not CombatStep.TRIGGERS
 
 
-@ruling("F_argent/raid-formation/4.1")
 def test_raid_formation_duranium_naprawia_pozniej(registry: StaticDataRegistry) -> None:
     state = _afb_combat(_state(registry), {"destroyer": 1}, {"dreadnought": 1},
                         [_afb_roll([7, 1, 1])])
@@ -240,7 +237,7 @@ def test_raid_formation_duranium_naprawia_pozniej(registry: StaticDataRegistry) 
     assert technologies_combat._repairable(out, "p2", ctx) == ["dreadnought"]
 
 
-@ruling("F_argent/raid-formation/4.2")
+@ruling("F_argent/raid-formation/4.1")
 def test_raid_formation_non_euclidean_nie_zmniejsza(registry: StaticDataRegistry) -> None:
     state = _afb_combat(_state(registry), {"destroyer": 1}, {"dreadnought": 3},
                         [_afb_roll([7, 8, 1])])
@@ -393,7 +390,7 @@ def test_quetzecoatl_blokuje_space_cannon_offense(registry: StaticDataRegistry) 
 # ========================================================================= Aerie Sentinel
 
 
-@ruling("F_argent/aerie-sentinel/1", "units:argent_mech#1")
+@ruling("units:argent_mech#1")
 def test_aerie_sentinel_poza_pojemnoscia_tylko_przy_statku_z_pojemnoscia(
     registry: StaticDataRegistry,
 ) -> None:
@@ -507,8 +504,7 @@ def test_helix_zostawione_mysliwce_gina_zamiast_bledu(registry: StaticDataRegist
 
 
 @ruling("F_argent/mirik-aun-sissiri-helix-protocol/2",
-        "F_argent/mirik-aun-sissiri-helix-protocol/3.1",
-        "F_argent/mirik-aun-sissiri-helix-protocol/3.2")
+        "F_argent/mirik-aun-sissiri-helix-protocol/3")
 def test_helix_ze_zetonem_rusza_i_zabiera_ladunek(registry: StaticDataRegistry) -> None:
     """Statki z systemu z żetonem Argent ruszają i - wg rulingu FAQ (3.2, zastępuje zakaz z 3)
     - zabierają ze sobą piechotę i myśliwce z tego systemu."""
@@ -531,8 +527,7 @@ def test_helix_piechota_tylko_ze_statkiem_z_tego_samego_systemu(
                               _mv("103", ["101|carrier|0", "102|infantry|0"]))
 
 
-@ruling("F_argent/mirik-aun-sissiri-helix-protocol/6",
-        "F_argent/mirik-aun-sissiri-helix-protocol/6.1")
+@ruling("F_argent/mirik-aun-sissiri-helix-protocol/6")
 def test_helix_cele_bez_mglawicy_supernowej_asteroid(registry: StaticDataRegistry) -> None:
     state = _helix_state(registry)
     nebula = next(s for s, d in sorted(registry.systems.items()) if d.is_nebula)
@@ -549,7 +544,6 @@ def test_helix_cele_bez_mglawicy_supernowej_asteroid(registry: StaticDataRegistr
     assert argent.helix_destinations(state, "p1") == ["000", "103"]
 
 
-@ruling("F_argent/mirik-aun-sissiri-helix-protocol/5")
 def test_helix_szczelina_rzut_przy_wyjsciu(registry: StaticDataRegistry) -> None:
     state = _helix_state(registry)
     rift = next(
@@ -566,7 +560,7 @@ def test_helix_szczelina_rzut_przy_wyjsciu(registry: StaticDataRegistry) -> None
     assert state.table_roll is not None and state.table_roll["kind"] == "gravity_rift"
 
 
-@ruling("F_argent/mirik-aun-sissiri-helix-protocol/7")
+@ruling("F_argent/mirik-aun-sissiri-helix-protocol/5")
 def test_helix_do_nexusa_odwraca_go(registry: StaticDataRegistry) -> None:
     from src.core import nexus
 
@@ -583,7 +577,7 @@ def test_helix_do_nexusa_odwraca_go(registry: StaticDataRegistry) -> None:
 # ============================================================================ Wing Transfer
 
 
-@ruling("F_argent/wing-transfer/1")
+@ruling("F_argent/wing-transfer/2")
 def test_wing_transfer_ruch_wymaga_pojemnosci(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     state.systems["102"].space_units = {"p1": {"carrier": 1, "fighter": 4}}

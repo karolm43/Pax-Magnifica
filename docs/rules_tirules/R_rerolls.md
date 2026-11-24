@@ -18,7 +18,10 @@ Some game effects instruct a player to reroll dice.
 ## Related Topics
 
 - [Abilities](https://www.tirules2.com/R_abilities)
+- [Action Cards](https://www.tirules2.com/R_action_cards)
 - [Anti–Fighter Barrage](https://www.tirules2.com/R_anti_fighter_barrage)
 - [Bombardment](https://www.tirules2.com/R_bombardment)
 - [Combat](https://www.tirules2.com/R_combat)
+- [Ground Combat](https://www.tirules2.com/R_ground_combat)
 - [Space Cannon](https://www.tirules2.com/R_space_cannon)
+- [Space Combat](https://www.tirules2.com/R_space_combat)

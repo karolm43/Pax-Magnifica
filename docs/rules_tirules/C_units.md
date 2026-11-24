@@ -7,14 +7,14 @@ For notes about specific faction unit upgrade technology, see that faction’s n
 
 ## War Sun
 
-- A player without the war sun unit upgrade technology cannot produce, place or have a war sun on the board for any reason.
-    - The Muaat player may do so without owning their Prototype War Sun II faction unit upgrade technology.
+- A player without the war sun unit upgrade technology cannot produce a war sun.
+    - The [Muaat](https://www.tirules2.com/F_muaat) player may do so without owning their [Prototype War Sun](https://twilight-imperium.fandom.com/wiki/The_Embers_of_Muaat#War_Sun:~:text=Prototype%20War%20Sun) II faction unit upgrade technology.
 - If a war sun’s ability results in no units on a planet having the `Planetary Shield` ability, then the ability of the *Magen Defense Grid* technology cannot be used during ground combat on that planet.
     - A war sun has no effect on the *Magen Defense Grid Ω* or *Magen Defense Grid ΩΩ* technologies.
 
 ## Flagship
 
-- For notes about the flagship of a specific faction, see that faction’s notes page.
+- If a player’s flagship is destroyed, it is returned to their reinforcements and may be produced again.
 
 ## Dreadnought
 
@@ -26,24 +26,30 @@ For notes about specific faction unit upgrade technology, see that faction’s n
 
 ## Fighter
 
-- Fighters and ground forces do not count towards capacity during combat. As such, any number of Fighter II may be in a system during combat, regardless of capacity and fleet pool. This will usually only be caused by effects that place units in a system during combat. When combat ends however, units will need to be removed to meet capacity and fleet pool requirements.
-- A ship cannot move through a system that contains Fighter II that are controlled by another player during the **Movement** step of a tactical action.
-- Ships may be moved into, produced in or placed in a system even if doing so would exceed the fleet pool limit. However, some of those ships must immediately be removed to satisfy the limit. If some of those ships are fighters II, they may instead count towards that player’s capacity in that system. If capacity is exceeded, fighters or ground forces must be removed to meet the limit.
+- Fighters and ground forces do not count toward capacity during combat. When combat ends however, units will need to be removed to meet capacity requirements.
+- A ship cannot move through a system that contains fighters that are controlled by another player during the **Movement** step of a tactical action.
+    - Some effects allow ships to move through such systems, such as the *Light/Wave Deflector* technology, the *In The Silence Of Space* action card and the [Firmament](https://www.tirules2.com/F_firmament) player’s agent, Myru Vos.
+
+## Fighter II
+
+- Fighter II units are still fighters for all other game effects.
 
 ## Mech
 
-- See the [mechs page](R_mechs) of the Rules Reference.
-- For notes about the mechs of a specific faction, see that faction’s notes page.
-
 ## Infantry
 
+## Infantry II
+
 - If a player controls no planets in their home system, at the start of their turn, any Infantry II that have been placed on that player’s Infantry II unit upgrade technology card are returned to that player’s reinforcements.
-- A player need not use one of their twelve plastic infantry units to represent the infantry on their Infantry II unit upgrade card that will be placed in their home system at the start of their next turn, and may use cardboard infantry tokens to represent any and all of these infantry.
+- The Infantry II resurrection roll applies however the infantry is destroyed, including outside of combat, such as by the *Plague* action card.*
+    - It does not apply if the infantry is removed from the board without being destroyed.
 
 ## PDS
 
-- See the [PDS page](R_pds) of the Rules Reference.
+## PDS II
 
 ## Space Dock
 
-- See the [space dock page](R_space_dock) of the Rules Reference.
+- A space dock does not have a capacity value. It allows up to three fighters in its system to not count against capacity, but it cannot hold ground forces in the space area.
+- If a player has two space docks in a system, up to six fighters in that system do not count against capacity.
+- A space dock’s `Production` value is not affected by whether its planet is exhausted.

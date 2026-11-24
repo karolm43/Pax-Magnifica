@@ -19,10 +19,9 @@ During the action phase, each player takes a turn in initiative order. During a 
 
 ## Notes
 
-- Players may still play non–component action action cards after they have passed.
-- Any abilities that occur at the end of an action happen before any abilities that occur at the end of a player’s turn.
+- Any abilities that occur at the end of an action happen before any abilities that occur at the end of a player’s turn.*
 - A player may resolve “at the start of your turn” and “at the end of your turn” abilities on the turn that they pass.
-- If all other players have passed, a player will continue to resolve “at the start of your turn” and “at the end of your turn” abilities.
+- If all other players have passed, a player will continue to resolve “at the start of your turn” and “at the end of your turn” abilities.*
 
 ## Related Topics
 

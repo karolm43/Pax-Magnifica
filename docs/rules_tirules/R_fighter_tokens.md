@@ -18,7 +18,7 @@ A fighter token functions as a plastic fighter unit for all game purposes.
 - As each player only has ten plastic fighter figures, a player cannot have fighters in more than ten systems.
 - Players may also swap fighter tokens for plastic pieces at any time.
 - Fighter tokens are not component limited.
-- A future rule change will have any unaccompanied fighter tokens removed, instead of destroyed.
+- Unaccompanied fighter tokens are intended to be removed, instead of destroyed.
 
 ## Related Topics
 

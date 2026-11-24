@@ -147,7 +147,7 @@ def test_distant_suns_dwie_karty_wybor_jednej(registry: StaticDataRegistry) -> N
     assert drop in state.decks.exploration_discard["hazardous"]
 
 
-@ruling("F_naaz_rokha/distant-suns/1")
+@ruling("F_naaz_rokha/distant-suns/1.1")
 def test_distant_suns_wiele_mechow_jedna_dodatkowa(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems[PLAIN].planet_units = {VEFUTII: {"p1": {"mech": 3}}}
@@ -232,7 +232,7 @@ def test_fabrication_zeton_i_pusta_rezerwa(registry: StaticDataRegistry) -> None
     assert after.players["p1"].relic_fragments == ["irf2"]
 
 
-@ruling("F_naaz_rokha/black-market-forgery/1", "F_naaz_rokha/black-market-forgery/2")
+@ruling("F_naaz_rokha/black-market-forgery/2")
 def test_black_market_forgery_warunki(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p2"].relic_fragments = ["hrf1", "urf1"]
@@ -258,8 +258,8 @@ def test_prefab_odswieza_po_eksploracji(registry: StaticDataRegistry) -> None:
     assert VEFUTII not in state.players["p1"].exhausted_planets
 
 
-@ruling("F_naaz_rokha/prefab-arcologies/1", "F_naaz_rokha/prefab-arcologies/1.1",
-        "F_naaz_rokha/prefab-arcologies/1.2")
+@ruling("F_naaz_rokha/prefab-arcologies/1", "F_naaz_rokha/prefab-arcologies/2.1",
+        "F_naaz_rokha/prefab-arcologies/2.2")
 def test_prefab_po_produkcji_freelancers(registry: StaticDataRegistry) -> None:
     """Planeta gotowa dopiero PO produkcji Freelancers: wyczerpana wcześniej nie płaci (1.1),
     gotowa płaci i potem zostaje odświeżona (1.2)."""
@@ -326,7 +326,7 @@ def _space_fight(state: GameState, mechs: int = 1) -> GameState:
 
 
 @ruling("F_naaz_rokha/visz-el-vir/2", "units:naaz_mech_space#1",
-        "F_naaz_rokha/eidolon-zgrav-eidolon/1", "F_naaz_rokha/eidolon-zgrav-eidolon/4")
+        "F_naaz_rokha/eidolon-zgrav-eidolon/1", "F_naaz_rokha/eidolon-zgrav-eidolon/5")
 def test_zgrav_statek_tylko_w_walce_kosmicznej(registry: StaticDataRegistry) -> None:
     state = _space_fight(_state())
     units = {u.base_type: u for u in battle.combat_units(
@@ -343,7 +343,7 @@ def test_zgrav_statek_tylko_w_walce_kosmicznej(registry: StaticDataRegistry) -> 
     assert ship_roles.space_ground_variants(state, registry, "p1", PLAIN) == {}
 
 
-@ruling("units:naaz_mech#1", "F_naaz_rokha/eidolon-zgrav-eidolon/2")
+@ruling("units:naaz_mech#1", "F_naaz_rokha/eidolon-zgrav-eidolon/3")
 def test_eidolon_flip_obowiazkowy_na_starcie(registry: StaticDataRegistry) -> None:
     state = _space_fight(_state())
     triggers.fire(state, GameEvent.COMBAT, Moment.START, subject="p1",
@@ -352,7 +352,7 @@ def test_eidolon_flip_obowiazkowy_na_starcie(registry: StaticDataRegistry) -> No
     assert any(n["component"] == "units:naaz_mech" for n in state.ability_notes)
 
 
-@ruling("F_naaz_rokha/eidolon-zgrav-eidolon/2.2", "F_naaz_rokha/eidolon-zgrav-eidolon/3")
+@ruling("F_naaz_rokha/eidolon-zgrav-eidolon/3.1", "F_naaz_rokha/eidolon-zgrav-eidolon/4")
 def test_zgrav_assault_cannon(registry: StaticDataRegistry) -> None:
     from src.core.hooks import technologies_combat as tc
 
@@ -364,7 +364,7 @@ def test_zgrav_assault_cannon(registry: StaticDataRegistry) -> None:
     assert any(o["value"] == "mech" for o in options)  # cel jak statek (3)
 
 
-@ruling("F_naaz_rokha/eidolon-zgrav-eidolon/5")
+@ruling("F_naaz_rokha/eidolon-zgrav-eidolon/6")
 def test_zgrav_liczy_sie_do_demonstrate_your_power(registry: StaticDataRegistry) -> None:
     state = _space_fight(_state())
     state.systems[PLAIN].space_units["p1"] = {"carrier": 1, "mech": 2}
@@ -373,7 +373,7 @@ def test_zgrav_liczy_sie_do_demonstrate_your_power(registry: StaticDataRegistry)
     assert objective_events._dyp_ships(state, PLAIN, "p1") == 3
 
 
-@ruling("units:naaz_mech_space#2", "F_naaz_rokha/eidolon-zgrav-eidolon/6")
+@ruling("units:naaz_mech_space#2")
 def test_zgrav_po_walce_wraca_do_pojemnosci(registry: StaticDataRegistry) -> None:
     state = _space_fight(_state(), mechs=5)
     state.systems[PLAIN].space_units["p1"] = {"destroyer": 1, "mech": 2}
@@ -576,7 +576,7 @@ def test_absolute_synergy_odwrocenie(registry: StaticDataRegistry) -> None:
     assert after.players["p1"].breakthrough_flipped
 
 
-@ruling("breakthroughs:naazbt#2", "F_naaz_rokha/eidolon-maximum/6")
+@ruling("breakthroughs:naazbt#2", "F_naaz_rokha/eidolon-maximum/2")
 def test_eidolon_maximum_statek_i_sila_naziemna(registry: StaticDataRegistry) -> None:
     state = _four_mechs(_state())
     state.players["p1"].breakthrough_flipped = True
@@ -592,7 +592,7 @@ def test_eidolon_maximum_statek_i_sila_naziemna(registry: StaticDataRegistry) ->
     assert ship_roles.space_ships(state, registry, "p1", PLAIN)["mech"] == 1
 
 
-@ruling("F_naaz_rokha/eidolon-maximum/5")
+@ruling("F_naaz_rokha/eidolon-maximum/1")
 def test_eidolon_maximum_to_mech_visz_el_vir(registry: StaticDataRegistry) -> None:
     state = _four_mechs(_state())
     state.players["p1"].breakthrough_flipped = True
@@ -615,7 +615,7 @@ def test_eidolon_maximum_rusza_sie_i_liczy_do_puli(registry: StaticDataRegistry)
     assert "mech" not in capacity.capacity_report(state, registry, PLAIN, "p1").cargo
 
 
-@ruling("breakthroughs:naazbt#3", "F_naaz_rokha/eidolon-maximum/2")
+@ruling("breakthroughs:naazbt#3", "F_naaz_rokha/eidolon-maximum/4")
 def test_eidolon_maximum_bez_trafien_ze_zdolnosci(registry: StaticDataRegistry) -> None:
     state = _four_mechs(_state())
     state.players["p1"].breakthrough_flipped = True
@@ -624,7 +624,7 @@ def test_eidolon_maximum_bez_trafien_ze_zdolnosci(registry: StaticDataRegistry) 
     assert "mech" not in view and "carrier" in view  # trafienia na inne jednostki grupy
 
 
-@ruling("breakthroughs:naazbt#4", "F_naaz_rokha/eidolon-maximum/3")
+@ruling("breakthroughs:naazbt#4", "F_naaz_rokha/eidolon-maximum/5")
 def test_eidolon_maximum_naprawa_tylko_w_swojej_walce(registry: StaticDataRegistry) -> None:
     from src.core.damage import damaged_count, set_damaged
 
@@ -642,7 +642,7 @@ def test_eidolon_maximum_naprawa_tylko_w_swojej_walce(registry: StaticDataRegist
     assert damaged_count(system, "space", "p1", "mech") == 0
 
 
-@ruling("breakthroughs:naazbt#5", "F_naaz_rokha/eidolon-maximum/4")
+@ruling("breakthroughs:naazbt#5")
 def test_eidolon_maximum_zakaz_stawiania_i_produkcji(registry: StaticDataRegistry) -> None:
     from src.core import board_reinforcements
 
@@ -670,7 +670,10 @@ def test_eidolon_maximum_zniszczony_albo_usuniety_odwraca_karte(
 # ================================================== Brother Milor Ω (Yin) vs Z-Grav Eidolon
 
 
-@ruling("F_yin/brother-milor-omega/8", "F_yin/brother-milor-omega/8.1")
+@ruling(
+    "F_yin/brother-milor-omega-replaced-by-omega-omega/8",
+    "F_yin/brother-milor-omega-replaced-by-omega-omega/8.1",
+)
 def test_milor_za_zgrav_wlasciciel_wybiera_typ(registry: StaticDataRegistry) -> None:
     """Zniszczony Z-Grav (mech + statek): właściciel stawia 2 myśliwce albo 2 piechotę; piechota
     w przestrzeni nie walczy w walce kosmicznej (8.1 - nie jest statkiem)."""

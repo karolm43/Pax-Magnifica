@@ -15,6 +15,7 @@ A component action is a type of action that a player can perform during their tu
 ## Notes
 
 - Action cards without the “Action” header are not used to perform component actions.
+- There is no limit to how many component actions a player may perform during a round, other than any limit stated on the component itself. Each component action uses that player’s action for the turn.
 
 ## Related Topics
 

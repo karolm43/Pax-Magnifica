@@ -5,13 +5,13 @@
 
 ## Rules Reference
 
-During the **Production** step of a tactical action, the active player can resolve the `Production` ability of each of their units that are in the active system to produce units
+During the **Production** step of a tactical action, the active player can resolve the `Production` ability of each of their units that are in the active system to produce units.
 
 - A unit’s `Production` ability, which is presented on a faction sheet or unit upgrade technology card, is always followed by a value. This value is the maximum number of units that this unit can produce.
     - If the active player has multiple units in the active system that have the `Production` ability, that player can produce a number of units up to the combined total of their units’ production values in that system.
     - When producing fighters or infantry, each individual unit counts toward the producing unit’s production limit.
     - A player can choose to produce one fighter or infantry instead of two, but must still pay the entire cost.
-    - `Production` value from Arborec space docks cannot be used to produce infantry, even if the Arborec player controls other units that have `Production` in the same system.
+    - `Production` value from [Arborec](https://www.tirules2.com/F_arborec) space docks cannot be used to produce infantry, even if the Arborec player controls other units that have `Production` in the same system.
 - When a player produces ships by using `Production` that player must place them in the active system.
 - When a player produces ground forces, that player must place those units on planets that contain a unit that used its `Production` ability.
 - If a player uses the `Production` ability of a unit in a space area of a system to produce ground forces, those ground forces may either be placed on a planet the player controls in that system or in the space area of that system.
@@ -22,11 +22,15 @@ During the **Production** step of a tactical action, the active player can resol
 - Placement of produced units is not limited by a unit’s `Production` value, only by the location of the producing units.
     - For example, say a player is performing a tactical action on tile 75. They have one Space Dock I each on Abaddon and Ashtroth, but not on Loki. They combine their production to place seven infantry. They could place all seven on Abaddon, all seven on Ashtroth, or split them. They cannot place any on Loki.
 - If an effect allows a player to produce a ship of a specific type, then factional variations do not prevent that player from producing that type of ship.
+- A player cannot produce ground forces on a planet that contains another player’s ground forces.
+    - A player whose units are coexisting on a planet can produce ground forces on that planet; those ground forces also coexist.
+- Ground forces produced during the **Production** step of a tactical action cannot be committed to land on a planet during that tactical action, as the **Invasion** step has already been resolved.
 
 ## Related Topics
 
 - [Abilities](https://www.tirules2.com/R_abilities)
 - [Blockaded](https://www.tirules2.com/R_blockaded)
+- [Invasion](https://www.tirules2.com/R_invasion)
 - [Producing Units](https://www.tirules2.com/R_producing_units)
 - [Resources](https://www.tirules2.com/R_resources)
 - [Space Dock](https://www.tirules2.com/R_space_dock)

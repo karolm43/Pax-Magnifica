@@ -22,22 +22,22 @@ Action cards provide players with various abilities that they can resolve as des
 ## Notes
 
 - Players start the game with zero action cards.
-- The number of action cards in a player’s hand is public information.
-- A player may choose to reveal any or all of the action cards in their hand, if they so choose.
+- The number of action cards in a player’s hand is public information.*
+- A player may choose to reveal any or all of the action cards in their hand.
 - If the action card deck is depleted, immediately shuffle the discard pile to form a new action card deck.
-- During the action phase, action cards are dealt out in initiative order.
-    - If a player has the *Neural Motivator* technology, they will draw both their action cards before the next player in order draws an action card.
-    - The Yssaril player will draw all of their action cards, and discard for their `Scheming` ability, before the next player in order draws an action card.
-- If a player’s action card is cancelled, usually via a *Sabotage* action card, then if that player has a second copy of that action card, they may play it.
-- A player cannot target themselves with offensive action cards, such as *Lucky Shot*.
-- If an action card targets “any number”, “up to”, or “each” of a particular type of object, that action card may target zero of those objects. As such, these cards may be played even if they would cause no effect.
+- During the status phase, action cards are drawn in initiative order, though this rarely matters in practice.
+    - If a player has the *Neural Motivator* technology, they will draw both their action cards before the next player in order draws an action card.*
+    - The [Yssaril](https://www.tirules2.com/F_yssaril) player will draw all of their action cards, and discard for their [`Scheming`](https://twilight-imperium.fandom.com/wiki/The_Yssaril_Tribes#Faction_Abilities:~:text=Scheming) ability, before the next player in order draws an action card.*
+- If a player’s action card is canceled, usually via a *Sabotage* action card, then if that player has a second copy of that action card, they may play it.
+- A player cannot use action cards that destroy units, such as *Lucky Shot*, against their own units.
+- If an action card targets “each” of a particular type of object, that action card may target zero of those objects. As such, these cards may be played even if they would cause no effect.
 - If an action card targets a specific number of a particular type of object, that action card cannot be played if those objects do not currently exist. For example, *Repeal Law* cannot be played if there are no laws in play.
-- If a player has more than seven action cards, they must discard the excess immediately. They cannot play them to get down to seven, and the Hacan player cannot trade them.
-- For notes about specific action cards, see the [action card component notes page](https://www.tirules2.com/C_action_cards).
+- Action cards are discarded faceup. Players may look through the action card discard pile.
 
 ## Related Topics
 
 - [Abilities](https://www.tirules2.com/R_abilities)
 - [Component Action](https://www.tirules2.com/R_component_action)
+- [Initiative Order](https://www.tirules2.com/R_initiative_order)
 - [Politics](https://www.tirules2.com/R_politics)
 - [Status Phase](https://www.tirules2.com/R_status_phase)

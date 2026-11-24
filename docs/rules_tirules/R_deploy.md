@@ -15,8 +15,12 @@ Some units have deploy abilities. Deploy abilities are indicated by the `Deploy`
 
 ## Notes
 
+- Using a `Deploy` ability is always optional, even if the ability’s text does not include the word “may”.
+- A player may only resolve a deploy ability to place a unit that is in their reinforcements. A player cannot remove a unit from the board to use its deploy ability.
+
 ## Related Topics
 
 - [Abilities](https://www.tirules2.com/R_abilities)
+- [Component Limitations](https://www.tirules2.com/R_component_limitations)
 - [Mechs](https://www.tirules2.com/R_mechs)
 - [Reinforcements](https://www.tirules2.com/R_reinforcements)

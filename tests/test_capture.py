@@ -91,8 +91,8 @@ def test_statek_na_arkuszu_i_poza_rezerwa_wlasciciela() -> None:
     assert state.players["p1"].captured_units == {}
 
 
-@ruling("R_capture/rules-reference/3", "R_capture/rules-reference/3.1",
-        "R_capture/rules-reference/4")
+@ruling("R_capture/rules-reference/3", "R_capture/rules-reference/4",
+        "R_capture/rules-reference/4.3")
 def test_mysliwiec_i_piechota_to_zeton_z_puli() -> None:
     state = _state()
     state.systems[ARENA].space_units = {"p1": {"cruiser": 1}, "p2": {"fighter": 2}}
@@ -115,8 +115,8 @@ def test_zwrot_jako_koszt_zdolnosci() -> None:
         capture.spend_captured(state, "p1", "carrier", "p2")
 
 
-@ruling("R_capture/rules-reference/2.3", "R_capture/rules-reference/3.3",
-        "R_blockaded/rules-reference/2", "R_capture/notes/2")
+@ruling("R_capture/rules-reference/2.3", "R_capture/rules-reference/4.2",
+        "R_blockaded/rules-reference/2", "R_capture/notes/1")
 def test_blokada_doku_oddaje_statki_ale_nie_zetony(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].captured_units = {"p2": {"cruiser": 1}}
@@ -141,8 +141,7 @@ def test_walka_w_systemie_doku_to_nie_blokada() -> None:
     assert state.players["p1"].captured_units["p2"]["destroyer"] == 1
 
 
-@ruling("R_capture/rules-reference/6", "R_capture/notes/8", "R_blockaded/rules-reference/2.1",
-        "R_blockaded/notes/1.1")
+@ruling("R_capture/rules-reference/6", "R_capture/notes/7", "R_blockaded/rules-reference/2.1")
 def test_blokowany_nie_przechwytuje_od_blokujacego() -> None:
     state = _state()
     state.systems[HOME].space_units = {"p2": {"destroyer": 1}}  # blokada doku w domu Cabal
@@ -155,7 +154,7 @@ def test_blokowany_nie_przechwytuje_od_blokujacego() -> None:
     assert not capture.can_capture_from_reinforcements(state, "p1", "p2", "dreadnought")
 
 
-@ruling("R_capture/rules-reference/2.1", "R_capture/rules-reference/3.2", "R_capture/notes/3")
+@ruling("R_capture/rules-reference/2.1", "R_capture/rules-reference/4.1", "R_capture/notes/2")
 def test_transakcja_zwraca_tylko_wlascicielowi() -> None:
     state = _state()
     state.players["p1"].captured_units = {"p2": {"cruiser": 1}}
@@ -179,7 +178,7 @@ def test_transakcja_zwraca_tylko_wlascicielowi() -> None:
         )
 
 
-@ruling("R_capture/notes/5")
+@ruling("R_capture/notes/4")
 def test_wyeliminowany_wlasciciel_jednostka_do_pudelka() -> None:
     state = _state()
     state.players["p1"].captured_units = {"p2": {"cruiser": 1}}
@@ -197,7 +196,7 @@ def test_wyeliminowany_przechwytujacy_oddaje_jednostki() -> None:
     assert reinforcements_left(state, "p2", "cruiser") == _cap("cruiser")
 
 
-@ruling("R_capture/notes/6", "R_capture/notes/6.1")
+@ruling("R_capture/notes/5", "R_capture/rules-reference/5")
 def test_wlasne_przechwycone_nie_wracaja_same() -> None:
     state = _state()
     state.players["p1"].captured_units = {"p1": {"cruiser": 1}}
@@ -206,7 +205,7 @@ def test_wlasne_przechwycone_nie_wracaja_same() -> None:
     assert state.players["p1"].captured_units == {"p1": {"cruiser": 1}}
 
 
-@ruling("R_capture/notes/7")
+@ruling("R_capture/notes/6")
 def test_cala_pula_na_planszy_albo_na_arkuszu_zdjecie_z_planszy() -> None:
     state = _state()
     cap = _cap("cruiser")

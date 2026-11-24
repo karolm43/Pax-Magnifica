@@ -8,7 +8,7 @@
 Each player has several faction–specific leader cards that represent characters with unique abilities.
 
 - Each faction has three leaders; one agent, one commander, and one hero.
-    - The Nomad’s `The Company` faction ability grants them two additional agents, for a total of five leaders.
+    - The [Nomad](https://www.tirules2.com/F_nomad)’s [`The Company`](https://twilight-imperium.fandom.com/wiki/The_Nomad#Faction_Abilities:~:text=The%20Company) faction ability grants them two additional agents, for a total of five leaders.
 - A player’s leaders are placed on their leader sheet during setup.
     - Each leader card is placed on the slot that matches its type. The leader cards are placed so that the hash mark symbols in the upper right are faceup and match the slot that the card is placed on.
     - The two additional Nomad agents are placed in the Nomad player’s play area readied side up.
@@ -37,13 +37,13 @@ Each player has several faction–specific leader cards that represent character
     - A hero cannot flip to its locked side after it is unlocked.
 - A hero cannot be exhausted.
 - A hero is purged after its abilities are resolved.
-    - The Titans of Ul’s hero is not purged; it is attached to the planet Elysium instead.
+    - The Titans of [Ul](https://www.tirules2.com/F_ul)’s hero is not purged; it is attached to the planet Elysium instead.
 
 ## Notes
 
 - A commander’s ability cannot be applied to the instance of the effect that unlocked it.
 - A commander may be unlocked between two abilities that occur in the same timing window.
-- For notes about a leader of a specific faction, see that faction’s page.
+- Using an agent’s ability on behalf of another player is not a transaction, and does not require the players to be neighbors.
 
 ## Related Topics
 
@@ -51,5 +51,7 @@ Each player has several faction–specific leader cards that represent character
 - [Component Action](https://www.tirules2.com/R_component_action)
 - [Exhausted](https://www.tirules2.com/R_exhausted)
 - [Leader Sheet](https://www.tirules2.com/R_leader_sheet)
+- [Neighbors](https://www.tirules2.com/R_neighbors)
 - [Purge](https://www.tirules2.com/R_purge)
 - [Readied](https://www.tirules2.com/R_readied)
+- [Transactions](https://www.tirules2.com/R_transactions)

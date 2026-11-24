@@ -195,7 +195,7 @@ def test_ers_cudza_aktywacja_daje_4_tg() -> None:
     assert state.players["p1"].trade_goods == 7  # własna aktywacja - nic
 
 
-@ruling("F_jol_nar/spatial-conduit-cylinder/1")
+@ruling("F_jol_nar/spatial-conduit-cylinder/3")
 def test_scc_laczy_aktywny_system_z_twoimi(grid: HexGrid) -> None:
     state = _state()
     state.players["p1"].technologies = ["scc"]

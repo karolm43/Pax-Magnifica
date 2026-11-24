@@ -153,7 +153,7 @@ def test_gashlai_przelot_przez_supernowe(registry: StaticDataRegistry) -> None:
     assert not movement.can_enter_supernova(state, "p1")
 
 
-@ruling("technologies:mr#1", "R_space_combat/notes/3")
+@ruling("technologies:mr#1", "R_space_combat/notes/5.6")
 def test_magmus_reactor_wejscie_i_odwrot_do_supernowej(registry: StaticDataRegistry) -> None:
     state = _state()
     grid = _grid(state, registry)
@@ -165,7 +165,6 @@ def test_magmus_reactor_wejscie_i_odwrot_do_supernowej(registry: StaticDataRegis
     assert NOVA in retreat.retreat_destinations(state, grid, RIVAL, "p1")
 
 
-@ruling("F_norr/ghom-sekkus/8.3")
 def test_magmus_reactor_wejscie_sil_do_supernowej(registry: StaticDataRegistry) -> None:
     """Wejście jednostek spoza ruchu (G'hom Sek'kus) do supernowej - tylko z Magmus Reactor."""
     state = _state("sardakk")
@@ -367,7 +366,7 @@ def test_magmus_tg_za_kazdy_zeton(registry: StaticDataRegistry) -> None:
     assert state.players["p1"].trade_goods == 2
 
 
-@ruling("F_muaat/magmus/3", "C_relics/scepter-of-emelpar/3")
+@ruling("F_muaat/magmus/3", "C_relics/scepter-of-emelpar/4")
 def test_magmus_bez_tg_przy_scepter(registry: StaticDataRegistry) -> None:
     state = _magmus_state()
     state.players["p1"].relics = ["emelpar"]

@@ -50,21 +50,22 @@ A secret objective is an objective that is controlled by one player and is hidde
 
 ## Notes
 
-- A status phase objective must have its condition met during the status phase; any activity during the action phase is irrelevant.
-- Any number of players may score a given public objective during the status phase. Players are not blocked from scoring an objective if another player earlier in initiative order scores it first, unless the earlier player achieved victory and ended the game by doing so.
-- The number of secret objective cards in a player’s hand is public information.
-- A player may choose to reveal any or all of the secret objective cards in their hand, if they so choose.
-- If multiple ground combats happen on separate planets as part of a single invasion during one action, one secret objective may be scored during each.
-- The **Bombardment** and **Space Cannon** steps happen outside of combat; any number of secret objectives may be scored during those steps, and do not prevent another secret objective being scored during combat that turn.
-    - The **Anti–Fighter Barrage** step, however, is a step during combat.
+- A status phase objective must have its condition met during the status phase.
+- Any number of players may score a given public objective during the status phase.
 - A player may score an action phase secret objective when they are not the active player.
+- If two players could each score an action phase objective during the same combat, the player whose condition is met first scores first; for example, a flagship or war sun is destroyed during a combat round, before the combat ends and has a winner. If both conditions are met at the same moment, the active player scores first.
+- The **Bombardment** and **Space Cannon** steps happen outside of combat.
+    - The **Anti–Fighter Barrage** step, however, is a step during combat.
 - A player with three scored secret objectives may draw a fourth. However, they must immediately shuffle it into the secret objective deck.
-- For notes about specific objective cards, see the [objective card component notes page](https://www.tirules2.com/C_objectives).
+- The number of secret objective cards in a player’s hand is public information.*
+- A player may choose to reveal any or all of their unscored secret objectives to other players.
 
 ## Related Topics
 
 - [Action Phase](https://www.tirules2.com/R_action_phase)
+- [Active Player](https://www.tirules2.com/R_active_player)
 - [Agenda Phase](https://www.tirules2.com/R_agenda_phase)
 - [Imperial](https://www.tirules2.com/R_imperial)
+- [Objective Card Notes](https://www.tirules2.com/C_objectives)
 - [Status Phase](https://www.tirules2.com/R_status_phase)
 - [Victory Points](https://www.tirules2.com/R_victory_points)

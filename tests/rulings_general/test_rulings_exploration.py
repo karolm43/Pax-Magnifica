@@ -88,7 +88,7 @@ def test_each_fragment_type_purges_with_an_empty_relic_deck(
     assert set(fragments) <= set(done.decks.purged)
 
 
-@ruling("C_exploration_cards/dead-world/1", "R_relics/rules-reference/2.1")
+@ruling("R_relics/rules-reference/2.1")
 def test_dead_world_with_an_empty_relic_deck_has_no_effect(registry: StaticDataRegistry) -> None:
     from tests.test_frontier_cards import _state as frontier_state
 
@@ -129,7 +129,6 @@ def test_relics_cannot_be_traded(registry: StaticDataRegistry) -> None:
 # ============================================================================ karty planet
 
 
-@ruling("C_exploration_cards/demilitarized-zone/1")
 def test_dmz_ground_forces_without_capacity_open_the_capacity_check(
     registry: StaticDataRegistry,
 ) -> None:
@@ -140,7 +139,7 @@ def test_dmz_ground_forces_without_capacity_open_the_capacity_check(
     assert done.pending_window is None
 
 
-@ruling("C_exploration_cards/freelancers/2")
+@ruling("C_exploration_cards/freelancers/1")
 def test_freelancers_cannot_place_on_a_planet_still_waiting_for_exploration(
     registry: StaticDataRegistry,
 ) -> None:
@@ -155,7 +154,7 @@ def test_freelancers_cannot_place_on_a_planet_still_waiting_for_exploration(
     assert _CULT in zones and _IND not in zones
 
 
-@ruling("C_exploration_cards/freelancers/3", "C_exploration_cards/local-fabricators/2")
+@ruling("C_exploration_cards/freelancers/2", "C_exploration_cards/local-fabricators/2")
 def test_empty_reinforcements_take_a_unit_from_the_board_undamaged(
     registry: StaticDataRegistry,
 ) -> None:
@@ -252,7 +251,6 @@ def test_player_chooses_ion_storm_or_the_systems_own_wormhole(
     assert ion_storm.flip_used(state) == ["a"] and state.systems["a"].ion_storm == "BETA"
 
 
-@ruling("C_exploration_cards/ion-storm/3.1")
 def test_a_system_is_never_adjacent_to_itself(registry: StaticDataRegistry) -> None:
     state, grid = _storm_grid(registry)
     assert not grid.are_adjacent("a", "a")
@@ -288,7 +286,7 @@ def test_a_planet_can_be_explored_again_by_an_ability(registry: StaticDataRegist
     assert again.exploration is not None and again.exploration.current is not None
 
 
-@ruling("R_exploration/notes/4")
+@ruling("R_exploration/notes/3")
 def test_transactions_are_allowed_while_a_card_is_revealed(registry: StaticDataRegistry) -> None:
     from tests.test_relics import _state as relic_state
 
@@ -304,7 +302,7 @@ def test_transactions_are_allowed_while_a_card_is_revealed(registry: StaticDataR
     assert done.players["p2"].trade_goods == 1 and done.exploration is not None
 
 
-@ruling("R_exploration/notes/5")
+@ruling("R_exploration/notes/2")
 def test_revealed_exploration_card_is_public(registry: StaticDataRegistry) -> None:
     state = _with_card(_state(), registry, "Dyson Sphere")
     seen = visibility.project_strict(state, "p2")

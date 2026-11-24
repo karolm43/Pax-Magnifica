@@ -135,7 +135,7 @@ def test_kompletnosc_cabal(registry: StaticDataRegistry) -> None:
 
 
 @ruling("units:cabal_spacedock#1", "units:cabal_spacedock#3", "F_vuilraith/dimensional-tear/1",
-        "F_vuilraith/dimensional-tear/1.1", "F_vuilraith/dimensional-tear/6")
+        "F_vuilraith/dimensional-tear/1.1", "F_vuilraith/dimensional-tear/7")
 def test_dimensional_tear_to_gravity_rift(registry: StaticDataRegistry) -> None:
     state = _state()
     grid = _grid(state, registry)
@@ -160,7 +160,7 @@ def test_cabal_nie_rzuca_za_wlasna_szczeline(registry: StaticDataRegistry) -> No
         assert movement.rift_bonus(state, grid, route, "p1") == 1  # bez dodatkowego efektu
 
 
-@ruling("F_vuilraith/dimensional-tear/2", "F_vuilraith/dimensional-tear/2.1")
+@ruling("F_vuilraith/dimensional-tear/2")
 def test_kazde_wyjscie_ze_szczeliny_daje_plus_jeden(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems[ARENA].planet_units = {WELLON: {"p1": {"spacedock": 1}}}
@@ -169,7 +169,7 @@ def test_kazde_wyjscie_ze_szczeliny_daje_plus_jeden(registry: StaticDataRegistry
     assert movement.rift_bonus(state, grid, route, "p1") == 4
 
 
-@ruling("F_vuilraith/dimensional-tear/5")
+@ruling("F_vuilraith/dimensional-tear/6")
 def test_tear_w_mglawicy_plus_jeden_po_ustawieniu_jedynki(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems[FAR].system_id = EVERRA_TILE
@@ -394,7 +394,7 @@ def _vortex_values(state: GameState, registry: StaticDataRegistry) -> list[str]:
     return [o["value"] for o in inputs[0]["options"]]
 
 
-@ruling("technologies:vtx#1", "technologies:vtx#2", "F_vuilraith/vortex/1")
+@ruling("technologies:vtx#1", "technologies:vtx#2")
 def test_vortex_przechwytuje_z_rezerwy(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].technologies = ["vtx"]
@@ -410,7 +410,7 @@ def test_vortex_przechwytuje_z_rezerwy(registry: StaticDataRegistry) -> None:
         cabal.vortex(state, registry, "p1", {"unit": values[0]})
 
 
-@ruling("F_vuilraith/vortex/2", "F_vuilraith/vortex/3")
+@ruling("F_vuilraith/vortex/1", "F_vuilraith/vortex/2")
 def test_vortex_bez_celu_niedostepny(registry: StaticDataRegistry) -> None:
     state = _state()
     assert not has_legal_answer(cabal.vortex_inputs(state, registry, "p1"))
@@ -419,7 +419,7 @@ def test_vortex_bez_celu_niedostepny(registry: StaticDataRegistry) -> None:
     assert _vortex_values(state, registry) == [f"p2|fighter|{ARENA}|space"]
 
 
-@ruling("F_vuilraith/vortex/4")
+@ruling("F_vuilraith/vortex/3")
 def test_vortex_nie_na_blokujacego_tear(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems[ARENA].space_units = {"p2": {"destroyer": 1}}
@@ -569,7 +569,7 @@ def test_bohater_rzuty_kazdego_przeciwnika_widoczne(
     assert [r["seq"] for r in after.table_rolls] == sorted(r["seq"] for r in after.table_rolls)
 
 
-@ruling("leaders:cabalhero#3", "F_vuilraith/it-feeds-on-carrion-dimensional-anchor/4")
+@ruling("leaders:cabalhero#3", "F_vuilraith/it-feeds-on-carrion-dimensional-anchor/5")
 def test_bohater_nadwyzka_ladunku_tez_przechwycona(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -616,8 +616,8 @@ def _crucible(state: GameState, registry: StaticDataRegistry) -> None:
 
 
 @ruling("promissory_notes:crucible#1", "F_vuilraith/crucible/1", "F_vuilraith/crucible/2",
-        "F_vuilraith/crucible/2.1", "F_vuilraith/crucible/2.2", "F_vuilraith/crucible/2.3",
-        "F_vuilraith/crucible/2.4", "F_vuilraith/crucible/2.5")
+        "F_vuilraith/crucible/2.1", "F_vuilraith/crucible/2.1", "F_vuilraith/crucible/2.2",
+        "F_vuilraith/crucible/2.3", "F_vuilraith/crucible/2.4")
 def test_crucible_bez_rzutow_i_jedno_dodatkowe_plus_jeden(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems[ARENA].planet_units = {WELLON: {"p1": {"spacedock": 1}}}
@@ -647,7 +647,6 @@ def test_crucible_trasa_liczona_z_premia(registry: StaticDataRegistry) -> None:
     assert ok, reason
 
 
-@ruling("F_vuilraith/crucible/4")
 def test_crucible_nie_dwa_razy_w_jednym_oknie(registry: StaticDataRegistry) -> None:
     state = _state()
     assert cabal._crucible_condition(state, registry, "p2", None) is None  # type: ignore[arg-type]
@@ -655,7 +654,7 @@ def test_crucible_nie_dwa_razy_w_jednym_oknie(registry: StaticDataRegistry) -> N
     assert cabal._crucible_condition(state, registry, "p2", None)  # type: ignore[arg-type]
 
 
-@ruling("F_vuilraith/crucible/6")
+@ruling("F_vuilraith/crucible/4")
 def test_crucible_z_nav_suite_plus_jeden(registry: StaticDataRegistry) -> None:
     from src.core import active_effects
     from src.core.game_events import Duration
@@ -675,8 +674,8 @@ def test_crucible_z_nav_suite_plus_jeden(registry: StaticDataRegistry) -> None:
 # ----------------------------------------------------------- Al'raith Ix Ianovar (przełom)
 
 
-@ruling("breakthroughs:cabalbt#1", "F_vuilraith/alraith-ix-ianovar/1",
-        "F_vuilraith/alraith-ix-ianovar/1.1", "F_vuilraith/alraith-ix-ianovar/1.2")
+@ruling("breakthroughs:cabalbt#1", "F_vuilraith/alraith-ix-ianovar/2",
+        "F_vuilraith/alraith-ix-ianovar/2.1", "F_vuilraith/alraith-ix-ianovar/2.2")
 def test_przelom_fracture_bez_rzutu_z_synergia(registry: StaticDataRegistry) -> None:
     state = _state()
     grid = _grid(state, registry)
@@ -699,7 +698,7 @@ def test_przelom_fracture_bez_rzutu_z_synergia(registry: StaticDataRegistry) -> 
     assert _offers(state, "p1", "Al'raith Ix Ianovar: move ingress tokens")
 
 
-@ruling("breakthroughs:cabalbt#2", "F_vuilraith/alraith-ix-ianovar/2")
+@ruling("breakthroughs:cabalbt#2", "F_vuilraith/alraith-ix-ianovar/3")
 def test_przelom_przesuwa_ingress_do_szczeliny(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].breakthrough_unlocked = True

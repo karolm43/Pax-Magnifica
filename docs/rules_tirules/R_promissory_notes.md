@@ -21,17 +21,18 @@ Each player begins the game with one unique and five generic promissory note car
 
 ## Notes
 
-- The number of promissory notes in a player’s hand is public information.
+- The number of promissory notes in a player’s hand is public information.*
+- A player may choose to reveal any or all of the promissory notes in their hand.
 - When two players make a trade for a promissory note, the specific promissory note that was traded may be hidden from other players.
-    - However, it is public information that a promissory note was traded.
+    - However, it is public information that a promissory note was traded.*
     - The *Alliance* and *Support for the Throne* promissory notes must be played immediately when received. As such, trading either of these notes cannot be kept hidden.
-- A player may choose to reveal any or all of the promissory notes in their hand, if they so choose.
-- For notes about specific generic promissory notes, see the [promissory notes notes page](https://www.tirules2.com/C_promissory_notes).
-- For notes about a promissory note of a specific faction, see that faction’s notes page.
+- If a player receives a card, such as a promissory note, in a transaction during that card’s timing window, they may play it immediately. For example, a promissory note with “At the start of your turn:” timing may be played immediately if the transaction occurred during the “start of turn” timing window.
+- Returning a promissory note to its owner as part of resolving it is not a transaction. The note is returned even if the two players are not neighbors.
 
 ## Related Topics
 
 - [Abilities](https://www.tirules2.com/R_abilities)
 - [Component Action](https://www.tirules2.com/R_component_action)
 - [Elimination](https://www.tirules2.com/R_elimination)
+- [Neighbors](https://www.tirules2.com/R_neighbors)
 - [Transactions](https://www.tirules2.com/R_transactions)

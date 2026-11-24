@@ -106,7 +106,7 @@ def test_doki_produkuja_letani_behemoth_ale_nie_piechote(
         )
 
 
-@ruling("F_arborec/mitosis/3", "abilities:mitosis#1")
+@ruling("abilities:mitosis#1")
 def test_mitosis_obowiazkowa_nie_da_sie_odrzucic() -> None:
     state = _state()
     state.systems["103"].planet_owners = {"meer": "p1"}  # dwie planety = prawdziwy wybór
@@ -131,7 +131,7 @@ def _stymie_state() -> GameState:
     return state
 
 
-@ruling("F_arborec/stymie-omega/2")
+@ruling("F_arborec/stymie-omega/1")
 def test_stymie_nie_w_systemie_domowym_gracza_bez_jednostek(
     registry: StaticDataRegistry,
 ) -> None:
@@ -240,7 +240,7 @@ def test_letani_warrior_ii_statystyki_z_karty(registry: StaticDataRegistry) -> N
     assert (unit.cost, unit.combat_hits_on, unit.production_value) == (0.5, 7, 2)
 
 
-@ruling("F_arborec/letani-warrior/2")
+@ruling("F_arborec/letani-warrior/1")
 def test_produkcja_letani_sumuje_sie(registry: StaticDataRegistry, grid: HexGrid) -> None:
     state = _two_planet_state({OTHER_PLANET: {"infantry": 2}})
     assert production.production_limit(state, grid, registry, "p1") == 2
@@ -250,7 +250,7 @@ def test_produkcja_letani_sumuje_sie(registry: StaticDataRegistry, grid: HexGrid
     assert _ground(after, TWO_PLANETS, OTHER_PLANET) == {"infantry": 4}
 
 
-@ruling("F_arborec/letani-warrior/3")
+@ruling("F_arborec/letani-warrior/2")
 def test_produkcja_letani_dowolny_podzial_miedzy_planety(
     registry: StaticDataRegistry, grid: HexGrid
 ) -> None:
@@ -418,7 +418,7 @@ def test_dirzuga_rophal_piechota_gdy_produkuje_tylko_dok(
     assert _ground(after, TWO_PLANETS, DOCK_PLANET) == {"spacedock": 1, "infantry": 1}
 
 
-@ruling("F_arborec/dirzuga-rophal/5", "F_arborec/letani-miasmiala-ultrasonic-emitter/4")
+@ruling("F_arborec/letani-miasmiala-ultrasonic-emitter/4")
 @pytest.mark.parametrize("kind", ["commander", "hero"])
 @pytest.mark.parametrize("zone", [OTHER_PLANET, "space"])
 def test_sily_naziemne_na_dowolna_planete_albo_w_przestrzen(
@@ -439,7 +439,7 @@ def test_sily_naziemne_na_dowolna_planete_albo_w_przestrzen(
     assert units == ({"carrier": 1, "infantry": 1} if zone == "space" else {"infantry": 1})
 
 
-@ruling("F_arborec/dirzuga-rophal/6")
+@ruling("F_arborec/dirzuga-rophal/5")
 def test_dirzuga_rophal_jednostka_z_planszy_nieuszkodzona(
     registry: StaticDataRegistry, grid: HexGrid
 ) -> None:

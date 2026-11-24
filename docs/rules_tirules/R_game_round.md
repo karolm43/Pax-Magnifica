@@ -5,6 +5,8 @@
 
 ## Rules Reference
 
+A game round consists of the following four phases:
+
 - Strategy Phase
 - Action Phase
 - Status Phase
@@ -15,7 +17,7 @@
 
 ## Notes
 
-- During the strategy, status and agenda phases, players to not take turns for the purpose of game effects.
+- During the strategy, status and agenda phases, players do not take turns for the purpose of game effects.
 - A game has a maximum of nine game rounds.
 
 ## Related Topics

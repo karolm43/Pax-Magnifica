@@ -220,7 +220,6 @@ def _strategy_with_checks(registry: StaticDataRegistry) -> GameState:
     return state
 
 
-@ruling("C_agendas/checks-and-balances/1")
 def test_checks_trade_goods_go_to_the_chooser(registry: StaticDataRegistry) -> None:
     state = _strategy_with_checks(registry)
     state.strategy_card_tg = {1: 2}
@@ -229,7 +228,7 @@ def test_checks_trade_goods_go_to_the_chooser(registry: StaticDataRegistry) -> N
     assert out.players["p3"].strategy_cards == [1]
 
 
-@ruling("C_agendas/checks-and-balances/2")
+@ruling("C_agendas/checks-and-balances/4")
 def test_public_disgrace_after_checks_choice(registry: StaticDataRegistry) -> None:
     from src.core import hold_rewind
     from src.core.hold_rewind import Snapshot
@@ -305,9 +304,9 @@ def test_classified_single_secret_riders_still_playable(registry: StaticDataRegi
 
 
 @ruling(
-    "C_agendas/classified-document-leaks/2",
     "C_agendas/classified-document-leaks/3",
-    "C_agendas/classified-document-leaks/6",
+    "C_agendas/classified-document-leaks/4",
+    "C_agendas/classified-document-leaks/2",
 )
 def test_classified_secret_becomes_public_for_good(registry: StaticDataRegistry) -> None:
     state = _classified(registry, {"p1": ["dp", "s2", "s3"]})
@@ -320,7 +319,7 @@ def test_classified_secret_becomes_public_for_good(registry: StaticDataRegistry)
         objectives.score_public(out, registry, HexGrid(), "p1", "dp")  # …i drugi raz nie
 
 
-@ruling("C_agendas/classified-document-leaks/4")
+@ruling("C_agendas/classified-document-leaks/6")
 def test_classified_discarded_objective_stays_but_is_not_scorable(
     registry: StaticDataRegistry,
 ) -> None:
@@ -334,7 +333,7 @@ def test_classified_discarded_objective_stays_but_is_not_scorable(
         objectives.score_public(out, registry, HexGrid(), "p2", "dp")  # …ale nikt go nie zdobędzie
 
 
-@ruling("C_agendas/classified-document-leaks/6.1", "C_agendas/miscount-disclosed/2.2")
+@ruling("C_agendas/miscount-disclosed/3.1")
 def test_miscount_on_classified_cannot_reelect_the_public_objective(
     registry: StaticDataRegistry,
 ) -> None:
@@ -350,7 +349,7 @@ def test_miscount_on_classified_cannot_reelect_the_public_objective(
     assert "s8" in out.objectives.revealed  # wciąż publiczny w trakcie głosowania
 
 
-@ruling("C_agendas/classified-document-leaks/6.2", "C_agendas/miscount-disclosed/3.1")
+@ruling("C_agendas/classified-document-leaks/2.1", "C_agendas/miscount-disclosed/3.1")
 def test_miscount_on_classified_without_candidates_discards_and_replaces(
     registry: StaticDataRegistry,
 ) -> None:
@@ -527,7 +526,7 @@ def test_executive_sanctions_skip_yssaril(registry: StaticDataRegistry) -> None:
 # ======================================================================= Fleet Regulations
 
 
-@ruling("C_agendas/fleet-regulations/1")
+@ruling("C_agendas/fleet-regulations/2")
 def test_fleet_regulations_letnev_armada_six_ships(registry: StaticDataRegistry) -> None:
     from src.core import fleet_pool
 
@@ -544,7 +543,7 @@ def test_fleet_regulations_letnev_armada_six_ships(registry: StaticDataRegistry)
 # ======================================================================= Galactic Crisis Pact
 
 
-@ruling("C_agendas/galactic-crisis-pact/1", "C_agendas/galactic-crisis-pact/2")
+@ruling("C_agendas/galactic-crisis-pact/2")
 def test_crisis_pact_secondary_now_in_speaker_order(registry: StaticDataRegistry) -> None:
     out = _resolve(registry, _state(registry, ["crisis"]), "5")
     assert out.phase is Phase.AGENDA  # w trakcie fazy agendy
@@ -574,7 +573,7 @@ def test_crisis_pact_costs_paid_and_planets_ready_after_phase(registry: StaticDa
 
 
 @ruling("C_agendas/galactic-crisis-pact/4.1", "C_agendas/ixthian-artifact/1.3",
-        "C_agendas/wormhole-research/2.2")
+        "C_agendas/wormhole-research/4.2")
 def test_aida_exhausted_for_agenda_research_stays_exhausted(registry: StaticDataRegistry) -> None:
     state = _state(registry, [])
     state.agenda.agenda_number = 2  # type: ignore[union-attr]
@@ -621,7 +620,6 @@ def _arbiter_state(registry: StaticDataRegistry) -> GameState:
     return state
 
 
-@ruling("C_agendas/imperial-arbiter/1")
 def test_arbiter_swap_leaves_trade_goods_with_the_chooser(registry: StaticDataRegistry) -> None:
     state = _arbiter_state(registry)
     state.players["p2"].trade_goods = 2  # TG z karty 5 wziął p2 przy wyborze
@@ -630,7 +628,7 @@ def test_arbiter_swap_leaves_trade_goods_with_the_chooser(registry: StaticDataRe
     assert state.players["p2"].trade_goods == 2 and state.players["p1"].trade_goods == 0
 
 
-@ruling("C_agendas/imperial-arbiter/2")
+@ruling("C_agendas/imperial-arbiter/1")
 def test_arbiter_owner_picks_which_cards_swap(registry: StaticDataRegistry) -> None:
     state = _arbiter_state(registry)
     state.players["p1"].strategy_cards = [3, 4]  # 3-4 graczy: dwie karty
@@ -659,7 +657,7 @@ def test_artifact_research_needs_prerequisites_first_tech_counts(
     assert {first.id, second.id} <= set(state.players["p1"].technologies)
 
 
-@ruling("C_agendas/ixthian-artifact/1.2", "C_agendas/wormhole-research/2.1",
+@ruling("C_agendas/ixthian-artifact/1.2", "C_agendas/wormhole-research/4.1",
         "C_agendas/galactic-crisis-pact/4")
 def test_agenda_research_specialty_planet_ignores_a_prerequisite(
     registry: StaticDataRegistry,

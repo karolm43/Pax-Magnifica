@@ -16,7 +16,6 @@ Two system tiles are adjacent to each other if any of the tiles’ sides are tou
 ## Notes
 
 - A unit is not adjacent to the system it is in.
-- The Wormhole Nexus and the Creuss home system are only adjacent to tiles via wormholes.
 
 ## Related Topics
 

@@ -232,7 +232,7 @@ def test_awaken_tylko_zetony_z_chwili_aktywacji(registry: StaticDataRegistry) ->
     assert titans.awaken_sleepers(after, "p1", ARENA) == []
 
 
-@ruling("F_ul/awaken/3")
+@ruling("F_ul/awaken/9")
 def test_awaken_przy_pustej_rezerwie_pds_z_planszy(registry: StaticDataRegistry) -> None:
     state = _state()
     _own(state, ARENA, WELLON, units={"infantry": 1})
@@ -257,7 +257,7 @@ def test_awaken_przy_pustej_rezerwie_pds_z_planszy(registry: StaticDataRegistry)
     assert not after.systems[ARENA].damaged_units  # postawiony nieuszkodzony
 
 
-@ruling("F_ul/awaken/4", "F_ul/coalescence/2", "abilities:coalescence#1")
+@ruling("F_ul/coalescence/2", "abilities:coalescence#1")
 def test_awaken_na_cudzej_planecie(registry: StaticDataRegistry) -> None:
     state = _state()
     _own(state, ARENA, WELLON, pid="p2", units={"spacedock": 1})
@@ -296,7 +296,7 @@ def test_hel_titan_z_awaken_nie_dostaje_trafien_scd(registry: StaticDataRegistry
     assert set(units) == {"infantry"}
 
 
-@ruling("F_ul/coalescence/3")
+@ruling("F_ul/awaken/8")
 def test_ceasefire_nie_blokuje_awaken(registry: StaticDataRegistry) -> None:
     state = _state()
     _own(state, ARENA, WELLON, units={"infantry": 1})
@@ -308,7 +308,7 @@ def test_ceasefire_nie_blokuje_awaken(registry: StaticDataRegistry) -> None:
     assert _units(after, ARENA, WELLON)["pds"] == 1
 
 
-@ruling("F_ul/coalescence/4", "F_ul/coalescence/4.1")
+@ruling("F_ul/coalescence/3", "F_ul/coalescence/3.1")
 def test_w_turze_titans_harrow_nie_dziala(registry: StaticDataRegistry) -> None:
     state = _state(other="l1z1x")
     _own(state, ARENA, WELLON, pid="p2", units={"infantry": 1})
@@ -365,7 +365,6 @@ def test_hel_titan_ii_strzela_do_sasiedniego_systemu(registry: StaticDataRegistr
     assert [(s.position, s.hits_on) for s in remote] == [(ARENA, 5)]
 
 
-@ruling("F_ul/heltitan/1")
 def test_karty_strategii_produkuja_tylko_dokiem(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems[HOME].planet_units[ELYSIUM]["p1"]["pds"] = 2
@@ -377,7 +376,7 @@ def test_karty_strategii_produkuja_tylko_dokiem(registry: StaticDataRegistry) ->
     }
 
 
-@ruling("F_ul/heltitan/2")
+@ruling("F_ul/heltitan/1")
 def test_produkcja_hel_titanow_sumuje_sie(registry: StaticDataRegistry) -> None:
     state = _state()
     _own(state, ARENA, WELLON, units={"pds": 2})
@@ -385,7 +384,7 @@ def test_produkcja_hel_titanow_sumuje_sie(registry: StaticDataRegistry) -> None:
     assert [(p.base_type, p.count, p.value) for p in found] == [("pds", 2, 2)]
 
 
-@ruling("F_ul/heltitan/4")
+@ruling("F_ul/heltitan/3")
 def test_ghost_squad_nie_przenosi_hel_titana(registry: StaticDataRegistry) -> None:
     state = _state()
     _own(state, ARENA, WELLON, units={"pds": 1, "infantry": 1})
@@ -457,7 +456,7 @@ def test_hecatoncheires_zamiast_pds(registry: StaticDataRegistry) -> None:
     assert _units(work, HOME, ELYSIUM) == {"spacedock": 1, "infantry": 3, "mech": 1}
 
 
-@ruling("F_ul/hecatoncheires/2")
+@ruling("F_ul/hecatoncheires/4")
 def test_hecatoncheires_tylko_z_rezerwy(registry: StaticDataRegistry) -> None:
     state = _state()
     _own(state, FAR, TARMANN, units={"mech": _cap("mech")})
@@ -481,7 +480,7 @@ def test_hecatoncheires_nie_na_planete_z_dwoma_pds(registry: StaticDataRegistry)
     assert values == {"keep"}
 
 
-@ruling("F_ul/hecatoncheires/4")
+@ruling("F_ul/hecatoncheires/2")
 def test_hecatoncheires_przy_pustej_rezerwie_pds(registry: StaticDataRegistry) -> None:
     state = _state()
     _own(state, FAR, TARMANN, units={"pds": 2})
@@ -513,7 +512,6 @@ def test_tellurian_anuluje_trafienie(registry: StaticDataRegistry) -> None:
     assert after.players["p1"].leader_states[titans.AGENT] == "exhausted"
 
 
-@ruling("F_ul/tellurian/1")
 def test_tellurian_bez_trafien_do_przypisania(registry: StaticDataRegistry) -> None:
     state = _state()
     state.active_combat = ActiveCombat(kind="space", position=ARENA, attacker="p1",
@@ -678,8 +676,7 @@ def test_terraform_eksplorujacy_wybiera_talie(registry: StaticDataRegistry) -> N
 # -------------------------------------------------------------------- Slumberstate Computing
 
 
-@ruling("breakthroughs:titansbt#3", "F_ul/slumberstate-computing/1",
-        "F_ul/slumberstate-computing/2")
+@ruling("breakthroughs:titansbt#3", "F_ul/slumberstate-computing/2")
 def test_slumberstate_zeton_na_cudzej_planecie_za_zgoda(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].breakthrough_unlocked = True

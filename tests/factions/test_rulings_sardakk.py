@@ -295,7 +295,7 @@ def _ghom_committed(registry: StaticDataRegistry) -> GameState:
     return after
 
 
-@ruling("F_norr/ghom-sekkus/3")
+@ruling("F_norr/ghom-sekkus/8")
 def test_ghom_parley_do_przestrzeni_bez_pojemnosci(registry: StaticDataRegistry) -> None:
     state = _ghom_committed(registry)
     reactions_invasion.parley(state, registry, "p2", {"planet": "industrex"})
@@ -303,7 +303,7 @@ def test_ghom_parley_do_przestrzeni_bez_pojemnosci(registry: StaticDataRegistry)
     assert capacity.players_with_excess(state, registry, "102") == ["p1"]
 
 
-@ruling("F_norr/ghom-sekkus/4", "F_norr/ghom-sekkus/9")
+@ruling("F_norr/ghom-sekkus/5", "F_norr/ghom-sekkus/3")
 def test_ghom_po_jednej_z_planety_na_dowolna_planete(registry: StaticDataRegistry) -> None:
     state = _ghom_state()
     state.players["p1"].technologies = ["amd"]
@@ -318,7 +318,7 @@ def test_ghom_po_jednej_z_planety_na_dowolna_planete(registry: StaticDataRegistr
         assert _targets(state, registry) == {"industrex"}
 
 
-@ruling("F_norr/ghom-sekkus/5")
+@ruling("F_norr/ghom-sekkus/4")
 def test_ghom_tylko_jako_aktywny_gracz(registry: StaticDataRegistry) -> None:
     state = _ghom_state()
     state.invasion = InvasionState(position="102", attacker="p2", phase=InvasionPhase.COMMIT)
@@ -326,7 +326,7 @@ def test_ghom_tylko_jako_aktywny_gracz(registry: StaticDataRegistry) -> None:
     assert reason is not None and "your Commit Ground Forces" in reason
 
 
-@ruling("F_norr/ghom-sekkus/6")
+@ruling("F_norr/ghom-sekkus/9")
 def test_bombarduje_tylko_aktywny_gracz(registry: StaticDataRegistry) -> None:
     state = _ghom_state()
     state.invasion = InvasionState(position="102", attacker="p1", phase=InvasionPhase.BOMBARDMENT)
@@ -337,7 +337,6 @@ def test_bombarduje_tylko_aktywny_gracz(registry: StaticDataRegistry) -> None:
     assert [g.base_type for g in invasion.bombard_groups(state, registry)] == ["dreadnought"]
 
 
-@ruling("F_norr/ghom-sekkus/7")
 def test_ghom_space_cannon_defense_strzela(registry: StaticDataRegistry) -> None:
     state = _ghom_committed(registry)
     state.systems["102"].planet_units["industrex"]["p2"] = {"pds": 1}
@@ -347,7 +346,7 @@ def test_ghom_space_cannon_defense_strzela(registry: StaticDataRegistry) -> None
     assert invasion.defense_planets(after, registry) == ["industrex"]
 
 
-@ruling("F_norr/ghom-sekkus/8.1")
+@ruling("F_norr/ghom-sekkus/6.1")
 def test_ghom_ceasefire_tylko_z_aktywnego_systemu(registry: StaticDataRegistry) -> None:
     state = _ghom_state()
     state.players["p1"].technologies = ["amd"]
@@ -359,7 +358,7 @@ def test_ghom_ceasefire_tylko_z_aktywnego_systemu(registry: StaticDataRegistry) 
     assert _sources(state, registry) == ["102"]
 
 
-@ruling("F_norr/ghom-sekkus/10")
+@ruling("F_norr/ghom-sekkus/7")
 def test_ghom_dominus_orb_z_systemu_z_zetonem(registry: StaticDataRegistry) -> None:
     state = _ghom_state()
     state.players["p1"].technologies = ["amd"]
@@ -369,7 +368,6 @@ def test_ghom_dominus_orb_z_systemu_z_zetonem(registry: StaticDataRegistry) -> N
     assert _sources(state, registry) == ["000"]
 
 
-@ruling("F_norr/ghom-sekkus/11")
 def test_ghom_odblokowany_przy_establish_control_za_pozno(registry: StaticDataRegistry) -> None:
     state = _ghom_state()
     state.players["p1"].technologies = ["amd"]
@@ -378,7 +376,6 @@ def test_ghom_odblokowany_przy_establish_control_za_pozno(registry: StaticDataRe
     assert reason is not None and "Commit Ground Forces" in reason
 
 
-@ruling("F_norr/ghom-sekkus/12")
 def test_ghom_nie_na_demilitarized_zone(registry: StaticDataRegistry) -> None:
     state = _ghom_state()
     state.players["p1"].technologies = ["amd"]
@@ -409,7 +406,7 @@ def _hero_landed(registry: StaticDataRegistry, *, pds: bool = False) -> GameStat
     return invasion.commit_ground_forces(started, registry, {"industrex": {"infantry": 2}})
 
 
-@ruling("F_norr/shval-harbinger-tekklar-conditioning/1")
+@ruling("F_norr/shval-harbinger-tekklar-conditioning/4")
 def test_hero_parley_usuwa_piechote_bez_statkow(registry: StaticDataRegistry) -> None:
     state = _hero_landed(registry)
     assert "carrier" not in state.systems["102"].space_units.get("p1", {})
@@ -418,7 +415,6 @@ def test_hero_parley_usuwa_piechote_bez_statkow(registry: StaticDataRegistry) ->
     assert capacity.players_with_excess(state, registry, "102") == ["p1"]
 
 
-@ruling("F_norr/shval-harbinger-tekklar-conditioning/3")
 def test_hero_space_cannon_defense_zostaje(registry: StaticDataRegistry) -> None:
     state = _hero_landed(registry, pds=True)
     after = invasion.advance(state, build_demo_grid(registry), registry)
@@ -427,7 +423,7 @@ def test_hero_space_cannon_defense_zostaje(registry: StaticDataRegistry) -> None
     assert invasion.defense_planets(after, registry) == ["industrex"]
 
 
-@ruling("F_norr/shval-harbinger-tekklar-conditioning/4")
+@ruling("F_norr/shval-harbinger-tekklar-conditioning/3")
 def test_hero_zamyka_okno_po_ruchu(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].leader_states = {sardakk.HERO: "unlocked"}

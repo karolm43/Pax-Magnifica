@@ -21,24 +21,27 @@ A player who is eliminated is no longer part of the game.
 - If the speaker becomes eliminated, the speaker token passes to the player to the speaker’s left.
 - If a game that started with five or more players becomes a game with four or fewer players due to elimination, the players continue to select only one strategy card during the strategy phase.
 - When players are eliminated, faction–specific components interact with the game as follows:
-    - If a player becomes eliminated and the Nekro Virus’ assimilator “X” or assimilator “Y” token is placed on one of their faction technologies, that technology remains in play.
-    - If the Ghost of Creuss player becomes eliminated, their wormhole tokens remain on the game board for the remainder of the game.
-    - If the Naalu player becomes eliminated while another player has the Naalu player’s “0” token, that token remains with its current player until the end of the status phase, and then it is removed from play.
-    - If the Titans of Ul player becomes eliminated while their hero or promissory note is attached to a planet, those attachments and attachment tokens remain in play for the remainder of the game.
-    - If the Mahact Gene–Sorcerers become eliminated while they have another player’s command tokens on their faction sheet, those command tokens are returned to their respective players’ reinforcements.
+    - If a player becomes eliminated and the [Nekro](https://www.tirules2.com/F_nekro) Virus’ assimilator “X” or assimilator “Y” token is placed on one of their faction technologies, that technology remains in play.
+    - If the Ghosts of [Creuss](https://www.tirules2.com/F_creuss) player becomes eliminated, their wormhole tokens remain on the game board for the remainder of the game.
+    - If the [Naalu](https://www.tirules2.com/F_naalu) player becomes eliminated while another player has the Naalu player’s “0” token, that token remains with its current player until the end of the status phase, and then it is removed from play.
+    - If the Titans of [Ul](https://www.tirules2.com/F_ul) player becomes eliminated while their hero or promissory note is attached to a planet, those attachments and attachment tokens remain in play for the remainder of the game.
+    - If the [Mahact](https://www.tirules2.com/F_mahact) Gene–Sorcerers become eliminated while they have another player’s command tokens on their faction sheet, those command tokens are returned to their respective players’ reinforcements.
     - If the Mahact Gene–Sorcerers have an eliminated player’s command token on their faction sheet, that command token remains in play, as does the eliminated player’s commander, if it is unlocked.
 - If a player becomes eliminated, any units they have captured are returned to the reinforcements of their original owners.
 
 ## Notes
 
-- While the Arborec flagship may produce units, it does not have the `Production` ability. Having it on the game board will not prevent the Arborec player from being eliminated. This applies to all similar effects in the game.
+- A space station is not a planet; controlling one does not prevent a player from being eliminated.
 - An eliminated player’s home system remains a home system for game effects.
-    - This includes effects that specify “another player’s home system”.
-- If an eliminated player had any relic fragments, they are discarded to their respective exploration discard piles. If an eliminated player had any relics, they are purged.
+    - This includes effects that specify “another player’s home system”.*
+- If an eliminated player had any relic fragments, they are discarded. If an eliminated player had any relics, they are purged.
 - If a player is eliminated, any of their units that are captured remain with the player that captured them. When the capturing player would return them, the units are instead returned to the game box.
 
 ## Related Topics
 
+- [Agenda Card](https://www.tirules2.com/R_agenda_card)
 - [Control](https://www.tirules2.com/R_control)
 - [Ground Forces](https://www.tirules2.com/R_ground_forces)
 - [Production](https://www.tirules2.com/R_production)
+- [Promissory Notes](https://www.tirules2.com/R_promissory_notes)
+- [Relics](https://www.tirules2.com/R_relics)

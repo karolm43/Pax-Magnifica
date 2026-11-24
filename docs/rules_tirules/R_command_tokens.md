@@ -21,6 +21,12 @@ Command tokens are a currency that players use to perform actions and expand the
 
 ## Notes
 
+- Each faction has sixteen command and seventeen control tokens included in the game.
+- Command tokens on a player’s command sheet are not in that player’s reinforcements.
+- If an effect instructs a player to spend a command token from their reinforcements, that player must have a command token in their reinforcements to do so. The token remains in their reinforcements, unless the effect places it on the game board.
+- Players do not spend command tokens from their fleet pool unless a game effect specifically allows it.
+- A system is only activated by placing a command token during the Activation step of a tactical action or through the primary ability of the Warfare strategy card. Command tokens placed by other effects, such as the primary ability of the *Diplomacy* strategy card or a retreat, and action cards that target a system, do not activate that system.
+
 ## Related Topics
 
 - [Command Sheet](https://www.tirules2.com/R_command_sheet)

@@ -15,11 +15,12 @@ Mechs are unique, faction–specific heavy ground forces.
 ## Notes
 
 - Effects that refer to “ground forces” apply to mechs. Effects that refer to “infantry” do not.
-- For notes about a mech of a specific faction, see that faction’s page.
 
 ## Related Topics
 
 - [Deploy](https://www.tirules2.com/R_deploy)
+- [Ground Combat](https://www.tirules2.com/R_ground_combat)
 - [Ground Forces](https://www.tirules2.com/R_ground_forces)
 - [Leader Sheet](https://www.tirules2.com/R_leader_sheet)
+- [Producing Units](https://www.tirules2.com/R_producing_units)
 - [Units](https://www.tirules2.com/R_units)

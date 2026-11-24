@@ -16,4 +16,5 @@ During combat, a player’s opponent is the other player that either has ships i
 - [Attacker](https://www.tirules2.com/R_attacker)
 - [Defender](https://www.tirules2.com/R_defender)
 - [Ground Combat](https://www.tirules2.com/R_ground_combat)
+- [Invasion](https://www.tirules2.com/R_invasion)
 - [Space Combat](https://www.tirules2.com/R_space_combat)

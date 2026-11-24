@@ -267,7 +267,7 @@ def test_own_destruction_by_an_effect_does_not_credit_the_opponent() -> None:
 # --------------------------------------------------------------------- limit celów na walkę
 
 
-@ruling("R_objective_cards/rules-reference/7", "R_objective_cards/notes/6.1")
+@ruling("R_objective_cards/rules-reference/7", "R_objective_cards/notes/5.1")
 def test_only_one_objective_during_and_after_one_combat() -> None:
     """Fight with Precision w kroku AFB zużywa limit tej walki: po walce Brave the Void nie."""
     grid = HexGrid()
@@ -285,7 +285,7 @@ def test_only_one_objective_during_and_after_one_combat() -> None:
     assert _scored(state) == ["fwp"] and state.players["p1"].victory_points == 1
 
 
-@ruling("R_objective_cards/rules-reference/7.1", "R_objective_cards/notes/5")
+@ruling("R_objective_cards/rules-reference/7.1")
 def test_each_combat_has_its_own_objective_limit() -> None:
     grid = HexGrid()
     grid.place_system("000", "18", anomalies={"NEBULA"})
@@ -296,7 +296,7 @@ def test_each_combat_has_its_own_objective_limit() -> None:
     assert _scored(state) == ["btv", "dts"]
 
 
-@ruling("R_objective_cards/notes/6")
+@ruling("R_objective_cards/notes/5")
 def test_space_cannon_scoring_is_outside_combat_limit() -> None:
     state = _state("ttfd", holder="p2")
     state.tactical_step = TacticalStep.SPACE_CANNON

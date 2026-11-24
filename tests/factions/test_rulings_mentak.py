@@ -237,7 +237,7 @@ def test_pillage_trade_convoys_i_faza_agend_nie_czynia_sasiadami(
     assert "neighbors" in str(mentak.pillage_reason(done, "p1", "p2"))
 
 
-@ruling("F_mentak/pillage/2", "F_mentak/pillage/2.1")
+@ruling("F_mentak/pillage/7", "F_mentak/pillage/7.1")
 def test_pillage_trade_agreement_na_posiadacza_nie_na_wystawce(
     registry: StaticDataRegistry,
 ) -> None:
@@ -254,7 +254,7 @@ def test_pillage_trade_agreement_na_posiadacza_nie_na_wystawce(
     assert offer.ctx.get("player") == "p2"
 
 
-@ruling("F_mentak/pillage/4")
+@ruling("F_mentak/pillage/3")
 def test_pillage_lazax_gate_folding_w_akcji_winnu(registry: StaticDataRegistry) -> None:
     """W akcji taktycznej Winnu z Lazax Gate Folding Mentak w systemie z wormhole alfa jest
     sąsiadem Winnu na Mecatol - może użyć Pillage."""
@@ -283,7 +283,7 @@ def test_pillage_lazax_gate_folding_w_akcji_winnu(registry: StaticDataRegistry) 
         board_graph.bind_grid_provider(previous)
 
 
-@ruling("F_mentak/pillage/5", "abilities:pillage#1")
+@ruling("F_mentak/pillage/8", "abilities:pillage#1")
 def test_pillage_za_kazde_zdobycie_tg(registry: StaticDataRegistry) -> None:
     state = _state()
     economy.gain_trade_goods(state, "p2", 1)
@@ -293,7 +293,7 @@ def test_pillage_za_kazde_zdobycie_tg(registry: StaticDataRegistry) -> None:
     assert [label for label in _labels(state) if "Pillage" in label] == ["Pillage"]
 
 
-@ruling("F_mentak/pillage/6")
+@ruling("F_mentak/pillage/10")
 def test_pillage_nie_po_zamianie_commodities(registry: StaticDataRegistry) -> None:
     state = _state()
     economy.convert_commodities_to_trade_goods(state, "p2", 1)
@@ -301,7 +301,7 @@ def test_pillage_nie_po_zamianie_commodities(registry: StaticDataRegistry) -> No
     assert _labels(state) == []
 
 
-@ruling("F_mentak/pillage/7", "F_mentak/promise-of-protection/2")
+@ruling("F_mentak/pillage/4", "F_mentak/promise-of-protection/2")
 def test_pillage_transakcja_bez_tg_i_notka_w_rece(registry: StaticDataRegistry) -> None:
     """Mentak oddaje Promise of Protection (sama notka, bez TG): w ręce notka nie chroni."""
     state = _state()
@@ -314,7 +314,7 @@ def test_pillage_transakcja_bez_tg_i_notka_w_rece(registry: StaticDataRegistry) 
     assert _labels(done) == ["Pillage (transaction partner)"]
 
 
-@ruling("F_mentak/pillage/8")
+@ruling("F_mentak/pillage/5")
 def test_pillage_obie_strony_cudzej_transakcji(registry: StaticDataRegistry) -> None:
     state = _three()
     state.active_player_id = "p2"
@@ -327,7 +327,7 @@ def test_pillage_obie_strony_cudzej_transakcji(registry: StaticDataRegistry) -> 
     assert done.players["p1"].trade_goods == 3
 
 
-@ruling("F_mentak/pillage/9")
+@ruling("F_mentak/pillage/6")
 def test_pillage_po_wlasnej_transakcji(registry: StaticDataRegistry) -> None:
     state = _state()
     done = transaction.resolve_transaction(
@@ -431,7 +431,7 @@ def _salvage_grant(registry: StaticDataRegistry, trade_goods: int) -> GameState:
     return state
 
 
-@ruling("F_mentak/salvage-operations/1", "technologies:so#2")
+@ruling("F_mentak/salvage-operations/5", "technologies:so#2")
 def test_salvage_produkcja_platna(registry: StaticDataRegistry) -> None:
     unit = resolve_unit_variant(registry, "mentak", [], "destroyer", False)
     assert unit is not None and unit.cost is not None
@@ -444,7 +444,7 @@ def test_salvage_produkcja_platna(registry: StaticDataRegistry) -> None:
     assert done.players["p1"].trade_goods == 3 - int(unit.cost)
 
 
-@ruling("F_mentak/salvage-operations/2", "technologies:so#1")
+@ruling("F_mentak/salvage-operations/1", "technologies:so#1")
 def test_salvage_remis_bez_skutku(registry: StaticDataRegistry) -> None:
     state = _state()
     state.players["p1"].technologies = ["so"]
@@ -458,7 +458,7 @@ def test_salvage_remis_bez_skutku(registry: StaticDataRegistry) -> None:
     assert state.players["p1"].trade_goods == 2  # przegrana też daje TG
 
 
-@ruling("F_mentak/salvage-operations/3")
+@ruling("F_mentak/salvage-operations/6")
 def test_salvage_pusta_rezerwa_zdjecie_z_planszy(registry: StaticDataRegistry) -> None:
     from src.core import board_reinforcements
     from src.core.production import reinforcements_left
@@ -475,8 +475,8 @@ def test_salvage_pusta_rezerwa_zdjecie_z_planszy(registry: StaticDataRegistry) -
     assert mentak.salvage_types(state, "p1") == []
 
 
-@ruling("F_mentak/salvage-operations/4", "F_mentak/salvage-operations/5",
-        "F_mentak/salvage-operations/6")
+@ruling("F_mentak/salvage-operations/2", "F_mentak/salvage-operations/3",
+        "F_mentak/salvage-operations/4")
 def test_salvage_flagowiec_przeciwnika_i_bez_sil_naziemnych(
     registry: StaticDataRegistry,
 ) -> None:
@@ -581,7 +581,7 @@ def test_sleeper_nie_za_statki_zniszczone_wczesniej(registry: StaticDataRegistry
     assert not mentak._sleeper_pending(state, "p1", {})
 
 
-@ruling("F_mentak/ipswitch-loose-cannon-sleeper-cell/4",
+@ruling("F_mentak/ipswitch-loose-cannon-sleeper-cell/3",
         "F_mentak/ipswitch-loose-cannon-sleeper-cell/6", "leaders:mentakhero#2")
 def test_sleeper_mysliwce_bez_pojemnosci_i_bez_kosztu(registry: StaticDataRegistry) -> None:
     state = _state()
@@ -681,9 +681,9 @@ def test_sleeper_pusta_rezerwa_z_planszy_nieuszkodzony(registry: StaticDataRegis
     assert combat is not None
 
 
-@ruling("F_mentak/ipswitch-loose-cannon-sleeper-cell/9",
-        "F_mentak/ipswitch-loose-cannon-sleeper-cell/11",
-        "F_mentak/ipswitch-loose-cannon-sleeper-cell/12")
+@ruling("F_mentak/salvage-operations/2",
+        "F_mentak/ipswitch-loose-cannon-sleeper-cell/10",
+        "F_mentak/ipswitch-loose-cannon-sleeper-cell/11")
 def test_sleeper_typy_statkow(registry: StaticDataRegistry) -> None:
     state = _state()
     combat = _combat(state, {"cruiser": 1}, {})
@@ -703,7 +703,7 @@ def _uf_state(registry: StaticDataRegistry) -> GameState:
     return state
 
 
-@ruling("F_mentak/ipswitch-loose-cannon-sleeper-cell/10")
+@ruling("F_mentak/ipswitch-loose-cannon-sleeper-cell/9")
 def test_sleeper_fourth_moon_zniszczony_i_postawiony_bez_unveil(
     registry: StaticDataRegistry,
 ) -> None:
@@ -719,7 +719,7 @@ def test_sleeper_fourth_moon_zniszczony_i_postawiony_bez_unveil(
     assert "uf" not in state.players["p1"].scored_secrets
 
 
-@ruling("F_mentak/ipswitch-loose-cannon-sleeper-cell/10.1")
+@ruling("F_mentak/ipswitch-loose-cannon-sleeper-cell/9.1")
 def test_sleeper_fourth_moon_postawiony_w_walce_daje_unveil(
     registry: StaticDataRegistry,
 ) -> None:
@@ -733,7 +733,7 @@ def test_sleeper_fourth_moon_postawiony_w_walce_daje_unveil(
     assert "uf" in state.players["p1"].scored_secrets
 
 
-@ruling("F_mentak/ipswitch-loose-cannon-sleeper-cell/13")
+@ruling("F_mentak/ipswitch-loose-cannon-sleeper-cell/12")
 def test_sleeper_przeciwnik_moze_sie_wycofac(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "mentak")
     flow.player(lambda p: p["leader_states"].update(mentakhero="unlocked"))

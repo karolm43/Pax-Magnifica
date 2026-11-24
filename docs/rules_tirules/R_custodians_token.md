@@ -15,7 +15,7 @@ The custodians token begins each game on Mecatol Rex. The token represents the c
 
 ## Notes
 
-- The custodians token is not an attachment.
+- The custodians token is not an attachment.*
 
 ## Related Topics
 

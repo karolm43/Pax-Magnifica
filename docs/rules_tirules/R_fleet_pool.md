@@ -16,9 +16,9 @@ The fleet pool is an area of a player’s command sheet.
 
 ## Notes
 
-- Fighters and ground forces do not count towards capacity during combat. As such, any number of Fighter II may be in a system during combat, regardless of capacity and fleet pool. This will usually only be caused by effects that place units in a system during combat. When combat ends however, units will need to be removed to meet capacity and fleet pool requirements.
-- Ships may be moved into, produced in or placed in a system even if doing so would exceed the fleet pool limit. However, some of those ships must immediately be removed to satisfy the limit.
-    - If some of those ships are fighters II, they may instead count towards that player’s capacity in that system. If capacity is exceeded, fighters or ground forces must be removed to meet the limit.
+- Fighters and ground forces do not count toward capacity during combat. When combat ends however, units will need to be removed to meet capacity requirements.
+- Ships may be moved into or produced in a system even if doing so would exceed the fleet pool limit. However, some of those ships must immediately be removed to satisfy the limit.
+    - If some of those ships are fighters II, they may instead count toward that player’s capacity in that system. If capacity is exceeded, fighters or ground forces must be removed to meet the limit.
 - During movement, a ship may move through a system regardless of how many ships are in that system relative to the fleet pool limit.
 
 ## Related Topics
@@ -26,5 +26,6 @@ The fleet pool is an area of a player’s command sheet.
 - [Capacity](https://www.tirules2.com/R_capacity)
 - [Command Sheet](https://www.tirules2.com/R_command_sheet)
 - [Command Tokens](https://www.tirules2.com/R_command_tokens)
+- [Movement](https://www.tirules2.com/R_movement)
 - [Ships](https://www.tirules2.com/R_ships)
 - [System Tiles](https://www.tirules2.com/R_system_tiles)

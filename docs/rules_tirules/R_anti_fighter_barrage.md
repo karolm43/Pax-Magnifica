@@ -17,7 +17,7 @@ A unit with the `Anti–Fighter Barrage` ability may be able to destroy an oppon
 
 ## Notes
 
-- A non–fighter ship cannot use its `Sustain Damage` ability to cancel a hit produced by an anti–fighter barrage roll.
+- A non–fighter ship cannot use its `Sustain Damage` ability to cancel a hit produced by an anti–fighter barrage roll, unless an effect such as the *Waylay* action card makes it eligible to be hit.
 - Effects such as the *Shields Holding* action card, which trigger on hits produced during space combat, may be used to cancel a hit produced by an anti–fighter barrage roll.
 - The “0” side of the d10 represents a result of 10.
 
@@ -26,3 +26,4 @@ A unit with the `Anti–Fighter Barrage` ability may be able to destroy an oppon
 - [Abilities](https://www.tirules2.com/R_abilities)
 - [Destroyed](https://www.tirules2.com/R_destroyed)
 - [Space Combat](https://www.tirules2.com/R_space_combat)
+- [Sustain Damage](https://www.tirules2.com/R_sustain_damage)
