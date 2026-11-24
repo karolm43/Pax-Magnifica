@@ -360,13 +360,14 @@ def test_ghom_ceasefire_tylko_z_aktywnego_systemu(registry: StaticDataRegistry) 
 
 
 @ruling("F_norr/ghom-sekkus/7")
-def test_ghom_dominus_orb_z_systemu_z_zetonem(registry: StaticDataRegistry) -> None:
+def test_ghom_dominus_orb_nie_otwiera_systemu_z_zetonem(registry: StaticDataRegistry) -> None:
+    """Purging Dominus Orb does not let G'hom Sek'kus commit from systems with own token."""
     state = _ghom_state()
     state.players["p1"].technologies = ["amd"]
     state.systems["000"].command_tokens = ["p1"]
     assert _sources(state, registry) == []
     active_effects.add_effect(state, _DOMINUS_EFFECT, Duration.TACTICAL_ACTION, owner="p1")
-    assert _sources(state, registry) == ["000"]
+    assert _sources(state, registry) == []
 
 
 @ruling("leaders:sardakkcommander#1")

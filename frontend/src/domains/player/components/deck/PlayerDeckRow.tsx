@@ -412,7 +412,7 @@ export const PlayerDeckRow = memo(function PlayerDeckRow({
         )}
         {hasCapturedUnits && (
           <div className={styles.extra}>
-            <Nombox capturedUnits={player.nombox} />
+            <Nombox capturedUnits={player.nombox} ownerFaction={player.faction} />
           </div>
         )}
         {settings.showPlayerAreaArmyStrength && (

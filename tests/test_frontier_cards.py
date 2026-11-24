@@ -67,7 +67,6 @@ def _state(registry: StaticDataRegistry, card_id: str) -> GameState:
 # ------------------------------------------------------------------ Enigmatic Device
 
 
-@ruling("R_exploration/notes/5")
 def test_enigmatic_device_goes_to_hand_not_to_discard(registry: StaticDataRegistry) -> None:
     state = _state(registry, "ed1")
     options = exploration.options_for(state, registry)

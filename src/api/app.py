@@ -39,6 +39,7 @@ from src.api.routers import (
     board,
     bug_report,
     capacity,
+    capture,
     chat,
     clock,
     components,
@@ -370,6 +371,7 @@ def create_app(
     app.include_router(space_cannon.router)
     app.include_router(battle.router)
     app.include_router(capacity.router)
+    app.include_router(capture.router)
     app.include_router(fleet_pool.router)
     app.include_router(invasion.router)
     app.include_router(exploration.router)

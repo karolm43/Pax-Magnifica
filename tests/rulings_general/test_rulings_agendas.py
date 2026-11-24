@@ -334,7 +334,7 @@ def test_classified_discarded_objective_stays_but_is_not_scorable(
         objectives.score_public(out, registry, HexGrid(), "p2", "dp")  # …ale nikt go nie zdobędzie
 
 
-@ruling("C_agendas/miscount-disclosed/3.1", "C_agendas/classified-document-leaks/2")
+@ruling("C_agendas/classified-document-leaks/2")
 def test_miscount_on_classified_cannot_reelect_the_public_objective(
     registry: StaticDataRegistry,
 ) -> None:

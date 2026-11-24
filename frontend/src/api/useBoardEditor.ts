@@ -865,6 +865,14 @@ export function useBoardEditor() {
     },
     [refresh],
   );
+  // R_capture notes/5 (RULES.md 61.5): own captured units back to reinforcements at any time.
+  const captureReturnOwn = useCallback(
+    async (faction: string, baseType: string, count = 1) => {
+      await post("/capture/return-own", { faction, baseType, count });
+      await refresh();
+    },
+    [refresh],
+  );
   const capacityResolve = useCallback(
     async (faction: string, remove: Record<string, number>) => {
       await post("/tactical/capacity/resolve", {
@@ -1173,6 +1181,7 @@ export function useBoardEditor() {
     battleRetreat,
     capacityResolve,
     fleetPoolResolve,
+    captureReturnOwn,
     tacticalNextStep,
     tacticalSetStep,
     endTactical,

@@ -702,7 +702,7 @@ def test_system_with_only_a_destroyed_planet_has_no_planets(registry: StaticData
 # ============================================================================ The Triad
 
 
-@ruling("C_relics/the-triad/2", "C_relics/the-triad/2.1")
+@ruling("C_relics/the-triad/3", "C_relics/the-triad/2.1")
 def test_triad_votes_and_readies_at_the_end_of_the_agenda_phase(
     registry: StaticDataRegistry,
 ) -> None:

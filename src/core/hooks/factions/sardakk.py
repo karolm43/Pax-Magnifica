@@ -42,7 +42,6 @@ from src.core.rules_hooks import (
     POINT_COMBAT_ROLL_MODIFIER,
     POINT_INVASION_COMMIT_FROM_PLANETS,
     POINT_INVASION_SKIP_BOMBARDMENT,
-    POINT_MOVEMENT_IGNORE_OWN_CC,
     SOURCE_BREAKTHROUGH,
     SOURCE_EFFECT,
     SOURCE_FACTION,
@@ -375,11 +374,8 @@ def _commander_sources(
     if not blocked and not promissory_play.ceasefire_blocks(state, player_id):
         for position in sorted(board_graph.adjacent_positions(inv.position)):
             system = state.systems.get(position)
-            if system is None or (
-                player_id in system.command_tokens
-                # Dominus Orb (F_norr): purge w ruchu - źródła także z systemów z żetonem.
-                and not rules_hooks.permits(POINT_MOVEMENT_IGNORE_OWN_CC, state, player_id)
-            ):
+            # F_norr ghom-sekkus/7: purging Dominus Orb does NOT open systems with own token.
+            if system is None or player_id in system.command_tokens:
                 continue
             if movement.wormhole_link_blocked(grid, state, player_id, position, inv.position):
                 continue

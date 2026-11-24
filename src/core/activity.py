@@ -366,6 +366,9 @@ def _parse_economy_scoring(parts: list[str], active: str | None) -> _Parsed | No
         left, right = parts[2].split("->", 1)
         action = "debt.give" if parts[1] == "give" else "debt.return"
         return "economy", action, left, right, None, None
+    if label_is(parts, "captured", "return-own") and len(parts) > 3:
+        # ``captured:return-own:<gracz>:<etykieta jednostek>`` (R_capture notes/5).
+        return "economy", "capture.return_own", parts[2], None, None, parts[3]
     if label_is(parts, "status", "score") and len(parts) > 2:
         return "scoring", "objective.score", active, None, parts[2], None
     if label_is(parts, "status", "finish-scoring"):

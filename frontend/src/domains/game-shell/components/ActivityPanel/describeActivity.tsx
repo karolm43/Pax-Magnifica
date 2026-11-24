@@ -492,6 +492,12 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
           {actor} gave debt tokens to {target}
         </>
       );
+    case "capture.return_own":
+      return (
+        <>
+          {actor} returned captured {a.detail} to reinforcements
+        </>
+      );
     case "debt.return":
       return (
         <>

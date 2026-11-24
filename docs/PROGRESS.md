@@ -584,3 +584,35 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   test pointed at the original card — asset text is ΩΩ). Uncovered rulings in `test_ruling_coverage` 211 → 202.
 - QA: affected suites (factions, rulings_general, exploration — 1209 passed), ruff, mypy (changed files).
   `test_ruling_coverage` still red (pre-existing debt of new rulings). Skipped: full suite, frontend (no change).
+
+## System hover: forces, HP/attack, win probability
+- Hovering a system now lists units per zone (space + planets) with hit points (2 with Sustain Damage, minus damage taken)
+  and attack (hits on X+ ×dice), plus per-faction totals (HP, expected hits/round). Frontend: `SystemDetailsCard/SystemForces.tsx`
+  (reuses `summarizeZone`, `Unit`, `FactionIcon`, `useFactionHelpers`).
+- Zones with exactly two fighting sides also show a win-probability bar (attacker / draw / defender).
+  Backend: `core/combat_odds.py` (seeded Monte Carlo over `battle_units.combat_units`, so upgrades, hooks, damage and nebula
+  count) behind `GET /tactical/odds/{position}`; hook `useSystemOdds`.
+- ⚠️ ASSUMPTION (estimate only, documented in the module): cheapest-first loss assignment with Sustain Damage preferred,
+  AFB once before round 1, no Space Cannon/Bombardment/retreats/action cards/rerolls. New route: restart the backend.
+- QA: `tests/test_combat_odds.py`, ruff, mypy, `tsc` (app), eslint. Skipped: full suite, vitest, build, e2e.
+
+## Rulings Update Review: 314 Remapped Ruling IDs (2026-11-24)
+- Reviewed all 314 IDs that the 2026-11-22 dump remap moved to new numbers (`@ruling` + `rulings_status.json`):
+  198 have the same text (renumbered only); 116 have reworded text and were checked against their tests, statuses and
+  the engine one by one.
+- Two rulings now mean the opposite, so the engine was changed:
+  - G'hom Sek'kus + Dominus Orb (F_norr ghom-sekkus/7): purging Dominus Orb no longer lets the commander commit
+    ground forces from systems that contain the N'orr player's command token (`sardakk._commander_sources`; R62).
+  - Own captured units (R_capture notes/5): a player may return their own captured ships/mechs to reinforcements at
+    any time. New `capture.return_own`, `POST /capture/return-own` (actor = that player), Activity
+    `capture.return_own`, and a UI path: click an own unit on your own `Nombox` → "Return 1 to reinforcements". Tokens
+    (fighters/infantry) are excluded because they belong to no one (R61.5).
+- Wrong auto-remapped tags were fixed: Triad voting test → `the-triad/3` (was `/2`, Diplomacy readying);
+  the Classified re-elect test no longer claims `miscount-disclosed/3.1`; the Enigmatic Device test no longer claims
+  `R_exploration/notes/5` (Ion Storm only now); the Political Favor test no longer claims `quash/2`.
+- `the-triad/2` (Diplomacy can ready The Triad) is now honestly uncovered; it needs a relic pick in Diplomacy. The
+  uncovered count stays at 202.
+- QA: factions + rulings_general + capture/activity/frontier/relics suites (1262 passed; the 3 failures come from
+  another session's uncommitted argent/l1z1x/naalu edits and pass without them), ruff (only the other session's
+  file), mypy (changed files), frontend tsc/eslint/vitest (Nombox, ActivityPanel). Skipped: full suite, build, e2e.
+  Backend restart needed (new route).

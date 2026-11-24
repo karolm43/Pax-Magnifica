@@ -197,12 +197,24 @@ def test_wyeliminowany_przechwytujacy_oddaje_jednostki() -> None:
 
 
 @ruling("R_capture/notes/5", "R_capture/rules-reference/5")
-def test_wlasne_przechwycone_nie_wracaja_same() -> None:
+def test_wlasne_przechwycone_wraca_gracz_kiedy_chce() -> None:
+    """Own captured units stay on the sheet (no automatic return, cannot be placed) until the
+    player chooses to return them to reinforcements - which they may do at any time."""
     state = _state()
-    state.players["p1"].captured_units = {"p1": {"cruiser": 1}}
-    assert reinforcements_left(state, "p1", "cruiser") == _cap("cruiser") - 1
+    state.players["p1"].captured_units = {"p1": {"cruiser": 2}, "p2": {"carrier": 1}}
+    assert reinforcements_left(state, "p1", "cruiser") == _cap("cruiser") - 2
     state = capture.release_blockaded(state)
-    assert state.players["p1"].captured_units == {"p1": {"cruiser": 1}}
+    assert state.players["p1"].captured_units["p1"] == {"cruiser": 2}
+    after = capture.return_own(state, "p1", "cruiser")
+    assert after.players["p1"].captured_units == {"p1": {"cruiser": 1}, "p2": {"carrier": 1}}
+    assert reinforcements_left(after, "p1", "cruiser") == _cap("cruiser") - 1
+    assert state.players["p1"].captured_units["p1"] == {"cruiser": 2}  # pure
+    with pytest.raises(ValueError, match="own units"):
+        capture.return_own(after, "p1", "cruiser", 2)
+    with pytest.raises(ValueError, match="own units"):
+        capture.return_own(after, "p1", "carrier")  # Sol carrier: not own
+    with pytest.raises(ValueError, match="tokens"):
+        capture.return_own(after, "p1", "fighter")
 
 
 @ruling("R_capture/notes/6")

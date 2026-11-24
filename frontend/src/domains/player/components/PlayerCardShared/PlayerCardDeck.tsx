@@ -207,7 +207,7 @@ export function PlayerCardDeck({ playerData }: Props) {
 
         {hasCapturedUnits && (
           <Compartment className={styles.nomboxSection}>
-            <Nombox capturedUnits={player.nombox} />
+            <Nombox capturedUnits={player.nombox} ownerFaction={player.faction} />
           </Compartment>
         )}
 

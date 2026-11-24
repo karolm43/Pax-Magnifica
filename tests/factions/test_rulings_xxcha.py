@@ -138,7 +138,7 @@ def test_quash_po_political_secret_notka_wraca_bez_efektu(registry: StaticDataRe
 
 
 @ruling(
-    "F_xxcha/quash/2", "F_xxcha/quash/5",
+    "F_xxcha/quash/5",
     "promissory_notes:favor#1", "promissory_notes:favor#2", "promissory_notes:favor#3",
     "promissory_notes:favor#4",
 )

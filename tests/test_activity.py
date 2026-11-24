@@ -128,6 +128,13 @@ def test_vp_and_planet_facts_from_diff() -> None:
     assert ("planet_gained", "jord", None) in types
 
 
+def test_return_own_captured_units_in_feed() -> None:
+    entry = derive_activity("captured:return-own:p1:1 Cruiser (Arborec)", _state(), _state())
+    assert entry is not None and entry.kind == "economy"
+    assert entry.action == "capture.return_own" and entry.actor_id == "p1"
+    assert entry.detail == "1 Cruiser (Arborec)"
+
+
 def test_godmode_without_effect_is_hidden() -> None:
     assert derive_activity("god-mode-patch", _state(), _state()) is None
 

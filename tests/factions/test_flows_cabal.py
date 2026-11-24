@@ -153,3 +153,18 @@ def test_transakcja_zwraca_przechwycony_statek(registry: StaticDataRegistry) -> 
     state = _state(flow)
     assert state["players"][flow.me]["captured_units"] == {}
     assert list(_web_player(flow, flow.me)["nombox"].values()) == [["fighter,2"]]
+
+
+@ruling("R_capture/notes/5")
+def test_wlasne_przechwycone_zwrot_przez_api(registry: StaticDataRegistry) -> None:
+    """R_capture notes/5: own captured units go back to reinforcements on the player's request."""
+    flow = Flow(registry, "cabal")
+    flow.player(lambda p: p.update(captured_units={flow.me: {"cruiser": 2}}))
+    faction = _state(flow)["players"][flow.me]["faction"]
+    flow.post("/capture/return-own", {"faction": faction, "baseType": "cruiser"})
+    assert _state(flow)["players"][flow.me]["captured_units"] == {flow.me: {"cruiser": 1}}
+    resp = flow.post("/capture/return-own", {"faction": faction, "baseType": "cruiser",
+                                              "count": 2}, ok=False)
+    assert resp.status_code == 422
+    entries = flow.client.get("/history/activity").json()["entries"]
+    assert any(e["activity"]["action"] == "capture.return_own" for e in entries)

@@ -256,6 +256,23 @@ def return_unit(
     player.captured_units = {o: u for o, u in units.items() if u}
 
 
+def return_own(state: GameState, player_id: str, base_type: str, count: int = 1) -> GameState:
+    """R_capture notes/5: a player may return their OWN captured units to their reinforcements
+    at any time (tirules2 2026-11-22). Pure: returns a new state.
+
+    Raises:
+        ValueError: Not enough of the player's own units of that type are captured.
+    """
+    if is_token(base_type):
+        raise ValueError("Captured fighters and infantry are tokens; they belong to no player.")
+    player = state.players.get(player_id)
+    if player is None or player.captured_units.get(player_id, {}).get(base_type, 0) < count:
+        raise ValueError("You have not captured that many of your own units of this type.")
+    new_state = state.clone()
+    return_unit(new_state, player_id, player_id, base_type, count)
+    return new_state
+
+
 def spend_captured(state: GameState, capturer: str, base_type: str, owner: str) -> None:
     """Koszt komponentu „return 1 captured unit of that type” (Amalgamation, Riftmeld)."""
     return_unit(state, capturer, TOKEN if is_token(base_type) else owner, base_type, 1)
