@@ -132,20 +132,45 @@ describe("buildPathKeyframes", () => {
 });
 
 describe("buildCargoKeyframes", () => {
-  it("packs into the carrier, rides hidden and unpacks at the landing", () => {
-    const times = { packMs: 800, rideMs: 2000, unpackMs: 1000 };
-    const { keyframes, durationMs } = buildCargoKeyframes({
-      board: { x: 20, y: 10 },
+  const times = { packMs: 800, rideMs: 2000, unpackMs: 1000 };
+  const ride = (rotate: boolean) =>
+    buildCargoKeyframes({
+      board: { x: 200, y: 0 },
       land: { x: 300, y: -500 },
       arrival: { x: 330, y: -470 },
+      rotate,
       ...times,
     });
+  const at = (keyframes: Keyframe[], offset: number) =>
+    keyframes.find((k) => Math.abs((k.offset as number) - offset) < 1e-6)!;
+
+  it("boards, rides hidden and unpacks within the planned time", () => {
+    const { keyframes, durationMs } = ride(false);
     expect(durationMs).toBe(cargoRideDuration(times));
-    expect(keyframes.map((k) => k.opacity)).toEqual([1, 0, 0, 1]);
-    expect(keyframes.map((k) => k.offset)).toEqual([0, 800 / 3800, 2800 / 3800, 1]);
-    expect(String(keyframes[1].transform)).toContain("translate(20px, 10px)");
-    expect(String(keyframes[2].transform)).toContain("translate(300px, -500px)");
-    expect(String(keyframes[3].transform)).toContain("translate(330px, -470px) scale(1)");
+    const offsets = keyframes.map((k) => k.offset as number);
+    expect(offsets).toEqual([...offsets].sort((a, b) => a - b));
+    expect(at(keyframes, 0).opacity).toBe(1);
+    // Docked inside the carrier, then carried hidden to the landing point.
+    expect(at(keyframes, 800 / 3800).opacity).toBe(0);
+    expect(String(at(keyframes, 800 / 3800).transform)).toContain("translate(200px, 0px)");
+    expect(String(at(keyframes, 2800 / 3800).transform)).toContain("translate(300px, -500px)");
+    expect(keyframes.at(-1)).toMatchObject({ offset: 1, opacity: 1 });
+    expect(String(keyframes.at(-1)?.transform)).toContain("translate(330px, -470px)");
+  });
+
+  it("stays fully visible while travelling and only vanishes when docking", () => {
+    const { keyframes } = ride(false);
+    const midway = keyframes.filter((k) => (k.offset as number) <= (0.6 * 800) / 3800);
+    expect(midway.every((k) => k.opacity === 1)).toBe(true);
+  });
+
+  it("turns fighters toward the carrier and back to the parked heading", () => {
+    const rotation = (k: Keyframe) =>
+      Number(/rotate\((-?[\d.]+)deg\)/.exec(String(k.transform))?.[1]);
+    const fighters = ride(true).keyframes;
+    expect(rotation(at(fighters, 400 / 3800))).not.toBe(0);
+    expect(((rotation(fighters.at(-1)!) % 360) + 360) % 360).toBeCloseTo(0, 5);
+    expect(ride(false).keyframes.every((k) => rotation(k) === 0)).toBe(true);
   });
 });
 

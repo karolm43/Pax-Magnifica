@@ -197,6 +197,7 @@ export function useMapFlightAnimation({
           packMs: ride.packMs,
           rideMs: ride.rideMs,
           unpackMs: ride.unpackMs,
+          rotate: rotateToTrajectory,
         })
       : legs
         ? buildPathKeyframes({
@@ -237,12 +238,13 @@ export function useMapFlightAnimation({
           )
         : undefined;
     // A routed path bakes its pace (cruise, rift slingshot, nebula drag) into the keyframe
-    // offsets, so it runs on linear timing.
+    // offsets, so it runs on linear timing. It also holds its first frame during the delay
+    // ("both"): ships waiting for cargo to board stay visible at rest instead of vanishing.
     const animation = element.animate(keyframes, {
       duration: routed?.durationMs ?? flightDuration(deltaX, deltaY),
       delay: delayMs,
       easing: routed ? "linear" : FLIGHT_EASING,
-      fill: "forwards",
+      fill: routed ? "both" : "forwards",
     });
     const continuationKeyframes = continuation
       ? buildFlightKeyframes({

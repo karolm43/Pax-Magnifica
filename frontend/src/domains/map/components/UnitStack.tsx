@@ -139,8 +139,10 @@ export function UnitStack({
      larger rotated ship silhouettes in the transition layer. */
   const baseZIndex =
     getUnitZIndex(unitType, 0) + (mapTransition && isBadge ? 200 : 0);
+  // Ships turn along their course; fighters boarding or leaving a carrier turn too.
   const rotateInFlight =
-    !isBadge && getGenericUnitDataByAsyncId(unitType)?.isShip === true;
+    (!isBadge && getGenericUnitDataByAsyncId(unitType)?.isShip === true) ||
+    (unitType === "ff" && !!mapTransition?.cargoRide);
   const enginesLit = rotateInFlight && isVisibleFlight(mapTransition);
   const flightRef = useMapFlightAnimation(
     flightOptions(mapTransition, x, y, rotateInFlight),

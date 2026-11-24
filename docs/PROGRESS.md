@@ -672,3 +672,13 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   wormhole jump 2.4 s, pack/unpack 1.1/1.3 s. Engine flames spool up, burn and cut with those phases.
 - QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
   ActivityPanel), build, e2e. Skipped: backend (no change).
+
+## Flight Replay: Fleet Visible While Cargo Boards, Cargo Physics (2026-11-24)
+- Bug: while cargo packed, the fleet waiting for it was invisible (its flight animation only filled forwards, so
+  the delay showed the hidden CSS state) - fighters/infantry slid into nothing. Routed and cargo flights now use
+  `fill: "both"`: ships rest visibly at their start until they launch.
+- Cargo moves like the ships (`buildCargoKeyframes`): boarding = fighters turn toward the carrier, accelerate,
+  brake into the hangar and only then shrink and vanish (fully visible while travelling); unpacking = emerge from
+  the carrier, launch out, brake, fighters turn back to the parked heading. Ground forces stay upright.
+- QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
+  ActivityPanel), build, e2e. Skipped: backend (no change).

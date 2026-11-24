@@ -226,6 +226,8 @@ function unwrapAngle(previous: number, next: number): number {
   return unwrapped;
 }
 
+const smoothstep = (p: number) => p * p * (3 - 2 * p);
+
 // --- Keyframes -------------------------------------------------------------
 
 export type PathKeyframeOptions = {
@@ -422,34 +424,87 @@ export function cargoRideDuration({ packMs, rideMs, unpackMs }: CargoRideTimes):
   return packMs + rideMs + unpackMs;
 }
 
+const CARGO_STEPS = 16;
+
+function headingTo(from: Point, to: Point): number {
+  if (Math.hypot(to.x - from.x, to.y - from.y) < 1) return 0;
+  return (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI - NATIVE_NORTHWEST_ANGLE;
+}
+
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+const easeOutCubic = (u: number) => 1 - (1 - u) ** 3;
+
 /**
- * Pack -> ride -> unpack, relative to the cargo's own start (0,0): it slides into the
- * carrier at `board` and shrinks away, stays hidden while the carrier flies, then grows out
- * of the carrier's landing point `land` and settles at `arrival`. Upright (no rotation).
+ * Pack -> ride -> unpack with the same physics as the ships, relative to the cargo's own
+ * start (0,0). Boarding: (fighters turn toward the carrier,) accelerate, brake into the
+ * hangar and only then shrink and vanish. Riding: hidden while the carrier flies. Unpacking:
+ * emerge from the carrier's landing point `land`, launch out, brake at `arrival`, (fighters
+ * turn back to the parked heading). `rotate` = fighters; ground forces stay upright.
  */
 export function buildCargoKeyframes({
   board,
   land,
   arrival,
+  rotate = false,
   ...times
-}: CargoRideTimes & { board: Point; land: Point; arrival: Point }): {
+}: CargoRideTimes & {
+  board: Point;
+  land: Point;
+  arrival: Point;
+  rotate?: boolean;
+}): {
   keyframes: Keyframe[];
   durationMs: number;
 } {
   const durationMs = Math.max(1, cargoRideDuration(times));
-  const at = (point: Point, scale: number, opacity: number, ms: number, easing: string) => ({
-    offset: Math.min(1, ms / durationMs),
-    opacity,
-    easing,
-    transform: `translate(-50%, -50%) translate(${point.x}px, ${point.y}px) scale(${scale})`,
+  const keyframes: Keyframe[] = [];
+  const push = (ms: number, point: Point, rotation: number, scale: number, opacity: number) =>
+    keyframes.push({
+      offset: Math.min(1, ms / durationMs),
+      opacity,
+      transform: `translate(-50%, -50%) translate(${point.x}px, ${point.y}px) rotate(${rotation}deg) scale(${scale})`,
+    });
+  const lerp = (a: Point, b: Point, f: number): Point => ({
+    x: a.x + (b.x - a.x) * f,
+    y: a.y + (b.y - a.y) * f,
   });
-  return {
-    durationMs,
-    keyframes: [
-      at({ x: 0, y: 0 }, 1, 1, 0, "cubic-bezier(0.5, 0, 0.75, 0.4)"),
-      at(board, PACKED_SCALE, 0, times.packMs, "linear"),
-      at(land, PACKED_SCALE, 0, times.packMs + times.rideMs, "cubic-bezier(0.2, 0.7, 0.3, 1)"),
-      at(arrival, 1, 1, durationMs, "linear"),
-    ],
-  };
+  const origin = { x: 0, y: 0 };
+
+  // Boarding: turn (first 25%), accelerate and brake into the hangar, dock in the last third.
+  const packHeading = rotate ? unwrapAngle(0, headingTo(origin, board)) : 0;
+  for (let i = 0; i <= CARGO_STEPS; i += 1) {
+    const u = i / CARGO_STEPS;
+    const turn = smoothstep(clamp01(u / 0.25));
+    const travel = easeInOut(clamp01((u - 0.15) / 0.75));
+    const dock = smoothstep(clamp01((u - 0.7) / 0.3));
+    push(
+      u * times.packMs,
+      lerp(origin, board, travel),
+      packHeading * turn,
+      1 - (1 - PACKED_SCALE) * dock,
+      1 - dock,
+    );
+  }
+  // Riding inside the carrier: hidden, carried to the landing point.
+  push(times.packMs + times.rideMs, land, packHeading, PACKED_SCALE, 0);
+
+  // Unpacking: emerge (first 30%), launch out and brake, then turn to the parked heading.
+  const outHeading = rotate ? unwrapAngle(packHeading, headingTo(land, arrival)) : 0;
+  const parked = rotate ? unwrapAngle(outHeading, 0) : 0;
+  const unpackStart = times.packMs + times.rideMs;
+  for (let i = 1; i <= CARGO_STEPS; i += 1) {
+    const u = i / CARGO_STEPS;
+    const emerge = smoothstep(clamp01(u / 0.3));
+    const travel = easeOutCubic(clamp01(u / 0.8));
+    const park = smoothstep(clamp01((u - 0.75) / 0.25));
+    push(
+      unpackStart + u * times.unpackMs,
+      lerp(land, arrival, travel),
+      outHeading + (parked - outHeading) * park,
+      PACKED_SCALE + (1 - PACKED_SCALE) * emerge,
+      emerge,
+    );
+  }
+  keyframes[keyframes.length - 1].offset = 1;
+  return { durationMs, keyframes };
 }
