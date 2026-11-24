@@ -203,7 +203,8 @@ function Battlefield({
     `${view.position}-${defender.faction}`,
     defender.hp,
   );
-  const volley = useVolley(view);
+  const volleys = useVolley(view);
+  const volley = volleys[volleys.length - 1] ?? null;
   // Kości toczą się po stole od początku salwy do chwili, gdy wszystkie leżą.
   const [rollingId, setRollingId] = useState<number | null>(null);
   const volleyId = volley?.id ?? null;
@@ -253,11 +254,9 @@ function Battlefield({
     );
     return () => window.clearTimeout(t);
   }, [pool.phase]);
-  const volleyFromPool =
-    volley !== null &&
-    pool.at > 0 &&
-    volley.id >= pool.at &&
-    volley.id - pool.at < 4000;
+  const fromPoolOf = (v: { id: number }) =>
+    pool.at > 0 && v.id >= pool.at && v.id - pool.at < 4000;
+  const volleyFromPool = volley !== null && fromPoolOf(volley);
   const showPool =
     pool.phase === "hold" || (pool.phase === "await" && !volleyFromPool);
   // Walka dopiero się zaczyna (flota jeszcze wlatuje), a gracz już rzucił: pomiń wlot, żeby
@@ -630,11 +629,14 @@ function Battlefield({
           pick={pickFor(defender)}
           kind={view.kind === "ground" ? "ground" : "space"}
         />
-        <VolleyLayer
-          volley={volley}
-          fieldRef={fieldRef}
-          ground={view.kind === "ground"}
-        />
+        {volleys.map((v) => (
+          <VolleyLayer
+            key={v.id}
+            volley={v}
+            fieldRef={fieldRef}
+            ground={view.kind === "ground"}
+          />
+        ))}
         <AssaultCannonLayer
           effects={view.effects ?? []}
           fieldRef={fieldRef}
@@ -646,14 +648,16 @@ function Battlefield({
           }}
         />
         {showPool && <DicePool left={pool.left} right={pool.right} />}
-        {volley && volley.diceMs > 0 && (
-          <DiceTray
-            key={volley.id}
-            volley={volley}
-            fromPool={volleyFromPool}
-            pool={{ left: pool.left, right: pool.right }}
-          />
-        )}
+        {volleys
+          .filter((v) => v.diceMs > 0)
+          .map((v) => (
+            <DiceTray
+              key={v.id}
+              volley={v}
+              fromPool={fromPoolOf(v)}
+              pool={{ left: pool.left, right: pool.right }}
+            />
+          ))}
       </div>
     </div>
   );
@@ -670,8 +674,14 @@ function battleHoldMs(view: BattleView): number {
   const entry = view.log[view.log.length - 1];
   if (!entry || entry.phase === "RETREAT" || !view.attacker || !view.defender)
     return 0;
-  const left = countDice(entry.rolls[view.attacker.faction] ?? []);
-  const right = countDice(entry.rolls[view.defender.faction] ?? []);
+  // Strona, która rzuciła wcześniej osobno, ma już odegraną salwę - czekamy tylko na drugą.
+  const early = new Set(entry.early ?? []);
+  const left = early.has(view.attacker.faction)
+    ? 0
+    : countDice(entry.rolls[view.attacker.faction] ?? []);
+  const right = early.has(view.defender.faction)
+    ? 0
+    : countDice(entry.rolls[view.defender.faction] ?? []);
   if (left + right === 0) return 0;
   return volleyStartMs(left, right) + HOLD_TAIL_MS;
 }

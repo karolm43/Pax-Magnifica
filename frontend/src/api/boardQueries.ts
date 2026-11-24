@@ -80,6 +80,8 @@ export type BattleLogEntry = {
   /** Zdolność wpisu spoza rund (np. „Harrow” przy BOMBARDMENT w walce naziemnej). */
   label?: string;
   rolls: Record<string, BattleRoll[]>;
+  /** Strony, które rzuciły wcześniej osobno (ich salwa już się odegrała). */
+  early?: string[];
   hits: Record<string, number>;
   losses: Record<string, Record<string, number>>;
   sustained: Record<string, Record<string, number>>;

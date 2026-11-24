@@ -177,14 +177,14 @@ export type Volley = {
 };
 
 function boltsFor(
-  entry: BattleLogEntry,
-  player: string,
+  rollsOf: BattleRoll[],
   from: "left" | "right",
   volleyId: number,
   startMs: number,
+  /** Odpowiedź obrońcy po atakującym — tylko, gdy obie strony strzelają w jednej salwie. */
+  replyMs: number,
 ): Bolt[] {
-  const rolls = entry.rolls[player] ?? [];
-  const dice = rolls.flatMap((roll) =>
+  const dice = rollsOf.flatMap((roll) =>
     roll.dice.map((value, shot) => ({
       baseType: roll.baseType,
       shot,
@@ -202,20 +202,58 @@ function boltsFor(
     hit: die.hit,
     baseType: die.baseType,
     shot: die.shot,
-    // Atakujący strzela pierwszy, obrońca odpowiada (RULES.md 39 W5).
     // Strzały ruszają dopiero, gdy kości leżą na stole.
     delayMs:
-      startMs + (from === "left" ? 0 : 1500) + i * 190 + Math.random() * 120,
+      startMs + (from === "right" ? replyMs : 0) + i * 190 + Math.random() * 120,
   }));
 }
 
-/** Nowa salwa po każdym nowym wpisie dziennika (bez odtwarzania historii przy otwarciu). */
-export function useVolley(view: BattleView | undefined): Volley | null {
+/**
+ * Salwy w toku. Każda strona rzuca SAMA (kości + strzały niezależnie od drugiej): salwa rusza
+ * przy rzucie strony (``sideRolls``), a gdy rzuci druga — tylko jej własna salwa. Wpisy dziennika
+ * AFB / Ambush / bombardowania animują obie strony naraz. Kilka salw może trwać równocześnie.
+ */
+export function useVolley(view: BattleView | undefined): Volley[] {
   const seen = useRef<number | null>(null);
+  const sideSeen = useRef<Set<string> | null>(null);
+  const lastId = useRef(0);
   const latest = useRef(view);
   latest.current = view;
-  const [volley, setVolley] = useState<Volley | null>(null);
+  const [volleys, setVolleys] = useState<Volley[]>([]);
   const length = view?.log.length ?? 0;
+  const round = view?.round ?? 0;
+  const sideKey = Object.keys(view?.sideRolls ?? {}).sort().join(",");
+
+  const launch = (
+    phase: BattleLogEntry["phase"],
+    left: BattleRoll[],
+    right: BattleRoll[],
+  ) => {
+    const view = latest.current;
+    if (!view?.attacker || !view.defender) return;
+    const id = Math.max(Date.now(), lastId.current + 1);
+    lastId.current = id;
+    const diceMs = diceLandMs(countDice(left), countDice(right));
+    const startMs = volleyStartMs(countDice(left), countDice(right));
+    const both = left.length > 0 && right.length > 0;
+    setVolleys((list) => [
+      ...list,
+      {
+        id,
+        phase,
+        rolls: { left, right },
+        diceMs,
+        bolts: [
+          ...boltsFor(left, "left", id, startMs, 0),
+          ...boltsFor(right, "right", id, startMs, both ? 1500 : 0),
+        ],
+      },
+    ]);
+    window.setTimeout(
+      () => setVolleys((list) => list.filter((v) => v.id !== id)),
+      VOLLEY_MS + startMs,
+    );
+  };
 
   // Zależność tylko od długości dziennika (nowa salwa), nie od obiektu widoku — inaczej
   // każdy odczyt stanu kasowałby timer animacji.
@@ -232,28 +270,32 @@ export function useVolley(view: BattleView | undefined): Volley | null {
     }
     seen.current = length;
     const entry = view.log[length - 1];
-    const id = Date.now();
-    const left = entry.rolls[view.attacker.faction] ?? [];
-    const right = entry.rolls[view.defender.faction] ?? [];
-    const diceMs = diceLandMs(countDice(left), countDice(right));
-    const startMs = volleyStartMs(countDice(left), countDice(right));
-    setVolley({
-      id,
-      phase: entry.phase,
-      rolls: { left, right },
-      diceMs,
-      bolts: [
-        ...boltsFor(entry, view.attacker.faction, "left", id, startMs),
-        ...boltsFor(entry, view.defender.faction, "right", id, startMs),
-      ],
-    });
-    window.setTimeout(
-      () => setVolley((v) => (v?.id === id ? null : v)),
-      VOLLEY_MS + startMs,
-    );
+    // Strony, które rzuciły wcześniej osobno (``early``), mają już swoją salwę.
+    const early = new Set(entry.early ?? []);
+    const side = (key: string) => (early.has(key) ? [] : (entry.rolls[key] ?? []));
+    launch(entry.phase, side(view.attacker.faction), side(view.defender.faction));
   }, [length]);
 
-  return volley;
+  // Rzut jednej strony, zanim rzuci druga.
+  useEffect(() => {
+    const view = latest.current;
+    if (!view?.attacker || !view.defender) return;
+    const rolled = view.sideRolls ?? {};
+    if (sideSeen.current === null) {
+      // Pierwszy odczyt: to, co już leży, nie jest animowane od nowa.
+      sideSeen.current = new Set(Object.keys(rolled).map((k) => `${round}:${k}`));
+      return;
+    }
+    for (const [faction, rolls] of Object.entries(rolled)) {
+      const key = `${round}:${faction}`;
+      if (sideSeen.current.has(key)) continue;
+      sideSeen.current.add(key);
+      if (faction === view.attacker.faction) launch("COMBAT", rolls, []);
+      else launch("COMBAT", [], rolls);
+    }
+  }, [sideKey, round]);
+
+  return volleys;
 }
 
 /** Najwyższe widziane „życie" strony (pasek HP = bieżące / startowe). */

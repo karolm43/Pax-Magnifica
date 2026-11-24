@@ -167,6 +167,7 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
             phase=str(e.get("phase", "")),
             label=str(e.get("label", "")),
             rolls=by_key(dict(e.get("rolls", {}))),
+            early=[key(str(pid)) for pid in e.get("early", [])],
             hits={key(pid): int(n) for pid, n in dict(e.get("hits", {})).items()},
             losses={key(pid): dict(v) for pid, v in dict(e.get("losses", {})).items()},
             sustained={

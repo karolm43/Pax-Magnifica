@@ -3297,6 +3297,8 @@
 }
 
 /* Wynik rzutu w panelu nie zdradza się, dopóki kości toczą się po stole. */
+.center[data-rolling] .rollSide .diceGroup,
+.center[data-rolling] .rollSide .hitPill,
 .volley[data-rolling] .diceGroup,
 .volley[data-rolling] .hitPill {
   visibility: hidden;

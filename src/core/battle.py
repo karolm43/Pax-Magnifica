@@ -826,6 +826,7 @@ def roll_round(
     for pid, extra in extra_by.items():
         hits_by[pid] += extra
 
+    early = list(combat.side_rolls)  # strony, które rzuciły wcześniej osobno
     new_state = new_state.clone()
     combat = _combat(new_state)
     combat.side_rolls = {}
@@ -847,6 +848,7 @@ def roll_round(
             "round": combat.round,
             "phase": "COMBAT",
             "rolls": rolls,
+            "early": early,
             "hits": hits_by,
             "extra": extra_by,
             "losses": {},

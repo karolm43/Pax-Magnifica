@@ -537,3 +537,11 @@ Warstwa PREZENTACYJNA (nic w regułach). Użytkownik pisze teksty sam; ja dałem
 - ⚠️ ZAŁOŻENIE: fizyczne kości 3D i strzały odpalają się po rzucie OBU stron (animacja liczy się z wpisu dziennika);
   pierwsza strona widzi od razu swoje kości i trafienia w panelu. AFB nadal jednym przyciskiem (reguła: jednocześnie).
 - Testy: `tests/test_battle.py::test_sides_roll_separately_and_round_closes_after_both`. Pominięte: build, e2e. Restart backendu.
+
+## Okno bitwy: osobna animacja kości i strzałów każdej strony
+- `useVolley` zwraca LISTĘ salw: rzut jednej strony (`sideRolls`) od razu odpala jej kości 3D i strzały, niezależnie od drugiej;
+  druga strona animuje tylko swoją salwę. Salwy mogą trwać równocześnie (obie kliknięte naraz). Wpisy AFB/Ambush/bombardowania
+  nadal animują obie strony razem.
+- Wpis dziennika COMBAT ma `early` (strony, które rzuciły wcześniej osobno) — UI nie odgrywa ich salwy drugi raz,
+  a wstrzymanie skutków (`battleHoldMs`) czeka tylko na drugą stronę.
+- Testy: `test_sides_roll_separately_and_round_closes_after_both` (+`early`). Nie sprawdzone wizualnie w przeglądarce; pominięte build, e2e. Restart backendu.

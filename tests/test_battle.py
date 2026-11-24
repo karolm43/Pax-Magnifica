@@ -208,6 +208,7 @@ def test_sides_roll_separately_and_round_closes_after_both(registry: StaticDataR
     done = second.active_combat
     assert done is not None and done.side_rolls == {}
     assert set(done.log[-1]["rolls"]) == {"p1", "p2"}
+    assert done.log[-1]["early"] == ["p1"]  # UI nie animuje salwy p1 drugi raz
     assert done.log[-1]["rolls"]["p1"] == combat.side_rolls["p1"]  # rzut pierwszej strony zachowany
 
 

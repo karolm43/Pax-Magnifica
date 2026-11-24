@@ -251,6 +251,8 @@ class BattleLogView(BaseModel):
     # Nazwa zdolności wpisu spoza rund (np. „Harrow” przy BOMBARDMENT w walce naziemnej).
     label: str = ""
     rolls: dict[str, list[BattleRollView]]
+    # Strony, które rzuciły wcześniej osobno (klucz frakcji) — UI nie animuje ich salwy drugi raz.
+    early: list[str] = Field(default_factory=list)
     hits: dict[str, int]
     losses: dict[str, dict[str, int]]
     sustained: dict[str, dict[str, int]]
