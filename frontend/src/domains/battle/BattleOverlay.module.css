@@ -1358,6 +1358,83 @@
   gap: 6px;
 }
 
+/* „Auto" w rzędzie przycisków okna: ten sam kształt co Clear / Confirm (a nie mała pigułka). */
+.assignBtns .autoBtn {
+  align-self: stretch;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: 7px;
+  color: var(--ds-ink);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.assignBtns .autoBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.assignBtns .autoBtn:disabled {
+  color: var(--ds-ink-lo);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Rzut: dwie połowy — lewa (atakujący) i prawa (obrońca), każda z własnym przyciskiem. */
+.rollSides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rollSide {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.rollSide[data-place="left"] {
+  border-top: 2px solid rgb(var(--left-rgb));
+}
+
+.rollSide[data-place="right"] {
+  border-top: 2px solid rgb(var(--right-rgb));
+}
+
+.rollSideHead {
+  display: grid;
+  gap: 1px;
+  color: var(--ds-ink-hi);
+  font-size: 12px;
+}
+
+.rollSideHead small {
+  font-family: var(--font-data);
+  font-size: 10px;
+  color: var(--ds-ink-lo);
+}
+
+.rollSide .primary {
+  width: 100%;
+}
+
+.rollSide .hitPill {
+  justify-self: start;
+}
+
+.rollWaiting {
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+}
+
 /* Wynik walki. */
 .result {
   display: grid;
@@ -1494,6 +1571,7 @@
 /* Ostatnia salwa (taca z kośćmi). */
 .volley {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 9px;
   padding: 11px;
   border-radius: 8px;
@@ -1501,7 +1579,23 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
+/* Połowy salwy: lewa = atakujący, prawa = obrońca (jak floty po bokach). */
+.volleySide {
+  align-content: start;
+  min-width: 0;
+}
+
+.volleySide:nth-of-type(1) {
+  padding-right: 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.volleyWho {
+  flex-wrap: wrap;
+}
+
 .volleyHead {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 6px;

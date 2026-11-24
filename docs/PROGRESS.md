@@ -525,3 +525,15 @@ Warstwa PREZENTACYJNA (nic w regułach). Użytkownik pisze teksty sam; ja dałem
   (bez struktur); Late Bloomer od 4 graczy.
 - Testy: `tests/test_chronicle_feats.py`, `AchievementBoard.test.tsx`. Pełny pytest, ruff, mypy, tsc, eslint, vitest OK.
   Pominięte: `npm run build` (przerwany — długi), e2e. Restart backendu (nowe pola kroniki).
+
+## Okno bitwy: rzut osobno dla każdej strony (lewa/prawa)
+- `core/battle.roll_round(..., side=None)`: rzut za JEDNĄ stronę; wynik czeka w `ActiveCombat.side_rolls`, a gdy rzuciły obie
+  strony runda idzie dalej jak dotąd (trafienia dodatkowe, przypisanie strat). `side=None` = obie naraz (bot, testy; kolejność
+  RNG bez zmian). Strona neutralna rzuca razem z drugą (nikt nie kliknie). Ponowny rzut tej samej strony = 422.
+- API: `POST /tactical/battle/roll` przyjmuje opcjonalne `{faction}` (aktor musi być tą stroną); widok ma `sideRolls`.
+- UI: krok Roll to dwie połowy (`RollSide`: atakujący po lewej, obrońca po prawej) z własnym przyciskiem, pulą kości (hold)
+  i wynikiem; „Last volley" też w dwóch kolumnach. „Auto" w rzędzie Auto/Clear/Confirm ma kształt jak sąsiednie przyciski
+  (`AutoButton className`).
+- ⚠️ ZAŁOŻENIE: fizyczne kości 3D i strzały odpalają się po rzucie OBU stron (animacja liczy się z wpisu dziennika);
+  pierwsza strona widzi od razu swoje kości i trafienia w panelu. AFB nadal jednym przyciskiem (reguła: jednocześnie).
+- Testy: `tests/test_battle.py::test_sides_roll_separately_and_round_closes_after_both`. Pominięte: build, e2e. Restart backendu.

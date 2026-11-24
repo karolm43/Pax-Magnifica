@@ -191,6 +191,26 @@ def test_roll_opens_assign_window_defender_first(registry: StaticDataRegistry) -
     assert window.queue == needing  # obrońca (p2) przed atakującym
 
 
+def test_sides_roll_separately_and_round_closes_after_both(registry: StaticDataRegistry) -> None:
+    """Każda strona rzuca sama (nie muszą jednocześnie); runda rusza dopiero po obu rzutach."""
+    started = battle.start_combat(
+        _state({"p1": {"cruiser": 6}, "p2": {"cruiser": 6}}), _grid(), registry
+    )
+    first = battle.roll_round(started, _grid(), registry, "p1")
+    combat = first.active_combat
+    assert combat is not None and combat.step is CombatStep.ROLL
+    assert list(combat.side_rolls) == ["p1"] and combat.log == [] and first.pending_window is None
+    with pytest.raises(ValueError, match="already rolled"):
+        battle.roll_round(first, _grid(), registry, "p1")
+    with pytest.raises(ValueError, match="not a side"):
+        battle.roll_round(first, _grid(), registry, "p3")
+    second = battle.roll_round(first, _grid(), registry, "p2")
+    done = second.active_combat
+    assert done is not None and done.side_rolls == {}
+    assert set(done.log[-1]["rolls"]) == {"p1", "p2"}
+    assert done.log[-1]["rolls"]["p1"] == combat.side_rolls["p1"]  # rzut pierwszej strony zachowany
+
+
 def test_assign_validation(registry: StaticDataRegistry) -> None:
     rolled = _rolled_with_hits(registry, {"p1": {"cruiser": 6}, "p2": {"cruiser": 6}})
     window = rolled.pending_window

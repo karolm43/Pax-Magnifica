@@ -230,13 +230,14 @@ function Battlefield({
           0,
         )
       : s.totalDice;
-  const onHold = (state: HoldState) => {
+  // ``side`` = strona rzucająca sama (ROLL): w puli tylko jej kości; brak = obie (AFB).
+  const onHold = (state: HoldState, side?: string) => {
     if (state === "start") {
       setPool({
         phase: "hold",
         at: 0,
-        left: diceOf(attacker),
-        right: diceOf(defender),
+        left: side && side !== attacker.faction ? 0 : diceOf(attacker),
+        right: side && side !== defender.faction ? 0 : diceOf(defender),
       });
     } else if (state === "fire") {
       setPool((p) => ({ ...p, phase: "await", at: Date.now() }));
@@ -567,7 +568,11 @@ function Battlefield({
             const playerId = [view.attacker, view.defender].find((s) => s?.faction === side)?.playerId;
             return !!playerId && canAct(playerId);
           }}
-          onRoll={() => void run(battleRoll)}
+          onRoll={(side) => void run(() => battleRoll(side))}
+          rollEditable={(side) => {
+            const playerId = [view.attacker, view.defender].find((s) => s?.faction === side)?.playerId;
+            return !!playerId && canAct(playerId);
+          }}
           onAuto={() => setMarks(autoMarks(allowedShips, required, cancels))}
           targetNote={targetNote}
           onClearMarks={() => setMarks({})}

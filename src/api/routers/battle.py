@@ -30,6 +30,7 @@ from src.api.schemas import (
     BattleRelicToolView,
     BattleResponse,
     BattleRetreatRequest,
+    BattleRollRequest,
     BattleRollView,
     BattleSideView,
     BattleStartRequest,
@@ -218,6 +219,7 @@ def _build(ctx: AppContext, state: GameState) -> BattleResponse:
             if combat.pending_hits.get(pid, 0) > 0
         },
         rolls=by_key(combat.rolls),
+        side_rolls=by_key(combat.side_rolls),
         afb=by_key(combat.afb),
         log=log,
         effects=[
@@ -334,15 +336,19 @@ async def post_battle_afb(actor: ActorId, ctx: AppContext = Depends(get_ctx)) ->
 
 
 @router.post("/tactical/battle/roll", response_model=StateEnvelope)
-async def post_battle_roll(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
-    """Rzuty combat obu stron w bieżącej rundzie."""
-    actor_rules.check(
-        ctx.service.current_state(), actor, None, actor_rules.combat_sides, "Combat roll"
-    )
+async def post_battle_roll(
+    actor: ActorId,
+    request: BattleRollRequest | None = None,
+    ctx: AppContext = Depends(get_ctx),
+) -> StateEnvelope:
+    """Rzuty combat bieżącej rundy: ``faction`` = rzuca tylko ta strona (drugą kliknie jej gracz),
+    brak = obie strony naraz."""
+    state = ctx.service.current_state()
+    faction = request.faction if request is not None else None
+    actor_rules.check(state, actor, faction, actor_rules.combat_sides, "Combat roll")
     try:
-        new_state = battle.roll_round(
-            ctx.service.current_state(), ctx.current_grid, ctx.registry
-        )
+        side = board_edit.resolve_player_id(faction, state) if faction else None
+        new_state = battle.roll_round(state, ctx.current_grid, ctx.registry, side)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(ctx, new_state, "battle:roll")

@@ -698,6 +698,9 @@ class ActiveCombat(BaseModel):
     pending_hits: dict[str, int] = Field(default_factory=dict)
     rolls: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
     afb: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
+    # Rzuty combat strony, która rzuciła PIERWSZA w bieżącej rundzie (każda strona rzuca sama,
+    # nie muszą jednocześnie); drugi rzut domyka rundę i czyści pole (``battle.roll_round``).
+    side_rolls: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
     log: list[dict[str, Any]] = Field(default_factory=list)
     # Jednorazowe efekty komponentów poza rundami (np. Assault Cannon: kto, czyj statek, jaki typ)
     # — tylko do animacji w oknie bitwy; NIE wpisy ``log`` (pusty ``log`` = start walki).

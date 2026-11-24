@@ -796,10 +796,14 @@ export function useBoardEditor() {
     [refresh],
   );
 
-  const battleRoll = useCallback(async () => {
-    await post("/tactical/battle/roll", {});
-    await refresh();
-  }, [refresh]);
+  // ``faction`` = rzuca tylko ta strona (drugą kliknie jej gracz); brak = obie naraz.
+  const battleRoll = useCallback(
+    async (faction?: string) => {
+      await post("/tactical/battle/roll", faction ? { faction } : {});
+      await refresh();
+    },
+    [refresh],
+  );
 
   // Relikty nad rzutami rundy (RULES.md 59): przerzut z +1 (Crown of Thalnos) i ±1 do kości
   // (Heart of Ixth). Po rzucie, przed przypisaniem strat; silnik przelicza trafienia.

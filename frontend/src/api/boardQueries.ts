@@ -132,6 +132,8 @@ export type BattleView = {
    */
   hitTargets?: Record<string, HitTarget>;
   rolls: Record<string, BattleRoll[]>;
+  /** Rzut strony, która rzuciła pierwsza w tej rundzie (druga jeszcze czeka na własny rzut). */
+  sideRolls?: Record<string, BattleRoll[]>;
   afb: Record<string, BattleRoll[]>;
   /** Dodatkowe kości AFB do przypisania przed rzutem (klucz = strona walki, RULES.md 62.11). */
   afbExtra?: Record<string, (ExtraDie & { pick: string })[]>;

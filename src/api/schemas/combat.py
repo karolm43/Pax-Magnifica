@@ -314,6 +314,14 @@ class BattleExtraDiceRequest(BaseModel):
     picks: dict[str, str] = Field(default_factory=dict)
 
 
+class BattleRollRequest(BaseModel):
+    """Rzut combat: ``faction`` = strona, która rzuca sama (brak = rzut za obie strony naraz)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str | None = None
+
+
 class BattleResponse(BaseModel):
     """Pełny stan okna pola bitwy (jeden odczyt na całe okno)."""
 
@@ -337,6 +345,10 @@ class BattleResponse(BaseModel):
         default_factory=dict, serialization_alias="hitTargets"
     )
     rolls: dict[str, list[BattleRollView]] = Field(default_factory=dict)
+    # Rzuty strony, która rzuciła pierwsza w tej rundzie (druga jeszcze czeka na własny rzut).
+    side_rolls: dict[str, list[BattleRollView]] = Field(
+        default_factory=dict, serialization_alias="sideRolls"
+    )
     afb: dict[str, list[BattleRollView]] = Field(default_factory=dict)
     log: list[BattleLogView] = Field(default_factory=list)
     # Jednorazowe efekty poza rundami (Assault Cannon) — okno bitwy je animuje.
@@ -462,6 +474,7 @@ __all__ = [
     "BattleAssignRequest",
     "BattleEffectView",
     "BattleExtraDiceRequest",
+    "BattleRollRequest",
     "BattleHitTargetView",
     "BattleLogView",
     "BattleLossItem",

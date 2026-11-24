@@ -746,14 +746,30 @@ def _reroll_misses(
     return new_state, result
 
 
-def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
-    """Rzuty combat obu stron (atakujący pierwszy — W5) i otwarcie przypisania strat."""
+def roll_round(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    side: str | None = None,
+) -> GameState:
+    """Rzuty combat i otwarcie przypisania strat.
+
+    ``side=None`` rzuca za wszystkie strony, które jeszcze nie rzuciły (atakujący pierwszy — W5).
+    ``side=<gracz>`` rzuca TYLKO za tę stronę (każdy gracz klika swój rzut, nie muszą jednocześnie):
+    wynik czeka w ``combat.side_rolls``, a gdy rzuciły obie strony, runda idzie dalej
+    (trafienia dodatkowe, przypisanie strat) tak samo jak przy rzucie za obie naraz.
+    """
     timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
     timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
     combat = _combat(state)
     if combat.step is not CombatStep.ROLL:
         raise ValueError("Combat dice are not the current combat step.")
     sides = (combat.attacker, combat.defender)
+    if side is not None:
+        if side not in sides:
+            raise ValueError("That player is not a side of this combat.")
+        if side in combat.side_rolls:
+            raise ValueError("This side has already rolled its combat dice this round.")
     if any(not side_units(state, grid, registry, pid) for pid in sides):
         # Strona straciła ostatnie jednostki przed rzutem (Indoctrination, Greyfire Mutagen):
         # przegrywa natychmiast, bez rzutów (F_yin, RULES.md 62.10).
@@ -761,7 +777,12 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
     new_state = state
     rolls: dict[str, list[dict[str, Any]]] = {}
     hits_by: dict[str, int] = {}
-    for pid in (combat.attacker, combat.defender):
+    for pid in sides:
+        # Neutralni nie mają kto kliknąć: rzucają razem z drugą stroną.
+        if pid in combat.side_rolls or (
+            side is not None and pid != side and pid != NEUTRAL_PLAYER_ID
+        ):
+            continue
         entries: list[dict[str, Any]] = []
         total = 0
         for unit in side_units(new_state, grid, registry, pid):
@@ -791,12 +812,23 @@ def roll_round(state: GameState, grid: HexGrid, registry: StaticDataRegistry) ->
             entries.append(entry)
         rolls[pid] = entries
         hits_by[pid] = total
+    # Strona, która rzuciła wcześniej, wraca z ``side_rolls`` (trafienia = suma wpisów rzutu).
+    rolls = {pid: rolls.get(pid) or combat.side_rolls.get(pid, []) for pid in sides
+             if pid in rolls or pid in combat.side_rolls}
+    for pid in combat.side_rolls:
+        hits_by.setdefault(pid, sum(int(e.get("hits") or 0) for e in combat.side_rolls[pid]))
+    if len(rolls) < len(sides):
+        # Rzuciła dopiero jedna strona: wynik czeka na drugą, runda stoi w kroku ROLL.
+        waiting = new_state.clone()
+        _combat(waiting).side_rolls = rolls
+        return waiting
     extra_by = _extra_hits(state, combat, hits_by)
     for pid, extra in extra_by.items():
         hits_by[pid] += extra
 
     new_state = new_state.clone()
     combat = _combat(new_state)
+    combat.side_rolls = {}
     combat.destroyed_ships = []  # ślady kart reakcji dotyczą ostatnich strat
     combat.sustained_ships = []
     offers_before = len(new_state.pending_offers)

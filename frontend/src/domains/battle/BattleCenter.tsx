@@ -19,6 +19,7 @@ import {
 import type {
   BattleLogEntry,
   BattleRoll,
+  BattleSide,
   BattleView,
 } from "@/api/useBoardEditor";
 import { HoldRollButton, type HoldState } from "@/domains/dice/HoldRollButton";
@@ -87,6 +88,62 @@ function DiceGroup({ rolls }: { rolls: BattleRoll[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/**
+ * Połowa panelu rzutu: jedna strona (lewa = atakujący, prawa = obrońca) z własnym przyciskiem
+ * rzutu. Po rzucie pokazuje kości i trafienia, zanim rzuci druga strona.
+ */
+function RollSide({
+  side,
+  place,
+  name,
+  rolled,
+  editable,
+  busy,
+  onRoll,
+  onHold,
+}: {
+  side: BattleSide;
+  place: "left" | "right";
+  name: string;
+  rolled: BattleRoll[] | null;
+  editable: boolean;
+  busy: boolean;
+  onRoll: () => void;
+  onHold: (state: HoldState) => void;
+}) {
+  const hits = rolled?.reduce((n, r) => n + r.hits, 0) ?? 0;
+  return (
+    <section className={styles.rollSide} data-place={place} aria-label={`${name}: combat roll`}>
+      <header className={styles.rollSideHead}>
+        <b>{name}</b>
+        <small>
+          {side.totalDice} {side.totalDice === 1 ? "die" : "dice"}
+        </small>
+      </header>
+      {rolled ? (
+        <>
+          <span className={styles.hitPill} data-hits={hits > 0 || undefined}>
+            {hits} hit{hits === 1 ? "" : "s"}
+          </span>
+          <DiceGroup rolls={rolled} />
+        </>
+      ) : editable ? (
+        <HoldRollButton
+          disabled={busy}
+          onFire={onRoll}
+          onHold={onHold}
+          className={styles.primary}
+          hint={false}
+        >
+          <IconBolt size={17} aria-hidden="true" /> Roll
+        </HoldRollButton>
+      ) : (
+        <span className={styles.rollWaiting}>Waiting for {name} to roll…</span>
+      )}
+    </section>
   );
 }
 
@@ -190,6 +247,7 @@ export function BattleCenter({
   onAfbExtra,
   afbEditable = () => true,
   onRoll,
+  rollEditable = () => true,
   onAuto,
   onClearMarks,
   onConfirmAssign,
@@ -206,7 +264,8 @@ export function BattleCenter({
   onAfbExtra?: (side: string, picks: ExtraDicePicks) => void;
   /** Czy ten klient może ustawić kości strony (gra sieciowa: tylko własnej). */
   afbEditable?: (side: string) => boolean;
-  onHold: (state: HoldState) => void;
+  /** ``side`` = strona, która trzyma rzut (brak = rzut obu stron, np. AFB). */
+  onHold: (state: HoldState, side?: string) => void;
   /** Czekają decyzje graczy (np. Salvage Operations) - silnik nie zamknie walki (RULES.md 54.9). */
   decisionsPending?: boolean;
   /** Trwa pauza ochronna (RULES.md 54.10): etykieta okna, w którym gracze mogą reagować. */
@@ -228,7 +287,10 @@ export function BattleCenter({
   /** Wymuszony cel trafień przypisującego (Devotion: statek wskazany przez Yin). */
   targetNote?: string | null;
   onAfb: () => void;
-  onRoll: () => void;
+  /** Rzut jednej strony (klucz frakcji) — każdy gracz klika własny. */
+  onRoll: (side: string) => void;
+  /** Czy ten klient może rzucić za stronę (gra sieciowa: tylko własną). */
+  rollEditable?: (side: string) => boolean;
   onAuto: () => void;
   onClearMarks: () => void;
   onConfirmAssign: () => void;
@@ -379,7 +441,7 @@ export function BattleCenter({
                   </div>
                 );
               })}
-          <HoldRollButton disabled={busy} onFire={onAfb} onHold={onHold} className={styles.primary}>
+          <HoldRollButton disabled={busy} onFire={onAfb} onHold={(s) => onHold(s)} className={styles.primary}>
             <IconTargetArrow size={17} aria-hidden="true" /> Fire barrage
           </HoldRollButton>
         </div>
@@ -456,14 +518,31 @@ export function BattleCenter({
       )}
 
       {step === "ROLL" && (
-        <div className={styles.actionCard}>
+        <div className={styles.actionCard} data-roll>
           <p>
-            {nameOf(attacker)} rolls first, then {nameOf(defender)}. Each die at
-            or above the unit's combat value is a hit.
+            Each player rolls their own dice — in any order, or both at once.
+            A die at or above the unit's combat value is a hit.
           </p>
-          <HoldRollButton disabled={busy} onFire={onRoll} onHold={onHold} className={styles.primary}>
-            <IconBolt size={17} aria-hidden="true" /> Roll combat dice
-          </HoldRollButton>
+          <div className={styles.rollSides}>
+            {[view.attacker, view.defender].map((side, i) =>
+              side ? (
+                <RollSide
+                  key={side.faction}
+                  side={side}
+                  place={i === 0 ? "left" : "right"}
+                  name={nameOf(side.faction)}
+                  rolled={view.sideRolls?.[side.faction] ?? null}
+                  editable={rollEditable(side.faction)}
+                  busy={busy}
+                  onRoll={() => onRoll(side.faction)}
+                  onHold={(state) => onHold(state, side.faction)}
+                />
+              ) : null,
+            )}
+          </div>
+          <small className={styles.holdHint}>
+            Tap to roll · hold to shake the dice, release to throw
+          </small>
         </div>
       )}
 
@@ -499,7 +578,7 @@ export function BattleCenter({
             </b>
           </div>
           <div className={styles.assignBtns}>
-            <AutoButton disabled={busy} onClick={onAuto} />
+            <AutoButton disabled={busy} onClick={onAuto} className={styles.autoBtn} />
             <button
               type="button"
               className={styles.ghost}
@@ -578,7 +657,7 @@ export function BattleCenter({
         </div>
       )}
 
-      {last && (
+      {last && !view.sideRolls?.[attacker] && !view.sideRolls?.[defender] && (
         <LastVolley
           entry={last}
           attacker={attacker}
