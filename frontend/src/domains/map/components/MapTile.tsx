@@ -18,6 +18,7 @@ import {
   TILE_WIDTH,
 } from "@/entities/geometry/tilePositioning";
 import { tileOutline } from "@/entities/geometry/tileOutline";
+import { TILE_BRIGHTNESS } from "@/entities/geometry/tileBrightness.generated";
 import type { Tile as TileType } from "@/entities/game/types";
 import { TechSkipIconsLayer } from "./layers/TechSkipIconsLayer";
 import { AttachmentsLayer } from "./layers/AttachmentsLayer";
@@ -81,6 +82,11 @@ export const MapTile = React.memo<Props>(
     /* Obrys widocznego kafla: heks albo kształt nieregularnej grafiki (Creuss, Mallice…) —
        wszystkie podświetlenia kafla rysujemy po nim, nie po stałym heksie. */
     const outline = tileOutline(coverSystemId ?? systemId);
+    /* Per-image backdrop brightness correction (scripts/gen_tile_brightness.py). */
+    const tileImage = getTileById(coverSystemId ?? systemId)?.imagePath;
+    const brightness = tileImage ? TILE_BRIGHTNESS[tileImage] : undefined;
+    const tileBrightnessStyle: CSSProperties | undefined =
+      brightness && !outline.irregular ? { filter: `brightness(${brightness})` } : undefined;
     const outlineBox = `0 0 ${outline.width} ${outline.height}`;
     const outlineSize = { width: outline.width, height: outline.height };
     const position = {
@@ -288,7 +294,8 @@ export const MapTile = React.memo<Props>(
         >
           <Tile
             systemId={coverSystemId ?? systemId}
-            className={classes.tile}
+            className={`${classes.tile} ${outline.irregular ? "" : classes.tileSeamless}`}
+            style={tileBrightnessStyle}
             data-map-tile-visual="true"
             {...(!embedded &&
               searchTarget(searchKey("system", ringPosition), "map-tile"))}

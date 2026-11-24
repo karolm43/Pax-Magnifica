@@ -207,6 +207,25 @@ class CombatHelpResponse(BaseModel):
     sides: list[CombatSideHelp]
 
 
+class ZoneOddsView(BaseModel):
+    """Estimated outcome of the fight in one contested zone (hover tooltip)."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    zone: str  # "space" or a planet id
+    kind: str  # "space" | "ground"
+    attacker: str  # identity key (same as web-data)
+    defender: str
+    attacker_win: float = Field(serialization_alias="attackerWin")
+    defender_win: float = Field(serialization_alias="defenderWin")
+    draw: float
+
+
+class SystemOddsResponse(BaseModel):
+    position: str
+    zones: list[ZoneOddsView]
+
+
 class ProduceOrderItem(BaseModel):
     """Pozycja zamówienia produkcji: typ jednostki + liczba sztuk + strefa docelowa."""
 
@@ -308,6 +327,8 @@ __all__ = [
     "ActivateSystemRequest",
     "CapturePlanetRequest",
     "CombatHelpResponse",
+    "SystemOddsResponse",
+    "ZoneOddsView",
     "CombatSideHelp",
     "CombatUnitHelp",
     "CommandTokenRequest",

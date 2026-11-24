@@ -6,6 +6,7 @@ import { getPlanetData } from "@/entities/lookup/planets";
 import { getAttachmentModifiers } from "@/entities/game/planets";
 import { lookupLoreOr } from "@/entities/lore/lookupLore";
 import type { Tile } from "@/entities/game/types";
+import { SystemForces } from "./SystemForces";
 import { getSystemFeatures, systemAnomalies } from "@/domains/map/components/SystemDossier/featureRules";
 
 type Props = {
@@ -75,6 +76,7 @@ export function SystemDetailsCard({ tile, allTiles }: Props) {
       {wormholes.length > 0 && (
         <DetailsCard.Section title="Wormhole" content={wormholes.join(" ")} />
       )}
+      <SystemForces tile={tile} />
       {planetNames.length === 0 && anomalies.length === 0 && wormholes.length === 0 && (
         <DetailsCard.Section title="Empty space" content="No planets, anomalies or wormholes." />
       )}

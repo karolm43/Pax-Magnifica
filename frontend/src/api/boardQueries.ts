@@ -567,6 +567,34 @@ export function useCombatHelp(position: string | null, planet: string | null) {
   });
 }
 
+export type ZoneOdds = {
+  /** "space" or a planet id. */
+  zone: string;
+  kind: "space" | "ground";
+  attacker: string;
+  defender: string;
+  attackerWin: number;
+  defenderWin: number;
+  draw: number;
+};
+
+/**
+ * Estimated win probability for each two-sided zone of a system (hover tooltip).
+ * Simulated on the backend; `enabled` is false for systems nobody contests.
+ */
+export function useSystemOdds(position: string, enabled: boolean) {
+  return useQuery<{ position: string; zones: ZoneOdds[] }>({
+    queryKey: ["systemOdds", position],
+    enabled,
+    queryFn: () =>
+      fetchJson<{ position: string; zones: ZoneOdds[] }>(
+        `/bot/tactical/odds/${position}`,
+        "system odds",
+      ),
+    staleTime: 0,
+  });
+}
+
 export type ActivityFact = {
   /** vp, tech, planet_gained/lost, tg + jawne karty: action_card, agenda,
    *  explore_card, relic_fragment, promissory_in_play, objective_revealed,

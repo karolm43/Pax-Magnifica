@@ -30,7 +30,9 @@ from src.api.schemas import (
     ProducibleUnitHelp,
     ProductionHelpResponse,
     StateEnvelope,
+    SystemOddsResponse,
     TacticalStepRequest,
+    ZoneOddsView,
 )
 from src.api.serializers import build_map_view
 from src.api.web_data import entity_key_map
@@ -38,6 +40,7 @@ from src.core import actor as actor_rules
 from src.core import (
     board_edit,
     combat,
+    combat_odds,
     component_action,
     movement,
     movement_route,
@@ -378,6 +381,31 @@ async def get_combat_help(
         planet=planet,
         kind=kind,
         sides=[_to_side(s, keys) for s in sides],
+    )
+
+
+@router.get(
+    "/tactical/odds/{position}",
+    response_model=SystemOddsResponse,
+    response_model_by_alias=True,
+)
+async def get_system_odds(
+    position: str, ctx: AppContext = Depends(get_ctx)
+) -> SystemOddsResponse:
+    """Win-probability estimate for each two-sided zone of the system (read-only, seeded)."""
+    state = ctx.service.current_state()
+    keys = entity_key_map(state)
+    return SystemOddsResponse(
+        position=position,
+        zones=[
+            ZoneOddsView(
+                zone=z.zone, kind=z.kind,
+                attacker=keys.get(z.attacker, z.attacker),
+                defender=keys.get(z.defender, z.defender),
+                attacker_win=z.attacker_win, defender_win=z.defender_win, draw=z.draw,
+            )
+            for z in combat_odds.system_odds(state, ctx.current_grid, ctx.registry, position)
+        ],
     )
 
 
