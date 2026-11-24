@@ -16,7 +16,7 @@ import { useDecalPaths } from "./UnitStack/useDecalPaths";
 import { getGenericUnitDataByAsyncId } from "@/entities/lookup/units";
 import { useMapFlightAnimation } from "./UnitStack/useMapFlightAnimation";
 import { GalvanizeBadge } from "./UnitStack/GalvanizeBadge";
-import { CarriedCargo } from "./UnitStack/CarriedCargo";
+import { CarriedCargo, LooseCargo } from "./UnitStack/CarriedCargo";
 import { FlightEngines } from "./UnitStack/FlightEngines";
 import {
   flightOptions,
@@ -206,13 +206,17 @@ export function UnitStack({
             height: `${badgeFootprint.height}px`,
           }}
         >
-          <UnitBadge
-            unitType={unitType}
-            colorAlias={colorAlias}
-            faction={faction}
-            count={count}
-            textColor={getTextColor(colorAlias)}
-          />
+          {mapTransition?.cargoRide ? (
+            <LooseCargo unitId={unitType} count={count} colorAlias={colorAlias} />
+          ) : (
+            <UnitBadge
+              unitType={unitType}
+              colorAlias={colorAlias}
+              faction={faction}
+              count={count}
+              textColor={getTextColor(colorAlias)}
+            />
+          )}
           {galvanizedCount > 0 && (
             <GalvanizeBadge
               count={galvanizedCount}

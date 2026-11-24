@@ -5,6 +5,8 @@ import classes from "./CarriedCargo.module.css";
 
 /** More icons than this per unit type would just be a blob again. */
 const MAX_ICONS = 3;
+/** A boarding group shows at most this many units (the token count is not drawn). */
+const MAX_LOOSE = 4;
 
 /**
  * Fighters / ground forces packed into a flying carrier (live move replay): a few small
@@ -21,9 +23,8 @@ export function CarriedCargo({
   return (
     <div className={classes.cargo} aria-hidden="true">
       {cargo.map(({ unitId, count }) => {
-        const sprite =
-          getUnitSprite(colorAlias, `tkn_${unitId}`) ??
-          getUnitSprite(colorAlias, unitId);
+        // The plain unit art: the `tkn_` sprite carries the round-rect token background.
+        const sprite = getUnitSprite(colorAlias, unitId);
         if (!sprite) return null;
         const name = getGenericUnitDataByAsyncId(unitId)?.name ?? unitId;
         return (
@@ -36,6 +37,34 @@ export function CarriedCargo({
           </span>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Fighters / ground forces boarding or leaving a carrier (live move replay): a small loose
+ * group of plain unit sprites instead of the numbered map token, so packing and unpacking
+ * read as units, not as a badge sliding around.
+ */
+export function LooseCargo({
+  unitId,
+  count,
+  colorAlias,
+}: {
+  unitId: string;
+  count: number;
+  colorAlias: string;
+}) {
+  const sprite = getUnitSprite(colorAlias, unitId);
+  if (!sprite) return null;
+  const name = getGenericUnitDataByAsyncId(unitId)?.name ?? unitId;
+  return (
+    <div className={classes.loose} aria-hidden="true">
+      {Array.from({ length: Math.min(count, MAX_LOOSE) }, (_, index) => (
+        <span key={index} className={classes.looseUnit}>
+          <SpriteUnitImage sprite={sprite} alt={name} />
+        </span>
+      ))}
     </div>
   );
 }

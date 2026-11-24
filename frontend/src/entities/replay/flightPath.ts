@@ -38,7 +38,15 @@ export type FlightEffect = Point & {
 
 export const NATIVE_NORTHWEST_ANGLE = -135;
 /** Wormhole crossing: shrink into the swirl, a beat of nothing, emerge. */
-export const JUMP_MS = 1800;
+export const JUMP_MS = 2400;
+/**
+ * A heavy ship first turns onto its course while the engines spool up, and after braking
+ * to a stop turns back to its parked heading: real fleets do not pivot mid-air.
+ */
+export const IGNITION_MS = 900;
+export const SETTLE_MS = 700;
+/** Lifted off the board in flight: slightly bigger, with a deeper shadow below. */
+const LIFT_SCALE = 0.07;
 const JUMP_SHRINK = 0.42;
 const JUMP_HIDDEN = 0.16;
 const RIFT_SPEED = 1.55;
@@ -59,12 +67,12 @@ export function flightDuration(deltaX: number, deltaY: number): number {
 }
 
 /**
- * Live moves fly slow and heavy (user decisions: the first pace was "way too fast", then
- * "a little bit slower"): about 1.75 s per system; a short hop (landing, reaching a
- * wormhole) still takes a beat.
+ * Live moves fly slow and heavy, like an armada (user decisions: "way too fast", then
+ * "a little bit slower", then "I want to see weight"): about 2.8 s per system; a short hop
+ * (landing, reaching a wormhole) still takes a beat.
  */
 function legBaseMs(distance: number): number {
-  return Math.min(2800, Math.max(800, 1150 + distance * 2));
+  return Math.min(4400, Math.max(1300, 1800 + distance * 3.4));
 }
 
 type Chain = {
@@ -118,7 +126,11 @@ export function flightSegments(start: Point, legs: FlightLeg[]): FlightSegment[]
 }
 
 export function flightPathDuration(start: Point, legs: FlightLeg[]): number {
-  return flightSegments(start, legs).reduce((total, s) => total + s.durationMs, 0);
+  return (
+    IGNITION_MS +
+    flightSegments(start, legs).reduce((total, s) => total + s.durationMs, 0) +
+    SETTLE_MS
+  );
 }
 
 // --- Geometry --------------------------------------------------------------
@@ -214,8 +226,6 @@ function unwrapAngle(previous: number, next: number): number {
   return unwrapped;
 }
 
-const smoothstep = (p: number) => p * p * (3 - 2 * p);
-
 // --- Keyframes -------------------------------------------------------------
 
 export type PathKeyframeOptions = {
@@ -231,10 +241,19 @@ type Frame = {
   point: Point;
   rotation: number;
   scale: number;
+  /** 0 = resting on the board, 1 = lifted in flight. */
+  lift: number;
   glow?: FlightAnomaly;
 };
 
 const NO_GLOW = "drop-shadow(0px 0px 0px rgba(0, 0, 0, 0))";
+
+function shadow(lift: number): string {
+  const offset = (3 + 15 * lift).toFixed(1);
+  const blur = (2 + 9 * lift).toFixed(1);
+  const alpha = (0.25 + 0.3 * lift).toFixed(2);
+  return `drop-shadow(0px ${offset}px ${blur}px rgba(0, 0, 0, ${alpha}))`;
+}
 const GLOW: Record<FlightAnomaly, string> = {
   rift: "drop-shadow(0px 0px 7px rgba(192, 132, 252, 0.95))",
   nebula: "drop-shadow(0px 0px 5px rgba(148, 163, 184, 0.7))",
@@ -244,8 +263,6 @@ function chainFrames(
   chain: Chain,
   startMs: number,
   options: PathKeyframeOptions,
-  isFirst: boolean,
-  isLast: boolean,
   entryRotation: number,
 ): Frame[] {
   const dense = denseChain(chain);
@@ -258,16 +275,8 @@ function chainFrames(
     const { point, index } = sampleAtCost(dense, easeInOut(u) * total);
     const raw = unwrapAngle(previousHeading, headingAt(dense, index));
     previousHeading = raw;
-    let rotation = 0;
-    if (options.rotateToTrajectory) {
-      // Bank out of the parked heading at launch, swing to the park heading when landing.
-      const depart = isFirst ? smoothstep(Math.min(1, u / 0.18)) : 1;
-      rotation = entryRotation + (raw - entryRotation) * depart;
-      if (isLast) {
-        const land = smoothstep(Math.max(0, Math.min(1, (u - 0.8) / 0.2)));
-        rotation += (unwrapAngle(rotation, options.parkRotationDeg) - rotation) * land;
-      }
-    }
+    // Already on course (turned during ignition); the nose follows the path.
+    const rotation = options.rotateToTrajectory ? raw : 0;
     const leg = dense[index].leg;
     const glow =
       chain.anomalies[leg] === "nebula"
@@ -275,7 +284,14 @@ function chainFrames(
         : leg > 0 && chain.anomalies[leg - 1] === "rift"
           ? "rift"
           : undefined;
-    frames.push({ timeMs: startMs + u * chain.durationMs, point, rotation, scale: 1, glow });
+    frames.push({
+      timeMs: startMs + u * chain.durationMs,
+      point,
+      rotation,
+      scale: 1,
+      lift: 1,
+      glow,
+    });
   }
   return frames;
 }
@@ -285,42 +301,70 @@ function jumpFrames(jump: Jump, startMs: number, rotation: number): Frame[] {
   const emergeStart = shrinkEnd + jump.durationMs * JUMP_HIDDEN;
   const end = startMs + jump.durationMs;
   return [
-    { timeMs: startMs, point: jump.from, rotation, scale: 1 },
-    { timeMs: shrinkEnd, point: jump.from, rotation: rotation + 300, scale: 0 },
-    { timeMs: emergeStart, point: jump.to, rotation: rotation + 300, scale: 0 },
-    { timeMs: end, point: jump.to, rotation: rotation + 720, scale: 1 },
+    { timeMs: startMs, point: jump.from, rotation, scale: 1, lift: 1 },
+    { timeMs: shrinkEnd, point: jump.from, rotation: rotation + 300, scale: 0, lift: 1 },
+    { timeMs: emergeStart, point: jump.to, rotation: rotation + 300, scale: 0, lift: 1 },
+    { timeMs: end, point: jump.to, rotation: rotation + 720, scale: 1, lift: 1 },
   ];
 }
 
-/** Keyframes for the whole path plus its total duration (linear timing: pace is baked in). */
+/** The heading the ship must face when it starts moving (rotation units). */
+function courseHeading(segment: FlightSegment | undefined, start: Point): number {
+  if (!segment) return 0;
+  if (segment.kind === "chain") return headingAt(denseChain(segment), 1);
+  const to = segment.kind === "jump" ? segment.from : start;
+  const angle = Math.atan2(to.y - start.y, to.x - start.x);
+  return (angle * 180) / Math.PI - NATIVE_NORTHWEST_ANGLE;
+}
+
+/**
+ * Keyframes for the whole path plus its total duration (linear timing: pace is baked in):
+ * ignition (turn onto course, lift off) -> flight -> settle (stop, land, turn to park).
+ */
 export function buildPathKeyframes(options: PathKeyframeOptions): {
   keyframes: Keyframe[];
   durationMs: number;
 } {
   const segments = flightSegments(options.start, options.legs);
-  const frames: Frame[] = [];
-  let clock = 0;
-  let rotation = options.startRotationDeg;
-  segments.forEach((segment, index) => {
-    const isFirst = index === 0;
-    const isLast = index === segments.length - 1;
+  const turn = options.rotateToTrajectory;
+  const startRotation = turn ? options.startRotationDeg : 0;
+  const onCourse = turn
+    ? unwrapAngle(startRotation, courseHeading(segments[0], options.start))
+    : 0;
+  const frames: Frame[] = [
+    { timeMs: 0, point: options.start, rotation: startRotation, scale: 1, lift: 0 },
+    { timeMs: IGNITION_MS, point: options.start, rotation: onCourse, scale: 1, lift: 1 },
+  ];
+  let clock = IGNITION_MS;
+  let rotation = onCourse;
+  for (const segment of segments) {
     const produced =
       segment.kind === "chain"
-        ? chainFrames(segment, clock, options, isFirst, isLast, rotation)
-        : jumpFrames(segment, clock, options.rotateToTrajectory ? rotation : 0);
+        ? chainFrames(segment, clock, options, rotation)
+        : jumpFrames(segment, clock, rotation);
     // Each segment starts where the previous one ended: drop the duplicated joint frame.
     // Jumps spin whole turns, so the heading stays continuous across them.
-    frames.push(...(frames.length > 0 ? produced.slice(1) : produced));
+    frames.push(...produced.slice(1));
     clock += segment.durationMs;
     rotation = produced[produced.length - 1]?.rotation ?? rotation;
+  }
+  const last = frames[frames.length - 1];
+  clock += SETTLE_MS;
+  frames.push({
+    timeMs: clock,
+    point: last.point,
+    rotation: turn ? unwrapAngle(rotation, options.parkRotationDeg) : 0,
+    scale: 1,
+    lift: 0,
   });
   const durationMs = Math.max(1, clock);
   const keyframes = frames.map((frame): Keyframe => {
+    const scale = frame.scale * (1 + LIFT_SCALE * frame.lift);
     return {
       offset: Math.min(1, frame.timeMs / durationMs),
       opacity: 1,
-      filter: frame.glow ? GLOW[frame.glow] : NO_GLOW,
-      transform: `translate(-50%, -50%) translate(${frame.point.x}px, ${frame.point.y}px) rotate(${frame.rotation}deg) scale(${frame.scale})`,
+      filter: `${shadow(frame.lift)} ${frame.glow ? GLOW[frame.glow] : NO_GLOW}`,
+      transform: `translate(-50%, -50%) translate(${frame.point.x}px, ${frame.point.y}px) rotate(${frame.rotation}deg) scale(${scale})`,
     };
   });
   if (keyframes.length > 0) {
@@ -337,7 +381,7 @@ export function flightEffects(start: Point, legs: FlightLeg[]): FlightEffect[] {
   const effects: FlightEffect[] = [];
   const push = (kind: FlightEffectKind, point: Point, atMs: number) =>
     effects.push({ kind, x: point.x, y: point.y, atMs: Math.round(atMs), durationMs: EFFECT_MS[kind] });
-  let clock = 0;
+  let clock = IGNITION_MS;
   for (const segment of flightSegments(start, legs)) {
     if (segment.kind === "jump") {
       push("wormholeIn", segment.from, clock);
@@ -367,9 +411,9 @@ function lastSampleOfLeg(dense: DenseSample[], leg: number): DenseSample | undef
 // --- Cargo packed into a carrier -------------------------------------------
 
 /** Fighters / ground forces shrinking into their carrier before it launches. */
-export const PACK_MS = 800;
+export const PACK_MS = 1100;
 /** ...and coming back out of it at the destination. */
-export const UNPACK_MS = 1000;
+export const UNPACK_MS = 1300;
 const PACKED_SCALE = 0.2;
 
 export type CargoRideTimes = { packMs: number; rideMs: number; unpackMs: number };

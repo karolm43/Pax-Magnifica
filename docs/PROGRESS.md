@@ -662,3 +662,13 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
 - Slower overall (user: "a little bit slower"): ~1.75 s per system, wormhole jump 1.8 s.
 - QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
   ActivityPanel), build, e2e. Skipped: backend (no change).
+
+## Flight Replay: Armada Weight, Plain Cargo Sprites (2026-11-24)
+- User feedback: cargo showed the round-rect token background and the fleet still felt too fast ("I want to see
+  weight as an armada moves"). Cargo on the carrier and while packing/unpacking now uses plain unit sprites in a
+  loose group (`LooseCargo`, no token, no count); the map token with its count returns once the replay ends.
+- Heavy motion (`flightPath.ts`): ignition (`IGNITION_MS`, turn onto course in place while engines spool up and the
+  ship lifts: +7% scale, deeper shadow), ~2.8 s per system, settle (`SETTLE_MS`: stop, touch down, turn to park);
+  wormhole jump 2.4 s, pack/unpack 1.1/1.3 s. Engine flames spool up, burn and cut with those phases.
+- QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
+  ActivityPanel), build, e2e. Skipped: backend (no change).

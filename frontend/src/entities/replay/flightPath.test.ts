@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  IGNITION_MS,
   JUMP_MS,
+  SETTLE_MS,
   buildCargoKeyframes,
   buildPathKeyframes,
   cargoRideDuration,
@@ -89,6 +91,28 @@ describe("buildPathKeyframes", () => {
     expect(String(keyframes.at(-1)?.transform)).toContain(
       "translate(950px, 920px)",
     );
+  });
+
+  it("turns onto course in place before moving, and settles before parking", () => {
+    const { keyframes, durationMs } = buildPathKeyframes({
+      start,
+      legs: [{ x: 0, y: -400, kind: "lane" }],
+      rotateToTrajectory: true,
+      startRotationDeg: 0,
+      parkRotationDeg: 0,
+    });
+    const [rest, onCourse] = keyframes;
+    expect(onCourse.offset).toBeCloseTo(IGNITION_MS / durationMs, 5);
+    // Still at the start, but the nose now points along the course (lifted off the board).
+    expect(String(onCourse.transform)).toContain("translate(0px, 0px)");
+    expect(String(onCourse.transform)).not.toContain("rotate(0deg)");
+    expect(String(rest.transform)).toContain("scale(1)");
+    expect(String(onCourse.transform)).toContain("scale(1.07)");
+    // Settling: the last two frames share the landing point, the last one parks on the board.
+    const [braked, parked] = keyframes.slice(-2);
+    expect(parked.offset! - braked.offset!).toBeCloseTo(SETTLE_MS / durationMs, 5);
+    expect(String(parked.transform)).toContain("translate(0px, -400px)");
+    expect(String(parked.transform)).toContain("scale(1)");
   });
 
   it("shrinks to nothing inside the wormhole", () => {

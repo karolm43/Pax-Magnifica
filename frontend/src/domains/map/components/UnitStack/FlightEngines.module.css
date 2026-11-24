@@ -25,16 +25,25 @@
   animation: flameBreath 1.6s ease-in-out infinite;
 }
 
+/* Spool up while the ship turns onto course, full burn in flight, cut while it settles. */
 @keyframes flightBurn {
   0% {
     opacity: 0;
+    transform: rotate(45deg) scale(0.4);
   }
-  8%,
-  82% {
+  14% {
     opacity: 1;
+    transform: rotate(45deg) scale(1.15);
   }
+  22%,
+  78% {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+  }
+  90%,
   100% {
     opacity: 0;
+    transform: rotate(45deg) scale(0.5);
   }
 }
 
