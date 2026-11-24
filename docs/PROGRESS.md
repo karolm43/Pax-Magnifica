@@ -554,3 +554,17 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   znaczenie); wildcardy wariantów → sekcje `*-replaced-by-omega*`; dług 210 → 199.
 - ⚠️ Strażnik `test_ruling_coverage.py` CZERWONY: 211 nowych rulingów bez testu + 93 testy, które straciły ruling (do przeglądu,
   np. Specialized Compounds odwrócony) — lista w `ZMIANY_2026-11-24.md`. Pominięte: pełny pytest, front.
+
+## Rules Viewer: Wiki Component Links Open In-Game Cards, No Top Banner (2026-11-24)
+- `domains/rules/componentLinks.ts`: fandom-wiki links in the tirules dump that name one component (URL text fragment
+  `:~:text=`) resolve to official-source game data — abilities, techs, leaders (also hero ability names), PNs,
+  breakthroughs, units, planets, relics, active action cards/agendas. Name prefix covers variants (Valefar Assimilator =
+  X + Y); wiki section (`#Faction_Technologies`, `#Leaders`…) and page faction narrow ambiguous names.
+- `ComponentLink` (MarkdownView `a`): dotted-underline link, click = `SmoothPopover` with `ComponentCard` /
+  `UnitDetailsCard` (same cards as player panel). Page-only wiki links (expansion, whole faction) stay external.
+- Coverage: every component wiki link in the dump resolves except 3 components missing from game data (Agnlan Oln,
+  Trillossa Aun Mirik, Enervate) — guarded by `componentLinks.test.ts`.
+- Attribution banner above the rules removed (user decision); credit is one muted line under the topic index.
+  Notes alert translated to English.
+- QA: tsc (app), eslint rules domain, vitest `src/domains/rules`; checked in browser (F_nekro: 26 card links, 0 wiki
+  links). Skipped: backend QA (frontend-only), build, e2e (rules page not part of game flow).

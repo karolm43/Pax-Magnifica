@@ -6,6 +6,8 @@
  * - `a` — parsuje `href` przez `mapLink(href, knownSlugs)` i deleguje render do
  *   `InternalLink` (Internal_Link → nawigacja react-router bez przeładowania;
  *   External_Link → trwały wskaźnik + bezpieczne otwarcie w nowej karcie).
+ *   Wiki links naming an in-game component (`componentLinks.resolveComponentLink`) render as
+ *   `ComponentLink` instead: the in-game card in a popover, no external site.
  * - `blockquote` — cytat ostylowany design systemem (blok źródła tematu).
  * - `li` — pozycja listy; jeśli zawiera marker rulingu Dane Beltramiego
  *   (`_[Dane ruling]_`), renderuje TRWAŁĄ etykietę „ruling Dane Beltramiego"
@@ -32,6 +34,8 @@ import remarkGfm from "remark-gfm";
 import { Anchor, Box, Text } from "@/ds";
 import { mapLink } from "@/domains/rules/linkMapper";
 import { InternalLink } from "@/domains/rules/components/InternalLink";
+import { ComponentLink } from "@/domains/rules/components/ComponentLink";
+import { resolveComponentLink } from "@/domains/rules/componentLinks";
 
 /** Marker rulingu Dane Beltramiego w treści pozycji listy (lustro `DANE_MARKER`). */
 const DANE_MARKER = "_[Dane ruling]_";
@@ -102,6 +106,11 @@ function buildComponents(
       // Brak href (teoretycznie) → zwykły, nieaktywny odnośnik (bezpieczny fallback).
       if (href === undefined || href === null || href === "") {
         return <Anchor>{children}</Anchor>;
+      }
+      // Wiki link to a component the game knows => its in-game card, no external site.
+      const componentRefs = resolveComponentLink(href, childrenToText(children));
+      if (componentRefs.length > 0) {
+        return <ComponentLink refs={componentRefs}>{children}</ComponentLink>;
       }
       return (
         <InternalLink target={mapLink(href, knownSlugs)}>

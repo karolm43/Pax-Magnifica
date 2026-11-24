@@ -1,23 +1,14 @@
 /**
- * Stały baner atrybucji i licencji treści Zasad (Attribution_Notice, Req 8).
+ * Rules content attribution and license (Attribution_Notice, Req 8): one quiet line under the
+ * topic index — the user removed the banner above the rules (2026-11-24).
  *
- * Prezentuje ciągle widoczną, niewymagającą akcji użytkownika informację opartą na
- * `docs/rules_tirules/SOURCE.md`:
- * - treść reguł Twilight Imperium jest © Fantasy Flight Games (Req 8.1),
- * - zrzut pochodzi z repozytorium tirules na licencji GPL-3.0 (Req 8.1),
- * - zawiera odnośnik, którego tekst zawiera ciąg „tirules2.com", oznaczony jako
- *   External_Link (otwarcie w nowej karcie, trwały wskaźnik, bezpieczne `rel`;
- *   Req 8.2/8.3).
- *
- * Baner nie wymaga żadnej akcji użytkownika i nie przesłania widoku — otwarcie
- * odnośnika nie zmienia aktualnego ekranu Rules_Browser (nowa karta). Wszystkie
- * elementy wizualne pochodzą wyłącznie z design systemu (`@/ds`).
+ * Based on `docs/rules_tirules/SOURCE.md`: rules text © Fantasy Flight Games; the dump comes
+ * from the tirules repository (GPL-3.0), scraped from tirules2.com. Links open in a new tab.
  */
 
-import { IconExternalLink } from "@tabler/icons-react";
-import { Anchor, Paper, Text } from "@/ds";
+import { Anchor, Text } from "@/ds";
 
-/** Adres źródła reguł — link atrybucji (External_Link w nowej karcie). */
+/** Rules source site (attribution link, opens in a new tab). */
 const TIRULES_URL = "https://www.tirules2.com/";
 
 /**
@@ -29,37 +20,25 @@ const TIRULES_URL = "https://www.tirules2.com/";
  */
 export function AttributionNotice() {
   return (
-    <Paper
-      withBorder
+    <Text
+      size="xs"
       role="contentinfo"
       aria-label="Rules content attribution and license"
-      style={{ padding: "var(--ds-space-xs) var(--ds-space-sm)" }}
+      style={{ color: "var(--ds-ink-lo)", paddingTop: "var(--ds-space-xs)", opacity: 0.8 }}
     >
-      <Text size="xs" style={{ color: "var(--ds-ink-lo)" }}>
-        Rules content © Fantasy Flight Games. The dump comes from the{" "}
-        <Anchor
-          href="https://github.com/dangothemango/tirules"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          tirules
-        </Anchor>{" "}
-        repository (GPL-3.0 license), scraped from{" "}
-        <Anchor href={TIRULES_URL} target="_blank" rel="noopener noreferrer">
-          tirules2.com
-          <IconExternalLink
-            size={13}
-            aria-label="external link (opens in a new tab)"
-            role="img"
-            style={{
-              display: "inline-block",
-              verticalAlign: "middle",
-              marginLeft: 3,
-            }}
-          />
-        </Anchor>
-        .
-      </Text>
-    </Paper>
+      Rules © Fantasy Flight Games · via{" "}
+      <Anchor href={TIRULES_URL} target="_blank" rel="noopener noreferrer">
+        tirules2.com
+      </Anchor>{" "}
+      (
+      <Anchor
+        href="https://github.com/dangothemango/tirules"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        GPL-3.0
+      </Anchor>
+      )
+    </Text>
   );
 }

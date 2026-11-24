@@ -1,0 +1,25 @@
+/* Inline link to an in-game component: reads like the DS anchor, with a dotted underline that
+   marks "opens a card here" (tirules links navigate, external links carry an icon). */
+.link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ds-accent-ink);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.link:hover,
+.link[aria-expanded="true"] {
+  text-decoration-style: solid;
+}
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: min(720px, 90vw);
+}

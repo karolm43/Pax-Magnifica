@@ -110,8 +110,8 @@ export function TopicContentPanel({
             color="blue"
             icon={<IconInfoCircle size={18} aria-hidden="true" />}
           >
-            Zawartość to noty-doprecyzowania (edge-case'y i interakcje reguł), a nie
-            pełny opis frakcji ani komponentu.
+            These are clarification notes (edge cases and rule interactions), not the full
+            text of the faction or component — click a highlighted name to see its card.
           </Alert>
         ) : null}
 

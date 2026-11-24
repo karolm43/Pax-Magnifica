@@ -2,8 +2,8 @@
  * Strona przeglądarki Zasad (Rules_Browser) — trasy `/rules` i `/rules/:slug`.
  *
  * Montuje układ dwupanelowy ekranu Zasad (Req 1.5/1.6, 2.1, 3.4, 4.4/4.5, 9.5, 10.2):
- * - nagłówek z kontrolką powrotu (`ReturnControl`) i tytułem ekranu oraz stały,
- *   zawsze widoczny baner atrybucji (`AttributionNotice`, Req 8);
+ * - nagłówek z kontrolką powrotu (`ReturnControl`) i tytułem ekranu; atrybucja źródła
+ *   (`AttributionNotice`) to jedna cicha linia pod indeksem — bez banera nad treścią;
  * - panel indeksu (`TopicIndexPanel`) po lewej — pełny Topic_Index z wyszukiwarką;
  * - panel treści (`TopicContentPanel`) po prawej — treść aktualnie otwartego tematu.
  *
@@ -121,11 +121,6 @@ export function RulesBrowserPage() {
         </Title>
       </Group>
 
-      {/* Stały baner atrybucji — zawsze widoczny (Req 8.1). */}
-      <Box style={{ padding: "var(--ds-space-sm) var(--ds-space-md) 0" }}>
-        <AttributionNotice />
-      </Box>
-
       {/* Obszar główny: dwa panele (kolumny na szerokich, stack na wąskich ≤768px). */}
       <Box
         style={{
@@ -151,7 +146,11 @@ export function RulesBrowserPage() {
             flexDirection: "column",
           }}
         >
-          {indexPanel}
+          <Box style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            {indexPanel}
+          </Box>
+          {/* Source credit: one quiet line under the index (no banner above the rules). */}
+          <AttributionNotice />
         </Paper>
 
         <Paper
