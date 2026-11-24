@@ -23,6 +23,7 @@ import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
 import { Alert, Box, ScrollArea, Stack, Text, Title } from "@/ds";
 import { MarkdownView } from "@/domains/rules/components/MarkdownView";
 import type { TopicContent } from "@/domains/rules/types";
+import { topicBody } from "@/domains/rules/topicBody";
 
 export type TopicContentPanelProps = {
   /** Treść tematu (gdy wczytana) albo `null`/`undefined` (brak / ładowanie / błąd). */
@@ -122,7 +123,7 @@ export function TopicContentPanel({
               No clarification notes for this topic.
             </Text>
             <MarkdownView
-              markdown={topic.markdown}
+              markdown={topicBody(topic.markdown)}
               knownSlugs={knownSlugs}
               slug={topic.slug}
               scrollViewportRef={scrollViewportRef}
@@ -130,7 +131,7 @@ export function TopicContentPanel({
           </Stack>
         ) : (
           <MarkdownView
-            markdown={topic.markdown}
+            markdown={topicBody(topic.markdown)}
             knownSlugs={knownSlugs}
             slug={topic.slug}
             scrollViewportRef={scrollViewportRef}

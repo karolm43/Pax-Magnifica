@@ -565,6 +565,7 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
 - Coverage: every component wiki link in the dump resolves except 3 components missing from game data (Agnlan Oln,
   Trillossa Aun Mirik, Enervate) — guarded by `componentLinks.test.ts`.
 - Attribution banner above the rules removed (user decision); credit is one muted line under the topic index.
-  Notes alert translated to English.
+  Notes alert translated to English. Topic body drops the dump's own `# Title` + `> Źródło:` blockquote
+  (`domains/rules/topicBody.ts`) — title was shown twice; dump files unchanged.
 - QA: tsc (app), eslint rules domain, vitest `src/domains/rules`; checked in browser (F_nekro: 26 card links, 0 wiki
   links). Skipped: backend QA (frontend-only), build, e2e (rules page not part of game flow).
