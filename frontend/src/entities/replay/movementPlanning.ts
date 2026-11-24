@@ -18,9 +18,9 @@ import type {
   UnitLocation,
 } from "./types";
 import {
-  attachRidingCargo,
+  liveLegs,
+  packRidingCargo,
   resolveLiveMovement,
-  routeLegs,
 } from "./liveMovement";
 import {
   accumulateStates,
@@ -507,7 +507,8 @@ export function planMovements({
     };
     const preferredDestination: UnitLocation = {
       position: movement.targetPosition,
-      holder: preferredHolder(movement, options, faction, unit.unitId),
+      holder:
+        unit.toHolder ?? preferredHolder(movement, options, faction, unit.unitId),
       faction,
       unitId: unit.unitId,
     };
@@ -611,7 +612,7 @@ export function planMovements({
       delayMs: movementStart,
       parkRotationDeg: combatRotation,
       flightPath: options.liveMove
-        ? routeLegs(current, options.liveMove, sourceLocated, {
+        ? liveLegs(current, options.liveMove, sourceLocated, {
             x: arrival.worldX,
             y: arrival.worldY,
           })
@@ -632,7 +633,7 @@ export function planMovements({
     }
   }
 
-  if (options.liveMove) attachRidingCargo(movements);
+  if (options.liveMove?.kind === "move") packRidingCargo(movements);
   return { movements, movementArrivals, stagedRotations };
 }
 

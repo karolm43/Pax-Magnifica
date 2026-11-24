@@ -21,6 +21,7 @@ import type { MapReplayPlan } from "@/entities/replay/types";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import { storeFactionImagesForGame } from "@/entities/game/factionImageCache";
 import { useLiveMoveReplay } from "@/state/useLiveMoveReplay";
+import { livePositions } from "@/state/liveMoveReplay";
 
 const MAX_CACHED_MAP_PREVIEWS = 16;
 
@@ -304,10 +305,11 @@ export function GameContextProvider({ children, gameId }: Props) {
     mapStatePreview?.previous,
   ]);
 
-  const liveRoute = liveReplayRunning ? liveReplay?.move.route : undefined;
+  const liveMove = liveReplayRunning ? liveReplay?.move : undefined;
   const liveChangedPositions = useMemo(
-    () => new Set(liveRoute ?? []),
-    [liveRoute],
+    () =>
+      new Set<string>(liveMove ? livePositions(liveMove, liveEnhancedData) : []),
+    [liveMove, liveEnhancedData],
   );
 
   const mapReplayPlan = useMemo(() => {

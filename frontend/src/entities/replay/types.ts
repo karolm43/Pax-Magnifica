@@ -41,10 +41,24 @@ export type MapUnitTransition = {
    * `toX`/`toY`. Absent = the legacy single arc from the stack to `toX`/`toY`.
    */
   flightPath?: FlightLeg[];
-  /** Cargo riding inside this transition's stack (hidden while it flies). */
-  hiddenInFlight?: boolean;
-  /** Ground forces / fighters carried by this ship, shown as mini badges in flight. */
+  /**
+   * Cargo (fighters / ground forces) packed into a carrier: shrinks into it at
+   * `board`, rides hidden for `rideMs`, unpacks from the carrier's landing point
+   * `land` to `toX`/`toY`. World coordinates; times from `delayMs`.
+   */
+  cargoRide?: CargoRide;
+  /** Fighters / ground forces carried by this ship, shown as mini icons in flight. */
   carriedCargo?: { unitId: string; count: number }[];
+};
+
+export type CargoRide = {
+  boardX: number;
+  boardY: number;
+  landX: number;
+  landY: number;
+  packMs: number;
+  rideMs: number;
+  unpackMs: number;
 };
 
 /** A wormhole swirl or anomaly pulse drawn on the board during a flight. */
@@ -54,13 +68,24 @@ export type MapFlightEffect = Omit<FlightEffect, "atMs"> & { delayMs: number };
  * A confirmed fleet move announced by the Activity feed (`move_route` fact): ordered route,
  * how each hop was crossed, anomalies on the way and the moving faction.
  */
-export type LiveMove = {
+export type LiveFleetMove = {
+  kind: "move";
   faction: string;
   route: string[];
   /** One per hop: `lane` or the link that jumped it (`wormhole` / `portal` / `jump`). */
   hops: string[];
   anomalies: Record<string, string[]>;
 };
+
+/** Ground forces committed from space to planets (Activity `invasion.commit`). */
+export type LiveLanding = {
+  kind: "landing";
+  faction: string;
+  planets: string[];
+};
+
+/** A live board action replayed on every client. */
+export type LiveMove = LiveFleetMove | LiveLanding;
 
 export type MapCombatLaser = {
   fromX: number;
@@ -164,6 +189,12 @@ export type ResolvedMovement = {
   sources: {
     position: string;
     holder: string;
-    units: { faction: string; unitId: string; states: StateCounts }[];
+    units: {
+      faction: string;
+      unitId: string;
+      states: StateCounts;
+      /** Destination holder for this unit (landings spread over planets). */
+      toHolder?: string;
+    }[];
   }[];
 };

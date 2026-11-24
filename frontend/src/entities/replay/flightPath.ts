@@ -38,7 +38,7 @@ export type FlightEffect = Point & {
 
 export const NATIVE_NORTHWEST_ANGLE = -135;
 /** Wormhole crossing: shrink into the swirl, a beat of nothing, emerge. */
-export const JUMP_MS = 1500;
+export const JUMP_MS = 1800;
 const JUMP_SHRINK = 0.42;
 const JUMP_HIDDEN = 0.16;
 const RIFT_SPEED = 1.55;
@@ -59,11 +59,12 @@ export function flightDuration(deltaX: number, deltaY: number): number {
 }
 
 /**
- * Live moves fly slow and heavy (user decision: the first pace was "way too fast"): about
- * 1.4 s per system, a short repositioning hop to a wormhole still takes a beat.
+ * Live moves fly slow and heavy (user decisions: the first pace was "way too fast", then
+ * "a little bit slower"): about 1.75 s per system; a short hop (landing, reaching a
+ * wormhole) still takes a beat.
  */
 function legBaseMs(distance: number): number {
-  return Math.min(2200, Math.max(650, 900 + distance * 1.6));
+  return Math.min(2800, Math.max(800, 1150 + distance * 2));
 }
 
 type Chain = {
@@ -223,8 +224,6 @@ export type PathKeyframeOptions = {
   rotateToTrajectory: boolean;
   startRotationDeg: number;
   parkRotationDeg: number;
-  /** Cargo rides inside its carrier: invisible until it lands. */
-  hiddenInFlight?: boolean;
 };
 
 type Frame = {
@@ -316,11 +315,10 @@ export function buildPathKeyframes(options: PathKeyframeOptions): {
     rotation = produced[produced.length - 1]?.rotation ?? rotation;
   });
   const durationMs = Math.max(1, clock);
-  const keyframes = frames.map((frame, index): Keyframe => {
-    const last = index === frames.length - 1;
+  const keyframes = frames.map((frame): Keyframe => {
     return {
       offset: Math.min(1, frame.timeMs / durationMs),
-      opacity: options.hiddenInFlight && !last ? 0 : 1,
+      opacity: 1,
       filter: frame.glow ? GLOW[frame.glow] : NO_GLOW,
       transform: `translate(-50%, -50%) translate(${frame.point.x}px, ${frame.point.y}px) rotate(${frame.rotation}deg) scale(${frame.scale})`,
     };
@@ -364,4 +362,50 @@ export function flightEffects(start: Point, legs: FlightLeg[]): FlightEffect[] {
 function lastSampleOfLeg(dense: DenseSample[], leg: number): DenseSample | undefined {
   for (let i = dense.length - 1; i >= 0; i -= 1) if (dense[i].leg === leg) return dense[i];
   return undefined;
+}
+
+// --- Cargo packed into a carrier -------------------------------------------
+
+/** Fighters / ground forces shrinking into their carrier before it launches. */
+export const PACK_MS = 800;
+/** ...and coming back out of it at the destination. */
+export const UNPACK_MS = 1000;
+const PACKED_SCALE = 0.2;
+
+export type CargoRideTimes = { packMs: number; rideMs: number; unpackMs: number };
+
+export function cargoRideDuration({ packMs, rideMs, unpackMs }: CargoRideTimes): number {
+  return packMs + rideMs + unpackMs;
+}
+
+/**
+ * Pack -> ride -> unpack, relative to the cargo's own start (0,0): it slides into the
+ * carrier at `board` and shrinks away, stays hidden while the carrier flies, then grows out
+ * of the carrier's landing point `land` and settles at `arrival`. Upright (no rotation).
+ */
+export function buildCargoKeyframes({
+  board,
+  land,
+  arrival,
+  ...times
+}: CargoRideTimes & { board: Point; land: Point; arrival: Point }): {
+  keyframes: Keyframe[];
+  durationMs: number;
+} {
+  const durationMs = Math.max(1, cargoRideDuration(times));
+  const at = (point: Point, scale: number, opacity: number, ms: number, easing: string) => ({
+    offset: Math.min(1, ms / durationMs),
+    opacity,
+    easing,
+    transform: `translate(-50%, -50%) translate(${point.x}px, ${point.y}px) scale(${scale})`,
+  });
+  return {
+    durationMs,
+    keyframes: [
+      at({ x: 0, y: 0 }, 1, 1, 0, "cubic-bezier(0.5, 0, 0.75, 0.4)"),
+      at(board, PACKED_SCALE, 0, times.packMs, "linear"),
+      at(land, PACKED_SCALE, 0, times.packMs + times.rideMs, "cubic-bezier(0.2, 0.7, 0.3, 1)"),
+      at(arrival, 1, 1, durationMs, "linear"),
+    ],
+  };
 }

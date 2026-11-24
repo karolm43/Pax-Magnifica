@@ -21,8 +21,9 @@ export type LiveMoveReplay = {
 };
 
 /**
- * Physical flight of a confirmed fleet move on EVERY client: a new Activity entry with a
- * `move_route` fact is paired with the live map before/after the move and replayed.
+ * Physical flight of a confirmed fleet move or invasion landing on EVERY client: a new
+ * Activity entry (`move_route` / `landed` facts) is paired with the live map before/after
+ * it and replayed.
  * Entries present when the page opens are history, not news. `enabled` = false (history
  * preview open, mobile, admin fast mode) drops new moves without replaying them.
  */

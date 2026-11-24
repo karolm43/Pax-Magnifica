@@ -2,6 +2,7 @@ import type { GameData } from "@/entities/game/types";
 import type { Point } from "@/entities/data/types";
 import { getPlanetPositionsBySystemId } from "@/entities/lookup/planets";
 import {
+  cargoRideDuration,
   flightDuration,
   flightEffects,
   flightPathDuration,
@@ -83,6 +84,7 @@ function mapUnitTransitionDuration(transition: MapUnitTransition): number {
   if (transition.residualAsset && transition.kind === "removed") return 420;
   if (transition.kind === "removed") return 780;
   if (transition.kind === "added") return 760;
+  if (transition.cargoRide) return cargoRideDuration(transition.cargoRide);
   if (transition.flightPath) {
     return flightPathDuration(
       { x: transition.stack.x, y: transition.stack.y },
@@ -122,7 +124,7 @@ function collectFlightEffects(transitions: MapUnitTransition[]): MapFlightEffect
   const seen = new Set<string>();
   const effects: MapFlightEffect[] = [];
   for (const transition of transitions) {
-    if (!transition.flightPath || transition.hiddenInFlight) continue;
+    if (!transition.flightPath) continue;
     const start = { x: transition.stack.x, y: transition.stack.y };
     for (const { atMs, ...effect } of flightEffects(start, transition.flightPath)) {
       const delayMs = (transition.delayMs ?? 0) + atMs;

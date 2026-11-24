@@ -650,3 +650,15 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   `test_bot_runner` under xdist load - passes alone); ruff; mypy (changed); frontend tsc (app), eslint (changed),
   vitest (`entities`, `state`, `domains/map`, `domains/battle`, ActivityPanel), build, e2e. Backend restart
   needed (new state field / facts).
+
+## Flight Replay: Cargo Packs Into Carriers, Invasion Landings, Slower Pace (2026-11-24)
+- User feedback: fighters/infantry flying as numbered badges looked like a blob. Fighters and ground forces now
+  pack into a moving ship with capacity (slide in and shrink, `PACK_MS`), the fleet launches once they are aboard,
+  the carrier shows a few small icons without counts in flight, and the units unpack from its landing point to
+  their slots (`UNPACK_MS`). `liveMovement.packRidingCargo`, `flightPath.buildCargoKeyframes`,
+  `MapUnitTransition.cargoRide` (replaces `hiddenInFlight`).
+- Invasion: a new `invasion.commit` entry (`landed` facts) replays on every client as ground forces flying from
+  space down to their planets (`LiveLanding`, `resolveLanding`; per-unit `toHolder` in `ResolvedMovement`).
+- Slower overall (user: "a little bit slower"): ~1.75 s per system, wormhole jump 1.8 s.
+- QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
+  ActivityPanel), build, e2e. Skipped: backend (no change).

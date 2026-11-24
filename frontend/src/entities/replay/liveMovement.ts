@@ -6,18 +6,28 @@ import {
   getPrintedLinkPoints,
   linkKindsOfToken,
 } from "@/entities/geometry/wormholePoints";
-import type { FlightAnomaly, FlightLeg } from "@/entities/replay/flightPath";
+import {
+  PACK_MS,
+  UNPACK_MS,
+  flightPathDuration,
+  type FlightAnomaly,
+  type FlightLeg,
+} from "@/entities/replay/flightPath";
 import type {
+  LiveFleetMove,
+  LiveLanding,
   LiveMove,
   LocatedStack,
   PlannedMovement,
   ResolvedMovement,
+  StateCounts,
 } from "@/entities/replay/types";
 import {
   allUnitStacks,
   locatedKey,
   stackHolder,
   stateCount,
+  statesForCount,
   subtractStates,
   unitStates,
 } from "@/entities/replay/unitState";
@@ -27,12 +37,13 @@ import {
  *
  * The map snapshots before/after the move say WHAT moved (the faction's units that left
  * systems on the route); the Activity route says HOW (ordered systems, wormhole jumps,
- * anomalies). Ground forces travel inside their carrier: hidden in flight, shown as mini
- * badges on the ship, landing with it.
+ * anomalies). Fighters and ground forces pack into their carrier, ride inside it (mini
+ * icons on the hull) and unpack when it lands. Landings (Activity `invasion.commit`) fly
+ * ground forces from space down to their planets.
  */
 
 /** Units that ride inside a carrier rather than flying on their own. */
-const RIDING_CARGO = new Set(["gf", "mf"]);
+const RIDING_CARGO = new Set(["gf", "mf", "ff"]);
 /** Waypoints keep half of a ship's offset from its tile center, so a fleet holds formation. */
 const FORMATION_KEEP = 0.5;
 
@@ -40,6 +51,16 @@ export function resolveLiveMovement(
   previous: GameData,
   current: GameData,
   move: LiveMove,
+): ResolvedMovement | undefined {
+  return move.kind === "landing"
+    ? resolveLanding(previous, current, move)
+    : resolveFleetMove(previous, current, move);
+}
+
+function resolveFleetMove(
+  previous: GameData,
+  current: GameData,
+  move: LiveFleetMove,
 ): ResolvedMovement | undefined {
   const target = move.route.at(-1);
   if (!target || move.route.length < 2) return undefined;
@@ -67,6 +88,96 @@ export function resolveLiveMovement(
   }
   if (sources.size === 0) return undefined;
   return { targetPosition: target, targetHolder: "space", sources: [...sources.values()] };
+}
+
+/** Position of the system holding any of `planets` (landings name planets, not systems). */
+export function landingPosition(
+  data: GameData,
+  planets: string[],
+): string | undefined {
+  return Object.keys(data.tiles).find((position) =>
+    planets.some((planet) => planet in (data.tiles[position].planets ?? {})),
+  );
+}
+
+function statesAt(
+  data: GameData,
+  position: string,
+  holder: string,
+  faction: string,
+): Map<string, StateCounts> {
+  const found = new Map<string, StateCounts>();
+  for (const located of allUnitStacks(data)) {
+    if (
+      located.position === position &&
+      located.stack.faction === faction &&
+      stackHolder(located.stack) === holder
+    ) {
+      found.set(located.stack.entityId, unitStates(located.stack));
+    }
+  }
+  return found;
+}
+
+const NONE: StateCounts = [0, 0, 0, 0];
+
+/**
+ * Ground forces that left the active system's space for its planets: each planet's gain is
+ * matched with the units that left space, so every stack lands on the planet it reached.
+ */
+function resolveLanding(
+  previous: GameData,
+  current: GameData,
+  landing: LiveLanding,
+): ResolvedMovement | undefined {
+  const position = landingPosition(current, landing.planets);
+  if (!position) return undefined;
+  const { faction } = landing;
+  const spaceBefore = statesAt(previous, position, "space", faction);
+  const spaceAfter = statesAt(current, position, "space", faction);
+  const leftSpace = new Map<string, number>();
+  for (const [unitId, before] of spaceBefore) {
+    const left = stateCount(before) - stateCount(spaceAfter.get(unitId) ?? NONE);
+    if (left > 0) leftSpace.set(unitId, left);
+  }
+  const units: ResolvedMovement["sources"][number]["units"] = [];
+  for (const planet of landing.planets) {
+    const before = statesAt(previous, position, planet, faction);
+    for (const [unitId, after] of statesAt(current, position, planet, faction)) {
+      const gained = stateCount(after) - stateCount(before.get(unitId) ?? NONE);
+      const available = leftSpace.get(unitId) ?? 0;
+      const count = Math.min(gained, available);
+      if (count <= 0) continue;
+      leftSpace.set(unitId, available - count);
+      units.push({
+        faction,
+        unitId,
+        states: statesForCount(spaceBefore.get(unitId) ?? NONE, count),
+        toHolder: planet,
+      });
+    }
+  }
+  if (units.length === 0) return undefined;
+  return {
+    targetPosition: position,
+    targetHolder: "space",
+    sources: [{ position, holder: "space", units }],
+  };
+}
+
+/**
+ * Flight legs of a live action: the route of a fleet move, or one slow hop from space down
+ * to the planet for a landing.
+ */
+export function liveLegs(
+  data: GameData,
+  move: LiveMove,
+  source: LocatedStack,
+  arrival: Point,
+): FlightLeg[] | undefined {
+  return move.kind === "landing"
+    ? [{ ...arrival, kind: "lane" }]
+    : routeLegs(data, move, source, arrival);
 }
 
 function tileCenter(data: GameData, position: string): Point | undefined {
@@ -126,7 +237,7 @@ export function wormholeGates(
   return undefined;
 }
 
-function anomalyAt(move: LiveMove, position: string): FlightAnomaly | undefined {
+function anomalyAt(move: LiveFleetMove, position: string): FlightAnomaly | undefined {
   const names = move.anomalies[position] ?? [];
   if (names.includes("GRAVITY_RIFT")) return "rift";
   if (names.includes("NEBULA")) return "nebula";
@@ -139,7 +250,7 @@ function anomalyAt(move: LiveMove, position: string): FlightAnomaly | undefined 
  */
 export function routeLegs(
   data: GameData,
-  move: LiveMove,
+  move: LiveFleetMove,
   source: LocatedStack,
   arrival: Point,
 ): FlightLeg[] | undefined {
@@ -188,27 +299,62 @@ function capacityOf(unitId: string): number {
   return getGenericUnitDataByAsyncId(unitId)?.capacityValue ?? 0;
 }
 
+function flightMs(movement: PlannedMovement): number {
+  const { transition } = movement;
+  return transition.flightPath
+    ? flightPathDuration(
+        { x: transition.stack.x, y: transition.stack.y },
+        transition.flightPath,
+      )
+    : 0;
+}
+
 /**
- * Ground forces ride inside a moving ship with capacity: their own transitions are hidden in
- * flight (they land with the fleet) and the carrier shows them as mini badges.
+ * Fighters and ground forces pack into a moving ship with capacity (preferably one leaving
+ * the same system): they slide into it and vanish, the fleet launches once they are aboard,
+ * the carrier shows them as mini icons in flight, and they unpack from it when it lands.
  */
-export function attachRidingCargo(movements: PlannedMovement[]): void {
-  const carrier = movements.find(
+export function packRidingCargo(movements: PlannedMovement[]): void {
+  const carriers = movements.filter(
     (movement) =>
       capacityOf(movement.source.unitId) > 0 &&
       !RIDING_CARGO.has(movement.source.unitId),
   );
-  if (!carrier) return;
-  const cargo = new Map<string, number>();
-  for (const movement of movements) {
-    if (!RIDING_CARGO.has(movement.source.unitId)) continue;
-    movement.transition.hiddenInFlight = true;
-    const count = stateCount(unitStates(movement.transition.stack));
-    cargo.set(movement.source.unitId, (cargo.get(movement.source.unitId) ?? 0) + count);
+  const cargo = movements.filter((movement) =>
+    RIDING_CARGO.has(movement.source.unitId),
+  );
+  if (carriers.length === 0 || cargo.length === 0) return;
+  const loads = new Map<PlannedMovement, Map<string, number>>();
+  for (const item of cargo) {
+    const carrier =
+      carriers.find((c) => c.source.position === item.source.position) ??
+      carriers[0];
+    const { transition } = item;
+    const sameSystem = carrier.source.position === item.source.position;
+    transition.cargoRide = {
+      // Mid-route pickups board where they stand (the carrier passes by later).
+      boardX: sameSystem ? carrier.transition.stack.x : transition.stack.x,
+      boardY: sameSystem ? carrier.transition.stack.y : transition.stack.y,
+      landX: carrier.transition.toX,
+      landY: carrier.transition.toY,
+      packMs: PACK_MS,
+      rideMs: flightMs(carrier),
+      unpackMs: UNPACK_MS,
+    };
+    transition.flightPath = undefined;
+    const load = loads.get(carrier) ?? new Map<string, number>();
+    const count = stateCount(unitStates(transition.stack));
+    load.set(item.source.unitId, (load.get(item.source.unitId) ?? 0) + count);
+    loads.set(carrier, load);
   }
-  if (cargo.size === 0) return;
-  carrier.transition.carriedCargo = [...cargo.entries()].map(([unitId, count]) => ({
-    unitId,
-    count,
-  }));
+  // Every ship waits for the cargo to board, so the fleet still leaves together.
+  for (const movement of movements) {
+    if (RIDING_CARGO.has(movement.source.unitId)) continue;
+    movement.transition.delayMs = (movement.transition.delayMs ?? 0) + PACK_MS;
+  }
+  for (const [carrier, load] of loads) {
+    carrier.transition.carriedCargo = [...load.entries()].map(
+      ([unitId, count]) => ({ unitId, count }),
+    );
+  }
 }

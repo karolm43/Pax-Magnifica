@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ActivityEntry, ActivityFact } from "@/api/boardQueries";
 import type { GameData } from "@/entities/game/types";
 import type { EntityStack } from "@/entities/positioning";
+import type { LiveMove } from "@/entities/replay/types";
 import {
   liveMoveFromEntry,
   moveLanded,
@@ -71,11 +72,28 @@ const routeFact: ActivityFact = {
 describe("liveMoveFromEntry", () => {
   it("reads the route of a tactical move", () => {
     expect(liveMoveFromEntry(entry([routeFact]), players)).toEqual({
+      kind: "move",
       faction: "sol",
       route: ["202", "101", "000"],
       hops: ["lane", "wormhole"],
       anomalies: { "000": ["NEBULA"] },
     });
+  });
+
+  it("reads the planets of an invasion landing", () => {
+    const landed = (planet: string): ActivityFact => ({
+      type: "landed",
+      player_id: "p1",
+      value: "infantry",
+      delta: 2,
+      detail: planet,
+    });
+    expect(
+      liveMoveFromEntry(
+        entry([landed("lodor"), landed("lodor")], "invasion.commit"),
+        players,
+      ),
+    ).toEqual({ kind: "landing", faction: "sol", planets: ["lodor"] });
   });
 
   it("ignores entries without a route and other actions", () => {
@@ -87,7 +105,8 @@ describe("liveMoveFromEntry", () => {
 });
 
 describe("pairing a move with the live map", () => {
-  const move = {
+  const move: LiveMove = {
+    kind: "move",
     faction: "sol",
     route: ["202", "101", "000"],
     hops: [],
@@ -127,5 +146,35 @@ describe("pairing a move with the live map", () => {
         before,
       ),
     ).toBeUndefined();
+  });
+});
+
+describe("pairing a landing with the live map", () => {
+  const map = (space: number, planet: number): GameData =>
+    ({
+      tiles: {
+        "000": {
+          properties: { x: 0, y: 0 },
+          planets: { lodor: {} },
+          entityPlacements: [
+            { entityType: "unit", entityId: "gf", faction: "sol", count: space, x: 0, y: 0 },
+            {
+              entityType: "unit",
+              entityId: "gf",
+              faction: "sol",
+              count: planet,
+              x: 0,
+              y: 0,
+              planetName: "lodor",
+            },
+          ].filter((stack) => stack.count > 0),
+        },
+      },
+    }) as unknown as GameData;
+  const landing: LiveMove = { kind: "landing", faction: "sol", planets: ["lodor"] };
+
+  it("recognises units that left space for the planet", () => {
+    expect(moveLanded(map(3, 0), map(1, 2), landing)).toBe(true);
+    expect(moveLanded(map(3, 0), map(3, 0), landing)).toBe(false);
   });
 });

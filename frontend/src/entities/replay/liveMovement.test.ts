@@ -5,7 +5,8 @@ import {
   buildMapReplayPlan,
   replayRunDuration,
 } from "./historicalMapTransitions";
-import type { LiveMove } from "./types";
+import type { LiveFleetMove, LiveMove } from "./types";
+import { PACK_MS } from "./flightPath";
 import { getPrintedLinkPoints } from "@/entities/geometry/wormholePoints";
 
 type TileSpec = {
@@ -64,7 +65,8 @@ function line(units: Record<string, EntityStack[]>): GameData {
   );
 }
 
-const move = (overrides: Partial<LiveMove> = {}): LiveMove => ({
+const move = (overrides: Partial<LiveFleetMove> = {}): LiveMove => ({
+  kind: "move",
   faction: "sol",
   route: ["202", "101", "000"],
   hops: ["lane", "lane"],
@@ -158,16 +160,69 @@ describe("buildMapReplayPlan with a live move", () => {
     expect(plan.flightEffects.map((e) => e.kind)).toContain("riftWarp");
   });
 
-  it("carries ground forces inside the carrier", () => {
+  it("packs fighters and infantry into the carrier and unpacks them on landing", () => {
     const plan = buildMapReplayPlan(
-      line({ "202": [unit("cv", 1), unit("gf", 2, 200, 180)] }),
-      line({ "000": [unit("cv", 1), unit("gf", 2, 200, 180)] }),
+      line({
+        "202": [unit("cv", 1), unit("gf", 2, 200, 180), unit("ff", 3, 110, 190)],
+      }),
+      line({
+        "000": [unit("cv", 1), unit("gf", 2, 200, 180), unit("ff", 3, 110, 190)],
+      }),
       { liveMove: move(), activeFaction: "sol" },
     );
-    expect(moved(plan, "cv")?.carriedCargo).toEqual([
-      { unitId: "gf", count: 2 },
-    ]);
-    expect(moved(plan, "gf")?.hiddenInFlight).toBe(true);
+    const carrier = moved(plan, "cv")!;
+    expect(carrier.carriedCargo).toEqual(
+      expect.arrayContaining([
+        { unitId: "gf", count: 2 },
+        { unitId: "ff", count: 3 },
+      ]),
+    );
+    // The fleet launches once the cargo is aboard.
+    expect(carrier.delayMs).toBe(PACK_MS);
+    for (const id of ["gf", "ff"]) {
+      const ride = moved(plan, id)?.cargoRide;
+      expect(ride).toMatchObject({
+        boardX: carrier.stack.x,
+        boardY: carrier.stack.y,
+        landX: carrier.toX,
+        landY: carrier.toY,
+        packMs: PACK_MS,
+      });
+      expect(moved(plan, id)?.flightPath).toBeUndefined();
+    }
+  });
+
+  it("flies ground forces from space down to the planets of an invasion", () => {
+    const tiles = (space: EntityStack[], planet: EntityStack[]) =>
+      ({
+        tiles: {
+          "000": {
+            position: "000",
+            systemId: "1",
+            properties: { x: 0, y: 0 },
+            entityPlacements: [...space, ...planet],
+            commandCounters: [],
+            planets: { lodor: {} },
+            tokens: [],
+          },
+        },
+        originalFactionColorMap: {},
+      }) as unknown as GameData;
+    const onPlanet = (entityId: string, count: number) =>
+      ({ ...unit(entityId, count, 240, 120), planetName: "lodor" }) as EntityStack;
+    const plan = buildMapReplayPlan(
+      tiles([unit("cv", 1), unit("gf", 3, 200, 180)], []),
+      tiles([unit("cv", 1), unit("gf", 1, 200, 180)], [onPlanet("gf", 2)]),
+      {
+        liveMove: { kind: "landing", faction: "sol", planets: ["lodor"] },
+        activeFaction: "sol",
+      },
+    );
+    const landing = moved(plan, "gf");
+    expect(landing?.stack.count).toBe(2);
+    expect(landing?.flightPath).toHaveLength(1);
+    expect(landing).toMatchObject({ toX: 240, toY: 120 });
+    expect(moved(plan, "cv")).toBeUndefined();
   });
 });
 

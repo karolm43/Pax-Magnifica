@@ -3,9 +3,13 @@ import { getUnitSprite } from "@/shared/ui/Unit/unitSprites";
 import { getGenericUnitDataByAsyncId } from "@/entities/lookup/units";
 import classes from "./CarriedCargo.module.css";
 
+/** More icons than this per unit type would just be a blob again. */
+const MAX_ICONS = 3;
+
 /**
- * Ground forces riding inside a flying ship (live move replay): mini sprites with counts
- * pinned to the hull, so transported infantry/mechs visibly travel with their carrier.
+ * Fighters / ground forces packed into a flying carrier (live move replay): a few small
+ * overlapping icons on the hull, no counts (user decision: numbered badges in flight were a
+ * blob). Shown only while the carrier flies; the units themselves unpack when it lands.
  */
 export function CarriedCargo({
   cargo,
@@ -18,13 +22,17 @@ export function CarriedCargo({
     <div className={classes.cargo} aria-hidden="true">
       {cargo.map(({ unitId, count }) => {
         const sprite =
-          getUnitSprite(colorAlias, unitId === "gf" ? "tkn_gf" : unitId) ??
+          getUnitSprite(colorAlias, `tkn_${unitId}`) ??
           getUnitSprite(colorAlias, unitId);
+        if (!sprite) return null;
         const name = getGenericUnitDataByAsyncId(unitId)?.name ?? unitId;
         return (
-          <span key={unitId} className={classes.item}>
-            {sprite && <SpriteUnitImage sprite={sprite} alt={name} />}
-            <b className={classes.count}>{count}</b>
+          <span key={unitId} className={classes.group}>
+            {Array.from({ length: Math.min(count, MAX_ICONS) }, (_, index) => (
+              <span key={index} className={classes.icon}>
+                <SpriteUnitImage sprite={sprite} alt={name} />
+              </span>
+            ))}
           </span>
         );
       })}

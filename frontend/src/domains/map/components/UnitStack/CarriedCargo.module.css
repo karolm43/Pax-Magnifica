@@ -1,30 +1,42 @@
-/* Mini cargo chips pinned under a flying carrier's hull (rotate with the ship). */
+/* Cargo icons pinned under a flying carrier's hull (they turn with the ship). Visible only
+   during the carrier's own flight: the units pack in before it and unpack after it. */
 .cargo {
   position: absolute;
   left: 50%;
-  top: 72%;
+  top: 70%;
   transform: translateX(-50%);
   display: flex;
-  gap: 3px;
+  gap: 6px;
   pointer-events: none;
   z-index: 1;
+  opacity: 0;
+  animation: cargoAboard var(--map-flight-duration, 1500ms) linear
+    var(--map-transition-delay, 0ms) both;
 }
 
-.item {
-  --unit-fit: 22px;
+.group {
   display: inline-flex;
-  align-items: center;
-  gap: 1px;
-  padding: 1px 4px 1px 2px;
-  border-radius: 999px;
-  background: rgba(8, 12, 24, 0.78);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28);
 }
 
-.count {
-  font-family: var(--font-display);
-  font-size: 13px;
-  line-height: 1;
-  color: #fff;
-  font-variant-numeric: tabular-nums;
+.icon {
+  --unit-fit: 18px;
+  display: inline-flex;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.85));
+}
+
+.icon + .icon {
+  margin-left: -8px;
+}
+
+@keyframes cargoAboard {
+  0% {
+    opacity: 0;
+  }
+  6%,
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }

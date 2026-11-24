@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   JUMP_MS,
+  buildCargoKeyframes,
   buildPathKeyframes,
+  cargoRideDuration,
   flightDuration,
   flightEffects,
   flightPathDuration,
@@ -103,14 +105,23 @@ describe("buildPathKeyframes", () => {
     expect(((rotation % 360) + 360) % 360).toBeCloseTo(30, 0);
   });
 
-  it("keeps riding cargo invisible until it lands", () => {
-    const { keyframes } = buildPathKeyframes({
-      ...base,
-      rotateToTrajectory: false,
-      hiddenInFlight: true,
+});
+
+describe("buildCargoKeyframes", () => {
+  it("packs into the carrier, rides hidden and unpacks at the landing", () => {
+    const times = { packMs: 800, rideMs: 2000, unpackMs: 1000 };
+    const { keyframes, durationMs } = buildCargoKeyframes({
+      board: { x: 20, y: 10 },
+      land: { x: 300, y: -500 },
+      arrival: { x: 330, y: -470 },
+      ...times,
     });
-    expect(keyframes.slice(0, -1).every((k) => k.opacity === 0)).toBe(true);
-    expect(keyframes.at(-1)?.opacity).toBe(1);
+    expect(durationMs).toBe(cargoRideDuration(times));
+    expect(keyframes.map((k) => k.opacity)).toEqual([1, 0, 0, 1]);
+    expect(keyframes.map((k) => k.offset)).toEqual([0, 800 / 3800, 2800 / 3800, 1]);
+    expect(String(keyframes[1].transform)).toContain("translate(20px, 10px)");
+    expect(String(keyframes[2].transform)).toContain("translate(300px, -500px)");
+    expect(String(keyframes[3].transform)).toContain("translate(330px, -470px) scale(1)");
   });
 });
 

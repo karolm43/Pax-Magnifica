@@ -1,9 +1,11 @@
 import { useLayoutEffect, useRef } from "react";
 import {
+  buildCargoKeyframes,
   buildPathKeyframes,
   flightDuration,
   type FlightLeg,
 } from "@/entities/replay/flightPath";
+import type { CargoRide } from "@/entities/replay/types";
 
 type Options = {
   enabled: boolean;
@@ -18,7 +20,8 @@ type Options = {
   parkRotationDeg?: number;
   /** Multi-hop route relative to the start (live moves); replaces the single arc. */
   path?: FlightLeg[];
-  hiddenInFlight?: boolean;
+  /** Cargo packed into a carrier (relative to the start); replaces the flight. */
+  cargoRide?: CargoRide;
   continuation?: {
     deltaX: number;
     deltaY: number;
@@ -171,11 +174,12 @@ export function useMapFlightAnimation({
   holdRotationDeg,
   parkRotationDeg = 0,
   path,
-  hiddenInFlight = false,
+  cargoRide,
   continuation,
 }: Options) {
-  // Effect dependency: the route by value (a new array each render must not restart it).
+  // Effect dependencies by value (a new object each render must not restart the flight).
   const pathKey = path ? JSON.stringify(path) : "";
+  const cargoKey = cargoRide ? JSON.stringify(cargoRide) : "";
   const elementRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -184,16 +188,25 @@ export function useMapFlightAnimation({
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const legs = pathKey ? (JSON.parse(pathKey) as FlightLeg[]) : undefined;
-    const routed = legs
-      ? buildPathKeyframes({
-          start: { x: 0, y: 0 },
-          legs,
-          rotateToTrajectory,
-          startRotationDeg,
-          parkRotationDeg,
-          hiddenInFlight,
+    const ride = cargoKey ? (JSON.parse(cargoKey) as CargoRide) : undefined;
+    const routed = ride
+      ? buildCargoKeyframes({
+          board: { x: ride.boardX, y: ride.boardY },
+          land: { x: ride.landX, y: ride.landY },
+          arrival: { x: deltaX, y: deltaY },
+          packMs: ride.packMs,
+          rideMs: ride.rideMs,
+          unpackMs: ride.unpackMs,
         })
-      : undefined;
+      : legs
+        ? buildPathKeyframes({
+            start: { x: 0, y: 0 },
+            legs,
+            rotateToTrajectory,
+            startRotationDeg,
+            parkRotationDeg,
+          })
+        : undefined;
     const keyframes =
       routed?.keyframes ??
       buildFlightKeyframes({
@@ -305,7 +318,7 @@ export function useMapFlightAnimation({
     holdRotationDeg,
     parkRotationDeg,
     pathKey,
-    hiddenInFlight,
+    cargoKey,
     continuation?.deltaX,
     continuation?.deltaY,
     continuation?.delayMs,

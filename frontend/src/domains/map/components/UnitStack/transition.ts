@@ -1,5 +1,9 @@
 import type { MapUnitTransition, StateCounts } from "@/entities/replay/types";
-import { flightDuration, flightPathDuration } from "@/entities/replay/flightPath";
+import {
+  cargoRideDuration,
+  flightDuration,
+  flightPathDuration,
+} from "@/entities/replay/flightPath";
 import type { useMapFlightAnimation } from "./useMapFlightAnimation";
 import classes from "../UnitStack.module.css";
 
@@ -45,6 +49,7 @@ export function transitionClassName(transition?: MapUnitTransition): string {
 /** How long this transition's own flight lasts (drives the engine glow). */
 function ownFlightMs(transition: MapUnitTransition): number {
   const { stack } = transition;
+  if (transition.cargoRide) return cargoRideDuration(transition.cargoRide);
   return transition.flightPath
     ? flightPathDuration({ x: stack.x, y: stack.y }, transition.flightPath)
     : flightDuration(transition.toX - stack.x, transition.toY - stack.y);
@@ -55,7 +60,7 @@ export function isVisibleFlight(transition?: MapUnitTransition): boolean {
   return (
     !!transition &&
     MOVING_KINDS.has(transition.kind) &&
-    !transition.hiddenInFlight &&
+    !transition.cargoRide &&
     !transition.sourceHold
   );
 }
@@ -94,7 +99,13 @@ export function flightOptions(
     parkRotationDeg: rotation(transition?.parkRotationDeg),
     // Waypoints relative to the element's own origin (the flight translates from 0,0).
     path: transition?.flightPath?.map((leg) => ({ ...leg, x: leg.x - x, y: leg.y - y })),
-    hiddenInFlight: transition?.hiddenInFlight,
+    cargoRide: transition?.cargoRide && {
+      ...transition.cargoRide,
+      boardX: transition.cargoRide.boardX - x,
+      boardY: transition.cargoRide.boardY - y,
+      landX: transition.cargoRide.landX - x,
+      landY: transition.cargoRide.landY - y,
+    },
     continuation: continuation
       ? {
           deltaX: continuation.toX - x,
