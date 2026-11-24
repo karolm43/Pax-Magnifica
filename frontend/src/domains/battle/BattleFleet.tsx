@@ -25,6 +25,7 @@ import type { BattleSide } from "@/api/useBoardEditor";
 import type { Mark, ShipEntity } from "./battleAssign";
 import type { ShipView } from "./useBattleFx";
 import styles from "./BattleOverlay.module.css";
+import { ENGINES } from "@/shared/ui/Unit/engines";
 
 /* Rozmiar okrętu na polu bitwy wg typu (asyncId): okręty liniowe wyraźnie większe od
    eskorty, myśliwce i piechota małe — skala oddaje „wagę" jednostki. */
@@ -69,18 +70,6 @@ function jitter(id: string, salt: number, max: number): number {
   return Math.round(((h % 1000) / 1000 - 0.5) * 2 * max);
 }
 
-/* DYSZE silników wg typu: przesunięcia w poprzek osi kadłuba (ułamek slotu), długość smugi
-   (--el, ułamek slotu) i grubość (px). War sun bez silników (wyłania się z wormhole). */
-const ENGINES: Record<
-  string,
-  { offsets: number[]; length: number; height: number }
-> = {
-  dd: { offsets: [0], length: 0.22, height: 5 },
-  ca: { offsets: [-0.05, 0.05], length: 0.22, height: 4 },
-  cv: { offsets: [-0.12, -0.04, 0.04, 0.12], length: 0.16, height: 3 },
-  dn: { offsets: [-0.07, 0.07], length: 0.3, height: 6 },
-  fs: { offsets: [-0.1, 0, 0.1], length: 0.34, height: 7 },
-};
 
 /** Jednostki „ciężkie": inne dźwięki, grubsze działa, specjalna aura (war sun, flagowiec). */
 const HEAVY = new Set(["ws", "fs", "dn"]);

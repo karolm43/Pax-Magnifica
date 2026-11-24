@@ -3,7 +3,12 @@ import type { SocketReadyState } from "@/api/useGameSocket";
 import type { MapReplayPlan } from "@/entities/replay/types";
 import type { GameData, MapStatePreview } from "@/entities/game/types";
 
-export type MapReplayState = MapReplayPlan & { active: boolean; key: number };
+export type MapReplayState = MapReplayPlan & {
+  active: boolean;
+  key: number;
+  /** Ends the running replay at once (the map shows its final state). */
+  skip?: () => void;
+};
 
 export type GameContext = {
   data: GameData | undefined;

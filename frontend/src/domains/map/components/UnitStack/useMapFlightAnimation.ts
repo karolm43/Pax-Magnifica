@@ -1,5 +1,9 @@
 import { useLayoutEffect, useRef } from "react";
-import { flightDuration } from "@/entities/replay/historicalMapTransitions";
+import {
+  buildPathKeyframes,
+  flightDuration,
+  type FlightLeg,
+} from "@/entities/replay/flightPath";
 
 type Options = {
   enabled: boolean;
@@ -12,6 +16,9 @@ type Options = {
   startRotationDeg?: number;
   holdRotationDeg?: number;
   parkRotationDeg?: number;
+  /** Multi-hop route relative to the start (live moves); replaces the single arc. */
+  path?: FlightLeg[];
+  hiddenInFlight?: boolean;
   continuation?: {
     deltaX: number;
     deltaY: number;
@@ -163,8 +170,12 @@ export function useMapFlightAnimation({
   startRotationDeg = 0,
   holdRotationDeg,
   parkRotationDeg = 0,
+  path,
+  hiddenInFlight = false,
   continuation,
 }: Options) {
+  // Effect dependency: the route by value (a new array each render must not restart it).
+  const pathKey = path ? JSON.stringify(path) : "";
   const elementRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -172,15 +183,28 @@ export function useMapFlightAnimation({
     if (!enabled || !element) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    const keyframes = buildFlightKeyframes({
-      startX: 0,
-      startY: 0,
-      endX: deltaX,
-      endY: deltaY,
-      rotateToTrajectory,
-      startRotationDeg,
-      parkRotationDeg,
-    });
+    const legs = pathKey ? (JSON.parse(pathKey) as FlightLeg[]) : undefined;
+    const routed = legs
+      ? buildPathKeyframes({
+          start: { x: 0, y: 0 },
+          legs,
+          rotateToTrajectory,
+          startRotationDeg,
+          parkRotationDeg,
+          hiddenInFlight,
+        })
+      : undefined;
+    const keyframes =
+      routed?.keyframes ??
+      buildFlightKeyframes({
+        startX: 0,
+        startY: 0,
+        endX: deltaX,
+        endY: deltaY,
+        rotateToTrajectory,
+        startRotationDeg,
+        parkRotationDeg,
+      });
 
     const holdAnimation =
       holdFromMs !== undefined
@@ -199,10 +223,12 @@ export function useMapFlightAnimation({
             },
           )
         : undefined;
+    // A routed path bakes its pace (cruise, rift slingshot, nebula drag) into the keyframe
+    // offsets, so it runs on linear timing.
     const animation = element.animate(keyframes, {
-      duration: flightDuration(deltaX, deltaY),
+      duration: routed?.durationMs ?? flightDuration(deltaX, deltaY),
       delay: delayMs,
-      easing: FLIGHT_EASING,
+      easing: routed ? "linear" : FLIGHT_EASING,
       fill: "forwards",
     });
     const continuationKeyframes = continuation
@@ -278,6 +304,8 @@ export function useMapFlightAnimation({
     startRotationDeg,
     holdRotationDeg,
     parkRotationDeg,
+    pathKey,
+    hiddenInFlight,
     continuation?.deltaX,
     continuation?.deltaY,
     continuation?.delayMs,

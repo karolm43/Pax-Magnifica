@@ -1,6 +1,7 @@
 import type { MapStatePreview } from "@/entities/game/types";
 import type { EntityStack } from "@/entities/positioning";
 import type { ControlTokenDisplayMode } from "@/entities/game/controlTokenDisplay";
+import type { FlightEffect, FlightLeg } from "@/entities/replay/flightPath";
 
 import type { StateCounts } from "@/entities/data/types";
 
@@ -35,6 +36,30 @@ export type MapUnitTransition = {
     startRotationDeg?: number;
     parkRotationDeg?: number;
   };
+  /**
+   * Multi-hop route (live moves): waypoints after the start; the last leg ends at
+   * `toX`/`toY`. Absent = the legacy single arc from the stack to `toX`/`toY`.
+   */
+  flightPath?: FlightLeg[];
+  /** Cargo riding inside this transition's stack (hidden while it flies). */
+  hiddenInFlight?: boolean;
+  /** Ground forces / fighters carried by this ship, shown as mini badges in flight. */
+  carriedCargo?: { unitId: string; count: number }[];
+};
+
+/** A wormhole swirl or anomaly pulse drawn on the board during a flight. */
+export type MapFlightEffect = Omit<FlightEffect, "atMs"> & { delayMs: number };
+
+/**
+ * A confirmed fleet move announced by the Activity feed (`move_route` fact): ordered route,
+ * how each hop was crossed, anomalies on the way and the moving faction.
+ */
+export type LiveMove = {
+  faction: string;
+  route: string[];
+  /** One per hop: `lane` or the link that jumped it (`wormhole` / `portal` / `jump`). */
+  hops: string[];
+  anomalies: Record<string, string[]>;
 };
 
 export type MapCombatLaser = {
@@ -74,6 +99,7 @@ export type MapReplayPlan = {
   lasers: MapCombatLaser[];
   commandTokens: MapCommandTokenPlacement[];
   controlTokens: MapControlTokenTransition[];
+  flightEffects: MapFlightEffect[];
   arrivalLocations: Set<string>;
   delayedDamage: Map<string, DelayedDamage>;
   baseUnitStates: Map<string, StateCounts>;
@@ -110,6 +136,8 @@ export type AuthoritativeTransitionOptions = Pick<
 > & {
   controlTokenDisplayMode?: ControlTokenDisplayMode;
   changedPositions?: Set<string>;
+  /** Live move from the Activity feed; replaces `movementState` for planning. */
+  liveMove?: LiveMove;
 };
 
 export type PlannedMovement = {
@@ -127,4 +155,15 @@ export type ReplayInventory = {
   expectedTotals: Map<string, number>;
   finalTotals: Map<string, number>;
   locations: Map<string, UnitLocation>;
+};
+
+/** A movement with factions resolved: compact AsyncTI4 movement state or a live move. */
+export type ResolvedMovement = {
+  targetPosition: string;
+  targetHolder: string;
+  sources: {
+    position: string;
+    holder: string;
+    units: { faction: string; unitId: string; states: StateCounts }[];
+  }[];
 };

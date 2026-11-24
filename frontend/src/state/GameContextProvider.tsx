@@ -13,10 +13,14 @@ import type { GameData, MapStatePreview, CombatReplayEvent, RetreatSubEvent } fr
 import type { GameContext, Props } from "@/state/gameContextTypes";
 import type { TileUnitData } from "@/entities/data/types";
 import { deserializeCompactMapState } from "@/entities/replay/compactMapState";
-import { buildMapReplayPlan } from "@/entities/replay/historicalMapTransitions";
+import {
+  buildMapReplayPlan,
+  replayRunDuration,
+} from "@/entities/replay/historicalMapTransitions";
 import type { MapReplayPlan } from "@/entities/replay/types";
 import { isMobileDevice } from "@/utils/isTouchDevice";
 import { storeFactionImagesForGame } from "@/entities/game/factionImageCache";
+import { useLiveMoveReplay } from "@/state/useLiveMoveReplay";
 
 const MAX_CACHED_MAP_PREVIEWS = 16;
 
@@ -51,6 +55,7 @@ const EMPTY_MAP_REPLAY_PLAN: MapReplayPlan = {
   lasers: [],
   commandTokens: [],
   controlTokens: [],
+  flightEffects: [],
   arrivalLocations: new Set(),
   baseUnitStates: new Map(),
   delayedDamage: new Map(),
@@ -116,6 +121,8 @@ export function GameContextProvider({ children, gameId }: Props) {
   const controlTokenDisplayMode = useSettingsStore(
     (s) => s.settings.controlTokenDisplayMode,
   );
+  // Admin fast mode skips every map replay (like KeyMomentStage and PhaseSweep).
+  const adminFastMode = useSettingsStore((s) => s.settings.adminFastMode);
 
   const [decalOverrides, setDecalOverrides] = useState<Record<string, string>>(
     {},
@@ -253,6 +260,23 @@ export function GameContextProvider({ children, gameId }: Props) {
 
   const enhancedData = previewEnhancedData ?? liveEnhancedData;
 
+  // Live fleet moves (Activity `move_route`) replay on every client; a history preview wins.
+  const { replay: liveReplay, stop: stopLiveReplay } = useLiveMoveReplay(
+    liveEnhancedData,
+    replayAnimationsEnabled && !adminFastMode && !mapStatePreview,
+  );
+  const liveReplayRunning = !mapStatePreview && liveReplay?.active === true;
+  const replayActive = mapStatePreview
+    ? mapStatePreview.replayActive
+    : liveReplayRunning;
+  const replayKey = mapStatePreview
+    ? mapStatePreview.replayKey
+    : (liveReplay?.key ?? 0);
+  const stopAnyReplay = useCallback(() => {
+    stopMapReplay();
+    stopLiveReplay();
+  }, [stopMapReplay, stopLiveReplay]);
+
   const previousEnhancedData = useMemo(() => {
     if (!replayAnimationsEnabled) return undefined;
     if (!mapStatePreview?.previous || !mapStatePreview.previousMapState)
@@ -280,8 +304,22 @@ export function GameContextProvider({ children, gameId }: Props) {
     mapStatePreview?.previous,
   ]);
 
+  const liveRoute = liveReplayRunning ? liveReplay?.move.route : undefined;
+  const liveChangedPositions = useMemo(
+    () => new Set(liveRoute ?? []),
+    [liveRoute],
+  );
+
   const mapReplayPlan = useMemo(() => {
     if (!replayAnimationsEnabled) return EMPTY_MAP_REPLAY_PLAN;
+    if (liveReplayRunning && liveReplay) {
+      return buildMapReplayPlan(liveReplay.previous, liveEnhancedData, {
+        liveMove: liveReplay.move,
+        activeFaction: liveReplay.move.faction,
+        controlTokenDisplayMode,
+        changedPositions: liveChangedPositions,
+      });
+    }
     return buildMapReplayPlan(previousEnhancedData, enhancedData, {
       movementState: mapStatePreview?.movementState,
       retreats: mapStatePreview?.retreats,
@@ -293,6 +331,10 @@ export function GameContextProvider({ children, gameId }: Props) {
     });
   }, [
     replayAnimationsEnabled,
+    liveReplayRunning,
+    liveReplay,
+    liveEnhancedData,
+    liveChangedPositions,
     previousEnhancedData,
     enhancedData,
     mapStatePreview?.movementState,
@@ -306,24 +348,24 @@ export function GameContextProvider({ children, gameId }: Props) {
 
   useEffect(() => {
     if (!replayAnimationsEnabled) return;
-    if (!mapStatePreview?.replayActive) return;
-    if (
-      mapReplayPlan.durationMs === 0 ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      stopMapReplay();
+    if (!replayActive) return;
+    const runMs = replayRunDuration(mapReplayPlan, {
+      adminFastMode,
+      reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
+        .matches,
+    });
+    if (runMs === 0) {
+      stopAnyReplay();
       return;
     }
-    const timeout = window.setTimeout(
-      stopMapReplay,
-      mapReplayPlan.durationMs + 40,
-    );
+    const timeout = window.setTimeout(stopAnyReplay, runMs + 40);
     return () => window.clearTimeout(timeout);
   }, [
     replayAnimationsEnabled,
-    mapStatePreview?.replayActive,
+    replayActive,
+    adminFastMode,
     mapReplayPlan,
-    stopMapReplay,
+    stopAnyReplay,
   ]);
 
   const mapReplay = useMemo(
@@ -331,15 +373,18 @@ export function GameContextProvider({ children, gameId }: Props) {
       replayAnimationsEnabled
         ? {
             ...mapReplayPlan,
-            active: mapStatePreview?.replayActive ?? false,
-            key: mapStatePreview?.replayKey ?? 0,
+            active: replayActive && !adminFastMode,
+            key: replayKey,
+            skip: stopAnyReplay,
           }
         : EMPTY_MAP_REPLAY_STATE,
     [
       replayAnimationsEnabled,
       mapReplayPlan,
-      mapStatePreview?.replayActive,
-      mapStatePreview?.replayKey,
+      replayActive,
+      adminFastMode,
+      replayKey,
+      stopAnyReplay,
     ],
   );
 

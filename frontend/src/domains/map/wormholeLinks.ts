@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { Tile } from "@/entities/game/types";
 import { getTileById } from "@/entities/lookup/systems";
-import { getTokenData } from "@/entities/lookup/tokens";
+import { linkKindsOfToken } from "@/entities/geometry/wormholePoints";
 import { linkedPositions } from "./components/SystemDossier/featureRules";
 
 /**
@@ -29,12 +29,7 @@ export const useWormholeHoverStore = create<WormholeHoverState>((set) => ({
     set((state) => (state.hovered?.position === position ? { hovered: null } : state)),
 }));
 
-/** Rodzaje połączeń, które niesie żeton (pusta lista = żeton nic nie łączy). */
-export function linkKindsOfToken(tokenId: string): LinkKind[] {
-  if (tokenId === "ingress") return ["INGRESS"];
-  if (tokenId === "egress") return ["EGRESS"];
-  return (getTokenData(tokenId)?.wormholes ?? []).map((w) => w.toUpperCase());
-}
+export { linkKindsOfToken };
 
 function hasIngress(tile: Tile): boolean {
   return tile.tokens.includes("ingress");

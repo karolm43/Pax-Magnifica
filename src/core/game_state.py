@@ -1129,6 +1129,37 @@ class EliminatedPlayer(BaseModel):
     round_number: int = 0
 
 
+class MoveCargo(BaseModel):
+    """Ground forces / fighters carried by a fleet in one ``MoveRecord``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    base_type: str
+    count: int
+    from_zone: str = "space"
+    from_position: str
+
+
+class MoveRecord(BaseModel):
+    """The last confirmed fleet move of the current tactical action (presentation only).
+
+    Rules never read it: it exists so the Activity feed (and, through it, every client) can
+    replay the physical flight - ordered route, wormhole jumps, anomalies, carried cargo.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    player_id: str
+    route: list[str]
+    # One entry per route segment: ``lane`` (adjacent) or the link kind that jumped it
+    # (``wormhole`` / ``portal`` / ``jump`` for hook-granted adjacency).
+    hops: list[str] = Field(default_factory=list)
+    # Position -> anomaly names (GRAVITY_RIFT, NEBULA, ...) for systems on the route.
+    anomalies: dict[str, list[str]] = Field(default_factory=dict)
+    ships: dict[str, int] = Field(default_factory=dict)
+    cargo: list[MoveCargo] = Field(default_factory=list)
+
+
 class GameState(BaseModel):
     """Pełny, serializowalny stan gry."""
 
@@ -1171,6 +1202,9 @@ class GameState(BaseModel):
     # Czy w tej akcji taktycznej poruszono już jakiś statek (okno „po aktywacji systemu” kart
     # reakcji zamyka się z pierwszym ruchem). Zerowane przy aktywacji i zakończeniu akcji.
     tactical_moved: bool = False
+    # Last confirmed fleet move of this action (route/cargo, so clients can replay the flight).
+    # Presentation only - rules never read it. Cleared on activation and at the end of the action.
+    last_move: MoveRecord | None = None
     # Czy krok INVASION tej akcji taktycznej został już rozstrzygnięty i zamknięty (RULES.md
     # 40.1: inwazja to JEDEN krok akcji - po zamknięciu nie otwiera się ponownie).
     # Zerowane przy aktywacji i zakończeniu akcji.

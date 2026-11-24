@@ -65,6 +65,9 @@ class ActivityFact(BaseModel):
     # "moved" (ruch floty: player_id, value = typ jednostki, delta = liczba, detail = pozycja celu —
     # ruch sam się znosi w sumach, więc dopisujemy go osobno), "landed" (desant: value = typ,
     # delta = liczba, detail = id planety).
+    # "move_route" (one per fleet move: route/hops/anomalies, so every client replays the flight),
+    # "carried" (cargo of that move: value = unit type, delta = count, detail = source zone
+    # "space" / planet id).
     # "area" (TYLKO we wpisie z użyciem bohatera: value = pozycja systemu, detail = "gain" / "loss"
     # jednostek gracza albo "token_removed" jego żetonu dowodzenia — miejsce efektu na planszy,
     # RULES.md 64.4; feed go nie wypisuje).
@@ -78,6 +81,12 @@ class ActivityFact(BaseModel):
     detail: str | None = None
     # Zmiana liczbowa (dla "vp"/"tg"); None dla identyfikatorów.
     delta: int | None = None
+    # Only "move_route": ordered route (source -> destination), how each hop was crossed
+    # (``hops``: lane / wormhole / portal / jump) and anomalies of route systems
+    # (position -> anomaly names).
+    route: list[str] | None = None
+    hops: list[str] | None = None
+    anomalies: dict[str, list[str]] | None = None
 
 
 class Activity(BaseModel):
@@ -607,6 +616,21 @@ def _movement_facts(
         return []
     facts: list[ActivityFact] = []
     if action == "tactical.move" and subject:
+        record = after.last_move
+        if record is not None and record.player_id == actor and len(record.route) > 1:
+            facts.append(
+                ActivityFact(
+                    type="move_route", player_id=actor, route=list(record.route),
+                    hops=list(record.hops), anomalies=dict(record.anomalies),
+                )
+            )
+            facts.extend(
+                ActivityFact(
+                    type="carried", player_id=actor, value=item.base_type, delta=item.count,
+                    detail=item.from_zone,
+                )
+                for item in record.cargo
+            )
         old = before.systems.get(subject)
         new = after.systems.get(subject)
         old_ships = old.space_units.get(actor, {}) if old else {}

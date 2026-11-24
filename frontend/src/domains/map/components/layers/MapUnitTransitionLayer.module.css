@@ -116,11 +116,160 @@
   }
 }
 
+
+/* --- Flight effects (live move replay): wormhole swirls, rift warp, nebula mist --- */
+
+.flightEffect {
+  position: absolute;
+  z-index: 2;
+  width: 150px;
+  height: 150px;
+  margin: -75px 0 0 -75px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation-duration: var(--effect-duration);
+  animation-delay: var(--effect-delay);
+  animation-fill-mode: forwards;
+}
+
+.wormholeIn,
+.wormholeOut {
+  background:
+    radial-gradient(circle, rgba(10, 6, 30, 0.95) 0 16%, transparent 34%),
+    repeating-conic-gradient(
+      from 0deg,
+      rgba(125, 211, 252, 0.85) 0 18deg,
+      rgba(167, 139, 250, 0.15) 18deg 45deg
+    );
+  -webkit-mask: radial-gradient(circle, #000 0 52%, transparent 70%);
+  mask: radial-gradient(circle, #000 0 52%, transparent 70%);
+}
+
+.wormholeIn {
+  animation-name: wormholeIn;
+  animation-timing-function: ease-in;
+}
+
+.wormholeOut {
+  animation-name: wormholeOut;
+  animation-timing-function: ease-out;
+}
+
+@keyframes wormholeIn {
+  0% {
+    opacity: 0;
+    transform: rotate(0deg) scale(0.35);
+  }
+  30% {
+    opacity: 1;
+    transform: rotate(160deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(540deg) scale(0.15);
+  }
+}
+
+@keyframes wormholeOut {
+  0% {
+    opacity: 0;
+    transform: rotate(0deg) scale(0.15);
+  }
+  45% {
+    opacity: 1;
+    transform: rotate(-220deg) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(-480deg) scale(1.3);
+  }
+}
+
+.riftWarp {
+  border: 3px solid rgba(192, 132, 252, 0.9);
+  box-shadow:
+    0 0 18px rgba(192, 132, 252, 0.8),
+    inset 0 0 22px rgba(126, 34, 206, 0.7);
+  animation-name: riftWarp;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes riftWarp {
+  0% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+.nebulaDamp {
+  width: 220px;
+  height: 220px;
+  margin: -110px 0 0 -110px;
+  background: radial-gradient(
+    circle,
+    rgba(203, 213, 225, 0.38) 0%,
+    rgba(148, 163, 184, 0.2) 45%,
+    transparent 70%
+  );
+  filter: blur(4px);
+  animation-name: nebulaDamp;
+  animation-timing-function: ease-out;
+}
+
+@keyframes nebulaDamp {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+
+/* Screen-fixed (portaled) - the map layer pans and zooms. */
+.skip {
+  position: fixed;
+  left: 50%;
+  bottom: 132px;
+  z-index: var(--z-toast, 3000);
+  transform: translateX(-50%);
+  padding: 5px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(8, 12, 24, 0.72);
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(4px);
+}
+
+.skip:hover,
+.skip:focus-visible {
+  background: rgba(20, 28, 48, 0.9);
+  color: #fff;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .commandTokenPlacement,
   .commandTokenAdded,
   .commandTokenRemoved,
-  .laserPath {
+  .laserPath,
+  .flightEffect {
     display: none;
   }
 }

@@ -16,8 +16,11 @@ import { useDecalPaths } from "./UnitStack/useDecalPaths";
 import { getGenericUnitDataByAsyncId } from "@/entities/lookup/units";
 import { useMapFlightAnimation } from "./UnitStack/useMapFlightAnimation";
 import { GalvanizeBadge } from "./UnitStack/GalvanizeBadge";
+import { CarriedCargo } from "./UnitStack/CarriedCargo";
+import { FlightEngines } from "./UnitStack/FlightEngines";
 import {
   flightOptions,
+  isVisibleFlight,
   transitionClassName,
   transitionDelayStyle,
   unitSlots,
@@ -138,6 +141,7 @@ export function UnitStack({
     getUnitZIndex(unitType, 0) + (mapTransition && isBadge ? 200 : 0);
   const rotateInFlight =
     !isBadge && getGenericUnitDataByAsyncId(unitType)?.isShip === true;
+  const enginesLit = rotateInFlight && isVisibleFlight(mapTransition);
   const flightRef = useMapFlightAnimation(
     flightOptions(mapTransition, x, y, rotateInFlight),
   );
@@ -270,6 +274,9 @@ export function UnitStack({
         />
       )}
 
+      {mapTransition?.carriedCargo && (
+        <CarriedCargo cargo={mapTransition.carriedCargo} colorAlias={colorAlias} />
+      )}
       {slots.map((slot) => {
         const { stackOffsetX, stackOffsetY, zIndexOffset } =
           calculateUnitArrangement(
@@ -308,7 +315,7 @@ export function UnitStack({
             />
           );
         }
-        return (
+        const unit = (
           <Unit
             key={unitKey}
             unitType={unitType}
@@ -325,6 +332,18 @@ export function UnitStack({
             zIndex={baseZIndex + zIndexOffset}
           />
         );
+        if (!enginesLit) return unit;
+        return [
+          <FlightEngines
+            key={`${unitKey}-engines`}
+            unitType={unitType}
+            colorAlias={colorAlias}
+            x={xPos}
+            y={yPos}
+            zIndex={baseZIndex + zIndexOffset - 1}
+          />,
+          unit,
+        ];
       })}
     </div>
   );

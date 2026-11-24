@@ -1,4 +1,5 @@
 import type { MapUnitTransition, StateCounts } from "@/entities/replay/types";
+import { flightDuration, flightPathDuration } from "@/entities/replay/flightPath";
 import type { useMapFlightAnimation } from "./useMapFlightAnimation";
 import classes from "../UnitStack.module.css";
 
@@ -41,11 +42,30 @@ export function transitionClassName(transition?: MapUnitTransition): string {
   return `${classes.mapTransition} ${getTransitionClass(transition)}`;
 }
 
+/** How long this transition's own flight lasts (drives the engine glow). */
+function ownFlightMs(transition: MapUnitTransition): number {
+  const { stack } = transition;
+  return transition.flightPath
+    ? flightPathDuration({ x: stack.x, y: stack.y }, transition.flightPath)
+    : flightDuration(transition.toX - stack.x, transition.toY - stack.y);
+}
+
+/** Ships that visibly fly (engines lit): moving kinds, not cargo riding inside a carrier. */
+export function isVisibleFlight(transition?: MapUnitTransition): boolean {
+  return (
+    !!transition &&
+    MOVING_KINDS.has(transition.kind) &&
+    !transition.hiddenInFlight &&
+    !transition.sourceHold
+  );
+}
+
 export function transitionDelayStyle(
   transition?: MapUnitTransition,
 ): React.CSSProperties | undefined {
   if (!transition) return undefined;
   return {
+    "--map-flight-duration": `${ownFlightMs(transition)}ms`,
     "--map-transition-delay": `${transition.delayMs ?? 0}ms`,
     "--map-appear-delay": `${transition.appearAtMs ?? 0}ms`,
     "--map-start-rotation": `${transition.startRotationDeg ?? 0}deg`,
@@ -72,6 +92,9 @@ export function flightOptions(
     startRotationDeg: rotation(transition?.startRotationDeg),
     holdRotationDeg: rotation(transition?.holdRotationDeg),
     parkRotationDeg: rotation(transition?.parkRotationDeg),
+    // Waypoints relative to the element's own origin (the flight translates from 0,0).
+    path: transition?.flightPath?.map((leg) => ({ ...leg, x: leg.x - x, y: leg.y - y })),
+    hiddenInFlight: transition?.hiddenInFlight,
     continuation: continuation
       ? {
           deltaX: continuation.toX - x,

@@ -446,3 +446,69 @@ def test_fighter_ii_w_oknie_trasy_sam_albo_ladunek(registry: StaticDataRegistry)
     far = movement_route.route_report(_fighters_at("201"), grid, registry, "201", [], "p1")
     fighter = next(s for s in far.ships if s.base_type == "fighter")
     assert fighter.reachable
+
+
+# --- last_move record + Activity route/cargo facts (physical flight replay) ---
+
+
+def test_move_records_route_hops_anomalies_and_cargo(registry: StaticDataRegistry) -> None:
+    from src.core.activity import derive_activity
+
+    state = _state(
+        {
+            "202": SystemState(
+                position="202", system_id="x",
+                space_units={"p1": {"carrier": 1, "infantry": 2}},
+            )
+        }
+    )
+    grid = _grid({"000": {"NEBULA"}})
+    moved = movement.move_fleet(
+        state, grid, registry, "202", {"carrier": 1},
+        [movement.CargoPickup(base_type="infantry", count=2)], "p1",
+        route=["202", "101", "000"],
+    )
+    record = moved.last_move
+    assert record is not None
+    assert record.route == ["202", "101", "000"]
+    assert record.hops == ["lane", "lane"]
+    assert record.anomalies == {"000": ["NEBULA"]}
+    assert record.ships == {"carrier": 1}
+    assert [(c.base_type, c.count, c.from_zone, c.from_position) for c in record.cargo] == [
+        ("infantry", 2, "space", "202")
+    ]
+
+    entry = derive_activity("tactical:move:202", state, moved)
+    assert entry is not None
+    route_fact = next(f for f in entry.facts if f.type == "move_route")
+    assert route_fact.route == ["202", "101", "000"]
+    assert route_fact.hops == ["lane", "lane"]
+    assert route_fact.anomalies == {"000": ["NEBULA"]}
+    carried = [(f.value, f.delta, f.detail) for f in entry.facts if f.type == "carried"]
+    assert carried == [("infantry", 2, "space")]
+
+
+def test_move_record_marks_wormhole_hop(registry: StaticDataRegistry) -> None:
+    grid = HexGrid()
+    grid.place_system("000", "20", wormholes=["ALPHA"])
+    grid.place_system("203", "20", wormholes=["ALPHA"])
+    grid.build_edges()
+    state = _state(
+        {
+            "203": SystemState(
+                position="203", system_id="x", space_units={"p1": {"carrier": 1}}
+            )
+        }
+    )
+    moved = movement.move_fleet(state, grid, registry, "203", {"carrier": 1}, [], "p1")
+    assert moved.last_move is not None
+    assert moved.last_move.route == ["203", "000"]
+    assert moved.last_move.hops == ["wormhole"]
+
+
+def test_last_move_cleared_when_tactical_action_ends() -> None:
+    from src.core import tactical
+
+    state = _state({})
+    state.last_move = movement.build_move_record(_grid(), ["202", "101", "000"], "p1", {}, [])
+    assert tactical.end_tactical_action(state).last_move is None

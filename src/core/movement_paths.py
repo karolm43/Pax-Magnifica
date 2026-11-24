@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections import deque
 
 from src.core import rules_hooks
-from src.core.game_state import GameState, SystemState
+from src.core.game_state import GameState, MoveCargo, MoveRecord, SystemState
 from src.core.hex_grid import HexGrid
 
 # Anomalie znaczące dla przejezdności węzłów POŚREDNICH trasy (RULES.md 32.1 R6).
@@ -513,3 +513,39 @@ def can_pass_supernova(state: GameState, player_id: str) -> bool:
     return rules_hooks.permits(
         rules_hooks.POINT_MOVEMENT_THROUGH_SUPERNOVA, state, player_id
     ) or can_enter_supernova(state, player_id)
+
+
+def build_move_record(
+    grid: HexGrid,
+    route: list[str],
+    player_id: str,
+    ships: dict[str, int],
+    cargo: list[tuple[str, int, str, str]],
+) -> MoveRecord:
+    """Presentation record of a confirmed fleet move (``GameState.last_move``).
+
+    ``cargo`` items are ``(base_type, count, from_zone, from_position)``. Hops are classified
+    from the map graph: ``lane`` for plain adjacency, otherwise the link kind (``wormhole`` /
+    ``portal``), or ``jump`` for adjacency granted by a hook (Lost Star Chart, Conduit).
+    """
+    hops: list[str] = []
+    for a, b in zip(route, route[1:], strict=False):
+        kind = grid.link_kind(a, b)
+        hops.append("lane" if kind == "adjacent" else (kind or "jump"))
+    anomalies = {
+        pos: sorted(found)
+        for pos in dict.fromkeys(route)
+        if (found := grid.anomalies_at(pos))
+    }
+    return MoveRecord(
+        player_id=player_id,
+        route=list(route),
+        hops=hops,
+        anomalies=anomalies,
+        ships={bt: n for bt, n in ships.items() if n > 0},
+        cargo=[
+            MoveCargo(base_type=bt, count=n, from_zone=zone, from_position=pos)
+            for bt, n, zone, pos in cargo
+            if n > 0
+        ],
+    )

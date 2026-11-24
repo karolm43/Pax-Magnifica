@@ -39,6 +39,7 @@ from src.core.movement_paths import _can_enter_asteroids as _can_enter_asteroids
 from src.core.movement_paths import _ignores_anomalies as _ignores_anomalies
 from src.core.movement_paths import _neighbors_for_move as _neighbors_for_move
 from src.core.movement_paths import _node_passable_intermediate as _node_passable_intermediate
+from src.core.movement_paths import build_move_record as build_move_record
 from src.core.movement_paths import can_enter_supernova as can_enter_supernova
 from src.core.movement_paths import can_pass_supernova as can_pass_supernova
 from src.core.movement_paths import legal_routes as legal_routes
@@ -378,6 +379,9 @@ def move_ships(
     unit_ops.take_units(new_state, src, "space", player_id, base_type, count, UnitCause.MOVED)
     unit_ops.place_units(new_state, dest, "space", player_id, base_type, count, UnitCause.MOVED)
     new_state.tactical_moved = True
+    new_state.last_move = build_move_record(
+        grid, [from_pos, active], player_id, {base_type: count}, []
+    )
     ion_storm.note_move(new_state, grid, registry, from_pos, active, ion_storm_token)
     fire_ships_moved(new_state, player_id, active, from_pos, {base_type: count})
     return new_state
@@ -958,6 +962,10 @@ def move_fleet(
     # Pierwszy ruch w akcji zamyka okno „po aktywacji systemu" kart reakcji i otwiera okno
     # „po ruchu do systemu" (Rescue) - patrz ``core/hooks/reactions_tactical.py``.
     new_state.tactical_moved = True
+    new_state.last_move = build_move_record(
+        grid, plan_route or [from_pos, active], player_id, dict(ships),
+        [(c.base_type, c.count, c.from_zone, c.from_position or from_pos) for c in cargo_items],
+    )
     ion_storm.note_move(new_state, grid, registry, from_pos, active, ion_storm_token)
     if ships:
         fire_ships_moved(

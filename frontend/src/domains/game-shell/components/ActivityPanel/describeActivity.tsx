@@ -1040,6 +1040,43 @@ function describeFact(
     case "area":
       // Miejsce efektu bohatera na planszy (RULES.md 64.4) — tylko dla animacji, nie do feedu.
       return null;
+    case "carried":
+      return {
+        key,
+        tone: "info",
+        text: (
+          <>
+            {prefix}carried {delta} {resolveUnitName(fact.value ?? "")}
+          </>
+        ),
+      };
+    case "move_route": {
+      // The flight itself replays on the map; the feed names only waypoints and wormhole jumps.
+      const route = fact.route ?? [];
+      const via = route.slice(1, -1);
+      const jumped = (fact.hops ?? []).some((hop) => hop !== "lane");
+      if (via.length === 0 && !jumped) return null;
+      return {
+        key,
+        tone: "info",
+        text: (
+          <>
+            {via.length > 0 && (
+              <>
+                via{" "}
+                {via.map((pos, i) => (
+                  <span key={`${pos}-${i}`}>
+                    {i > 0 && " → "}
+                    <Named kind="system" id={pos} name={ctx.systemName(pos)} systemText={ctx.systemHint(pos)} />
+                  </span>
+                ))}
+              </>
+            )}
+            {jumped && <>{via.length > 0 ? ", " : ""}through a wormhole</>}
+          </>
+        ),
+      };
+    }
     default:
       return null;
   }

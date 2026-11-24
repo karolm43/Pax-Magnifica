@@ -1,6 +1,11 @@
 import type { GameData } from "@/entities/game/types";
 import type { Point } from "@/entities/data/types";
 import { getPlanetPositionsBySystemId } from "@/entities/lookup/planets";
+import {
+  flightDuration,
+  flightEffects,
+  flightPathDuration,
+} from "@/entities/replay/flightPath";
 import type {
   AuthoritativeTransitionOptions,
   DelayedDamage,
@@ -8,6 +13,7 @@ import type {
   MapCombatLaser,
   MapCommandTokenPlacement,
   MapControlTokenTransition,
+  MapFlightEffect,
   MapReplayPlan,
   MapUnitTransition,
   StateCounts,
@@ -77,6 +83,12 @@ function mapUnitTransitionDuration(transition: MapUnitTransition): number {
   if (transition.residualAsset && transition.kind === "removed") return 420;
   if (transition.kind === "removed") return 780;
   if (transition.kind === "added") return 760;
+  if (transition.flightPath) {
+    return flightPathDuration(
+      { x: transition.stack.x, y: transition.stack.y },
+      transition.flightPath,
+    );
+  }
   return flightDuration(
     transition.toX - transition.stack.x,
     transition.toY - transition.stack.y,
@@ -100,9 +112,27 @@ function mapUnitTransitionEnd(transition: MapUnitTransition): number {
 }
 
 /** Shared with the map flight animation so replay timing matches what is drawn. */
-export function flightDuration(deltaX: number, deltaY: number): number {
-  const distance = Math.hypot(deltaX, deltaY);
-  return Math.min(1500, Math.max(780, 650 + distance * 0.35));
+export { flightDuration };
+
+/**
+ * Wormhole swirls and anomaly pulses of every multi-hop flight. A fleet flies one route
+ * together, so effects at the same spot and moment are drawn once.
+ */
+function collectFlightEffects(transitions: MapUnitTransition[]): MapFlightEffect[] {
+  const seen = new Set<string>();
+  const effects: MapFlightEffect[] = [];
+  for (const transition of transitions) {
+    if (!transition.flightPath || transition.hiddenInFlight) continue;
+    const start = { x: transition.stack.x, y: transition.stack.y };
+    for (const { atMs, ...effect } of flightEffects(start, transition.flightPath)) {
+      const delayMs = (transition.delayMs ?? 0) + atMs;
+      const key = `${effect.kind}:${Math.round(effect.x / 60)}:${Math.round(effect.y / 60)}:${Math.round(delayMs / 150)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      effects.push({ ...effect, delayMs });
+    }
+  }
+  return effects;
 }
 
 function finalizeReplayPlan({
@@ -130,6 +160,7 @@ function finalizeReplayPlan({
   showTacticalActivation?: boolean;
   changedPositions?: Set<string>;
 }): MapReplayPlan {
+  const effects = collectFlightEffects(transitions);
   const arrivalLocations = new Set<string>();
   for (const transition of transitions) {
     if (transition.kind !== "removed")
@@ -140,6 +171,7 @@ function finalizeReplayPlan({
     lasers,
     commandTokens,
     controlTokens,
+    flightEffects: effects,
     arrivalLocations,
     baseUnitStates,
     delayedDamage,
@@ -155,6 +187,7 @@ function finalizeReplayPlan({
       ...lasers.map(timedEventEnd),
       ...commandTokens.map(timedEventEnd),
       ...controlTokens.map(timedEventEnd),
+      ...effects.map(timedEventEnd),
     ),
   };
 }
@@ -702,6 +735,17 @@ function buildAuthoritativeMapReplay(
     showTacticalActivation: activationCommandTokens.length > 0,
     changedPositions: options.changedPositions,
   });
+}
+
+/**
+ * How long a replay actually runs: 0 (show the final map at once) under admin fast mode or
+ * reduced motion, otherwise the plan's own duration.
+ */
+export function replayRunDuration(
+  plan: Pick<MapReplayPlan, "durationMs">,
+  { adminFastMode, reducedMotion }: { adminFastMode: boolean; reducedMotion: boolean },
+): number {
+  return adminFastMode || reducedMotion ? 0 : plan.durationMs;
 }
 
 export function buildMapReplayPlan(

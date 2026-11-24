@@ -4,7 +4,8 @@ import { useResolveColorAlias } from "../hooks/useResolveColorAlias";
 import classes from "./MapUnitTransitionLayer.module.css";
 import { CommandCounter } from "@/domains/map/components/CommandCounter";
 import { ControlToken } from "@/shared/ui/ControlToken";
-import type { CSSProperties } from "react";
+import { useEffect, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 
 const TOKEN_KIND_CLASS = {
   activation: classes.commandTokenPlacement,
@@ -26,23 +27,82 @@ function tokenTimingStyle(token: {
   } as CSSProperties;
 }
 
+const EFFECT_CLASS = {
+  wormholeIn: classes.wormholeIn,
+  wormholeOut: classes.wormholeOut,
+  riftWarp: classes.riftWarp,
+  nebulaDamp: classes.nebulaDamp,
+};
+
+function isTyping(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable ||
+      ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName))
+  );
+}
+
+/**
+ * A replay never blocks play: Esc or Space (outside text fields and buttons) or the "Skip"
+ * pill ends it at once and the map shows its final state.
+ */
+function useSkipShortcut(active: boolean, skip: (() => void) | undefined) {
+  useEffect(() => {
+    if (!active || !skip) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || isTyping(event.target)) return;
+      if (event.key !== "Escape" && event.key !== " ") return;
+      event.preventDefault();
+      skip();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active, skip]);
+}
+
 export function MapUnitTransitionLayer() {
   const mapReplay = useMapReplay();
-  const { transitions, lasers } = mapReplay;
+  const { transitions, lasers, flightEffects, skip } = mapReplay;
   const lawsInPlay = useGameData()?.lawsInPlay;
   const resolveColorAlias = useResolveColorAlias();
+  const hasContent =
+    transitions.length > 0 ||
+    lasers.length > 0 ||
+    flightEffects.length > 0 ||
+    mapReplay.commandTokens.length > 0 ||
+    mapReplay.controlTokens.length > 0;
+  useSkipShortcut(mapReplay.active && hasContent, skip);
 
-  if (
-    !mapReplay.active ||
-    (transitions.length === 0 &&
-      lasers.length === 0 &&
-      mapReplay.commandTokens.length === 0 &&
-      mapReplay.controlTokens.length === 0)
-  )
-    return null;
+  if (!mapReplay.active || !hasContent) return null;
 
   return (
     <div className={classes.layer} aria-hidden="true">
+      {skip &&
+        createPortal(
+          <button
+            type="button"
+            className={classes.skip}
+            onClick={skip}
+            aria-label="Skip movement animation"
+          >
+            Skip ⏭
+          </button>,
+          document.body,
+        )}
+      {flightEffects.map((effect, index) => (
+        <span
+          key={`${mapReplay.key}-effect-${index}`}
+          className={`${classes.flightEffect} ${EFFECT_CLASS[effect.kind]}`}
+          style={
+            {
+              left: effect.x,
+              top: effect.y,
+              "--effect-delay": `${effect.delayMs}ms`,
+              "--effect-duration": `${effect.durationMs}ms`,
+            } as CSSProperties
+          }
+        />
+      ))}
       {mapReplay.commandTokens.map((token) => {
         const colorAlias = resolveColorAlias(token.faction);
         return (

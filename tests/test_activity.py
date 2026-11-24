@@ -8,7 +8,14 @@ from fastapi.testclient import TestClient
 from src.api.app import create_app
 from src.core.activity import derive_activity
 from src.core.event_store import EventStore
-from src.core.game_state import GameState, Phase, PlayerState, SystemState
+from src.core.game_state import (
+    GameState,
+    MoveCargo,
+    MoveRecord,
+    Phase,
+    PlayerState,
+    SystemState,
+)
 from src.core.registry import StaticDataRegistry
 
 
@@ -454,3 +461,37 @@ def test_ruch_floty_i_desant_maja_cel_i_liczby() -> None:
     assert [(f.value, f.delta, f.detail) for f in land.facts if f.type == "landed"] == [
         ("infantry", 3, "lodor")
     ]
+
+
+def test_ruch_floty_niesie_trase_i_ladunek_do_odtworzenia_lotu() -> None:
+    """``tactical.move`` carries the route (``move_route``) and cargo (``carried``) of the move,
+    so every client can replay the physical flight; another player's stale record is ignored."""
+    before = _state()
+    after = _state()
+    before.systems["202"] = SystemState(
+        position="202", system_id="27", space_units={"p1": {"carrier": 1, "infantry": 2}}
+    )
+    after.systems["202"] = SystemState(position="202", system_id="27")
+    after.systems["000"] = SystemState(
+        position="000", system_id="18", space_units={"p1": {"carrier": 1, "infantry": 2}}
+    )
+    after.active_system = "000"
+    after.last_move = MoveRecord(
+        player_id="p1", route=["202", "101", "000"], hops=["lane", "wormhole"],
+        anomalies={"101": ["GRAVITY_RIFT"]}, ships={"carrier": 1},
+        cargo=[MoveCargo(base_type="infantry", count=2, from_position="202")],
+    )
+    entry = derive_activity("tactical:move:202", before, after)
+    assert entry is not None
+    route = [f for f in entry.facts if f.type == "move_route"]
+    assert [(f.player_id, f.route, f.hops, f.anomalies) for f in route] == [
+        ("p1", ["202", "101", "000"], ["lane", "wormhole"], {"101": ["GRAVITY_RIFT"]})
+    ]
+    assert [(f.value, f.delta, f.detail) for f in entry.facts if f.type == "carried"] == [
+        ("infantry", 2, "space")
+    ]
+
+    after.last_move = after.last_move.model_copy(update={"player_id": "p2"})
+    other = derive_activity("tactical:move:202", before, after)
+    assert other is not None
+    assert not [f for f in other.facts if f.type in ("move_route", "carried")]

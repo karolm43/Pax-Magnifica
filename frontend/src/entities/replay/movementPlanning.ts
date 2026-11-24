@@ -13,9 +13,15 @@ import type {
   MapUnitTransition,
   PlannedMovement,
   ReplayInventory,
+  ResolvedMovement,
   StateCounts,
   UnitLocation,
 } from "./types";
+import {
+  attachRidingCargo,
+  resolveLiveMovement,
+  routeLegs,
+} from "./liveMovement";
 import {
   accumulateStates,
   addTotal,
@@ -476,9 +482,7 @@ export function planMovements({
   const movementArrivals = new Map<string, LocatedStack>();
   const formationSlots = new Map<string, number>();
   const formationApproaches = new Map<string, LocatedStack>();
-  const movement = options.movementState
-    ? deserializeCompactMovementState(options.movementState)
-    : undefined;
+  const movement = resolveMovement(previous, current, options);
   const obstacles = initialFormationObstacles(
     previous,
     current,
@@ -493,11 +497,8 @@ export function planMovements({
     source.units.map((unit) => ({ source, unit })),
   );
   for (const { source, unit } of movedUnits) {
-    const faction = resolveCompactMovementFaction(
-      unit,
-      previous.originalFactionColorMap,
-    );
-    if (!faction || stateCount(unit.states) === 0) continue;
+    const { faction } = unit;
+    if (stateCount(unit.states) === 0) continue;
     const from: UnitLocation = {
       position: source.position,
       holder: source.holder,
@@ -609,6 +610,12 @@ export function planMovements({
         : unit.states,
       delayMs: movementStart,
       parkRotationDeg: combatRotation,
+      flightPath: options.liveMove
+        ? routeLegs(current, options.liveMove, sourceLocated, {
+            x: arrival.worldX,
+            y: arrival.worldY,
+          })
+        : undefined,
     };
     movements.push({
       transition,
@@ -625,7 +632,38 @@ export function planMovements({
     }
   }
 
+  if (options.liveMove) attachRidingCargo(movements);
   return { movements, movementArrivals, stagedRotations };
+}
+
+/** The movement to animate: a live move (Activity route) or a compact movement state. */
+function resolveMovement(
+  previous: GameData,
+  current: GameData,
+  options: AuthoritativeTransitionOptions,
+): ResolvedMovement | undefined {
+  if (options.liveMove) {
+    return resolveLiveMovement(previous, current, options.liveMove);
+  }
+  if (!options.movementState) return undefined;
+  const compact = deserializeCompactMovementState(options.movementState);
+  return {
+    targetPosition: compact.targetPosition,
+    targetHolder: compact.targetHolder,
+    sources: compact.sources.map((source) => ({
+      position: source.position,
+      holder: source.holder,
+      units: source.units.flatMap((unit) => {
+        const faction = resolveCompactMovementFaction(
+          unit,
+          previous.originalFactionColorMap,
+        );
+        return faction
+          ? [{ faction, unitId: unit.unitId, states: unit.states }]
+          : [];
+      }),
+    })),
+  };
 }
 
 function sourceAreaKey(position: string, holder: string): string {

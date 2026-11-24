@@ -609,6 +609,11 @@ export type ActivityFact = {
   delta: number | null;
   /** Kontekst, np. talia eksploracji. */
   detail: string | null;
+  /** Only `move_route`: ordered route (source -> destination), how each hop was crossed
+   *  (`lane` / `wormhole` / `portal` / `jump`) and anomalies of route systems. */
+  route?: string[] | null;
+  hops?: string[] | null;
+  anomalies?: Record<string, string[]> | null;
 };
 
 export type ActivityKind =
