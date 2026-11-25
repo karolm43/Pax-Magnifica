@@ -15,14 +15,18 @@ export function useWindowCountdown(
   key: string | null,
   total: number,
   onExpire: () => void,
+  /** Okno zatrzymane (ktoś zagrywa Sabotage): czas stoi i nie ma zwolnienia. */
+  paused = false,
 ): number | null {
   const [left, setLeft] = useState<number | null>(null);
   const totalRef = useRef(total);
   const expireRef = useRef(onExpire);
+  const pausedRef = useRef(paused);
 
   useEffect(() => {
     totalRef.current = total;
     expireRef.current = onExpire;
+    pausedRef.current = paused;
   });
 
   useEffect(() => {
@@ -30,13 +34,17 @@ export function useWindowCountdown(
       setLeft(null);
       return;
     }
-    const started = Date.now();
+    let elapsedMs = 0;
+    let last = Date.now();
     let released = false;
     const tick = () => {
-      const elapsed = Math.floor((Date.now() - started) / 1000);
+      const now = Date.now();
+      if (!pausedRef.current) elapsedMs += now - last;
+      last = now;
+      const elapsed = Math.floor(elapsedMs / 1000);
       const remaining = Math.max(0, totalRef.current - elapsed);
       setLeft(remaining);
-      if (remaining === 0 && !released) {
+      if (remaining === 0 && !released && !pausedRef.current) {
         released = true;
         expireRef.current();
       }

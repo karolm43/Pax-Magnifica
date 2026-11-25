@@ -196,7 +196,9 @@ function ChoiceField({
   const filter = useTileFilter(regular);
   const stacks = useMemo(() => stacksOf(filter.visible), [filter.visible]);
 
-  if (classified?.kind === "technology") {
+  // Technologie do ODDANIA (Divert Funding) to zwykła lista kafelków z opisem, nie okno badania.
+  const plainList = input.kind === "choice" && input.display === "list";
+  if (classified?.kind === "technology" && !plainList) {
     return (
       <TechPickField
         input={input}

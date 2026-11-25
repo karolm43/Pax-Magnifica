@@ -123,22 +123,26 @@ export function CommandBanner({
       <div className={styles.body}>
         <div className={styles.identity}>
           <span className={styles.icon} aria-hidden="true">
-            {player.faction ? <CircularFactionIcon faction={player.faction} size={40} /> : null}
+            {player.faction ? <CircularFactionIcon faction={player.faction} size={56} /> : null}
           </span>
           <div className={styles.names}>
-            <h2>
+            <p className={styles.eyebrow}>
               {playerName(player)}
               {scouting && <span className={styles.intel}>Intel</span>}
-            </h2>
-            {fields.factionDisplayName !== playerName(player) && (
-              <p className={styles.faction}>{fields.factionDisplayName}</p>
-            )}
+            </p>
+            <h2>{fields.factionDisplayName}</h2>
             <p className={styles.subtitle}>{subtitle}</p>
           </div>
           <div className={styles.vp} title={`${player.totalVps} of ${vpsToWin} victory points`}>
             <IconFlag size={16} aria-hidden="true" />
             <b>{player.totalVps}</b>
             <small>/ {vpsToWin} VP</small>
+            <span className={styles.vpTrack} aria-hidden="true">
+              <span
+                className={styles.vpFill}
+                style={{ width: `${Math.min(100, (player.totalVps / Math.max(1, vpsToWin)) * 100)}%` }}
+              />
+            </span>
             <span className={styles.rank}>#{rank}</span>
           </div>
         </div>

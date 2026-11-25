@@ -28,6 +28,8 @@ export type ActionCardInput =
       options: ActionCardOption[];
       /** Wartość opcji „Auto” (przycisk „Auto”; pominięte pole = ta opcja). */
       auto?: unknown;
+      /** ``list`` = zwykła lista kafelków (np. technologie do oddania), bez okna drzewa. */
+      display?: "list";
     })
   | (InputBase & {
       kind: "multi";
@@ -355,7 +357,10 @@ export async function postReactionJitter(seconds: number): Promise<void> {
   if (!response.ok) throw new Error(`Failed to set quick-window jitter (${response.status}).`);
 }
 
-export async function postHeld(action: "pass" | "release" | "wait", actorId: string): Promise<void> {
+export async function postHeld(
+  action: "pass" | "release" | "wait" | "freeze" | "unfreeze",
+  actorId: string,
+): Promise<void> {
   await fetch(`${BOT_ROOT}/action-card/held/${action}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

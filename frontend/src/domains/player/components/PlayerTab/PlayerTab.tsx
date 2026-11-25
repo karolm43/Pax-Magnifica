@@ -351,7 +351,7 @@ export function PlayerTab() {
                     ))}
                   </ul>
                 ) : (
-                  <p className={styles.hint}>Nothing urgent right now.</p>
+                  <p className={styles.hint}>All clear.</p>
                 )}
               </section>
               {empire ? <EmpirePanel player={player} stats={empire} /> : null}
@@ -368,7 +368,7 @@ export function PlayerTab() {
         <div className={styles.side}>
           <section className={styles.panel} aria-label="Table">
             <h3 className={styles.panelTitle}>Table</h3>
-            <p className={styles.hint}>Victory race - click a player to brief on them.</p>
+            <p className={styles.hint}>Click a player to inspect their empire.</p>
             <ol className={styles.seats}>
               {standings.map((p) => (
                 <SeatRow

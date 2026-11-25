@@ -25,6 +25,8 @@ from src.core.game_state import GameState, HeldCounter, HeldPlay
 from src.core.registry import StaticDataRegistry
 
 SABOTAGE_IDS: tuple[str, ...] = ("sabo1", "sabo2", "sabo3", "sabo4")
+# Najdłuższe zatrzymanie zegara na czas zagrywania Sabotage (porzucone zagranie nie blokuje gry).
+FREEZE_MAX_SECONDS = 60.0
 
 
 def is_sabotage(card_id: str) -> bool:
@@ -183,6 +185,8 @@ def begin_counter(
         held_eligible=list(current.eligible), held_passed=list(current.passed),
     )
     current.opened_at = float(now)
+    current.frozen_at = None
+    current.frozen_by = None
     current.seconds = float(reaction_window.window_seconds(new_state))
     current.eligible = list(eligible)
     current.passed = []
@@ -231,8 +235,55 @@ def _held(state: GameState) -> HeldPlay:
 
 
 def expired(held: HeldPlay, now: float) -> bool:
-    """Czy minął stały czas okna (z „More time”)."""
+    """Czy minął stały czas okna (z „More time”).
+
+    Zatrzymane okno (:func:`freeze`) nie upływa, dopóki nie minie ``FREEZE_MAX_SECONDS`` -
+    wtedy zwalnia się samo, żeby porzucone zagranie nie zablokowało gry.
+    """
+    if held.frozen_at is not None:
+        return now - held.frozen_at >= FREEZE_MAX_SECONDS
     return reaction_window.expired(held, now)
+
+
+def freeze(state: GameState, actor_id: str, now: float) -> GameState:
+    """Zatrzymuje zegar okna, gdy uprawniony gracz zagrywa Sabotage (nowy stan).
+
+    Nie sprawdza zawartości ręki (43.4) - wystarczy być uprawnionym i nie spasować. Już
+    zatrzymane okno zostaje bez zmian (pierwszy zatrzymujący go wznawia).
+
+    Raises:
+        ValueError: Brak okna albo gracz nie może odpowiedzieć na tę kartę.
+    """
+    held = _held(state)
+    if not can_respond(held, actor_id):
+        raise ValueError(f"{actor_id} cannot respond to this card.")
+    if held.frozen_at is not None:
+        return state
+    new_state = state.clone()
+    assert new_state.held_play is not None
+    new_state.held_play.frozen_at = float(now)
+    new_state.held_play.frozen_by = actor_id
+    return new_state
+
+
+def unfreeze(state: GameState, actor_id: str, now: float) -> GameState:
+    """Wznawia zegar: pozostały czas jest taki jak w chwili zatrzymania (nowy stan).
+
+    Bez okna, bez zatrzymania albo cudze zatrzymanie = bez zmian (cicho, bo klient wznawia
+    też po tym, jak zagranie Sabotage samo zamknęło zatrzymanie).
+    """
+    held = state.held_play
+    if held is None or held.frozen_at is None or held.frozen_by != actor_id:
+        return state
+    new_state = state.clone()
+    assert new_state.held_play is not None
+    window = new_state.held_play
+    assert window.frozen_at is not None
+    window.opened_at += max(0.0, min(float(now), window.frozen_at + FREEZE_MAX_SECONDS)
+                            - window.frozen_at)
+    window.frozen_at = None
+    window.frozen_by = None
+    return new_state
 
 
 def can_respond(held: HeldPlay, player_id: str) -> bool:

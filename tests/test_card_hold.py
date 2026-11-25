@@ -363,3 +363,52 @@ def test_api_web_data_pokazuje_held_a_pas_nie_skraca(registry: StaticDataRegistr
     assert held["cardName"] and held["text"]
     assert client.post("/action-card/held/pass", json={"actor_id": "p2"}).status_code == 200
     assert client.app.state.ctx.service.current_state().held_play is not None  # type: ignore[attr-defined]
+
+
+# --- zatrzymanie zegara na czas zagrywania Sabotage ---------------------------------------------
+
+
+def _held_industrial(registry: StaticDataRegistry) -> GameState:
+    card, planets = _industrial(registry)
+    state = _state([card], ["sabo1"])
+    _own(state, planets)
+    return _play(state, registry, card)
+
+
+def test_freeze_zatrzymuje_zegar_a_unfreeze_wznawia_z_reszta_czasu(
+    registry: StaticDataRegistry,
+) -> None:
+    held = _held_industrial(registry)
+    frozen = card_hold.freeze(held, "p2", NOW + 2)
+    assert frozen.held_play is not None and frozen.held_play.frozen_by == "p2"
+    # Po upływie okna zatrzymane okno NIE wygasa (i nie da się go zwolnić).
+    assert not card_hold.expired(frozen.held_play, NOW + WINDOW + 20)
+    with pytest.raises(ValueError, match="still open"):
+        card_hold.release(frozen, registry, "p1", now=NOW + WINDOW + 20)
+    # Wznowienie po 20 s: do końca nadal zostaje tyle, ile zostało przy zatrzymaniu.
+    resumed = card_hold.unfreeze(frozen, "p2", NOW + 22)
+    assert resumed.held_play is not None and resumed.held_play.frozen_at is None
+    assert not card_hold.expired(resumed.held_play, NOW + 22 + WINDOW - 2 - 0.5)
+    assert card_hold.expired(resumed.held_play, NOW + 22 + WINDOW - 2)
+
+
+def test_freeze_tylko_dla_uprawnionego_i_porzucone_zatrzymanie_wygasa(
+    registry: StaticDataRegistry,
+) -> None:
+    held = _held_industrial(registry)
+    with pytest.raises(ValueError, match="cannot respond"):
+        card_hold.freeze(held, "p3", NOW + 1)
+    frozen = card_hold.freeze(held, "p2", NOW + 1)
+    assert frozen.held_play is not None
+    assert card_hold.expired(frozen.held_play, NOW + 1 + card_hold.FREEZE_MAX_SECONDS)
+    # Cudze wznowienie nic nie zmienia.
+    assert card_hold.unfreeze(frozen, "p3", NOW + 5).held_play.frozen_at is not None  # type: ignore[union-attr]
+
+
+def test_sabotage_zamyka_zatrzymanie(registry: StaticDataRegistry) -> None:
+    held = _held_industrial(registry)
+    frozen = card_hold.freeze(held, "p2", NOW + 1)
+    assert frozen.held_play is not None
+    # Anulowanie przez Sabotage kończy okno razem z zatrzymaniem.
+    after, _ = action_cards.play_action_card(frozen, registry, "p2", "sabo1", {}, now=NOW + 3)
+    assert after.held_play is None

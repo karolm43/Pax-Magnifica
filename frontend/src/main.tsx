@@ -63,6 +63,11 @@ const router = createBrowserRouter([
     element: <StartScreen />,
   },
   {
+    path: "/dev/ui",
+    lazy: () =>
+      import("./pages/DevUiPage").then((m) => ({ Component: m.DevUiPage })),
+  },
+  {
     path: "/game",
     element: <GameMapPage />,
   },

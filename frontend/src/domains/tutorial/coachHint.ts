@@ -49,8 +49,8 @@ const TACTICAL: Record<string, Omit<CoachHint, "act">> = {
   MOVEMENT: {
     title: "Tactical action: move",
     lines: [
-      "Drag ships from systems in range into the active system (Ctrl+click picks several).",
-      "Ships with capacity can carry fighters and ground forces. Send the route, then go to the next step in the tactical panel.",
+      "Click a glowing system (or drag ships) to stage a leg in your flight plan.",
+      "Review capacity and fleet pool, then fly the plan and advance to the next step.",
     ],
     chapter: "tactical",
   },
@@ -96,7 +96,7 @@ export function coachHint(c: CoachContext): CoachHint {
       title: "Game setup",
       lines: [
         "Choose your starting secret objectives in the setup window.",
-        "Tip: look at the map first — your home system is where your starting fleet stands.",
+        "Check the map to see your starting fleet and nearby systems.",
       ],
       chapter: "goal",
       act: true,
@@ -117,8 +117,8 @@ export function coachHint(c: CoachContext): CoachHint {
     return {
       title: "Your decision",
       lines: [
-        "Another player's card or action gives you a choice now (e.g. follow a Strategy Card's secondary).",
-        "Answer in the window on screen — the game waits for you.",
+        "Another player's card or action gives you a choice (for example, a Strategy Card secondary).",
+        "Respond in the prompt on screen to continue.",
       ],
       chapter: "strategic",
       act: true,
@@ -179,8 +179,8 @@ export function coachHint(c: CoachContext): CoachHint {
         title: "End your turn",
         lines: [
           c.passed
-            ? "You passed — you take no more turns this round. Press End turn."
-            : "You took your action. Press End turn to pass play to the next player.",
+            ? "You passed. Press End turn to hand over."
+            : "Action done. Press End turn to pass play.",
         ],
         chapter: "action",
         act: true,
@@ -189,9 +189,9 @@ export function coachHint(c: CoachContext): CoachHint {
     return {
       title: "Your turn: take one action",
       lines: [
-        "Tactical: press Activate system and click a system to move, fight, invade and build there.",
+        "Tactical: press Activate system and click a system to move, fight, invade and build.",
         "Strategic: play your Strategy Card from the turn panel.",
-        "Component: use an action card or ability marked “Action”.",
+        "Component: drag an action card from your hand, or click Component for abilities.",
         c.myCardPlayed
           ? "Or Pass if you are done for this round."
           : "You can Pass only after you have played your Strategy Card.",

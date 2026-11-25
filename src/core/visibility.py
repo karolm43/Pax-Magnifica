@@ -156,6 +156,9 @@ def redact_reaction_windows(state: GameState, viewer_id: str | None) -> None:
         window.passed = [pid for pid in window.passed if pid == viewer_id]
         # Liczba próśb o czas jest jawna (widać przedłużenie), tożsamość - nie.
         window.extended_by = [pid if pid == viewer_id else "" for pid in window.extended_by]
+    held = state.held_play
+    if held is not None and held.frozen_by != viewer_id:
+        held.frozen_by = "" if held.frozen_by else None  # zatrzymanie jawne, kto - prywatne
 
 
 def _redact_player(player: PlayerState) -> None:

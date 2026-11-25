@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import {
@@ -305,6 +306,12 @@ export function SpaceCannonStepPanel() {
   const desk = useDeskPlayer();
   const params = useParams<{ mapid: string }>();
   const { data: gameState } = useGameState(params.mapid ?? DEFAULT_GAME_ID);
+  // Another seat's shot / hit assignment only reaches this browser as a game-state patch; the
+  // panel is its own query (refreshed after OUR posts only), so refetch it on every state change.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: ["spaceCannon"] });
+  }, [gameState, queryClient]);
   const turnColor = gameState?.activeTurnPlayer ?? gameState?.activePlayer ?? null;
   const activeFaction =
     gameData?.playerData?.find((p) => p.color === turnColor)?.faction ?? null;

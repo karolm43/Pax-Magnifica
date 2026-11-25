@@ -6,6 +6,7 @@ import {
   } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   IconMinimize,
   IconSwords,
@@ -713,6 +714,12 @@ export function BattleOverlay() {
   const setHidden = useAppStore((s) => s.setBattleHidden);
   const inCombat = gameState?.activeCombat != null;
   const { data: live } = useBattle(inCombat);
+  // Another seat's roll / assignment only reaches this browser as a game-state patch (the battle
+  // view is its own query, refreshed after OUR posts only) - refetch it on every state change.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (inCombat) void queryClient.invalidateQueries({ queryKey: ["battle"] });
+  }, [gameState, inCombat, queryClient]);
   // Straty z rzutu (np. auto-przypisane neutralnym albo AFB) pokazujemy dopiero po kościach i strzałach.
   const { view, holding } = useDiceHold(live, battleHoldMs, freezeBattleSides);
   // Po walce kolejna bitwa (także w tym samym systemie) znów ma wlot floty.

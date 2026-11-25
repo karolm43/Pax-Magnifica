@@ -17,6 +17,12 @@
   z-index: 11;
 }
 
+/* While a faction voice bubble is up, lift the whole overlay above the map layers (units,
+   tokens, routes): the bubble is a child, so it cannot escape this stacking context itself. */
+.playerOverlay:has(> figure[role="status"]) {
+  z-index: 8900;
+}
+
 .backgroundImage {
   position: absolute;
   top: 0;

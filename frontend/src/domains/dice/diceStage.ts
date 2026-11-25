@@ -31,10 +31,18 @@ export type DiceThrowInput = {
   rightRgb?: string;
   /** Rzuca jedna strona: kostki lądują pośrodku. Domyślnie true, gdy brak ``right``. */
   solo?: boolean;
+  /**
+   * ``Date.now()`` of the moment the caller's own reveal timers (CSS ``--wait``, ``setTimeout``)
+   * started. The dice are anchored to it, so a late render / throttled tab makes them skip ahead
+   * instead of landing AFTER the result was already revealed.
+   */
+  startedAt?: number;
 };
 
 export type StageRoll = {
   id: number;
+  /** Wall-clock start the dice animation is anchored to (see ``DiceThrowInput.startedAt``). */
+  startedAt: number;
   rolls: { left: DiceGroup[]; right: DiceGroup[] };
   diceMs: number;
   solo: boolean;
@@ -131,10 +139,12 @@ export const useDiceStage = create<Stage>((set, get) => ({
       pool.phase === "await" && pool.at > 0 && id - pool.at < 4000;
     const left = countDice(input.left);
     const rightN = countDice(right);
+    const startedAt = Math.min(input.startedAt ?? id, id);
     set({
       pool: { ...IDLE_POOL },
       roll: {
         id,
+        startedAt,
         rolls: { left: input.left, right },
         diceMs: diceLandMs(left, rightN),
         solo,
@@ -150,7 +160,11 @@ export const useDiceStage = create<Stage>((set, get) => ({
     window.setTimeout(() => {
       if (get().roll?.id === id) set({ roll: null });
     }, lifeMs);
-    const pauseMs = volleyStartMs(left, rightN);
+    // Time left until the dice have landed, counted from the caller's own start.
+    const pauseMs = Math.max(
+      0,
+      startedAt + volleyStartMs(left, rightN) - Date.now(),
+    );
     // Reszta UI (oferty, limity, powiadomienia) czeka, aż kości wylądują (``diceGate``).
     useDiceGate.getState().hold(pauseMs);
     return { id, pauseMs };

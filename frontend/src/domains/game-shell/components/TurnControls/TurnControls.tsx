@@ -306,18 +306,16 @@ export function TurnControls() {
     if (activateMode && !inTacticalAction) {
       turnHint = { ok: true, text: "Click a system on the map to activate it." };
     } else if (windowOpen) {
-      turnHint = { ok: false, text: "Waiting for players to decide on the secondary." };
+      turnHint = { ok: false, text: "Waiting for secondary decisions." };
     } else if (canEndTurn) {
       turnHint = {
         ok: true,
         text: hasPassed
-          ? "You passed — press End turn to hand over."
-          : "Action done — press End turn to hand over.",
+          ? "You passed. Press End turn."
+          : "Action done. Press End turn.",
       };
     } else if (!canPass && !hasPassed) {
       turnHint = { ok: false, text: "Play your Strategy Card first to pass." };
-    } else if (!tookAction && !hasPassed) {
-      turnHint = { ok: false, text: "Take an action or pass, then end your turn." };
     }
   }
   const canActivate =

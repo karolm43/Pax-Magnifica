@@ -393,7 +393,7 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
                 ? "A planet's influence counts as resources (a planet pays with one or the other). "
                 : ""
             }Ground forces go on a planet you control here, or to space. This is optional.`
-          : "Pay with resources of ready planets and trade goods; overpaying is lost. Total units are capped by the PRODUCTION of your units in this system. Ground forces go only on planets with a producing unit."}
+          : "Pay with ready planets and trade goods (overpay is lost). Capped by system PRODUCTION; ground forces require a producing unit on that planet."}
       </p>
 
       {/* Technologie działające w produkcji (Sarween Tools, AI Development Algorithm...). */}

@@ -1,0 +1,171 @@
+/*
+ * /dev/ui — galeria komponentów do inspekcji wizualnej.
+ * Bez importu stanu gry; wszystkie propsy z makiet w DevUiPage.tsx.
+ */
+
+.root {
+  min-height: 100dvh;
+  background: var(--ds-page);
+  color: var(--ds-ink);
+  font-family: var(--ds-font-body);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 24px;
+  background: rgb(14 14 16 / 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--ds-h14);
+}
+
+.logo {
+  font-family: var(--ds-font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ds-ink-hi);
+}
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-yellow-5);
+  background: rgb(var(--ds-yellow-9, 100 50 0) / 0.18);
+  border: 1px solid rgb(var(--ds-yellow-9, 100 50 0) / 0.3);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.navLink {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--ds-ink-lo);
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: color 0.1s, background 0.1s;
+}
+.navLink:hover {
+  color: var(--ds-ink-hi);
+  background: var(--ds-h14);
+}
+
+.content {
+  padding: 32px 24px 80px;
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 60px;
+}
+
+/* ── Section ─────────────────────────────────────────────────────── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ds-h14);
+}
+
+.sectionTitle {
+  font-family: var(--ds-font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+  margin: 0;
+}
+
+.sectionNote {
+  font-size: 12px;
+  color: var(--ds-ink-lo);
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+/* ── Tile ─────────────────────────────────────────────────────────── */
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tileLabel {
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+  font-family: var(--ds-font-mono, monospace);
+}
+
+/* ── Modal launcher ───────────────────────────────────────────────── */
+.launchGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* ── Inline preview frame (for non-modal components) ─────────────── */
+.frame {
+  border: 1px solid var(--ds-h22);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--ds-deck);
+}
+
+/* ── Full-width wide previews ─────────────────────────────────────── */
+.wideFrame {
+  border: 1px solid var(--ds-h22);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--ds-deck);
+  width: 100%;
+}
+
+/* ── Notice banner preview (static) ──────────────────────────────── */
+.noticePreview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 640px;
+}
+
+/* ── Token row ────────────────────────────────────────────────────── */
+.tokenRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}

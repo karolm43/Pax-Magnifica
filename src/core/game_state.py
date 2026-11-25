@@ -1090,6 +1090,10 @@ class HeldPlay(BaseModel):
     involved: list[str] = Field(default_factory=list)
     # Sabotage na tę kartę czekające na ewentualne Instinct Training (``None`` = brak).
     counter: HeldCounter | None = None
+    # Zegar zatrzymany, gdy uprawniony gracz właśnie zagrywa Sabotage (przeciąga kartę / wypełnia
+    # formularz): czas serwera zatrzymania i kto go zatrzymał (``core/card_hold.py``).
+    frozen_at: float | None = None
+    frozen_by: str | None = None
 
 
 class ReactionPause(BaseModel):

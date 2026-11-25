@@ -37,6 +37,8 @@ export type DiceRollSpec = {
   id: number;
   rolls: { left: DiceGroup[]; right: DiceGroup[] };
   diceMs: number;
+  /** Wall-clock start (``Date.now()``) to anchor the animation to; absent = starts on mount. */
+  startedAt?: number;
 };
 
 /** Stół z kośćmi dla jednej salwy (znika sam po odczytaniu rzutu). */
@@ -99,8 +101,11 @@ export function DiceTray({
       dice.forEach((_, i) => pose(i, DIE_MS + 5000));
       return;
     }
-    const t0 = performance.now();
-    dice.forEach((_, i) => pose(i, 0));
+    // Anchor to the roll's own start: render lag or a throttled background tab makes the dice
+    // skip ahead instead of landing after the result (timed from the same start) is revealed.
+    const late = volley.startedAt ? Math.max(0, Date.now() - volley.startedAt) : 0;
+    const t0 = performance.now() - late;
+    dice.forEach((_, i) => pose(i, late));
     let raf = 0;
     const frame = (now: number) => {
       let alive = false;

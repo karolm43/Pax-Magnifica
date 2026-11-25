@@ -162,7 +162,8 @@ function InvasionWindow({ view }: { view: InvasionView }) {
           ? volleyStartMs(countDice(input.left), countDice(input.right ?? []))
           : 0,
       });
-      setQueuedThrow(input);
+      // The CSS reveal timers (--wait) start with this render; anchor the dice to the same moment.
+      setQueuedThrow(input ? { ...input, startedAt: Date.now() } : null);
     }
   }
   useEffect(() => {

@@ -50,9 +50,15 @@ def _option(
 
 
 def _choice(
-    key: str, label: str, options: list[dict[str, Any]], *, merge: bool = False, hint: str = ""
+    key: str,
+    label: str,
+    options: list[dict[str, Any]],
+    *,
+    merge: bool = False,
+    hint: str = "",
+    plain_list: bool = False,
 ) -> Input:
-    return {
+    field: Input = {
         "key": key,
         "kind": "choice",
         "label": label,
@@ -60,6 +66,10 @@ def _choice(
         "merge": merge,
         "hint": hint,
     }
+    if plain_list:
+        # Technologie do ODDANIA: zwykła lista kafelków z opisem (nie okno drzewa badania).
+        field["display"] = "list"
+    return field
 
 
 def _multi(

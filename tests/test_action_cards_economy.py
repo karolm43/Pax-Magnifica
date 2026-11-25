@@ -587,3 +587,12 @@ def test_brilliance_formularz_planeta_na_mapie_albo_gracz(registry: StaticDataRe
         action_cards.play_action_card(
             state, registry, "p1", "brilliance", {"planet": _SPECIALTY_BIOTIC, "player": "p2"}
         )
+
+
+def test_divert_funding_zwrot_to_zwykla_lista_a_badanie_po_zagraniu() -> None:
+    """Oddawana technologia = prosta lista (``display: list``), nie drzewo badania."""
+    from src.core.hooks import action_card_inputs
+
+    field = action_card_inputs._choice("k", "L", [], plain_list=True)
+    assert field["display"] == "list"
+    assert "display" not in action_card_inputs._choice("k", "L", [])

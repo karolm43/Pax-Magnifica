@@ -169,6 +169,35 @@ async def post_held_wait(
     return await _commit_held(ctx, new_state, "reaction-wait")
 
 
+@router.post("/action-card/held/freeze", response_model=StateEnvelope)
+async def post_held_freeze(
+    actor: ActorId,
+    request: HeldActionRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Zatrzymuje zegar okna, gdy gracz zagrywa Sabotage (przeciąga kartę / wypełnia formularz)."""
+    request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
+    try:
+        new_state = card_hold.freeze(
+            ctx.service.current_state(), request.actor_id, ctx.service.now()
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_held(ctx, new_state, "reaction-freeze")
+
+
+@router.post("/action-card/held/unfreeze", response_model=StateEnvelope)
+async def post_held_unfreeze(
+    actor: ActorId,
+    request: HeldActionRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Wznawia zegar okna po zatrzymaniu (bez zatrzymania = bez zmian)."""
+    request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)
+    new_state = card_hold.unfreeze(
+        ctx.service.current_state(), request.actor_id, ctx.service.now()
+    )
+    return await _commit_held(ctx, new_state, "reaction-unfreeze")
+
+
 @router.post("/action-card/held/release", response_model=StateEnvelope)
 async def post_held_release(
     actor: ActorId,

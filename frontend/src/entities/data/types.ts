@@ -945,6 +945,8 @@ export type HeldPlayData = {
   extensions?: number;
   /** Czy patrzący już prosił o czas (tylko jego id). */
   askedForTime?: string[];
+  /** Zegar zatrzymany: ktoś zagrywa Sabotage (anonimowo). */
+  frozen?: boolean;
   /** Sabotage na tę kartę czekające na Instinct Training (RULES.md 62.9). */
   counter?: { playerId: string; playerColor?: string; cardId: string; cardName: string } | null;
 };

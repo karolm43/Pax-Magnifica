@@ -495,6 +495,7 @@ export function BottomHandDock() {
 
     <HeldPlayBanner
       viewerId={active.discordId ?? null}
+      playing={dragCard !== null || playingCard !== null}
       onNeedHand={() => {
         setOpen(true);
         setTab("actions");

@@ -1,49 +1,65 @@
+import { type ReactNode } from "react";
 import { UnstyledButton, Stack, Text, Loader, Center } from "@/ds";
-import { IconPointFilled } from "@tabler/icons-react";
+import {
+  IconArrowRight,
+  IconFlag,
+  IconPencil,
+  IconPlanet,
+  IconPlayerPlay,
+  IconPlayerTrackNext,
+  IconPointFilled,
+  IconPuzzle,
+  IconRefresh,
+  IconRepeat,
+  IconRocket,
+  IconSparkles,
+  IconTool,
+  IconUser,
+} from "@tabler/icons-react";
 import { useHistory, useBoardEditor } from "@/api/useBoardEditor";
 import styles from "./HistoryPanel.module.css";
 
+const ICON_SIZE = 13;
+
 /**
- * Tłumaczy techniczną etykietę migawki na czytelny opis po polsku.
- * Zwraca ikonę (emoji) + krótki tytuł; backend emituje etykiety jak
- * ``turn:pass``, ``phase:next``, ``player:p1``, ``edit:301:space`` itd.
+ * Translates a technical snapshot label into a readable label and Tabler icon.
  */
-function describe(label: string): { icon: string; text: string } {
-  const exact: Record<string, { icon: string; text: string }> = {
-    initial: { icon: "🎬", text: "Game start" },
-    "game:new": { icon: "✨", text: "New game" },
-    "move-units": { icon: "➡️", text: "Units moved" },
-    "god-mode-patch": { icon: "🛠️", text: "God-Mode correction" },
-    replace: { icon: "🛠️", text: "State overwritten" },
-    "turn:end": { icon: "⏭️", text: "End of turn" },
-    "turn:pass": { icon: "🏳️", text: "Pass" },
-    "phase:next": { icon: "🔄", text: "Next phase" },
-    "round:next": { icon: "🔁", text: "New round" },
+function describe(label: string): { icon: ReactNode; text: string } {
+  const exact: Record<string, { icon: ReactNode; text: string }> = {
+    initial: { icon: <IconPlayerPlay size={ICON_SIZE} />, text: "Game start" },
+    "game:new": { icon: <IconSparkles size={ICON_SIZE} />, text: "New game" },
+    "move-units": { icon: <IconArrowRight size={ICON_SIZE} />, text: "Units moved" },
+    "god-mode-patch": { icon: <IconTool size={ICON_SIZE} />, text: "God-Mode correction" },
+    replace: { icon: <IconTool size={ICON_SIZE} />, text: "State overwritten" },
+    "turn:end": { icon: <IconPlayerTrackNext size={ICON_SIZE} />, text: "End of turn" },
+    "turn:pass": { icon: <IconFlag size={ICON_SIZE} />, text: "Pass" },
+    "phase:next": { icon: <IconRefresh size={ICON_SIZE} />, text: "Next phase" },
+    "round:next": { icon: <IconRepeat size={ICON_SIZE} />, text: "New round" },
   };
   if (label in exact) return exact[label];
 
   if (label.startsWith("setup:")) {
-    return { icon: "🧩", text: `Faction setup · ${label.slice(6)}` };
+    return { icon: <IconPuzzle size={ICON_SIZE} />, text: `Faction setup · ${label.slice(6)}` };
   }
   if (label.startsWith("player:")) {
-    return { icon: "👤", text: `Player edit · ${label.slice(7)}` };
+    return { icon: <IconUser size={ICON_SIZE} />, text: `Player edit · ${label.slice(7)}` };
   }
   if (label.startsWith("edit:")) {
     const [, pos, zone] = label.split(":");
     const where = zone === "space" ? "space" : zone ? `planet ${zone}` : "";
     return {
-      icon: "✏️",
+      icon: <IconPencil size={ICON_SIZE} />,
       text: `Unit edit · ${pos}${where ? ` (${where})` : ""}`,
     };
   }
   if (label.startsWith("space:")) {
-    return { icon: "🚀", text: `Units in space · ${label.slice(6)}` };
+    return { icon: <IconRocket size={ICON_SIZE} />, text: `Units in space · ${label.slice(6)}` };
   }
   if (label.startsWith("planet:")) {
     const [, pos, planet] = label.split(":");
-    return { icon: "🪐", text: `Units on planet · ${planet ?? pos}` };
+    return { icon: <IconPlanet size={ICON_SIZE} />, text: `Units on planet · ${planet ?? pos}` };
   }
-  return { icon: "•", text: label };
+  return { icon: <IconPointFilled size={10} />, text: label };
 }
 
 /**

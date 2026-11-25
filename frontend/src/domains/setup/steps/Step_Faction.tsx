@@ -19,6 +19,7 @@
 // stan lokalny kroku — nie wpływa na model.
 
 import { canEditSlot, useLobbyRole } from "@/domains/network/setupSync";
+import { IconDice5 } from "@tabler/icons-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { TextInput } from "@/ds";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
@@ -323,7 +324,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
                     <CircularFactionIcon faction={slot.factionId} size={16} />
                   ) : (
                     <span className={styles.randomDot} aria-hidden>
-                      🎲
+                      <IconDice5 size={14} />
                     </span>
                   )}
                   <span className={styles.playerTabName}>
@@ -492,7 +493,7 @@ export default function Step_Faction({ factions, factionById, stage }: SetupStep
               }}
             >
               <span className={styles.randomDot2} aria-hidden>
-                🎲
+                <IconDice5 size={16} />
               </span>
               <span className={styles.itemName}>Random</span>
             </button>

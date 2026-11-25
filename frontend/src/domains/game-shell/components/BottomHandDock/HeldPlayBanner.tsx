@@ -3,6 +3,8 @@ import { useParams } from "react-router-dom";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { postHeld } from "@/api/useActionCard";
+import { useGameData } from "@/state/useGameContext";
+import { ReactionQuickPass } from "./ReactionQuickPass";
 import { MoreTimeButton, waitingText } from "./reactionWindowParts";
 import { useWindowCountdown } from "./useWindowCountdown";
 import styles from "./HeldPlayBanner.module.css";
@@ -16,24 +18,42 @@ import styles from "./HeldPlayBanner.module.css";
 export function HeldPlayBanner({
   viewerId,
   onNeedHand,
+  playing = false,
 }: {
   /** Gracz, którego rękę widzi ten pulpit (może spasować / zagrać Sabotage). */
   viewerId: string | null;
   /** Prośba o rozwinięcie ręki, gdy okno czeka na decyzję tego gracza. */
   onNeedHand: () => void;
+  /** Gracz właśnie przeciąga kartę albo wypełnia formularz zagrania - zegar okna stoi. */
+  playing?: boolean;
 }) {
   const params = useParams<{ mapid: string }>();
   const { data: gameState } = useGameState(params.mapid ?? DEFAULT_GAME_ID);
   const held = gameState?.heldPlay ?? null;
   const key = held ? `${held.cardId}:${held.openedAt}` : null;
   const owner = held?.playerId ?? "";
-  const left = useWindowCountdown(key, held?.holdSeconds ?? 0, () => {
-    if (owner) void postHeld("release", owner);
-  });
+  const frozen = Boolean(held?.frozen);
+  const left = useWindowCountdown(
+    key,
+    held?.holdSeconds ?? 0,
+    () => {
+      if (owner) void postHeld("release", owner);
+    },
+    frozen || playing,
+  );
 
   const eligible = Boolean(held && viewerId && held.eligible.includes(viewerId));
   const passed = Boolean(held && viewerId && held.passed.includes(viewerId));
   const deciding = eligible && !passed;
+  const me = useGameData()?.playerData?.find((p) => p.discordId === viewerId);
+
+  // Przeciąganie / formularz Sabotage zatrzymuje zegar także na serwerze (i u pozostałych).
+  const freezing = Boolean(key && deciding && playing && viewerId);
+  useEffect(() => {
+    if (!freezing || !viewerId) return;
+    void postHeld("freeze", viewerId);
+    return () => void postHeld("unfreeze", viewerId);
+  }, [freezing, key, viewerId]);
 
   useEffect(() => {
     if (key && deciding) onNeedHand();
@@ -65,7 +85,7 @@ export function HeldPlayBanner({
       </div>
       <div className={styles.side}>
         <span className={styles.count} aria-label="Seconds left">
-          {left ?? held.holdSeconds}s
+          {left ?? held.holdSeconds}s{frozen || playing ? " ⏸" : ""}
         </span>
         {deciding && viewerId && (
           <button
@@ -80,6 +100,14 @@ export function HeldPlayBanner({
           <MoreTimeButton
             asked={(held.askedForTime ?? []).includes(viewerId)}
             onAsk={() => void postHeld("wait", viewerId)}
+          />
+        )}
+        {deciding && viewerId && me && (
+          <ReactionQuickPass
+            me={me}
+            category="sabotage"
+            inCombat={Boolean(gameState?.activeCombat)}
+            onPassed={() => void postHeld("pass", viewerId)}
           />
         )}
       </div>

@@ -277,6 +277,8 @@ def _held_play(state: GameState, registry: StaticDataRegistry) -> dict[str, Any]
         "passed": [pid for pid in held.passed if pid],
         "extensions": len(held.extended_by),
         "askedForTime": [pid for pid in held.extended_by if pid],
+        # Zegar zatrzymany: ktoś zagrywa Sabotage (anonimowo - bez informacji kto).
+        "frozen": held.frozen_at is not None,
         "eligibleColors": [c for pid in held.eligible if (c := _color_of(state, pid))],
         # Sabotage na tę kartę czekające na Instinct Training (RULES.md 62.9) albo None.
         "counter": _held_counter(state, registry),

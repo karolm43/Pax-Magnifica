@@ -12,6 +12,7 @@
 // backend przy starcie gry).
 
 import { canEditSlot, useLobbyRole } from "@/domains/network/setupSync";
+import { IconDice5, IconStar } from "@tabler/icons-react";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon/CircularFactionIcon";
 import { SpriteUnitImage } from "@/shared/ui/Unit/components/SpriteUnitImage";
@@ -232,10 +233,10 @@ export default function Step_SeatColor({ factions, factionById, stage }: SetupSt
                 className={base.action}
                 onClick={() => applyPreferredColors(factionById)}
               >
-                ⭐ Use preferred colors
+                <IconStar size={14} aria-hidden="true" /> Use preferred colors
               </button>
               <button type="button" className={base.action} onClick={shuffleColors}>
-                🎲 Shuffle colors
+                <IconDice5 size={14} aria-hidden="true" /> Shuffle colors
               </button>
             </div>
             <p className={base.hint}>
@@ -282,7 +283,7 @@ export default function Step_SeatColor({ factions, factionById, stage }: SetupSt
             ) : (
               <p className={base.hint}>
                 {active.factionId === RANDOM_FACTION
-                  ? "This faction has no preferred colors."
+                  ? "Random faction — pick any color."
                   : "This faction has no preferred colors."}
               </p>
             )}

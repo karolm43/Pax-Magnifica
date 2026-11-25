@@ -445,9 +445,6 @@ export default function Step_Players({ stage, factionById }: SetupStepProps) {
                 </button>
               ))}
             </div>
-            <p className={styles.hint}>
-              Lowering the count keeps the first players&apos; settings.
-            </p>
           </section>
 
           <section className={styles.section}>
@@ -460,8 +457,7 @@ export default function Step_Players({ stage, factionById }: SetupStepProps) {
               factionName={factionName}
             />
             <p className={styles.hint}>
-              Player {pickerIndex + 1} is selected: click a seat to move them (an occupied
-              seat swaps). Player 1 is the first speaker; turns go clockwise around the table.
+              Player 1 is the first speaker; turns go clockwise.
             </p>
           </section>
 
@@ -575,9 +571,6 @@ export default function Step_Players({ stage, factionById }: SetupStepProps) {
                 Me vs. bots
               </button>
             </div>
-            <p className={styles.hint}>
-              Names must be unique. An empty name is filled in automatically.
-            </p>
           </section>
           </fieldset>
         </aside>
