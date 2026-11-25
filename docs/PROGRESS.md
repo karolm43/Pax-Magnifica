@@ -872,3 +872,16 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   "none left").
 - QA: tsc, eslint (changed files), vitest (player, setup, game-shell, chat), `npm run build`; screenshots of the
   live game (self, scout, Tech & units). Skipped: backend QA (frontend-only), e2e (the Player tab is not always mounted).
+
+## Space Cannon Offense for non-active seats (frontend)
+
+- `SpaceCannonResponseWindow` (TacticalActionWindow shell + the same `SpaceCannonStepPanel`): in a network game the
+  Tactical Action Window is the active player's only, so other seats never saw Space Cannon Offense. Now a seat that
+  is queued to fire (wait / fire / done) or is the target of a pending shot (covers hits even without its own PDS)
+  gets its own draggable, minimizable window. Role logic in `spaceCannonRole.ts` (+ test).
+- Hit assignment is interactive only for the targeted seat in a network game; others see "Waiting for X to assign".
+- Wording: a single target is no longer "the ships that moved in" - Space Cannon Offense hits ANY of the target's
+  ships in the active system (active shooter: "only player with ships in the active system"; others: "must target
+  the active player's ships"). Backend targeting already matched R_space_cannon (Offense step 2).
+- QA: tsc, eslint (changed), vitest game-shell, `npm run build`, `npm run e2e` (8 passed). Skipped: backend QA
+  (frontend-only).

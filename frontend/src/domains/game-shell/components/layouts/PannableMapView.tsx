@@ -26,7 +26,10 @@ import { TryUnitDecalsSidebar } from "../TryUnitDecalsSidebar/TryUnitDecalsSideb
 import { BottomHandDock } from "@/domains/game-shell/components/BottomHandDock";
 import { TurnControls } from "@/domains/game-shell/components/TurnControls";
 import { StatusPhasePanel } from "@/domains/game-shell/components/StatusPhasePanel";
-import { TacticalActionWindow } from "@/domains/game-shell/components/TacticalActionWindow";
+import {
+  SpaceCannonResponseWindow,
+  TacticalActionWindow,
+} from "@/domains/game-shell/components/TacticalActionWindow";
 import { BoardHud } from "./BoardHud";
 import { ChessClockPanel } from "@/domains/clock/ChessClockPanel";
 
@@ -279,6 +282,8 @@ export function PannableMapView({ gameId }: { gameId: string }) {
       {/* Tactical Action Window (bottom left) - guided wizard through the action's steps
           (move -> cannon -> combat -> invasion -> production); only during a tactical action. */}
       <TacticalActionWindow />
+      {/* Space Cannon Offense for the OTHER seats (network game): fire / wait / cover hits. */}
+      <SpaceCannonResponseWindow />
     </Box>
   );
 }

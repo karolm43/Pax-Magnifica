@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
+import { DEFAULT_GAME_ID } from "@/config";
+import { useGameState } from "@/api/useGameState";
 import {
   defaultPicks,
   extraByGroup,
@@ -67,20 +70,34 @@ function hasTechs(
 }
 
 /**
- * Karta tury bieżącego strzelca: jego jednostki z Space Cannon (próg, kości, zasięg),
- * wybór celu (aktywny gracz wybiera; nieaktywny celuje w aktywnego) oraz Fire / Pass.
- * Stan wyboru celu jest lokalny — rodzic montuje kartę z ``key`` bieżącego gracza.
+ * Why a single target is the only one (R_space_cannon, Offense step 2): the active player may
+ * pick any player with ships in the active system; everyone else MUST target the active
+ * player's ships there - all of them, not only the ships that moved in.
+ */
+export function onlyTargetHint(shooterIsActive: boolean): string {
+  return shooterIsActive
+    ? "only player with ships in the active system"
+    : "other players must target the active player's ships in the active system";
+}
+
+/**
+ * Turn card of the current shooter: their Space Cannon units (threshold, dice, range), the
+ * target choice (the active player picks any player with ships in the active system; anyone
+ * else targets the active player's ships there) and Fire / Pass. Target state is local - the
+ * parent mounts the card keyed by the current shooter.
  */
 function TurnCard({
   side,
   lookup,
   busy,
+  shooterIsActive,
   onFire,
   onPass,
 }: {
   side: SpaceCannonSide;
   lookup: Lookup;
   busy: boolean;
+  shooterIsActive: boolean;
   onFire: (target: string, extraDice: ExtraDicePicks | null) => void;
   onPass: () => void;
 }) {
@@ -223,7 +240,7 @@ function TurnCard({
                 <CircularFactionIcon faction={key} size={18} />
                 <b>{lookup(key).name}</b>
                 {side.targets.length === 1 && (
-                  <small>only target - the ships that moved in</small>
+                  <small>{onlyTargetHint(shooterIsActive)}</small>
                 )}
               </span>
               <ActiveTechs
@@ -286,6 +303,11 @@ export function SpaceCannonStepPanel() {
   const throwDice = useDiceStage((s) => s.throwDice);
   const { data: me } = useNetworkMe();
   const desk = useDeskPlayer();
+  const params = useParams<{ mapid: string }>();
+  const { data: gameState } = useGameState(params.mapid ?? DEFAULT_GAME_ID);
+  const turnColor = gameState?.activeTurnPlayer ?? gameState?.activePlayer ?? null;
+  const activeFaction =
+    gameData?.playerData?.find((p) => p.color === turnColor)?.faction ?? null;
 
   // Map first: while shooters are firing, the Space Cannon range lens is on by itself (and
   // turned off again only if this panel turned it on).
@@ -382,6 +404,9 @@ export function SpaceCannonStepPanel() {
     (shooter?.techs ?? []).includes("gls") &&
     !(shooter?.exhaustedTechs ?? []).includes("gls");
   const pending = panel.pending;
+  // Network game: only the targeted seat covers the hits; the others watch and wait.
+  const myHits =
+    pending !== null && (!me?.network || desk?.faction === pending.target);
   const pendingKey = pending
     ? `${pending.roller}>${pending.target}:${pending.hits}:${panel.log.length}`
     : "";
@@ -470,18 +495,28 @@ export function SpaceCannonStepPanel() {
             data-hits={pending.hits > 0 || undefined}
           />
           <DiceRolls rolls={pending.rolls} />
-          <AssignHits
-            key={pendingKey}
-            pending={pending}
-            ships={panel.targetShips}
-            targetName={nameOf(pending.target)}
-            colorAlias={lookup(pending.target).colorAlias}
-            faction={pending.target}
-            busy={busy}
-            onConfirm={(plan) =>
-              void run(() => spaceCannonAssign(pending.target, plan))
-            }
-          />
+          {myHits ? (
+            <AssignHits
+              key={pendingKey}
+              pending={pending}
+              ships={panel.targetShips}
+              targetName={nameOf(pending.target)}
+              colorAlias={lookup(pending.target).colorAlias}
+              faction={pending.target}
+              busy={busy}
+              onConfirm={(plan) =>
+                void run(() => spaceCannonAssign(pending.target, plan))
+              }
+            />
+          ) : (
+            pending.required > 0 && (
+              <p className={styles.banner} role="status">
+                <IconHourglass size={15} aria-hidden="true" /> Waiting for{" "}
+                {factionTag(pending.target, nameOf(pending.target))} to assign{" "}
+                {pending.required} hit{pending.required === 1 ? "" : "s"}
+              </p>
+            )
+          )}
         </div>
       ) : (
         current &&
@@ -501,6 +536,7 @@ export function SpaceCannonStepPanel() {
               side={current}
               lookup={lookup}
               busy={busy}
+              shooterIsActive={current.faction === activeFaction}
               onFire={(target, extraDice) =>
                 void run(async () => {
                   await spaceCannonFire(
