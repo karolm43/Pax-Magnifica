@@ -148,7 +148,7 @@ def _terragenesis_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]
         ctx.get("player") == player_id
         and bool(planet)
         and faction_tokens.on_planet(state, planet, SLEEPER) is None
-        and bool(_token_sources(state, player_id))
+        and bool(_terragenesis_sources(state, player_id))
     )
 
 
@@ -164,10 +164,19 @@ def _token_sources(state: GameState, player_id: str) -> list[dict[str, Any]]:
     return options
 
 
+def _terragenesis_sources(state: GameState, player_id: str) -> list[dict[str, Any]]:
+    """Terragenesis sources: the pool while it has tokens; moving a placed token only once all
+    sleeper tokens are on the board (F_ul terragenesis 2)."""
+    options = _token_sources(state, player_id)
+    if faction_tokens.supply_left(state, player_id, SLEEPER) > 0:
+        return [o for o in options if o["value"] == _SUPPLY]
+    return options
+
+
 def terragenesis_inputs(
     state: GameState, _registry: Any, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    options = _token_sources(state, player_id)
+    options = _terragenesis_sources(state, player_id)
     return [oi.choice("source", "Sleeper token to place", options, auto=_auto_source(options))]
 
 
@@ -198,7 +207,12 @@ def _put_sleeper(state: GameState, player_id: str, planet: str, source: str) -> 
 def terragenesis(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Terragenesis: After you explore a planet that does not have a sleeper token: You may place
     or move 1 sleeper token onto that planet."""
-    source = str(ctx.get("params", {}).get("source") or _SUPPLY)
+    allowed = [o["value"] for o in _terragenesis_sources(state, player_id)]
+    source = str(ctx.get("params", {}).get("source") or (allowed[0] if allowed else _SUPPLY))
+    if source not in allowed:
+        raise ValueError(
+            "You may move a sleeper token only once all your sleeper tokens are on the board."
+        )
     _put_sleeper(state, player_id, str(ctx["planet"]), source)
 
 

@@ -682,3 +682,15 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   the carrier, launch out, brake, fighters turn back to the parked heading. Ground forces stay upright.
 - QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
   ActivityPanel), build, e2e. Skipped: backend (no change).
+
+## Titans: F_ul Ruling Coverage + Terragenesis Move Fix (2026-11-25)
+- New `tests/factions/test_rulings_titans.py`: 12 `@ruling` tests (terragenesis 1, awaken 3/4/6/7, terraform 2.1/5,
+  heltitan 4, geoform 2, hecatoncheires 6, slumberstate-computing 1/4).
+- Fix (F_ul terragenesis 2): Terragenesis may move a placed sleeper token only once all sleeper tokens are on the
+  board — while the pool has tokens the only source is the pool (`titans._terragenesis_sources`; the effect rejects
+  other sources). Slumberstate Computing keeps its own source list. `rules/R62.md` updated.
+- `tests/rulings_status.json`: gaps for awaken 5, coalescence 4 (turn ended by Nullification Field drops the
+  combat), terraform 4 (Fracture planets not explorable with Terraform), hecatoncheires 5 and slumberstate 5
+  (coexistence I4), slumberstate 3.1 (no binding deals).
+- QA: Titans tests + other tests touching Titans/sleepers (206 passed), ruff, mypy on changed files. Skipped: full
+  backend suite, frontend (no change).

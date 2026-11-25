@@ -171,7 +171,8 @@ def test_terragenesis_kladzie_zeton_z_puli(registry: StaticDataRegistry) -> None
     assert faction_tokens.supply_left(after, "p1", SLEEPER) == faction_tokens.SUPPLY[SLEEPER] - 1
 
 
-def test_terragenesis_przenosi_zeton_i_pomija_planete_z_zetonem(
+@ruling("F_ul/terragenesis/2")
+def test_terragenesis_przenosi_zeton_dopiero_przy_pustej_puli(
     registry: StaticDataRegistry,
 ) -> None:
     state = _state()
@@ -179,10 +180,15 @@ def test_terragenesis_przenosi_zeton_i_pomija_planete_z_zetonem(
     _own(state, EAST, ALBION, units={"infantry": 1})
     _sleeper(state, EAST, ALBION)
     assert not _offers(_explored(state, ALBION), "p1", "Terragenesis")  # „does not have a sleeper”
-    after = _accept(_explored(state, WELLON), "p1", "Terragenesis", {"source": ALBION})
-    assert faction_tokens.on_planet(after, WELLON, SLEEPER) == "p1"
-    assert faction_tokens.on_planet(after, ALBION, SLEEPER) is None
-    # Pusta pula: zostaje tylko przeniesienie leżącego żetonu.
+    # Tokens left in the pool: moving a placed token is not allowed (F_ul terragenesis 2).
+    explored = _explored(state, WELLON)
+    offer = _offers(explored, "p1", "Terragenesis")[0]
+    values = {o["value"] for o in titans.terragenesis_inputs(explored, registry, "p1",
+                                                             offer.ctx)[0]["options"]}
+    assert values == {"supply"}
+    with pytest.raises(ValueError):
+        triggers.accept_offer(explored, "p1", offer.id, {"source": ALBION})
+    # All sleeper tokens on the board: only moving a placed token remains.
     for position, planet in ((FAR, TARMANN), (WEST, QUANN), (EAST, STARPOINT), ("000", "mr")):
         _sleeper(state, position, planet)
     assert faction_tokens.supply_left(state, "p1", SLEEPER) == 0
@@ -191,6 +197,9 @@ def test_terragenesis_przenosi_zeton_i_pomija_planete_z_zetonem(
     inputs = titans.terragenesis_inputs(explored, registry, "p1", offer.ctx)
     values = {o["value"] for o in inputs[0]["options"]}
     assert "supply" not in values and ALBION in values
+    after = triggers.accept_offer(explored, "p1", offer.id, {"source": ALBION})
+    assert faction_tokens.on_planet(after, WELLON, SLEEPER) == "p1"
+    assert faction_tokens.on_planet(after, ALBION, SLEEPER) is None
 
 
 # ---------------------------------------------------------------------------------- Awaken

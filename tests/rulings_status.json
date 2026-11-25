@@ -8,6 +8,24 @@
   "breakthroughs:titansbt#2": {
     "gap": "Koegzystencja (blok I4) niezaimplementowana - brak dodatkowych kart akcji za koegzystujących graczy w fazie statusu (RULES.md 62.18)."
   },
+  "F_ul/awaken/5": {
+    "gap": "Awaken and Nullification Field are both SYSTEM_ACTIVATED/AFTER offers, but Nullification Field calls tactical.end_tactical_action, which clears invasion/active_combat - the ground combat caused by Awaken does not still occur."
+  },
+  "F_ul/coalescence/4": {
+    "gap": "When another effect ends the Ul player's turn (e.g. Nullification Field), tactical.end_tactical_action drops the pending invasion/combat; no forced Coalescence combat is resolved afterwards."
+  },
+  "F_ul/terraform/4": {
+    "gap": "exploration.start_exploration filters planets with exploration.explorable(registry, planet), which ignores attachments; Fracture planets (cocytus, styx, lethe, phlegethon) have only the LIGHTNING trait, so a Terraformed Fracture planet is never explored."
+  },
+  "F_ul/hecatoncheires/5": {
+    "gap": "Coexistence (block I4) is not implemented - Hecatoncheires DEPLOY via Slumberstate cannot place units into coexistence (see breakthroughs:titansbt#1)."
+  },
+  "F_ul/slumberstate-computing/3.1": {
+    "gap": "Binding deals are not modelled in the engine (core/transaction.py has no deal/agreement item) - a sleeper placement cannot be part of a binding deal."
+  },
+  "F_ul/slumberstate-computing/5": {
+    "gap": "Coexistence (block I4) is not implemented - no additional action cards in the status phase Draw Action Cards step (see breakthroughs:titansbt#2)."
+  },
   "F_naalu/neuroglaive/1": {
     "requires": ["faction:mahact"],
     "reason": "Żetony innych graczy w puli floty Mahact (Edict) - frakcja Mahact niezaimplementowana."
