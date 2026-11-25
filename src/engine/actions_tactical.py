@@ -333,7 +333,7 @@ HANDLERS: dict[str, tuple[Guard | None, Apply]] = {
     "tactical_move": (claimed("Move ships"), _move),
     "tactical_next": (
         checked(_TURN, "Next tactical step"),
-        lambda s, c, a: tactical.advance_skipping_empty(s, c.grid, c.registry),
+        lambda s, c, a: tactical.advance_guided(s, c.grid, c.registry)[0],
     ),
     "tactical_produce": (claimed("Produce"), _produce),
     "capacity_resolve": (

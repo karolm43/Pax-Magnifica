@@ -401,8 +401,13 @@ class Flow:
         self.space(position, self.other, theirs)
         self.activate(position)
         self.to_step("SPACE_COMBAT")
-        self.post("/tactical/battle/start", {})
+        self.start_space_combat()
         return position
+
+    def start_space_combat(self) -> None:
+        """Entering SPACE_COMBAT starts the combat (RULES.md 19.1); by hand only if it did not."""
+        if self.state()["active_combat"] is None:
+            self.post("/tactical/battle/start", {})
 
     def pass_and_end(self, pid: str) -> None:
         """Gracz ``pid`` (aktywny) pasuje i kończy turę - następny zaczyna swoją.

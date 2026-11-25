@@ -161,7 +161,7 @@ def test_devotion_nie_po_odwrocie_przeciwnika(registry: StaticDataRegistry) -> N
     flow.space(position, flow.other, {"dreadnought": 2})
     flow.activate(position)
     flow.to_step("SPACE_COMBAT")
-    flow.post("/tactical/battle/start", {})
+    flow.start_space_combat()
     assert flow.battle()["step"] == "ANNOUNCE"
     flow.post("/tactical/battle/announce-retreat", {"faction": "sol", "announce": True})
     flow.post("/tactical/battle/roll")

@@ -765,3 +765,17 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   (file stays in `rulings_debt.json`). Not modelled: automatic control hand-off to the last coexisting player (7-7.4).
 - QA: ruling coverage, `pytest --testmon` (2 failures from other sessions' hunks: relics sustain `zone`, frontend
   locality URL), ruff, mypy. Skipped: frontend (no change), build, e2e. Backend restart needed (new state field).
+
+## Tactical window redesign, phase 1: batched flight plan + guided step entry (RULES.md 32.4, 19.1)
+- `POST /tactical/move-batch` -> `core/movement_batch.move_batch`: the whole Move Ships declaration (legs from
+  any number of systems) is validated before anything moves; illegal leg -> 422 `Leg N (from X): ...`. Each leg
+  runs through `movement.move_fleet`; ships flown in by an earlier leg cannot move again (simultaneity).
+  One snapshot per leg (`tactical:move:<from>:b<seq>`), one broadcast; `/tactical/undo-move` and `/undo/mine`
+  revert the whole plan.
+- `tactical.advance_guided` (HTTP next step + bot `tactical_next`): entering SPACE_COMBAT starts the mandatory
+  combat, entering INVASION begins the invasion (label `battle:start:space` / `invasion:begin`); waits when a
+  window / reaction pause is open. `POST /tactical/invasion/skip` (`tactical.decline_invasion`) closes an invasion
+  with nothing bombarded or committed.
+- Tests: `tests/test_move_batch.py`; flow harness `start_space_combat()` tolerates the auto-start.
+- QA: full pytest (only failures: frontend locality URL in `componentLinks.ts`, from another commit), ruff, mypy
+  (errors only in other sessions' files). Backend restart needed (new routes).

@@ -74,7 +74,7 @@ def test_exotrireme_oferta_po_rundzie(registry: StaticDataRegistry) -> None:
     flow.space(source, flow.other, {"dreadnought": 3})
     flow.activate(source)
     flow.to_step("SPACE_COMBAT")
-    flow.post("/tactical/battle/start", {})
+    flow.start_space_combat()
     flow.fight(stop=lambda: flow.has_offer("Exotrireme"))
     assert flow.has_offer("Exotrireme")
 
@@ -88,6 +88,6 @@ def test_norr_supremacy_po_wygranej(registry: StaticDataRegistry) -> None:
     flow.space(source, flow.other, {"destroyer": 1})
     flow.activate(source)
     flow.to_step("SPACE_COMBAT")
-    flow.post("/tactical/battle/start", {})
+    flow.start_space_combat()
     flow.fight(stop=lambda: flow.has_offer("Supremacy"))
     assert flow.has_offer("Supremacy")

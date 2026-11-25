@@ -61,6 +61,19 @@ class MoveShipsRequest(BaseModel):
     ion_storm_token: bool | None = Field(default=None, alias="ionStormToken")
 
 
+class MoveBatchRequest(BaseModel):
+    """Whole flight plan of the Move Ships step (RULES.md 32.4): legs declared together.
+
+    Every leg is a ``MoveShipsRequest`` (its own source, ships, cargo, route and one-ship move
+    bonuses). All legs are validated before anything moves; one illegal leg -> 422, no change.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str
+    legs: list[MoveShipsRequest] = Field(default_factory=list)
+
+
 class MoveRouteShip(BaseModel):
     """Statek ze źródła ruchu w podglądzie trasy."""
 
@@ -333,6 +346,7 @@ __all__ = [
     "CombatUnitHelp",
     "CommandTokenRequest",
     "ComponentActionRequest",
+    "MoveBatchRequest",
     "MoveCargoItem",
     "MoveRangeResponse",
     "MoveRouteCargo",

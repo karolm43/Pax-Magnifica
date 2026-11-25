@@ -84,7 +84,7 @@ def test_api_commit_defense_and_establish(registry: StaticDataRegistry) -> None:
     assert client.get("/tactical/invasion").json()["active"] is False
 
 
-def test_api_invasion_starts_on_button_and_is_simple_without_defenders(
+def test_api_invasion_opens_on_step_entry_and_is_simple_without_defenders(
     registry: StaticDataRegistry,
 ) -> None:
     # Nosiciel jest potrzebny: piechota w przestrzeni bez pojemności to nadwyżka (RULES.md 39.6),
@@ -93,9 +93,7 @@ def test_api_invasion_starts_on_button_and_is_simple_without_defenders(
     state.tactical_step = TacticalStep.SPACE_COMBAT
     client = _client(registry, state)
     assert client.post("/tactical/step/next").status_code == 200
-    # Wejście w krok NIE otwiera inwazji - robi to przycisk.
-    assert client.get("/tactical/invasion").json()["active"] is False
-    assert client.post("/tactical/invasion/begin").status_code == 200
+    # Wejście w krok od razu otwiera inwazję (RULES.md 19.1) - bez przycisku „Start invasion".
     view = client.get("/tactical/invasion").json()
     assert view["active"] is True
     assert view["simple"] is True

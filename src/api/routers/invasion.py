@@ -41,6 +41,7 @@ from src.core import (
     payment,
     rules_hooks,
     space_cannon,
+    tactical,
 )
 from src.core.damage import damaged_count
 from src.core.game_state import GameState, SystemState
@@ -525,3 +526,18 @@ async def post_invasion_next(actor: ActorId, ctx: AppContext = Depends(get_ctx))
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(ctx, new_state, "invasion:next")
+
+
+@router.post("/tactical/invasion/skip", response_model=StateEnvelope)
+async def post_invasion_skip(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> StateEnvelope:
+    """"Skip invasion" (RULES.md 19.1): bombard nothing, land nothing - closes the invasion."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, None, actor_rules.invasion_attacker, "Skip invasion"
+    )
+    try:
+        new_state = tactical.decline_invasion(
+            ctx.service.current_state(), ctx.current_grid, ctx.registry
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, "invasion:skip")

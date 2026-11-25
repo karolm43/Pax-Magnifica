@@ -743,7 +743,7 @@ def test_sleeper_przeciwnik_moze_sie_wycofac(registry: StaticDataRegistry) -> No
     flow.space(a, flow.other, {"destroyer": 2})
     flow.activate(a)
     flow.to_step("SPACE_COMBAT")
-    flow.post("/tactical/battle/start", {})
+    flow.start_space_combat()
     flow.accept("Sleeper Cell")
     flow.decline_all()
     flow.fight(stop=lambda: flow.battle().get("step") == "ANNOUNCE")

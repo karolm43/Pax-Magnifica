@@ -21,6 +21,7 @@ from src.api.schemas import (
     CommandTokenRequest,
     ComponentActionRequest,
     MapView,
+    MoveBatchRequest,
     MoveRangeResponse,
     MoveRouteCargo,
     MoveRouteResponse,
@@ -43,7 +44,9 @@ from src.core import (
     combat_odds,
     component_action,
     movement,
+    movement_batch,
     movement_route,
+    player_undo,
     production,
     tactical,
 )
@@ -57,6 +60,8 @@ router = APIRouter()
 MOVE_LABEL_PREFIX = "tactical:move:"
 # Etykieta migawki aktywacji systemu — bez żadnego ruchu „Undo last move” cofa samą aktywację.
 ACTIVATE_LABEL_PREFIX = "tactical:activate:"
+# Tag of the snapshots of one flight plan (``/tactical/move-batch``): one Undo reverts them all.
+BATCH_TAG_PREFIX = "b"
 
 
 async def _commit_flow(
@@ -77,23 +82,12 @@ async def _commit_map(ctx: AppContext, new_state: GameState, label: str) -> MapV
     return build_map_view(ctx.current_grid, ctx.registry, ctx.service.current_state())
 
 
-@router.post("/tactical/move", response_model=StateEnvelope)
-async def post_tactical_move(
-    actor: ActorId,
-    request: MoveShipsRequest, ctx: AppContext = Depends(get_ctx)
-) -> StateEnvelope:
-    """Ruch statków do aktywnego systemu z WALIDACJĄ reguł (RULES.md 32).
+def _leg_of(request: MoveShipsRequest) -> movement_batch.MoveLeg:
+    """``MoveShipsRequest`` -> one leg of a flight plan (ships + cargo as core types).
 
-    W odróżnieniu od God-Mode ``/units/move`` (bez reguł) — tu egzekwujemy R1–R6
-    (zasięg z UnitDef, przejezdność anomalii, brak przejścia przez obce statki,
-    start nie z własnym CC). Nielegalny ruch → 422.
+    Ships come from the single stack ``base_type``/``count`` (backward compatibility) AND the
+    ``ships`` list (full fleet from the UI); cargo keeps its source zone and position.
     """
-    actor_rules.check(
-        ctx.service.current_state(), actor, request.faction, None, "Move ships"
-    )
-    player_id = board_edit.resolve_player_id(request.faction, ctx.service.current_state())
-    # Statki (pojedynczy stos ``base_type``/``count`` dla zgodności wstecznej ORAZ
-    # lista ``ships`` dla pełnej floty z UI) + ładunek → słowniki {base_type: count}.
     ships: dict[str, int] = {}
     if request.base_type is not None and request.count > 0:
         ships[request.base_type] = request.count
@@ -110,26 +104,90 @@ async def post_tactical_move(
         for item in request.cargo
         if item.count > 0
     ]
+    return movement_batch.MoveLeg(
+        from_pos=request.from_position,
+        ships=ships,
+        cargo=cargo,
+        gravity_drive=request.gravity_drive,
+        tempesta=request.tempesta,
+        imperator=request.imperator,
+        route=request.route,
+        ion_storm_token=request.ion_storm_token,
+    )
+
+
+@router.post("/tactical/move", response_model=StateEnvelope)
+async def post_tactical_move(
+    actor: ActorId,
+    request: MoveShipsRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Ruch statków do aktywnego systemu z WALIDACJĄ reguł (RULES.md 32).
+
+    W odróżnieniu od God-Mode ``/units/move`` (bez reguł) — tu egzekwujemy R1–R6
+    (zasięg z UnitDef, przejezdność anomalii, brak przejścia przez obce statki,
+    start nie z własnym CC). Nielegalny ruch → 422.
+    """
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Move ships"
+    )
+    player_id = board_edit.resolve_player_id(request.faction, ctx.service.current_state())
+    leg = _leg_of(request)
     try:
         new_state = movement.move_fleet(
             ctx.service.current_state(),
             ctx.current_grid,
             ctx.registry,
-            request.from_position,
-            ships,
-            cargo,
+            leg.from_pos,
+            leg.ships,
+            leg.cargo,
             player_id,
-            gravity_drive=request.gravity_drive,
-            tempesta=request.tempesta,
-            imperator=request.imperator,
-            route=request.route,
-            ion_storm_token=request.ion_storm_token,
+            gravity_drive=leg.gravity_drive,
+            tempesta=leg.tempesta,
+            imperator=leg.imperator,
+            route=leg.route,
+            ion_storm_token=leg.ion_storm_token,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit_flow(
         ctx, new_state, f"{MOVE_LABEL_PREFIX}{request.from_position}"
     )
+
+
+@router.post("/tactical/move-batch", response_model=StateEnvelope)
+async def post_tactical_move_batch(
+    actor: ActorId,
+    request: MoveBatchRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Whole flight plan of the Move Ships step (RULES.md 32.4): all legs or nothing.
+
+    Every leg is validated like ``/tactical/move``; one illegal leg -> 422 naming the leg and
+    nothing moves. Each leg is committed as its own snapshot ``tactical:move:<from>:<tag>``
+    (Activity feed + flight replay per leg), and ``/tactical/undo-move`` reverts all snapshots
+    sharing the tag at once. Limits (fleet pool, capacity) are settled on the final state only:
+    the ships arrive simultaneously. One broadcast after the last leg.
+    """
+    state = ctx.service.current_state()
+    actor_rules.check(state, actor, request.faction, None, "Move ships")
+    player_id = board_edit.resolve_player_id(request.faction, state)
+    for leg_request in request.legs:
+        if board_edit.resolve_player_id(leg_request.faction, state) != player_id:
+            raise HTTPException(
+                status_code=422, detail="Every leg of a flight plan must move the same player."
+            )
+    try:
+        result = movement_batch.move_batch(
+            state, ctx.current_grid, ctx.registry, player_id,
+            [_leg_of(leg) for leg in request.legs],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    tag = f"{BATCH_TAG_PREFIX}{ctx.service.current_seq() or 0}"
+    for leg, leg_state in zip(result.legs, result.states, strict=True):
+        ctx.service.replace_state(leg_state, label=f"{MOVE_LABEL_PREFIX}{leg.from_pos}:{tag}")
+    await ctx.service.broadcast()
+    await ctx.broadcast_map()
+    return ctx.service.envelope()
 
 
 @router.post("/tactical/undo-move", response_model=StateEnvelope)
@@ -157,7 +215,11 @@ async def post_tactical_undo_move(
             status_code=422,
             detail="Nothing to undo - the last change was not a ship move or a system activation.",
         )
+    tag = player_undo.batch_tag(label)
     envelope = ctx.service.undo()
+    # A flight plan is one declaration (RULES.md 32.4): its legs are undone together.
+    while tag is not None and player_undo.batch_tag(ctx.service.current_label() or "") == tag:
+        envelope = ctx.service.undo()
     await ctx.service.broadcast()
     await ctx.broadcast_map()
     return envelope
@@ -270,12 +332,11 @@ async def post_next_step(actor: ActorId, ctx: AppContext = Depends(get_ctx)) -> 
         # registry → silnik sprawdza limit pojemności przed przejściem (RULES.md 39.6); gdy
         # jest nadwyżka, krok ZOSTAJE i otwiera się okno CAPACITY (wtedy bez Space Cannon).
         # Puste kroki (brak strzelców, walki, lądowania, producentów) są pomijane od razu.
-        new_state = tactical.advance_skipping_empty(
-            state, ctx.current_grid, ctx.registry
-        )
+        new_state, label = tactical.advance_guided(state, ctx.current_grid, ctx.registry)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return await _commit_flow(ctx, new_state, "tactical:step")
+    # RULES.md 19.1: the entered step's window (space combat / invasion) opens right away.
+    return await _commit_flow(ctx, new_state, label)
 
 
 @router.post("/tactical/step/set", dependencies=[HostOnly], response_model=StateEnvelope)

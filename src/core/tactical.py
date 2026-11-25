@@ -29,7 +29,7 @@ from src.core import (
     rules_hooks,
     triggers,
 )
-from src.core.battle import space_combat_required
+from src.core.battle import space_combat_required, start_combat
 from src.core.capacity import open_capacity_check, remove_forced_excess
 from src.core.combat import resolve_unit_variant
 from src.core.fleet_pool import open_fleet_pool_check
@@ -44,6 +44,7 @@ from src.core.game_state import (
     WindowType,
 )
 from src.core.hex_grid import HexGrid
+from src.core.invasion import advance as advance_invasion
 from src.core.invasion import begin_invasion
 from src.core.planet_stats import resources_of
 from src.core.production import active_grant, dual_production, producers
@@ -382,6 +383,88 @@ def advance_skipping_empty(
         previous = step
         current = next_step(current, registry)
     return current
+
+
+def auto_open_step(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry
+) -> tuple[GameState, str] | None:
+    """Opens the current step's window right on entry (RULES.md 19.1) - no "Start X" click.
+
+    SPACE_COMBAT with a mandatory combat starts the space combat; INVASION with something to
+    bombard or land begins the invasion. Returns ``(new_state, label)`` (the label names the
+    step for the history / Activity feed: ``battle:start:space`` / ``invasion:begin``) or
+    ``None`` when there is nothing to open, or it cannot open yet (open timing window, reaction
+    pause) - the player then starts it by hand once the blocker is gone.
+    """
+    if state.pending_window is not None or state.reaction_pause is not None:
+        return None
+    if state.held_play is not None:
+        return None
+    step = state.tactical_step
+    try:
+        if (
+            step is TacticalStep.SPACE_COMBAT
+            and state.active_combat is None
+            and space_combat_required(state)
+        ):
+            return start_combat(state, grid, registry, None), "battle:start:space"
+        if step is TacticalStep.INVASION and state.invasion is None and not state.invasion_resolved:
+            begun = begin_invasion(state, grid, registry)
+            if begun.invasion is None:
+                return None
+            return begun, "invasion:begin"
+    except ValueError:
+        return None
+    return None
+
+
+def advance_guided(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry
+) -> tuple[GameState, str]:
+    """"Next step" as the UI and bots use it: ``advance_skipping_empty`` + ``auto_open_step``.
+
+    Returns the new state and the history label: ``battle:start:space`` / ``invasion:begin``
+    when the entered step opened its window (the Activity feed names the event), otherwise
+    ``tactical:step``. One step, one settle - identical for the HTTP route and the bot engine.
+    """
+    advanced = advance_skipping_empty(state, grid, registry)
+    opened = auto_open_step(advanced, grid, registry)
+    return opened if opened is not None else (advanced, "tactical:step")
+
+
+def decline_invasion(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry
+) -> GameState:
+    """"Skip invasion": the active player bombards nothing and lands nothing (RULES.md 19.1).
+
+    Bombardment and committing ground forces are both optional, so an auto-opened invasion can be
+    closed without doing anything: Bombardment -> Commit (nothing) -> Establish -> closed. Not
+    allowed once something was committed, or when ground combat must still happen (contested
+    planet, I7a) - the regular invasion steps resolve those.
+
+    Raises:
+        ValueError: No invasion in progress, or the invasion cannot be declined any more.
+    """
+    inv = state.invasion
+    if inv is None or inv.source:
+        raise ValueError("There is no invasion to skip.")
+    if inv.committed or inv.phase not in (
+        InvasionPhase.BOMBARDMENT, InvasionPhase.COMMIT, InvasionPhase.ESTABLISH
+    ):
+        raise ValueError("Ground forces are already committed - finish the invasion.")
+    current = state
+    for _ in range(len(InvasionPhase) + 1):
+        if current.invasion is None:
+            return current
+        if current.invasion.phase not in (
+            InvasionPhase.BOMBARDMENT, InvasionPhase.COMMIT, InvasionPhase.ESTABLISH
+        ):
+            raise ValueError(
+                "Ground combat must still be fought on a contested planet - "
+                "the invasion cannot be skipped."
+            )
+        current = advance_invasion(current, grid, registry)
+    raise ValueError("The invasion could not be skipped.")
 
 
 def set_step(state: GameState, step: TacticalStep) -> GameState:

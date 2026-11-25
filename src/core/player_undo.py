@@ -64,6 +64,14 @@ class UndoTarget:
     reason: str | None = None
 
 
+def batch_tag(label: str) -> str | None:
+    """Flight-plan tag of a move snapshot (``tactical:move:<from>:b<n>``), else ``None``."""
+    parts = label.split(":")
+    if parts[:2] != ["tactical", "move"] or len(parts) < 4 or not parts[3].startswith("b"):
+        return None
+    return parts[3]
+
+
 def _others_changed(prev: GameState, nxt: GameState, player_id: str) -> bool:
     ids = (set(prev.players) | set(nxt.players)) - {player_id}
     for pid in ids:
@@ -114,7 +122,18 @@ def undo_target(chain: Sequence[Step], player_id: str) -> UndoTarget:
         index -= 1
     if index == 0:
         return UndoTarget(None, reason="Nothing of yours to undo")
-    step, prev = chain[index], chain[index - 1]
+    # A flight plan (RULES.md 32.4) is one declaration committed as several leg snapshots
+    # sharing a batch tag - undo it as a whole: step back to the snapshot before its first leg.
+    tag = batch_tag(chain[index].label)
+    first = index
+    while (
+        tag is not None
+        and first > 1
+        and batch_tag(chain[first - 1].label) == tag
+        and chain[first - 1].author == chain[index].author
+    ):
+        first -= 1
+    step, prev = chain[index], chain[first - 1]
     reason = step_block_reason(prev.state, step, player_id)
     if reason is not None:
         return UndoTarget(None, label=step.label, undone_seq=step.seq, reason=reason)
