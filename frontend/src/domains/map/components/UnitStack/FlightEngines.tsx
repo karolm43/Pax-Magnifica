@@ -6,13 +6,21 @@ import classes from "./FlightEngines.module.css";
 /** Ship art without a measurable sprite falls back to a typical hull size. */
 const FALLBACK_SIZE = 70;
 /** Stern distance from the sprite center, as a fraction of its size. */
-const REAR = 0.36;
+const REAR = 0.34;
+
+/** Elements the flight animation throttles with the ship's thrust curve. */
+export const THRUST_SELECTOR = "[data-thrust]";
 
 /**
- * Engine flames of a flying ship on the map (live move replay). Ship art faces north-west,
- * so the stern is south-east: the group is turned 45° and the flames trail along +x. It sits
- * inside the flying stack, so it banks, turns and shrinks into wormholes with the hull; it
- * lights up for the flight only (`--map-flight-duration`).
+ * Engine flames and ion wake of a flying ship on the map (live move replay). Ship art faces
+ * north-west, so the stern is south-east: the group is turned 45° and the flames trail along
+ * +x. It sits inside the flying stack, so it banks, turns and shrinks into wormholes with
+ * the hull.
+ *
+ * `throttled` (routed live flights): each nozzle and the wake follow the ship's thrust curve
+ * (`useMapFlightAnimation` animates `[data-thrust]`): a flare at launch, a burn that follows
+ * its speed, dying down as it brakes. Otherwise (history replays) a fixed CSS burn lights
+ * them for the flight (`--map-flight-duration`).
  */
 export function FlightEngines({
   unitType,
@@ -20,37 +28,55 @@ export function FlightEngines({
   x,
   y,
   zIndex,
+  throttled = false,
 }: {
   unitType: string;
   colorAlias: string;
   x: number;
   y: number;
   zIndex: number;
+  throttled?: boolean;
 }) {
   const nozzles = ENGINES[unitType];
   if (!nozzles) return null;
   const sprite = getUnitSprite(colorAlias, unitType);
   const size = sprite ? Math.min(sprite.width, sprite.height) : FALLBACK_SIZE;
+  const thrust = throttled ? { "data-thrust": "" } : {};
+  const spread = Math.max(...nozzles.offsets) - Math.min(...nozzles.offsets);
+  const wakeHeight = spread * size + nozzles.height * 2.6;
   return (
     <span
-      className={classes.engines}
+      className={`${classes.engines} ${throttled ? classes.throttled : ""}`}
       aria-hidden="true"
       style={{ left: x, top: y, zIndex } as CSSProperties}
     >
+      <span
+        {...thrust}
+        className={classes.wake}
+        style={{
+          left: size * REAR,
+          top: -wakeHeight / 2,
+          width: size * 2.4,
+          height: wakeHeight,
+        }}
+      />
       {nozzles.offsets.map((offset, index) => (
         <span
           key={index}
-          className={classes.flame}
-          style={
-            {
-              left: size * REAR,
-              top: offset * size - nozzles.height * 0.7,
-              width: size * nozzles.length * 1.8,
-              height: nozzles.height * 1.4,
-              animationDelay: `${index * -0.4}s`,
-            } as CSSProperties
-          }
-        />
+          {...thrust}
+          className={classes.nozzle}
+          style={{
+            left: size * REAR,
+            top: offset * size - nozzles.height,
+            width: size * nozzles.length * 2.6,
+            height: nozzles.height * 2,
+          }}
+        >
+          <span
+            className={classes.flame}
+            style={{ animationDelay: `${index * -0.17}s` }}
+          />
+        </span>
       ))}
     </span>
   );

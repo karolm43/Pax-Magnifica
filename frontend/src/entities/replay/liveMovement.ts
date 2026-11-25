@@ -310,9 +310,32 @@ function flightMs(movement: PlannedMovement): number {
 }
 
 /**
+ * Launch order of a fleet: the screen (destroyers) breaks orbit first, the capital ships
+ * follow in waves, the flagship / war sun last. Unlisted ships launch with the cruisers.
+ */
+const LAUNCH_WAVE: Record<string, number> = { dd: 0, ca: 1, cv: 2, dn: 3, fs: 4, ws: 4 };
+export const LAUNCH_WAVE_MS = 260;
+
+/**
+ * A fleet does not lift off as one block: each class of ship launches as a wave
+ * `LAUNCH_WAVE_MS` after the previous one, so the move reads as a war fleet getting under
+ * way (user decision). Cargo is not a wave: it rides inside its carrier.
+ */
+export function staggerFleetLaunch(movements: PlannedMovement[]): void {
+  const ships = movements.filter((m) => !RIDING_CARGO.has(m.source.unitId));
+  const waves = [...new Set(ships.map((m) => LAUNCH_WAVE[m.source.unitId] ?? 1))].sort(
+    (a, b) => a - b,
+  );
+  for (const movement of ships) {
+    const wave = waves.indexOf(LAUNCH_WAVE[movement.source.unitId] ?? 1);
+    movement.transition.delayMs = (movement.transition.delayMs ?? 0) + wave * LAUNCH_WAVE_MS;
+  }
+}
+
+/**
  * Fighters and ground forces pack into a moving ship with capacity (preferably one leaving
- * the same system): they slide into it and vanish, the fleet launches once they are aboard,
- * the carrier shows them as mini icons in flight, and they unpack from it when it lands.
+ * the same system): they slip under its hull and vanish, the fleet launches once they are
+ * aboard, nothing of them is drawn in flight, and they unpack from the carrier once it lands.
  */
 export function packRidingCargo(movements: PlannedMovement[]): void {
   const carriers = movements.filter(
@@ -324,13 +347,20 @@ export function packRidingCargo(movements: PlannedMovement[]): void {
     RIDING_CARGO.has(movement.source.unitId),
   );
   if (carriers.length === 0 || cargo.length === 0) return;
-  const loads = new Map<PlannedMovement, Map<string, number>>();
+  // Every ship waits for the cargo to board, so the fleet still leaves together.
+  for (const movement of movements) {
+    if (RIDING_CARGO.has(movement.source.unitId)) continue;
+    movement.transition.delayMs = (movement.transition.delayMs ?? 0) + PACK_MS;
+  }
   for (const item of cargo) {
     const carrier =
       carriers.find((c) => c.source.position === item.source.position) ??
       carriers[0];
     const { transition } = item;
     const sameSystem = carrier.source.position === item.source.position;
+    // Hidden from boarding until the carrier (launching in its own wave) has landed.
+    const boardedAt = (transition.delayMs ?? 0) + PACK_MS;
+    const landedAt = (carrier.transition.delayMs ?? 0) + flightMs(carrier);
     transition.cargoRide = {
       // Mid-route pickups board where they stand (the carrier passes by later).
       boardX: sameSystem ? carrier.transition.stack.x : transition.stack.x,
@@ -338,23 +368,9 @@ export function packRidingCargo(movements: PlannedMovement[]): void {
       landX: carrier.transition.toX,
       landY: carrier.transition.toY,
       packMs: PACK_MS,
-      rideMs: flightMs(carrier),
+      rideMs: Math.max(0, landedAt - boardedAt),
       unpackMs: UNPACK_MS,
     };
     transition.flightPath = undefined;
-    const load = loads.get(carrier) ?? new Map<string, number>();
-    const count = stateCount(unitStates(transition.stack));
-    load.set(item.source.unitId, (load.get(item.source.unitId) ?? 0) + count);
-    loads.set(carrier, load);
-  }
-  // Every ship waits for the cargo to board, so the fleet still leaves together.
-  for (const movement of movements) {
-    if (RIDING_CARGO.has(movement.source.unitId)) continue;
-    movement.transition.delayMs = (movement.transition.delayMs ?? 0) + PACK_MS;
-  }
-  for (const [carrier, load] of loads) {
-    carrier.transition.carriedCargo = [...load.entries()].map(
-      ([unitId, count]) => ({ unitId, count }),
-    );
   }
 }

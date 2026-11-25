@@ -6,7 +6,8 @@ import {
   replayRunDuration,
 } from "./historicalMapTransitions";
 import type { LiveFleetMove, LiveMove } from "./types";
-import { PACK_MS } from "./flightPath";
+import { PACK_MS, flightPathDuration } from "./flightPath";
+import { LAUNCH_WAVE_MS } from "./liveMovement";
 import { getPrintedLinkPoints } from "@/entities/geometry/wormholePoints";
 
 type TileSpec = {
@@ -171,12 +172,6 @@ describe("buildMapReplayPlan with a live move", () => {
       { liveMove: move(), activeFaction: "sol" },
     );
     const carrier = moved(plan, "cv")!;
-    expect(carrier.carriedCargo).toEqual(
-      expect.arrayContaining([
-        { unitId: "gf", count: 2 },
-        { unitId: "ff", count: 3 },
-      ]),
-    );
     // The fleet launches once the cargo is aboard.
     expect(carrier.delayMs).toBe(PACK_MS);
     for (const id of ["gf", "ff"]) {
@@ -190,6 +185,26 @@ describe("buildMapReplayPlan with a live move", () => {
       });
       expect(moved(plan, id)?.flightPath).toBeUndefined();
     }
+  });
+
+  it("launches the fleet in waves and keeps cargo hidden until its carrier lands", () => {
+    const units = [unit("dd", 1, 90, 90), unit("cv", 1), unit("gf", 2, 200, 180)];
+    const plan = buildMapReplayPlan(line({ "202": units }), line({ "000": units }), {
+      liveMove: move(),
+      activeFaction: "sol",
+    });
+    const destroyer = moved(plan, "dd")!;
+    const carrier = moved(plan, "cv")!;
+    // Destroyers screen ahead; the carrier follows one wave later.
+    expect(destroyer.delayMs).toBe(PACK_MS);
+    expect(carrier.delayMs).toBe(PACK_MS + LAUNCH_WAVE_MS);
+    // Infantry unpacks exactly when its (later) carrier has landed.
+    const infantry = moved(plan, "gf")!;
+    const ride = infantry.cargoRide!;
+    const carrierLanded =
+      carrier.delayMs! +
+      flightPathDuration({ x: carrier.stack.x, y: carrier.stack.y }, carrier.flightPath!);
+    expect((infantry.delayMs ?? 0) + ride.packMs + ride.rideMs).toBe(carrierLanded);
   });
 
   it("flies ground forces from space down to the planets of an invasion", () => {

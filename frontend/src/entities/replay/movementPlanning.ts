@@ -20,6 +20,7 @@ import type {
 import {
   liveLegs,
   packRidingCargo,
+  staggerFleetLaunch,
   resolveLiveMovement,
 } from "./liveMovement";
 import {
@@ -633,7 +634,10 @@ export function planMovements({
     }
   }
 
-  if (options.liveMove?.kind === "move") packRidingCargo(movements);
+  if (options.liveMove?.kind === "move") {
+    staggerFleetLaunch(movements);
+    packRidingCargo(movements);
+  }
   return { movements, movementArrivals, stagedRotations };
 }
 

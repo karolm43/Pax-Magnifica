@@ -93,7 +93,10 @@ describe("buildPathKeyframes", () => {
     );
   });
 
-  it("turns onto course in place before moving, and settles before parking", () => {
+  const rotationOf = (k: Keyframe) =>
+    Number(/rotate\((-?[\d.]+)deg\)/.exec(String(k.transform))?.[1]);
+
+  it("lifts off without pivoting, comes about while moving, and sets down already parked", () => {
     const { keyframes, durationMs } = buildPathKeyframes({
       start,
       legs: [{ x: 0, y: -400, kind: "lane" }],
@@ -101,18 +104,69 @@ describe("buildPathKeyframes", () => {
       startRotationDeg: 0,
       parkRotationDeg: 0,
     });
-    const [rest, onCourse] = keyframes;
-    expect(onCourse.offset).toBeCloseTo(IGNITION_MS / durationMs, 5);
-    // Still at the start, but the nose now points along the course (lifted off the board).
-    expect(String(onCourse.transform)).toContain("translate(0px, 0px)");
-    expect(String(onCourse.transform)).not.toContain("rotate(0deg)");
+    const [rest, lifted] = keyframes;
+    expect(lifted.offset).toBeCloseTo(IGNITION_MS / durationMs, 5);
+    // Lifted off the board in place, engines spooling, but not yet turned.
+    expect(String(lifted.transform)).toContain("translate(0px, 0px)");
+    expect(rotationOf(lifted)).toBe(0);
     expect(String(rest.transform)).toContain("scale(1)");
-    expect(String(onCourse.transform)).toContain("scale(1.07)");
-    // Settling: the last two frames share the landing point, the last one parks on the board.
+    expect(String(lifted.transform)).toContain("scale(1.1)");
+    // Mid-flight the nose points along the course (due north = 45 deg from the NW art).
+    const mid = keyframes[Math.floor(keyframes.length / 2)];
+    expect(rotationOf(mid)).toBeCloseTo(45, 0);
+    // Settling only sets it down: it swung to its parked heading while braking.
     const [braked, parked] = keyframes.slice(-2);
     expect(parked.offset! - braked.offset!).toBeCloseTo(SETTLE_MS / durationMs, 5);
+    expect(rotationOf(braked)).toBeCloseTo(rotationOf(parked), 5);
     expect(String(parked.transform)).toContain("translate(0px, -400px)");
     expect(String(parked.transform)).toContain("scale(1)");
+  });
+
+  it("turns gradually: no keyframe step swings the nose by much", () => {
+    const { keyframes } = buildPathKeyframes({
+      start,
+      legs: [
+        { x: 300, y: 0, kind: "lane" },
+        { x: 450, y: 260, kind: "lane" },
+        { x: 750, y: 260, kind: "lane" },
+      ],
+      rotateToTrajectory: true,
+      startRotationDeg: 0,
+      parkRotationDeg: 0,
+    });
+    const rotations = keyframes.map(rotationOf);
+    const steps = rotations.slice(1).map((r, i) => Math.abs(r - rotations[i]));
+    expect(Math.max(...steps)).toBeLessThan(25);
+  });
+
+  it("flies a single hop in a straight line", () => {
+    const { keyframes } = buildPathKeyframes({
+      start,
+      legs: [{ x: 600, y: 0, kind: "lane" }],
+      rotateToTrajectory: true,
+      startRotationDeg: 0,
+      parkRotationDeg: 0,
+    });
+    for (const k of keyframes) {
+      const y = Number(/translate\(-?[\d.e-]+px, (-?[\d.e-]+)px\) rotate/.exec(String(k.transform))?.[1]);
+      expect(Math.abs(y)).toBeLessThan(1e-6);
+    }
+  });
+
+  it("dives into a wormhole without spinning", () => {
+    const { keyframes } = buildPathKeyframes(base);
+    const rotations = keyframes.map(rotationOf);
+    expect(Math.max(...rotations) - Math.min(...rotations)).toBeLessThan(200);
+  });
+
+  it("throttles the engines: cold on the board, flaring at launch, cold once landed", () => {
+    const { keyframes, thrust } = buildPathKeyframes(base);
+    expect(thrust).toHaveLength(keyframes.length);
+    expect(thrust.map((k) => k.offset)).toEqual(keyframes.map((k) => k.offset));
+    expect(thrust[0].opacity).toBe(0);
+    expect(thrust.at(-1)!.opacity).toBe(0);
+    const level = (k: Keyframe) => Number(/scale\(([\d.]+),/.exec(String(k.transform))?.[1]);
+    expect(Math.max(...thrust.map(level))).toBeGreaterThan(1);
   });
 
   it("shrinks to nothing inside the wormhole", () => {

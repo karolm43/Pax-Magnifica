@@ -10,22 +10,62 @@
     var(--map-transition-delay, 0ms) forwards;
 }
 
-.flame {
-  position: absolute;
-  border-radius: 50%;
-  transform-origin: 0 50%;
-  filter: blur(1.4px);
-  background: linear-gradient(
-    to right,
-    rgba(255, 255, 255, 0.95),
-    rgba(125, 211, 252, 0.75) 30%,
-    rgba(59, 130, 246, 0.35) 60%,
-    transparent
-  );
-  animation: flameBreath 1.6s ease-in-out infinite;
+/* Routed flights: the flight animation throttles each nozzle and the wake itself. */
+.engines.throttled {
+  opacity: 1;
+  animation: none;
 }
 
-/* Spool up while the ship turns onto course, full burn in flight, cut while it settles. */
+/* Scaled from the stern outward by the thrust curve. */
+.nozzle,
+.wake {
+  position: absolute;
+  transform-origin: 0 50%;
+}
+
+.throttled .nozzle,
+.throttled .wake {
+  opacity: 0;
+}
+
+.flame {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  transform-origin: 0 50%;
+  filter: blur(1.2px);
+  background:
+    radial-gradient(
+      ellipse 22% 50% at 6% 50%,
+      rgba(255, 255, 255, 1),
+      rgba(186, 230, 253, 0.9) 60%,
+      transparent
+    ),
+    linear-gradient(
+      to right,
+      rgba(224, 242, 254, 0.95),
+      rgba(125, 211, 252, 0.85) 22%,
+      rgba(59, 130, 246, 0.45) 55%,
+      transparent
+    );
+  box-shadow: 0 0 10px 2px rgba(56, 189, 248, 0.35);
+  animation: flameFlicker 0.34s ease-in-out infinite alternate;
+}
+
+/* Ion wake: a long fading streak behind the hull, longest at cruise speed. */
+.wake {
+  border-radius: 50%;
+  filter: blur(4px);
+  background: linear-gradient(
+    to right,
+    rgba(125, 211, 252, 0.4),
+    rgba(56, 189, 248, 0.18) 35%,
+    rgba(30, 64, 175, 0.06) 70%,
+    transparent
+  );
+}
+
+/* Spool up while the ship launches, full burn in flight, cut while it settles. */
 @keyframes flightBurn {
   0% {
     opacity: 0;
@@ -47,15 +87,19 @@
   }
 }
 
-@keyframes flameBreath {
-  0%,
-  100% {
-    transform: scaleX(0.9);
-    opacity: 0.8;
+/* A fast, uneven flicker: a live burn, not a slow breath. */
+@keyframes flameFlicker {
+  0% {
+    transform: scaleX(0.88) scaleY(0.94);
+    opacity: 0.85;
   }
-  50% {
-    transform: scaleX(1.25);
+  45% {
+    transform: scaleX(1.06) scaleY(1.02);
     opacity: 1;
+  }
+  100% {
+    transform: scaleX(0.96) scaleY(0.98);
+    opacity: 0.92;
   }
 }
 

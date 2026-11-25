@@ -683,6 +683,25 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
 - QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
   ActivityPanel), build, e2e. Skipped: backend (no change).
 
+## Flight Replay: Ships That Fly, Cargo Goes Inside, Throttled Engines (2026-11-25)
+- User feedback: infantry/fighter icons drawn under/on the flying ships looked bad; too much rotation, ships did not
+  feel like they were flying; wanted visible engines and a war-fleet feel.
+- Cargo: no icons on the hull in flight (`CarriedCargo` and `carriedCargo` removed; `LooseCargo` split into its own
+  file). Boarding cargo is drawn BELOW the ships (no +200 badge z-boost for `cargoRide`), shrinks as it nears the
+  carrier and dwindles to a speck while fading as it slips under the hull; unpacking grows out from under it.
+- Motion (`flightPath.ts`): no pivot in place. Ignition only lifts off (+10% scale) and spools up the engines; the
+  ship comes about while accelerating and swings to its parked heading while braking (`TURN_WINDOW_*`); settle only
+  sets it down. Look-ahead steering (`LOOK_AHEAD_PX`) leads the nose into corners. A single hop is a straight line
+  (no arc). Wormholes: dive in holding the heading and emerge facing the next course (no 720° spin).
+- Engines: `buildPathKeyframes` returns a `thrust` timeline (flare at launch, burn with speed, fade while braking,
+  cold on landing) that the flight hook plays on each nozzle and a new ion wake (`[data-thrust]`); bigger flames with
+  a hot core and fast flicker. History replays keep the fixed CSS burn.
+- Fleet: ships launch in waves by class (`staggerFleetLaunch`: destroyers, cruisers, carriers, dreadnoughts,
+  flagship/war sun; `LAUNCH_WAVE_MS`); cargo unpacks exactly when its own carrier lands; wormhole/anomaly effects
+  are shared by ships passing within `SHARED_EFFECT_MS`.
+- QA: frontend tsc (app), eslint (changed), vitest (`entities/replay`, `state`, `domains/map`), build. Skipped:
+  backend (no change), e2e (replay layer only, not setup/flow), visual check in a live game.
+
 ## Titans: F_ul Ruling Coverage + Terragenesis Move Fix (2026-11-25)
 - New `tests/factions/test_rulings_titans.py`: 12 `@ruling` tests (terragenesis 1, awaken 3/4/6/7, terraform 2.1/5,
   heltitan 4, geoform 2, hecatoncheires 6, slumberstate-computing 1/4).

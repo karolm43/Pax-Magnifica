@@ -1,0 +1,15 @@
+/* A boarding / unpacking group: plain sprites in a loose cluster, no token, no count. */
+.loose {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  place-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+
+.looseUnit {
+  --unit-fit: 30px;
+  display: inline-flex;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.7));
+}

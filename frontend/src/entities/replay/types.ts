@@ -47,8 +47,6 @@ export type MapUnitTransition = {
    * `land` to `toX`/`toY`. World coordinates; times from `delayMs`.
    */
   cargoRide?: CargoRide;
-  /** Fighters / ground forces carried by this ship, shown as mini icons in flight. */
-  carriedCargo?: { unitId: string; count: number }[];
 };
 
 export type CargoRide = {

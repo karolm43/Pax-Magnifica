@@ -40,13 +40,20 @@ export const NATIVE_NORTHWEST_ANGLE = -135;
 /** Wormhole crossing: shrink into the swirl, a beat of nothing, emerge. */
 export const JUMP_MS = 2400;
 /**
- * A heavy ship first turns onto its course while the engines spool up, and after braking
- * to a stop turns back to its parked heading: real fleets do not pivot mid-air.
+ * Ignition: the ship lifts off and its engines spool up, without turning. It comes about
+ * onto its course while it gains speed and swings to its parked heading while it brakes,
+ * so it never pivots in place (user decision: "too much rotation, not flying").
+ * Settle: it sets down on the board once stopped.
  */
-export const IGNITION_MS = 900;
-export const SETTLE_MS = 700;
+export const IGNITION_MS = 600;
+export const SETTLE_MS = 450;
+/** Longest stretch of a flight spent coming about (start) or swinging to park (end). */
+const TURN_WINDOW_MS = 1500;
+const TURN_WINDOW_SHARE = 0.32;
+/** The nose steers toward the path this far ahead (px), so turns lead into corners. */
+const LOOK_AHEAD_PX = 70;
 /** Lifted off the board in flight: slightly bigger, with a deeper shadow below. */
-const LIFT_SCALE = 0.07;
+const LIFT_SCALE = 0.1;
 const JUMP_SHRINK = 0.42;
 const JUMP_HIDDEN = 0.16;
 const RIFT_SPEED = 1.55;
@@ -144,44 +151,31 @@ function catmullRom(p0: Point, p1: Point, p2: Point, p3: Point, t: number): Poin
   return { x: axis(p0.x, p1.x, p2.x, p3.x), y: axis(p0.y, p1.y, p2.y, p3.y) };
 }
 
-type DenseSample = Point & { cost: number; leg: number };
+type DenseSample = Point & { cost: number; dist: number; leg: number };
 
 /**
  * Dense samples along a chain with cumulative "cost" = distance / pace, so slow legs take
- * longer. A two-point chain bends slightly (like the legacy single-hop arc).
+ * longer, and cumulative distance `dist` for steering. A single hop is a straight line: the
+ * ship holds its heading across the whole flight.
  */
 function denseChain(chain: Chain): DenseSample[] {
   const pts = chain.points;
-  const samples: DenseSample[] = [{ ...pts[0], cost: 0, leg: 0 }];
-  let bendControl: Point | undefined;
-  if (pts.length === 2) {
-    const [a, b] = pts;
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const distance = Math.hypot(dx, dy) || 1;
-    const bend = Math.min(120, Math.max(24, distance * 0.14));
-    const direction = dx > 0 || (dx === 0 && dy >= 0) ? 1 : -1;
-    bendControl = {
-      x: a.x + dx * 0.5 + (-dy / distance) * bend * direction,
-      y: a.y + dy * 0.5 + (dx / distance) * bend * direction,
-    };
-  }
+  const samples: DenseSample[] = [{ ...pts[0], cost: 0, dist: 0, leg: 0 }];
   for (let leg = 0; leg < pts.length - 1; leg += 1) {
     const p0 = pts[Math.max(0, leg - 1)];
     const p1 = pts[leg];
     const p2 = pts[leg + 1];
     const p3 = pts[Math.min(pts.length - 1, leg + 2)];
     for (let i = 1; i <= DENSE_SAMPLES_PER_LEG; i += 1) {
-      const t = i / DENSE_SAMPLES_PER_LEG;
-      const point = bendControl
-        ? {
-            x: (1 - t) ** 2 * p1.x + 2 * (1 - t) * t * bendControl.x + t * t * p2.x,
-            y: (1 - t) ** 2 * p1.y + 2 * (1 - t) * t * bendControl.y + t * t * p2.y,
-          }
-        : catmullRom(p0, p1, p2, p3, t);
+      const point = catmullRom(p0, p1, p2, p3, i / DENSE_SAMPLES_PER_LEG);
       const previous = samples[samples.length - 1];
       const distance = Math.hypot(point.x - previous.x, point.y - previous.y);
-      samples.push({ ...point, cost: previous.cost + distance / chain.speeds[leg], leg });
+      samples.push({
+        ...point,
+        cost: previous.cost + distance / chain.speeds[leg],
+        dist: previous.dist + distance,
+        leg,
+      });
     }
   }
   return samples;
@@ -213,10 +207,22 @@ function sampleAtCost(dense: DenseSample[], cost: number): { point: Point; index
   return { point: { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f }, index };
 }
 
-function headingAt(dense: DenseSample[], index: number): number {
-  const a = dense[Math.max(0, index - 1)];
-  const b = dense[Math.min(dense.length - 1, index + 1)];
-  return (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI - NATIVE_NORTHWEST_ANGLE;
+function angleOf(from: Point, to: Point): number {
+  return (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI - NATIVE_NORTHWEST_ANGLE;
+}
+
+/**
+ * Steering heading at `point` (between samples `index - 1` and `index`): toward the path a
+ * little ahead, like a helmsman, so the nose turns smoothly into a corner instead of
+ * snapping at it. At the very end of the chain it keeps the final tangent.
+ */
+function headingAt(dense: DenseSample[], index: number, point: Point = dense[index]): number {
+  const target = dense[index].dist + LOOK_AHEAD_PX;
+  let ahead = index;
+  while (ahead < dense.length - 1 && dense[ahead].dist < target) ahead += 1;
+  const aim = dense[ahead];
+  if (Math.hypot(aim.x - point.x, aim.y - point.y) > 4) return angleOf(point, aim);
+  return angleOf(dense[Math.max(0, dense.length - 3)], dense[dense.length - 1]);
 }
 
 function unwrapAngle(previous: number, next: number): number {
@@ -227,6 +233,7 @@ function unwrapAngle(previous: number, next: number): number {
 }
 
 const smoothstep = (p: number) => p * p * (3 - 2 * p);
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
 // --- Keyframes -------------------------------------------------------------
 
@@ -261,24 +268,42 @@ const GLOW: Record<FlightAnomaly, string> = {
   nebula: "drop-shadow(0px 0px 5px rgba(148, 163, 184, 0.7))",
 };
 
+type ChainTurns = {
+  /** Heading held when the chain starts: the ship comes about from it while launching. */
+  from?: number;
+  /** Heading it swings to while braking at the chain's end (the parked heading). */
+  to?: number;
+};
+
 function chainFrames(
   chain: Chain,
   startMs: number,
   options: PathKeyframeOptions,
   entryRotation: number,
+  turns: ChainTurns,
 ): Frame[] {
   const dense = denseChain(chain);
   const total = dense[dense.length - 1].cost;
   const count = Math.min(60, Math.max(12, Math.round(chain.durationMs / KEYFRAME_EVERY_MS)));
+  const window = Math.min(TURN_WINDOW_SHARE, TURN_WINDOW_MS / Math.max(1, chain.durationMs));
   const frames: Frame[] = [];
   let previousHeading = entryRotation;
   for (let i = 0; i <= count; i += 1) {
     const u = i / count;
     const { point, index } = sampleAtCost(dense, easeInOut(u) * total);
-    const raw = unwrapAngle(previousHeading, headingAt(dense, index));
-    previousHeading = raw;
-    // Already on course (turned during ignition); the nose follows the path.
-    const rotation = options.rotateToTrajectory ? raw : 0;
+    const course = unwrapAngle(previousHeading, headingAt(dense, index, point));
+    previousHeading = course;
+    // Comes about while gaining speed, swings to its parked heading while braking.
+    let heading = course;
+    if (turns.from !== undefined) {
+      const from = unwrapAngle(course, turns.from);
+      heading = from + (course - from) * smoothstep(clamp01(u / window));
+    }
+    if (turns.to !== undefined) {
+      const to = unwrapAngle(heading, turns.to);
+      heading += (to - heading) * smoothstep(clamp01((u - (1 - window)) / window));
+    }
+    const rotation = options.rotateToTrajectory ? heading : 0;
     const leg = dense[index].leg;
     const glow =
       chain.anomalies[leg] === "nebula"
@@ -298,82 +323,126 @@ function chainFrames(
   return frames;
 }
 
-function jumpFrames(jump: Jump, startMs: number, rotation: number): Frame[] {
+/**
+ * Wormhole crossing: the ship dives into the swirl holding its heading and shrinks away,
+ * then emerges from the linked gate already facing its next course. No spinning.
+ */
+function jumpFrames(jump: Jump, startMs: number, rotation: number, exitRotation: number): Frame[] {
   const shrinkEnd = startMs + jump.durationMs * JUMP_SHRINK;
   const emergeStart = shrinkEnd + jump.durationMs * JUMP_HIDDEN;
   const end = startMs + jump.durationMs;
+  const exit = unwrapAngle(rotation, exitRotation);
   return [
     { timeMs: startMs, point: jump.from, rotation, scale: 1, lift: 1 },
-    { timeMs: shrinkEnd, point: jump.from, rotation: rotation + 300, scale: 0, lift: 1 },
-    { timeMs: emergeStart, point: jump.to, rotation: rotation + 300, scale: 0, lift: 1 },
-    { timeMs: end, point: jump.to, rotation: rotation + 720, scale: 1, lift: 1 },
+    { timeMs: shrinkEnd, point: jump.from, rotation, scale: 0, lift: 1 },
+    { timeMs: emergeStart, point: jump.to, rotation: exit, scale: 0, lift: 1 },
+    { timeMs: end, point: jump.to, rotation: exit, scale: 1, lift: 1 },
   ];
 }
 
-/** The heading the ship must face when it starts moving (rotation units). */
-function courseHeading(segment: FlightSegment | undefined, start: Point): number {
-  if (!segment) return 0;
-  if (segment.kind === "chain") return headingAt(denseChain(segment), 1);
-  const to = segment.kind === "jump" ? segment.from : start;
-  const angle = Math.atan2(to.y - start.y, to.x - start.x);
-  return (angle * 180) / Math.PI - NATIVE_NORTHWEST_ANGLE;
+/** Heading a chain starts on (rotation units). */
+function chainStartHeading(segment: FlightSegment | undefined): number | undefined {
+  return segment?.kind === "chain" ? headingAt(denseChain(segment), 0) : undefined;
 }
 
 /**
  * Keyframes for the whole path plus its total duration (linear timing: pace is baked in):
- * ignition (turn onto course, lift off) -> flight -> settle (stop, land, turn to park).
+ * ignition (lift off, engines spool up) -> flight (come about while launching, steer along
+ * the route, swing to the parked heading while braking) -> settle (set down).
+ *
+ * `thrust` animates the flying ship's engine flames on the same timeline: they flare as it
+ * launches, burn with its speed, die down as it brakes and go cold once it lands.
  */
 export function buildPathKeyframes(options: PathKeyframeOptions): {
   keyframes: Keyframe[];
+  thrust: Keyframe[];
   durationMs: number;
 } {
   const segments = flightSegments(options.start, options.legs);
   const turn = options.rotateToTrajectory;
   const startRotation = turn ? options.startRotationDeg : 0;
-  const onCourse = turn
-    ? unwrapAngle(startRotation, courseHeading(segments[0], options.start))
-    : 0;
+  const park = turn ? options.parkRotationDeg : 0;
+  const lastSegment = segments.at(-1);
   const frames: Frame[] = [
     { timeMs: 0, point: options.start, rotation: startRotation, scale: 1, lift: 0 },
-    { timeMs: IGNITION_MS, point: options.start, rotation: onCourse, scale: 1, lift: 1 },
+    { timeMs: IGNITION_MS, point: options.start, rotation: startRotation, scale: 1, lift: 1 },
   ];
   let clock = IGNITION_MS;
-  let rotation = onCourse;
-  for (const segment of segments) {
+  let rotation = startRotation;
+  segments.forEach((segment, index) => {
     const produced =
       segment.kind === "chain"
-        ? chainFrames(segment, clock, options, rotation)
-        : jumpFrames(segment, clock, rotation);
+        ? chainFrames(segment, clock, options, rotation, {
+            // Comes about while launching; after a wormhole it already faces its course.
+            from: index === 0 ? rotation : undefined,
+            to: segment === lastSegment ? park : undefined,
+          })
+        : jumpFrames(
+            segment,
+            clock,
+            rotation,
+            turn ? (chainStartHeading(segments[index + 1]) ?? rotation) : 0,
+          );
     // Each segment starts where the previous one ended: drop the duplicated joint frame.
-    // Jumps spin whole turns, so the heading stays continuous across them.
     frames.push(...produced.slice(1));
     clock += segment.durationMs;
     rotation = produced[produced.length - 1]?.rotation ?? rotation;
-  }
+  });
   const last = frames[frames.length - 1];
   clock += SETTLE_MS;
   frames.push({
     timeMs: clock,
     point: last.point,
-    rotation: turn ? unwrapAngle(rotation, options.parkRotationDeg) : 0,
+    rotation: turn ? unwrapAngle(rotation, park) : 0,
     scale: 1,
     lift: 0,
   });
   const durationMs = Math.max(1, clock);
+  const offsetOf = (frame: Frame) => Math.min(1, frame.timeMs / durationMs);
   const keyframes = frames.map((frame): Keyframe => {
     const scale = frame.scale * (1 + LIFT_SCALE * frame.lift);
     return {
-      offset: Math.min(1, frame.timeMs / durationMs),
+      offset: offsetOf(frame),
       opacity: 1,
       filter: `${shadow(frame.lift)} ${frame.glow ? GLOW[frame.glow] : NO_GLOW}`,
       transform: `translate(-50%, -50%) translate(${frame.point.x}px, ${frame.point.y}px) rotate(${frame.rotation}deg) scale(${scale})`,
     };
   });
-  if (keyframes.length > 0) {
-    keyframes[0].offset = 0;
-    keyframes[keyframes.length - 1].offset = 1;
+  const thrust = thrustLevels(frames).map(
+    (level, index): Keyframe => ({
+      offset: offsetOf(frames[index]),
+      opacity: Math.min(1, level * 2.5),
+      transform: `scale(${level.toFixed(3)}, ${(0.65 + 0.35 * Math.min(1, level)).toFixed(3)})`,
+    }),
+  );
+  for (const list of [keyframes, thrust]) {
+    list[0].offset = 0;
+    list[list.length - 1].offset = 1;
   }
-  return { keyframes, durationMs };
+  return { keyframes, thrust, durationMs };
+}
+
+/**
+ * Engine output per frame (0 = cold, ~1 = cruise burn): spooling up during ignition, a
+ * flare while the ship accelerates, a burn that follows its speed, fading as it brakes.
+ */
+function thrustLevels(frames: Frame[]): number[] {
+  const speeds = frames.map((frame, index) => {
+    const next = frames[Math.min(frames.length - 1, index + 1)];
+    const dt = next.timeMs - frame.timeMs;
+    // Inside a wormhole the ship is gone: its jump between the gates is no speed.
+    return dt > 0 && frame.scale > 0
+      ? Math.hypot(next.point.x - frame.point.x, next.point.y - frame.point.y) / dt
+      : 0;
+  });
+  const top = Math.max(...speeds) || 1;
+  return frames.map((frame, index) => {
+    if (index === 0 || frame.lift === 0) return 0;
+    if (frame.timeMs <= IGNITION_MS) return 0.7;
+    const speed = speeds[index] / top;
+    const accelerating = speeds[index] > speeds[index - 1] * 1.01;
+    return 0.35 + 0.8 * speed + (accelerating ? 0.45 * (1 - speed) : 0);
+  });
 }
 
 // --- Effects ---------------------------------------------------------------
@@ -416,7 +485,10 @@ function lastSampleOfLeg(dense: DenseSample[], leg: number): DenseSample | undef
 export const PACK_MS = 1100;
 /** ...and coming back out of it at the destination. */
 export const UNPACK_MS = 1300;
-const PACKED_SCALE = 0.2;
+/** Inside the hull: shrunk to a speck (and fully transparent). */
+const PACKED_SCALE = 0.08;
+/** Size on reaching the hatch: they shrink as they near the carrier. */
+const APPROACH_SCALE = 0.6;
 
 export type CargoRideTimes = { packMs: number; rideMs: number; unpackMs: number };
 
@@ -431,7 +503,6 @@ function headingTo(from: Point, to: Point): number {
   return (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI - NATIVE_NORTHWEST_ANGLE;
 }
 
-const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 const easeOutCubic = (u: number) => 1 - (1 - u) ** 3;
 
 /**
@@ -470,31 +541,33 @@ export function buildCargoKeyframes({
   });
   const origin = { x: 0, y: 0 };
 
-  // Boarding: turn (first 25%), accelerate and brake into the hangar, dock in the last third.
+  // Boarding: (turn,) glide toward the carrier shrinking as they near it, then slip under
+  // its hull dwindling to a speck as they fade. Drawn below the ship, they go inside it.
   const packHeading = rotate ? unwrapAngle(0, headingTo(origin, board)) : 0;
   for (let i = 0; i <= CARGO_STEPS; i += 1) {
     const u = i / CARGO_STEPS;
     const turn = smoothstep(clamp01(u / 0.25));
-    const travel = easeInOut(clamp01((u - 0.15) / 0.75));
-    const dock = smoothstep(clamp01((u - 0.7) / 0.3));
+    const travel = easeInOut(clamp01((u - 0.1) / 0.8));
+    const dock = smoothstep(clamp01((u - 0.6) / 0.4));
     push(
       u * times.packMs,
       lerp(origin, board, travel),
       packHeading * turn,
-      1 - (1 - PACKED_SCALE) * dock,
+      1 - (1 - APPROACH_SCALE) * travel - (APPROACH_SCALE - PACKED_SCALE) * dock,
       1 - dock,
     );
   }
   // Riding inside the carrier: hidden, carried to the landing point.
   push(times.packMs + times.rideMs, land, packHeading, PACKED_SCALE, 0);
 
-  // Unpacking: emerge (first 30%), launch out and brake, then turn to the parked heading.
+  // Unpacking: grow out from under the hull while fading in, fly out and brake, then turn
+  // to the parked heading.
   const outHeading = rotate ? unwrapAngle(packHeading, headingTo(land, arrival)) : 0;
   const parked = rotate ? unwrapAngle(outHeading, 0) : 0;
   const unpackStart = times.packMs + times.rideMs;
   for (let i = 1; i <= CARGO_STEPS; i += 1) {
     const u = i / CARGO_STEPS;
-    const emerge = smoothstep(clamp01(u / 0.3));
+    const emerge = smoothstep(clamp01(u / 0.45));
     const travel = easeOutCubic(clamp01(u / 0.8));
     const park = smoothstep(clamp01((u - 0.75) / 0.25));
     push(

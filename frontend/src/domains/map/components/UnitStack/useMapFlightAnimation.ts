@@ -6,6 +6,7 @@ import {
   type FlightLeg,
 } from "@/entities/replay/flightPath";
 import type { CargoRide } from "@/entities/replay/types";
+import { THRUST_SELECTOR } from "./FlightEngines";
 
 type Options = {
   enabled: boolean;
@@ -189,6 +190,16 @@ export function useMapFlightAnimation({
 
     const legs = pathKey ? (JSON.parse(pathKey) as FlightLeg[]) : undefined;
     const ride = cargoKey ? (JSON.parse(cargoKey) as CargoRide) : undefined;
+    const flight =
+      !ride && legs
+        ? buildPathKeyframes({
+            start: { x: 0, y: 0 },
+            legs,
+            rotateToTrajectory,
+            startRotationDeg,
+            parkRotationDeg,
+          })
+        : undefined;
     const routed = ride
       ? buildCargoKeyframes({
           board: { x: ride.boardX, y: ride.boardY },
@@ -199,15 +210,7 @@ export function useMapFlightAnimation({
           unpackMs: ride.unpackMs,
           rotate: rotateToTrajectory,
         })
-      : legs
-        ? buildPathKeyframes({
-            start: { x: 0, y: 0 },
-            legs,
-            rotateToTrajectory,
-            startRotationDeg,
-            parkRotationDeg,
-          })
-        : undefined;
+      : flight;
     const keyframes =
       routed?.keyframes ??
       buildFlightKeyframes({
@@ -246,6 +249,17 @@ export function useMapFlightAnimation({
       easing: routed ? "linear" : FLIGHT_EASING,
       fill: routed ? "both" : "forwards",
     });
+    // Engine flames and wake follow the ship's thrust (rendered as children, so present now).
+    const thrustAnimations = flight
+      ? Array.from(element.querySelectorAll<HTMLElement>(THRUST_SELECTOR), (node) =>
+          node.animate(flight.thrust, {
+            duration: flight.durationMs,
+            delay: delayMs,
+            easing: "linear",
+            fill: "both",
+          }),
+        )
+      : [];
     const continuationKeyframes = continuation
       ? buildFlightKeyframes({
           startX: deltaX,
@@ -299,6 +313,7 @@ export function useMapFlightAnimation({
     return () => {
       disposed = true;
       animation.cancel();
+      for (const thrust of thrustAnimations) thrust.cancel();
       continuationAnimation?.cancel();
       holdAnimation?.cancel();
       if (hideTimer !== undefined) window.clearTimeout(hideTimer);

@@ -116,22 +116,27 @@ function mapUnitTransitionEnd(transition: MapUnitTransition): number {
 /** Shared with the map flight animation so replay timing matches what is drawn. */
 export { flightDuration };
 
+/** A fleet launches in waves: one swirl / pulse covers ships passing within this time. */
+const SHARED_EFFECT_MS = 1200;
+
 /**
  * Wormhole swirls and anomaly pulses of every multi-hop flight. A fleet flies one route
- * together, so effects at the same spot and moment are drawn once.
+ * together (in launch waves), so effects at the same spot and moment are drawn once.
  */
 function collectFlightEffects(transitions: MapUnitTransition[]): MapFlightEffect[] {
-  const seen = new Set<string>();
   const effects: MapFlightEffect[] = [];
   for (const transition of transitions) {
     if (!transition.flightPath) continue;
     const start = { x: transition.stack.x, y: transition.stack.y };
     for (const { atMs, ...effect } of flightEffects(start, transition.flightPath)) {
       const delayMs = (transition.delayMs ?? 0) + atMs;
-      const key = `${effect.kind}:${Math.round(effect.x / 60)}:${Math.round(effect.y / 60)}:${Math.round(delayMs / 150)}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      effects.push({ ...effect, delayMs });
+      const shared = effects.some(
+        (other) =>
+          other.kind === effect.kind &&
+          Math.hypot(other.x - effect.x, other.y - effect.y) < 60 &&
+          Math.abs(other.delayMs - delayMs) < SHARED_EFFECT_MS,
+      );
+      if (!shared) effects.push({ ...effect, delayMs });
     }
   }
   return effects;

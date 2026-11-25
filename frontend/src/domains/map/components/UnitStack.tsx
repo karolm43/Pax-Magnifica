@@ -16,7 +16,7 @@ import { useDecalPaths } from "./UnitStack/useDecalPaths";
 import { getGenericUnitDataByAsyncId } from "@/entities/lookup/units";
 import { useMapFlightAnimation } from "./UnitStack/useMapFlightAnimation";
 import { GalvanizeBadge } from "./UnitStack/GalvanizeBadge";
-import { CarriedCargo, LooseCargo } from "./UnitStack/CarriedCargo";
+import { LooseCargo } from "./UnitStack/LooseCargo";
 import { FlightEngines } from "./UnitStack/FlightEngines";
 import {
   flightOptions,
@@ -136,9 +136,11 @@ export function UnitStack({
     dragLoadTarget?.position === tilePosition &&
     dragLoadTarget?.asyncId === unitType;
   /* Combat badges are compact summaries and must stay legible above the much
-     larger rotated ship silhouettes in the transition layer. */
+     larger rotated ship silhouettes in the transition layer. Cargo boarding or leaving a
+     carrier stays BELOW the ships: it slips under the hull, so it reads as going inside. */
   const baseZIndex =
-    getUnitZIndex(unitType, 0) + (mapTransition && isBadge ? 200 : 0);
+    getUnitZIndex(unitType, 0) +
+    (mapTransition && isBadge && !mapTransition.cargoRide ? 200 : 0);
   // Ships turn along their course; fighters boarding or leaving a carrier turn too.
   const rotateInFlight =
     (!isBadge && getGenericUnitDataByAsyncId(unitType)?.isShip === true) ||
@@ -280,9 +282,6 @@ export function UnitStack({
         />
       )}
 
-      {mapTransition?.carriedCargo && (
-        <CarriedCargo cargo={mapTransition.carriedCargo} colorAlias={colorAlias} />
-      )}
       {slots.map((slot) => {
         const { stackOffsetX, stackOffsetY, zIndexOffset } =
           calculateUnitArrangement(
@@ -347,6 +346,7 @@ export function UnitStack({
             x={xPos}
             y={yPos}
             zIndex={baseZIndex + zIndexOffset - 1}
+            throttled={!!mapTransition?.flightPath}
           />,
           unit,
         ];
