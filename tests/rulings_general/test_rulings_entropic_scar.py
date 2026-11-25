@@ -34,7 +34,7 @@ from src.core.hex_grid import HexGrid
 from src.core.hooks import entropic_scar as scar_hooks
 from src.core.registry import StaticDataRegistry
 from tests.rulings import ruling
-from tests.test_exploration import _with_card
+from tests.test_exploration import _card_id, _with_card
 
 SCAR = "114"  # Entropic Scar (bez planet)
 LEMOX_TILE = "116"  # Lemox - blizna z planetą
@@ -168,6 +168,24 @@ def test_planetary_shield_and_bombardment_do_not_work_in_scar(
     assert started.invasion.phase is InvasionPhase.COMMIT  # bez kroku Bombardment
 
 
+@ruling("R_entropic_scars/notes/2.2")
+def test_unit_in_scar_keeps_its_unit_ability_for_text_that_needs_one(
+    registry: StaticDataRegistry,
+) -> None:
+    """Dok w bliźnie nie UŻYWA Production, ale nadal je MA: komendant Arborec (Dirzuga Rophal -
+    tekst wymagający jednostki z Production) może zadziałać po aktywacji systemu przez rywala."""
+    from src.core.hooks.factions import arborec
+
+    state = _state(LEMOX_TILE, planet={"p1": {"spacedock": 1}}, factions={"p1": "arborec"})
+    state.systems["000"].planet_owners[LEMOX] = "p1"
+    assert production.producers(state, registry, "p1", "000") == []  # nie używa
+    assert production.producers(state, registry, "p1", "000", ignore_scar=True)  # nadal ma
+    assert arborec._commander_ready(state, "p1", {"player": "p2", "position": "000"})
+    plain = state.clone()
+    plain.systems["000"].system_id = PLAIN
+    assert arborec._commander_ready(plain, "p1", {"player": "p2", "position": "000"})
+
+
 @ruling("R_entropic_scars/notes/2.1")
 def test_text_abilities_still_work_in_scar(registry: StaticDataRegistry) -> None:
     """Zdolność tekstowa (Fragile Jol-Nar: -1 do rzutów) działa w bliźnie."""
@@ -198,7 +216,9 @@ def test_deploy_cannot_place_in_scar(registry: StaticDataRegistry) -> None:
 # ============================================================================ żetony wormhole
 
 
-@ruling("R_entropic_scars/notes/4")
+@ruling(
+    "R_entropic_scars/notes/4", "R_entropic_scars/notes/4.1", "R_entropic_scars/notes/4.4"
+)
 def test_gamma_wormhole_token_returns_from_scar(registry: StaticDataRegistry) -> None:
     from tests.test_exploration import _state as explore_state
 
@@ -208,6 +228,24 @@ def test_gamma_wormhole_token_returns_from_scar(registry: StaticDataRegistry) ->
     done = exploration.resolve(state, registry, "place")
     assert done.systems["000"].wormhole_tokens == []
     assert done.exploration is not None and done.exploration.log[-1]["fate"] == "purged"
+    # 4.4: karta i tak idzie do purge; 4.1: żeton nie leży na planszy (wrócił do puli).
+    assert _card_id(registry, "Gamma Wormhole") in done.decks.purged
+    assert not any(s.wormhole_tokens for s in done.systems.values())
+
+
+@ruling("R_entropic_scars/notes/4.5")
+def test_ion_storm_token_is_discarded_in_a_scar_card_stays_in_common_area(
+    registry: StaticDataRegistry,
+) -> None:
+    from tests.test_exploration import _state as explore_state
+
+    base = explore_state()
+    base.systems["000"].system_id = LEMOX_TILE
+    state = _with_card(base, registry, "Ion Storm", planet=LEMOX)
+    done = exploration.resolve(state, registry, "place", "ALPHA")
+    assert done.systems["000"].ion_storm is None
+    assert not any(s.ion_storm for s in done.systems.values())
+    assert _card_id(registry, "Ion Storm") in done.decks.common_play_area
 
 
 # ===================================================================== start fazy statusu

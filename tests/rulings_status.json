@@ -14,9 +14,6 @@
   "F_ul/coalescence/4": {
     "gap": "When another effect ends the Ul player's turn (e.g. Nullification Field), tactical.end_tactical_action drops the pending invasion/combat; no forced Coalescence combat is resolved afterwards."
   },
-  "F_ul/terraform/4": {
-    "gap": "exploration.start_exploration filters planets with exploration.explorable(registry, planet), which ignores attachments; Fracture planets (cocytus, styx, lethe, phlegethon) have only the LIGHTNING trait, so a Terraformed Fracture planet is never explored."
-  },
   "F_ul/hecatoncheires/5": {
     "gap": "Coexistence (block I4) is not implemented - Hecatoncheires DEPLOY via Slumberstate cannot place units into coexistence (see breakthroughs:titansbt#1)."
   },
@@ -27,7 +24,9 @@
     "gap": "Coexistence (block I4) is not implemented - no additional action cards in the status phase Draw Action Cards step (see breakthroughs:titansbt#2)."
   },
   "F_naalu/neuroglaive/1": {
-    "requires": ["faction:mahact"],
+    "requires": [
+      "faction:mahact"
+    ],
     "reason": "Żetony innych graczy w puli floty Mahact (Edict) - frakcja Mahact niezaimplementowana."
   },
   "F_naalu/zeu-replaced-by-omega/*": {
@@ -48,6 +47,12 @@
   "F_naaz_rokha/eidolon-maximum/3": {
     "gap": "Eidolon Maximum w przestrzeni liczy się zawsze do puli floty (statek), nigdy do pojemności - wariant „albo pojemność” niedostępny (test: test_eidolon_maximum_rusza_sie_i_liczy_do_puli)."
   },
+  "F_naaz_rokha/eidolon-maximum/2.1": {
+    "gap": "Eidolon Maximum on a planet does not join space combat - battle.combat_units(kind=\"space\") only sees mechs in the space area (POINT_COMBAT_SPACE_GROUND_VARIANT covers space units only)."
+  },
+  "F_naaz_rokha/eidolon-maximum/2.2": {
+    "gap": "Eidolon Maximum on a planet is not a ship for ship_roles.space_ships - it does not block movement, count toward ship objectives or blockade space docks."
+  },
   "F_naaz_rokha/eidolon-maximum/2.3": {
     "gap": "Direct Hit na Eidolon Maximum działa w walce kosmicznej (ślad Sustain Damage), ale nie w walce naziemnej - Direct Hit w silniku obsługuje tylko walkę kosmiczną i Space Cannon."
   },
@@ -59,11 +64,25 @@
     "na": "Nieaktywny wariant bohatera (Codex Ω): grę gra Xxekir Grom z Thunder's Edge (xxchahero-te), decyzja użytkownika 2026-11-16."
   },
   "F_xxcha/elder-qanoj/4": {
-    "requires": ["faction:nekro"],
+    "requires": [
+      "faction:nekro"
+    ],
     "reason": "Nekro z notką Alliance Xxcha głosuje i nadal przewiduje wynik (Galactic Threat)."
   },
   "F_arborec/stymie-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko Stymie Ω („After another player moves ships into a system…”, karta wraca od razu); ta sekcja opisuje starą kartę leżącą w strefie gry."
+  },
+  "F_yin/yin-ascendant/1.1": {
+    "requires": [
+      "faction:mahact"
+    ],
+    "reason": "Mahact alliance card (Il Na Viroset commander ability via Yin Ascendant) - Mahact faction not implemented."
+  },
+  "F_yin/yin-ascendant/2": {
+    "requires": [
+      "faction:firmament"
+    ],
+    "reason": "Firmament/Obsidian each have their own alliance card (Yin Ascendant gains it) - Firmament faction not implemented."
   },
   "F_yin/greyfire-mutagen-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Greyfire Mutagen Ω - notka zastępująca piechotę, nie kopiowanie zdolności frakcji); ta sekcja opisuje starą kartę z PoK."
@@ -81,11 +100,15 @@
     "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Dannel of the Tenth Ω - Quantum Dissemination); ta sekcja opisuje starą kartę z PoK."
   },
   "F_argent/raid-formation/4.2": {
-    "requires": ["faction:empyrean"],
+    "requires": [
+      "faction:empyrean"
+    ],
     "reason": "Dynamo (flagowiec Empyrean) nie naprawia statków uszkodzonych przez Raid Formation - frakcja niezaimplementowana."
   },
   "F_argent/raid-formation/6": {
-    "requires": ["faction:nekro"],
+    "requires": [
+      "faction:nekro"
+    ],
     "reason": "Mechy Nekro w walce kosmicznej (The Alastor) mogą zostać uszkodzone przez Raid Formation - frakcja niezaimplementowana."
   },
   "F_lizix/cybernetic-enhancements-replaced-by-omega/2": {
@@ -98,18 +121,24 @@
     "na": "Umowy między graczami są niewiążące i poza silnikiem (R_trade, RULES.md 47): silnik nie egzekwuje obietnic co do momentu zagrania notki."
   },
   "F_jol_nar/rin-the-masters-legacy-genetic-memory/4": {
-    "requires": ["faction:nekro"],
+    "requires": [
+      "faction:nekro"
+    ],
     "reason": "Commander Nekro (Alliance u Jol-Nar) nie dobiera kart akcji przy Genetic Memory - Genetic Memory nie wywołuje badania (grant_technology), test po wdrożeniu Nekro."
   },
   "F_mentak/pillage/2": {
-    "requires": ["faction:creuss"],
+    "requires": [
+      "faction:creuss"
+    ],
     "reason": "Sąsiedztwo przez Quantum Entanglement (Creuss: alfa = beta) - frakcja niezaimplementowana; Pillage liczy sąsiedztwo z neighbors_of, które wtedy je uwzględni."
   },
   "F_mentak/pillage/6.1": {
     "na": "Umowy między graczami są niewiążące i poza silnikiem (R_trade, RULES.md 47); Pillage jest ofertą po rozstrzygnięciu transakcji (TRANSACTION AFTER) - silnik nie przyjmuje deklaracji wcześniej."
   },
   "F_mentak/corsair/3": {
-    "requires": ["faction:nekro"],
+    "requires": [
+      "faction:nekro"
+    ],
     "reason": "Valefar Assimilator (Nekro) na Corsairze - frakcja niezaimplementowana."
   },
   "F_letnev/war-funding-replaced-by-omega/*": {
@@ -118,42 +147,62 @@
   "F_letnev/arc-secundus/2": {
     "na": "Nieaktywny wariant: w grze jest tylko Magen Defense Grid ΩΩ (md, codex4) - md_base jest zastąpiony (technologies_combat.declare_superseded); ruling 3.1 ma test."
   },
+  "F_letnev/gravleash-maneuvers/7": {
+    "gap": "The Gravleash bonus is chosen once at the start of the combat round and stored on that ship's roll; rerolling (Munitions Reserves, battle_rerolls.reroll_combat_dice) keeps it on the same ship. Nothing lets the player move the bonus to another ship after a reroll."
+  },
+  "F_letnev/gravleash-maneuvers/8": {
+    "requires": [
+      "faction:nomad"
+    ],
+    "reason": "The Thundarian (Nomad agent) is not implemented; once it is, moving the bonus to another ship needs the same mechanism as gravleash-maneuvers/7."
+  },
   "F_winnu/acquiescence-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko Acquiescence Ω („When the Winnu player resolves a strategic action: You do not have to spend or place a command token…”); ta sekcja opisuje starą notkę z zamianą kart strategii."
   },
   "F_winnu/salai-sai-corian/2": {
-    "requires": ["faction:nekro"],
+    "requires": [
+      "faction:nekro"
+    ],
     "reason": "Siły naziemne Nekro w walce w przestrzeni przez flagowiec The Alastor - frakcja niezaimplementowana; Salai Sai Corian liczy dziś statki bez myśliwców w przestrzeni."
   },
   "F_winnu/lazax-gate-folding/2.4": {
-    "requires": ["faction:creuss"],
+    "requires": [
+      "faction:creuss"
+    ],
     "reason": "Dimensional Splicer Creuss w Mecatol Rex w akcji Winnu - frakcja niezaimplementowana; sąsiedztwo z akcji liczy action_adjacency, z którego skorzysta."
   },
   "C_relics/book-of-latvinia/3": {
-    "requires": ["faction:nekro"],
+    "requires": [
+      "faction:nekro"
+    ],
     "reason": "Nekro zamiast badania technologii bierze żetony dowodzenia (sześć zamiast dwóch technologii z Book of Latvinia)."
   },
   "C_relics/jrxs455o/1.1": {
-    "requires": ["faction:nomad"],
+    "requires": [
+      "faction:nomad"
+    ],
     "reason": "Temporal Command Suite (Nomad) odświeża JR-XS455-O jak agenta."
   },
   "C_relics/jrxs455o/1.2": {
-    "requires": ["faction:yssaril"],
+    "requires": [
+      "faction:yssaril"
+    ],
     "reason": "Ssruu (agent Yssaril) kopiuje zdolność JR-XS455-O."
   },
   "C_relics/the-prophets-tears/2": {
-    "requires": ["faction:nekro"],
+    "requires": [
+      "faction:nekro"
+    ],
     "reason": "Nekro dobiera kartę akcji z Prophet's Tears, gdy badałby technologię."
   },
   "C_exploration_cards/ion-storm/2.1": {
-    "requires": ["faction:creuss"],
+    "requires": [
+      "faction:creuss"
+    ],
     "reason": "Hil Colish (flagowiec Creuss) rusza się przed/po innych statkach i może użyć obu stron Ion Storm."
   },
   "R_attach/rules-reference/2.1": {
     "na": "Żadna karta attach w aktywnych assetach nie ma stanu wyczerpania - silnik trzyma attachmenty jako listę kart przy planecie (planet_attachments), stan planety jest osobny."
-  },
-  "C_technology/sling-relay/2": {
-    "gap": "Grant produkcji Sling Relay można zamknąć bez jednostki (production.skip_grant „Finish”) - karta zostaje wyczerpana, a akcja wykonana bez wyprodukowania statku. Ruling: Sling Relay nie może być użyty bez produkcji."
   },
   "C_technology/x89-bacterial-weapon-omega/*": {
     "na": "Wersja Ω (codex1) zastąpiona przez X-89 ΩΩ (codex4, technologies_combat.X89_ALIAS; rules_hooks.declare_superseded) - w grze tylko ΩΩ."
@@ -171,7 +220,10 @@
     "gap": "Brak okna „po dołożeniu statków na starcie walki każdy inny gracz może użyć jednej zdolności przed Assault Cannon” - hooki startu walki rozstrzygają się po kolei bez takiego okna."
   },
   "C_technology/assault-cannon/3.2": {
-    "requires": ["faction:nekro", "faction:naaz"],
+    "requires": [
+      "faction:nekro",
+      "faction:naaz"
+    ],
     "reason": "Przykłady dokładania statków na starcie walki: The Alastor (Nekro), Eidolon (Naaz-Rokha), Sleeper Cell + Ambush (Mentak, bohater)."
   },
   "C_promissory_notes/ceasefire/3": {
@@ -184,8 +236,16 @@
     "na": "Ruling dotyczy starej wersji Magmus Reactor (TG za war suna przy produkcji). Assety mają tekst Ω: „Your ships can move into supernovas. Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability...” (RULES.md 62.13)."
   },
   "F_saar/floating-factory/14.1": {
-    "requires": ["faction:nekro"],
+    "requires": [
+      "faction:nekro"
+    ],
     "reason": "Alastor (Nekro): siły naziemne walczące jak statki blokują dok - po implementacji Nekro (blokada liczy dziś statki w przestrzeni)."
+  },
+  "F_saar/chaos-mapping/7": {
+    "requires": [
+      "faction:creuss"
+    ],
+    "reason": "Creuss wormhole token placement is not implemented; the 'cannot activate' half is covered by technologies:cm#1 (test_chaos_mapping_blokuje_aktywacje_pola_asteroid)."
   },
   "F_muaat/umbat/4": {
     "na": "Ruling o produkcyjnych commanderach Naalu/Yin (PoK). W assetach grają M'aban z Codexu (podgląd notek sąsiadów i talii agend, RULES.md 62.16) i Brother Omar Ω (zielony prerekwizyt) - żaden nie zmienia produkcji; limit 2 sztuk grantu Umbat ma test test_umbat_wybrany_gracz_produkuje_2_tanie_jednostki."
@@ -194,15 +254,22 @@
     "na": "Regulated Conscription + produkcyjny commander Naalu/Yin (PoK) - aktywne wersje commanderów (M'aban Codex, Brother Omar Ω) nie produkują jednostek."
   },
   "F_muaat/magmus/2.2": {
-    "requires": ["secret_objectives:fsn", "leaders:mentakagent"],
+    "requires": [
+      "secret_objectives:fsn",
+      "leaders:mentakagent"
+    ],
     "reason": "Jednoczesne punktowanie Lead From the Front i Form a Spy Network przed Pillage (Suffi An) - wymaga punktowania kilku celów naraz."
   },
   "F_muaat/adjudicator-baal-nova-seed/1.1": {
-    "requires": ["faction:mahact"],
+    "requires": [
+      "faction:mahact"
+    ],
     "reason": "Benediction (bohater Mahact) przesuwa war suna Muaat - wtedy bez Nova Seed."
   },
   "F_muaat/adjudicator-baal-nova-seed/8": {
-    "requires": ["faction:empyrean"],
+    "requires": [
+      "faction:empyrean"
+    ],
     "reason": "Agent Empyrean (Acamar) po Nova Seed na systemie z planetami."
   },
   "F_vuilraith/amalgamation/5": {
@@ -212,11 +279,16 @@
     "gap": "Trade primary zbiera wybór graczy z darmowym secondary (krok choose_free_players) PRZED wykonaniem primary - oferta agenta pojawia się po uzupełnieniu commodities, ale już po tym wyborze."
   },
   "F_vuilraith/it-feeds-on-carrion-dimensional-anchor/6": {
-    "requires": ["faction:nekro"],
+    "requires": [
+      "faction:nekro"
+    ],
     "reason": "Valefar Assimilator kopiujący Dimensional Tear II - frakcja Nekro niezaimplementowana."
   },
   "R_capture/notes/3": {
-    "requires": ["faction:nekro", "faction:yssaril"],
+    "requires": [
+      "faction:nekro",
+      "faction:yssaril"
+    ],
     "reason": "Przechwytywanie skopiowaną zdolnością bez wydawania - frakcje Nekro i Yssaril niezaimplementowane."
   },
   "F_lizix/cybernetic-enhancements-replaced-by-omega/1": {
@@ -236,5 +308,161 @@
   },
   "C_technology/x89-bacterial-weapon/1": {
     "na": "Nagłówek tirules bez treści reguły: karta zastąpiona wersją Ω (rulingi wersji aktywnej są w osobnej sekcji)."
+  },
+  "F_vuilraith/dimensional-tear/5": {
+    "gap": "Nekro copying Dimensional Tear II (its space docks become gravity rifts for the Vuil'raith player) is not implemented."
+  },
+  "F_muaat/adjudicator-baal-nova-seed/10": {
+    "gap": "Foresight (Naalu) rozstrzyga się w oknie SYSTEM_ACTIVATED, przed ruchem war suna, więc silnik nie modeluje kolejności 'Nova Seed przed Foresight' dla systemu z okrętami Naalu; wymaga okna po ruchu wspólnego dla obu zdolności."
+  },
+  "F_mentak/corsair/4": {
+    "requires": [
+      "faction:nekro"
+    ],
+    "reason": "Nekro kopiujący Cruiser II (Mentak nadal posiada Cruiser II pod Corsair) - frakcja Nekro niezaimplementowana."
+  },
+  "R_entropic_scars/notes/4.2": {
+    "requires": [
+      "faction:creuss"
+    ],
+    "reason": "Wormhole Generator (Creuss) placing or moving a wormhole token into an entropic scar: the token is discarded. No Creuss implementation exists in src/."
+  },
+  "R_entropic_scars/notes/4.3": {
+    "requires": [
+      "faction:creuss"
+    ],
+    "reason": "The Hil Colish delta wormhole is not affected by an entropic scar, because the flagship is a ship and not a wormhole token. It needs the Creuss flagship."
+  },
+  "R_frontier_tokens/notes/2": {
+    "na": "No tile in the active assets has a space station without planets. The only SPACESTATION planet, 'loststation', is in no system tile. game_setup.place_frontier_tokens skips any system with a non-empty planets list, so it would also skip a station-only tile if one were added."
+  },
+  "R_exploration/notes/1": {
+    "gap": "Engine doesn't make exploration come before 'after you gain control' abilities. set_planet_control fires PLANET_CONTROL_GAINED/AFTER (creating the Integrated Economy offer) before invasion.py starts the exploration; the IE offer can be accepted while the exploration is unresolved."
+  },
+  "C_technology/plasma-scoring/2": {
+    "gap": "Bombardment models one defender per planet (invasion_bombard.bombard_defender returns a single defender), so separate Bombardment rolls against multiple coexisting players on one planet do not exist. Ruling: Plasma Scoring adds its die to only one of those rolls."
+  },
+  "C_technology/integrated-economy/6": {
+    "gap": "There is no Nomad commander (Navarch Feng) hook, and Integrated Economy (technologies_actions.integrated_economy, ProductionGrant.max_cost) has no cost-reduction path. Ruling: effects that let a player produce for less than cost do not change the unit's cost."
+  },
+  "C_relics/metali-void-shielding/5": {
+    "requires": [
+      "faction:nekro"
+    ],
+    "reason": "Nekro (flagship The Alastor, ground forces in space combat) is not implemented, so there is nothing to test."
+  },
+  "C_action_cards/lie-in-wait/1": {
+    "na": "A deal for a player to play an action card is an agreement outside the rules; the engine has no such transaction component. Lie In Wait is an optional window after the transaction and reads the live hand, so any card played earlier is already gone when it resolves."
+  },
+  "C_promissory_notes/support-for-the-throne/8.1": {
+    "na": "Flavor text ('a betrayal most foul'); no mechanical effect. The mechanical half is covered by support-for-the-throne/8."
+  },
+  "F_jol_nar/rin-the-masters-legacy-genetic-memory/5": {
+    "requires": [
+      "faction:nekro"
+    ],
+    "reason": "Valefar Assimilator (Nekro) is not implemented - nothing copies a faction technology, so there is no token to keep on a technology replaced by Genetic Memory. Test after Nekro lands."
+  },
+  "F_hacan/pride-of-kenara/4": {
+    "gap": "Coexistence (block I4) is not implemented - a planet traded with Pride of Kenara cannot hold coexisting units, and nothing models the Integrated Economy timing (RULES.md 62.18)."
+  },
+  "C_agendas/armed-forces-standardization/1": {
+    "requires": [
+      "faction:mahact"
+    ],
+    "reason": "The ruling is about a Mahact player electing themselves and choosing which fleet-pool command tokens to remove. Mahact is not implemented."
+  },
+  "C_agendas/committee-formation/3": {
+    "requires": [
+      "faction:nekro"
+    ],
+    "reason": "Nekro cannot vote but may own and resolve Committee Formation. Nekro is not implemented."
+  },
+  "C_agendas/minister-of-war/1": {
+    "gap": "Minister of War's offer is registered only for TACTICAL_ACTION END and COMPONENT_ACTION AFTER (agendas_laws.py). A strategic action (STRATEGIC_ACTION AFTER) does not trigger it, though the ruling says any action does."
+  },
+  "C_agendas/public-execution/2": {
+    "requires": [
+      "faction:keleres"
+    ],
+    "reason": "Public Execution during the action phase comes from Keleres' Executive Order technology. Keleres is not implemented, so the agenda cannot resolve in the action phase."
+  },
+  "C_agendas/publicize-weapon-schematics/4": {
+    "requires": [
+      "faction:nekro"
+    ],
+    "reason": "Nekro owns a war sun technology by copying it with Valefar Assimilator. Nekro is not implemented."
+  },
+  "C_agendas/antiintellectual-revolution/1.1": {
+    "requires": [
+      "faction:nekro"
+    ],
+    "reason": "The Nekro player is never affected by Anti-Intellectual Revolution. Nekro is not implemented."
+  },
+  "C_agendas/antiintellectual-revolution/2": {
+    "requires": [
+      "faction:nekro"
+    ],
+    "reason": "Nekro's Valefar Assimilator technologies count for the \"Against\" effect. Nekro is not implemented."
+  },
+  "C_agendas/classified-document-leaks/7": {
+    "gap": "The limit of one scored objective per combat is not enforced (ASSUMPTION in R41.md): a player holding the elected objective and a secret objective may score both from the same combat."
+  },
+  "C_agendas/classified-document-leaks/8": {
+    "requires": [
+      "faction:firmament"
+    ],
+    "reason": "The Firmament control token on the elected secret objective. Firmament is not implemented."
+  },
+  "C_agendas/compensated-disarmament/5": {
+    "gap": "Coexistence (block I4) is not implemented, so units coexisting on the elected planet do not exist and cannot pay their trade goods to the planet's controller (see breakthroughs:titansbt#1)."
+  },
+  "C_agendas/fleet-regulations/3": {
+    "requires": [
+      "faction:mahact"
+    ],
+    "reason": "Mahact's Edict adds a fifth fleet token under Fleet Regulations and returns one. Mahact is not implemented."
+  },
+  "C_agendas/ixthian-artifact/4": {
+    "requires": [
+      "faction:creuss"
+    ],
+    "reason": "Creuss' Quantum Entanglement makes no extra systems adjacent to Mecatol Rex for Ixthian Artifact. Creuss is not implemented."
+  },
+  "C_agendas/ixthian-artifact/5": {
+    "requires": [
+      "faction:creuss"
+    ],
+    "reason": "Hil Colish in Mecatol Rex makes the Creuss home and Creuss Gate systems adjacent to it for Ixthian Artifact. Creuss is not implemented."
+  },
+  "C_agendas/ixthian-artifact/6": {
+    "na": "Flavor ruling (voting against or riding on Ixthian Artifact \"is to commit heresy\"); it has no mechanical effect."
+  },
+  "C_agendas/minister-of-policy/1.1": {
+    "requires": [
+      "faction:yssaril"
+    ],
+    "reason": "Yssaril's Scheming applies to both Minister of Policy and the Draw Action Cards step. Yssaril is not implemented."
+  },
+  "C_agendas/miscount-disclosed/7": {
+    "na": "Holy Planet of Ixth, Shard of the Throne and The Crown of Emphidia were removed in Prophecy of Kings; those base-game agendas are not in the active decks."
+  },
+  "C_agendas/wormhole-research/5": {
+    "gap": "Wormhole Research destroys ships in alpha/beta systems at once, before the research and Anti-Intellectual Revolution choices resolve, so a player cannot pick one of those doomed ships for Anti-Intellectual Revolution (the engine forces another ship to be destroyed instead)."
+  },
+  "C_agendas/wormhole-research/5.1": {
+    "gap": "Same ordering gap as C_agendas/wormhole-research/5: Anti-Intellectual Revolution destruction does not precede the Wormhole Research destruction, so the Vuil'raith capture exemption for The Terror Between is not modelled."
+  },
+  "C_agendas/wormhole-research/5.2": {
+    "gap": "Same ordering gap as C_agendas/wormhole-research/5: capacity is not resolved before Wormhole Research destroys ships, so fighters removed for capacity vs. captured ships is not modelled."
+  },
+  "C_units/war-sun/1": {
+    "gap": "validate_production does not reject a war sun order without the War Sun unit upgrade: resolve_unit_variant falls back to the 'nowarsun' placeholder (cost 0) and production accepts it (Muaat's Prototype War Sun exception, /1.1, is covered)."
+  },
+  "C_units/war-sun/2": {
+    "na": "Refers to the base Magen Defense Grid exhaust ability (needs a unit with PLANETARY SHIELD); only Magen Defense Grid ΩΩ is in play (technologies_combat.MAGEN_ALIAS, superseded md_base/md_c1) and its structure-based text has no Planetary Shield condition."
+  },
+  "C_legendary_planets/dok-n-pics-salvage-yard-garbozia/2": {
+    "gap": "Playing action cards that lie on Dok 'N Pic's Salvage Yard is not implemented (planets_legendary.py docstring, RULES.md 60.6) - cards are only placed on the card (legendary_cards), so 'no need to ready the card' and the new controller playing them (/5) cannot be exercised."
   }
 }

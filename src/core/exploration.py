@@ -115,9 +115,11 @@ def planet_traits(
     return traits
 
 
-def explorable(registry: StaticDataRegistry, planet_id: str) -> bool:
-    """Czy planeta ma cechę, a więc podlega eksploracji."""
-    return bool(planet_traits(registry, planet_id))
+def explorable(
+    registry: StaticDataRegistry, planet_id: str, state: GameState | None = None
+) -> bool:
+    """Czy planeta ma cechę, a więc podlega eksploracji (``state`` dolicza attachmenty)."""
+    return bool(planet_traits(registry, planet_id, state))
 
 
 def _system(state: GameState, ex: ExplorationState) -> SystemState:
@@ -677,8 +679,15 @@ def _apply_token(
     if card.attachment_id in _ION_STORM_ATTACHMENTS:
         if any(s.ion_storm for s in state.systems.values()):
             raise ValueError("The Ion Storm token is already on the board.")
-        system.ion_storm = param
         state.decks.common_play_area.append(cur.card_id)
+        if not entropic_scar.accepts_wormhole_token(state, ex.position, registry):
+            # R_entropic_scars: the token is discarded, the card still goes to the common area.
+            return (
+                "The Ion Storm token is discarded - the system is an entropic scar; the card "
+                "stays in the common play area.",
+                "common",
+            )
+        system.ion_storm = param
         return (
             f"Ion Storm placed in the system, {param} side up; the card stays in the common "
             "play area.",
@@ -795,7 +804,7 @@ def start_exploration(
     planets: list[str],
 ) -> None:
     """Jak ``begin_exploration``, ale MUTUJE ``state`` (dla kodu pracującego na swoim klonie)."""
-    targets = [p for p in planets if explorable(registry, p)]
+    targets = [p for p in planets if explorable(registry, p, state)]
     if not targets:
         return
     if player_id not in state.players:

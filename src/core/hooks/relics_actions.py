@@ -421,8 +421,7 @@ def the_silver_flame(
     relics.purge_relic(state, player_id, "thesilverflame")
     if won:
         objectives.award_points(state, player_id, 1, source="relics:thesilverflame")
-        return
-    home = state.systems.get(player.home_position or "")
+    home = None if won else state.systems.get(player.home_position or "")
     if home is not None:
         for owner, units in list(home.space_units.items()):
             for base_type, count in list(units.items()):

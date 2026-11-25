@@ -401,7 +401,7 @@ def _commander_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -
     return (
         ctx.get("player") != player_id
         and state.production_grant is None
-        and bool(production.producers(state, _registry(), player_id, position))
+        and bool(production.producers(state, _registry(), player_id, position, ignore_scar=True))
     )
 
 

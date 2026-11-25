@@ -957,7 +957,10 @@ def reroll_pending(
 
 
 def open_remote_shot(
-    state: GameState, shooter: SpaceCannonShooter, target_id: str
+    state: GameState,
+    shooter: SpaceCannonShooter,
+    target_id: str,
+    extra_picks: Mapping[str, str] | None = None,
 ) -> int:
     """Pojedynczy strzał Space Cannon POZA kolejką Offense (Experimental Battlestation).
 
@@ -972,7 +975,9 @@ def open_remote_shot(
         raise ValueError("There is no active system.")
     if state.pending_window is not None:
         raise ValueError("Another timing window is still open - resolve it first.")
-    rolled, cannon_rolls, total = roll_cannon(state, [shooter], target_id)
+    rolled, cannon_rolls, total = roll_cannon(
+        state, [shooter], target_id, extra_picks=extra_picks
+    )
     state.rng_seed = rolled.rng_seed
     state.rng_counter = rolled.rng_counter
     rolls: list[dict[str, Any]] = [

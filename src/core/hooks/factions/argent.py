@@ -625,6 +625,14 @@ def _transfer_systems(state: GameState, player_id: str, position: str) -> list[s
     return [position] + sorted(
         pos for pos in grid.neighbors(position)
         if pos in state.systems and player_id in state.systems[pos].command_tokens
+        and not _has_foreign_ships(state, player_id, pos)  # F_argent Wing Transfer 1
+    )
+
+
+def _has_foreign_ships(state: GameState, player_id: str, position: str) -> bool:
+    return any(
+        owner != player_id and any(n > 0 for n in by_type.values())
+        for owner, by_type in state.systems[position].space_units.items()
     )
 
 

@@ -25,6 +25,7 @@ from src.core import (
     exhaust,
     exploration,
     faction_components,
+    fracture,
     leaders,
     promissory_play,
     rules_hooks,
@@ -519,6 +520,7 @@ def nova_seed_target(state: GameState, player_id: str, ctx: Mapping[str, Any]) -
         or state.systems[position].space_units.get(player_id, {}).get(_WARSUN, 0) <= 0
         or is_mecatol_position(state, position)
         or position in _home_positions(state, registry)
+        or fracture.is_fracture_position(position)  # F_muaat nova-seed 9
         or state.systems[position].system_id == NOVA_SEED_TILE
     ):
         return None
@@ -589,6 +591,11 @@ def _owns_war_sun_tech(state: GameState, registry: StaticDataRegistry, player_id
 def _fires_blocker(state: GameState, registry: StaticDataRegistry, player_id: str) -> str | None:
     if _owns_war_sun_tech(state, registry, player_id):  # F_muaat fires 1
         return "You already own your war sun unit upgrade technology."
+    muaat_players = [pid for pid, p in state.players.items() if p.faction == FACTION]
+    if muaat_players and all(
+        command_tokens.pool_count(state, pid, "fleet") <= 0 for pid in muaat_players
+    ):  # F_muaat fires 2
+        return "The Muaat player has no command tokens in their fleet pool."
     return None
 
 
@@ -604,7 +611,9 @@ def fires_of_the_gashlai(
     if _owns_war_sun_tech(state, registry, player_id):
         raise ValueError("You already own your war sun unit upgrade technology.")
     owner = str(params.get("__owner") or "")
-    if owner in state.players and command_tokens.pool_count(state, owner, "fleet") > 0:
+    if owner in state.players:
+        if command_tokens.pool_count(state, owner, "fleet") <= 0:  # F_muaat fires 2
+            raise ValueError("The Muaat player has no command tokens in their fleet pool.")
         command_tokens.spend_to_reinforcements(state, owner, "fleet")
     technology.grant_technology(state, player_id, WAR_SUN_TECH)
 

@@ -187,6 +187,34 @@ def test_dok_wycofuje_sie_jak_statek(registry: StaticDataRegistry) -> None:
     assert after.systems[HOME].space_units["p1"]["spacedock"] == 1
 
 
+@ruling("F_saar/floating-factory/16")
+def test_dok_wycofuje_sie_z_samymi_mysliwcami_i_skilled_retreat(
+    registry: StaticDataRegistry,
+) -> None:
+    """Odwrót z samymi myśliwcami zabiera dok; ścieżka Skilled Retreat (``retreat_in_place`` z
+    listą celów, żeton tylko z rezerwy) również przenosi dok razem ze statkami."""
+    def fight() -> GameState:
+        state = _state()
+        state.systems[PLAIN].space_units = {"p1": {"fighter": 2, "spacedock": 1},
+                                            "p2": {"destroyer": 1}}
+        state.systems[HOME].space_units = {}
+        state.active_player_id = "p2"
+        state.active_system = PLAIN
+        return state
+
+    state = fight()
+    grid = grid_from_state(state, registry)
+    after, result = retreat.perform_retreat(state, grid, registry, PLAIN, "p1", HOME)
+    assert result.moved.get("spacedock") == 1
+    assert after.systems[HOME].space_units["p1"]["spacedock"] == 1
+    assert not after.systems[PLAIN].space_units.get("p1")
+    skilled = fight()
+    moved = retreat.retreat_in_place(skilled, grid, registry, PLAIN, "p1", HOME,
+                                     destinations=[HOME], token_pools=False)
+    assert moved.moved.get("spacedock") == 1
+    assert skilled.systems[HOME].space_units["p1"]["spacedock"] == 1
+
+
 @ruling("units:saar_spacedock#3", "F_saar/floating-factory/11", "F_saar/floating-factory/11.1",
         "technologies:ffac2#5")
 def test_dok_bez_statkow_niszczony_po_wlocie_wroga(registry: StaticDataRegistry) -> None:
@@ -305,6 +333,72 @@ def test_dok_nie_liczy_sie_do_struktur_poza_domem(registry: StaticDataRegistry) 
     assert progress(state, registry, grid, "p1", "infrastructure") == 0
 
 
+@ruling("F_saar/floating-factory/2")
+def test_dok_bez_limitu_w_systemie(registry: StaticDataRegistry) -> None:
+    """Limit struktur na planetę nie dotyczy doku w przestrzeni: dwa doki z jednej planety."""
+    state = _state()
+    state.systems[PLAIN].planet_owners = {VEFUTII: "p1"}
+    state.players["p1"].controlled_planets.append(VEFUTII)
+    place_structure(state, "p1", VEFUTII, "spacedock")
+    place_structure(state, "p1", VEFUTII, "spacedock")
+    assert state.systems[PLAIN].space_units["p1"] == {"spacedock": 2}
+
+
+@ruling("F_saar/floating-factory/4")
+def test_dok_wlatuje_i_produkuje_w_tej_samej_akcji(registry: StaticDataRegistry) -> None:
+    state = _activate(_state(), registry, PLAIN)
+    grid = grid_from_state(state, registry)
+    assert not production.producers(state, registry, "p1", PLAIN)
+    after = movement.move_fleet(state, grid, registry, HOME, {"spacedock": 1, "carrier": 1}, {},
+                                "p1")
+    assert after.active_system == PLAIN
+    producers = production.producers(after, registry, "p1", PLAIN)
+    assert producers and producers[0].value == 5
+
+
+@ruling("F_saar/floating-factory/10")
+def test_dok_ginie_przed_brother_milor(registry: StaticDataRegistry) -> None:
+    """Ostatni statek Saar zniszczony w walce: dok blokowany i zniszczony od razu, zanim agent Yin
+    postawi myśliwce - myśliwce nie ratują doku."""
+    from src.core.game_state import ActiveCombat
+
+    state = _state(other="yin")
+    state.players["p2"].leader_states = {"yinagent": "unlocked"}
+    system = state.systems[PLAIN]
+    system.space_units = {"p1": {"spacedock": 1, "cruiser": 1}, "p2": {"cruiser": 1}}
+    state.active_player_id = "p2"
+    state.active_system = PLAIN
+    state.active_combat = ActiveCombat(kind="space", position=PLAIN, attacker="p2",
+                                       defender="p1")
+    unit_ops.remove_units(state, system, "space", "p1", "cruiser", 1, UnitCause.DESTROYED)
+    assert not system.space_units.get("p1")  # dok zniszczony natychmiast
+    assert _offers(state, "p2", "Brother Milor")  # agent dopiero teraz
+    after = _accept(state, "p2", "Brother Milor")
+    assert after.systems[PLAIN].space_units["p1"] == {"fighter": 2}  # bez doku
+
+
+@ruling("F_saar/floating-factory/12")
+def test_dok_nie_ginie_gdy_wrog_tylko_przelatuje(registry: StaticDataRegistry) -> None:
+    """Wrogi krążownik przelatuje (prawdziwy ruch) przez Mecatol z samym dokiem do 102: dok nie
+    blokuje przelotu (nie jest statkiem) i zostaje; ginie dopiero, gdy wrogie statki KOŃCZĄ ruch
+    w jego systemie."""
+    state = _state()
+    state.systems["000"].space_units = {"p1": {"spacedock": 1}}
+    state.systems[FAR].space_units = {"p2": {"cruiser": 1}}
+    state = _activate(state, registry, PLAIN, pid="p2")
+    grid = grid_from_state(state, registry)
+    after = movement.move_fleet(state, grid, registry, FAR, {"cruiser": 1}, {}, "p2",
+                                route=[FAR, "000", PLAIN])
+    assert after.systems[PLAIN].space_units["p2"] == {"cruiser": 1}
+    assert after.systems["000"].space_units["p1"] == {"spacedock": 1}
+    ended = _state()
+    ended.systems["000"].space_units = {"p1": {"spacedock": 1}}
+    ended.systems[FAR].space_units = {"p2": {"cruiser": 1}}
+    ended = _activate(ended, registry, "000", pid="p2")
+    landed = movement.move_fleet(ended, grid, registry, FAR, {"cruiser": 1}, {}, "p2")
+    assert not landed.systems["000"].space_units.get("p1")
+
+
 @ruling("technologies:ffac2#1", "technologies:ffac2#2", "technologies:ffac2#3",
         "technologies:ffac2#4")
 def test_floating_factory_2_dane_i_ruch(registry: StaticDataRegistry) -> None:
@@ -350,6 +444,18 @@ def test_scavenge_po_eksploracji_planety_niczyjej(registry: StaticDataRegistry) 
     triggers.fire(state, GameEvent.PLANET_EXPLORED, Moment.AFTER, subject="p1",
                   ctx={"player": "p1", "planet": VEFUTII})
     assert state.players["p1"].trade_goods == 1
+
+
+@ruling("F_saar/scavenge/3")
+def test_scavenge_bez_tg_za_dom_na_starcie(registry: StaticDataRegistry) -> None:
+    """Setup daje planety domowe (bez „zdobycia kontroli”) - Scavenge nic nie daje."""
+    from src.core.faction_setup import apply_setup_to_state
+
+    state = apply_setup_to_state(GameState(), player_id="p1", color="red",
+                                 faction=registry.factions["saar"], home_position=HOME)
+    assert set(state.systems[HOME].planet_owners) == {RAGH, LISISII}
+    assert state.players["p1"].trade_goods == 0
+    assert not _offers(state, "p1", "Scavenge")
 
 
 # ============================================================================= Nomadic
@@ -420,6 +526,20 @@ def test_chaos_mapping_w_turze_pasu_i_ruch_po_produkcji(registry: StaticDataRegi
     moved = movement.move_fleet(after, grid_from_state(after, registry), registry, HOME,
                                 {"cruiser": 1}, {}, "p1")
     assert moved.systems[PLAIN].space_units["p1"] == {"cruiser": 1}
+
+
+@ruling("F_saar/chaos-mapping/4")
+def test_chaos_mapping_bez_sarween_tools(registry: StaticDataRegistry) -> None:
+    """Produkcja z Chaos Mapping nie jest użyciem PRODUCTION - Sarween Tools nie obniża kosztu."""
+    state = _state()
+    state.players["p1"].technologies = ["cm", "st"]
+    triggers.fire(state, GameEvent.TURN, Moment.START, subject="p1", ctx={"player": "p1"})
+    after = _accept(state, "p1", "Chaos Mapping", {"position": HOME})
+    assert after.production_grant is not None and not after.production_grant.standalone
+    assert rules_hooks.modify(rules_hooks.POINT_PRODUCTION_COST, after, "p1", 0, {}) == 0
+    tactical_state = _activate(_state(), registry, HOME)  # zwykłe PRODUCTION doku: zniżka
+    tactical_state.players["p1"].technologies = ["st"]
+    assert rules_hooks.modify(rules_hooks.POINT_PRODUCTION_COST, tactical_state, "p1", 0, {}) == -1
 
 
 # ===================================================================== Captain Mendosa

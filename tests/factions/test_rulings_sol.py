@@ -97,6 +97,33 @@ def test_orbital_drop_tylko_wlasna_planeta_i_zeton_strategii(registry: StaticDat
         )
 
 
+@ruling("F_sol/orbital-drop/1")
+def test_orbital_drop_wiele_razy_po_zetonie_na_uzycie(registry: StaticDataRegistry) -> None:
+    """Każde użycie to osobna akcja kosztująca 1 żeton z puli strategii."""
+    state = _state()
+    state.players["p1"].strategic_cc = 2
+    first, _ = faction_components.play(
+        state, registry, "p1", "ability", "orbital_drop", {"planet": "102|industrex"}
+    )
+    for offer in [o for o in first.pending_offers if o.player_id == "p1"]:
+        first = triggers.decline_offer(first, "p1", offer.id)  # DEPLOY mecha - odmowa
+    with pytest.raises(ValueError, match="already took an action"):  # osobna akcja każde użycie
+        faction_components.play(
+            first, registry, "p1", "ability", "orbital_drop", {"planet": "102|industrex"}
+        )
+    first.players["p1"].took_action_this_turn = False  # kolejna tura Sola
+    first.players["p1"].actions_this_turn = 0
+    second, _ = faction_components.play(
+        first, registry, "p1", "ability", "orbital_drop", {"planet": "102|industrex"}
+    )
+    assert _infantry(second, "p1") == 4
+    assert second.players["p1"].strategic_cc == 0
+    with pytest.raises(ValueError):  # trzeci raz - brak żetonu
+        faction_components.play(
+            second, registry, "p1", "ability", "orbital_drop", {"planet": "102|industrex"}
+        )
+
+
 @ruling("units:sol_mech#1")
 def test_thunderbolt_mech_na_planecie_orbital_drop(registry: StaticDataRegistry) -> None:
     state = _state()
@@ -125,6 +152,17 @@ def test_versatile_dodatkowy_zeton_tylko_sol() -> None:
     point = rules_hooks.POINT_STATUS_COMMAND_TOKENS
     assert rules_hooks.modify(point, state, "p1", 2) == 3
     assert rules_hooks.modify(point, state, "p2", 2) == 2
+
+
+@ruling("F_sol/versatile/1")
+def test_versatile_z_hyper_metabolism_cztery_zetony(registry: StaticDataRegistry) -> None:
+    """Hyper Metabolism (+1) i Versatile (+1) na bazowe 2 żetony = 4."""
+    state = _state()
+    state.players["p1"].technologies = ["hm"]
+    point = rules_hooks.POINT_STATUS_COMMAND_TOKENS
+    assert rules_hooks.modify(point, state, "p1", 2) == 4
+    state.players["p2"].technologies = ["hm"]
+    assert rules_hooks.modify(point, state, "p2", 2) == 3  # bez Versatile
 
 
 # =========================================================================== Military Support
@@ -506,6 +544,25 @@ def test_bellum_gloriosum_koszt_laczny_z_para_piechoty(registry: StaticDataRegis
     free = production.free_cargo_units(state, registry, "p1", orders)
     assert sum(o.count for o in orders) - free <= 2  # mieści się w PRODUCTION 2
     assert production.order_cost(state, registry, "p1", orders) == 5  # 4 + para piechoty za 1
+
+
+@ruling("F_sol/bellum-gloriosum/3")
+def test_bellum_gloriosum_nadwyzka_floty_nie_zmniejsza_darmowego_ladunku(
+    registry: StaticDataRegistry,
+) -> None:
+    """Statek ponad fleet pool i tak podnosi limit ładunku; potem trzeba go usunąć."""
+    from src.core import fleet_pool
+
+    state = _bellum(registry)
+    state.players["p1"].fleet_cc = 1
+    state.systems["102"].space_units = {"p1": {"carrier": 1}}
+    capacity = int(registry.units["sol_carrier"].capacity_value or 0)
+    orders = [ProductionOrder("carrier", 1), ProductionOrder("infantry", capacity)]
+    assert production.free_cargo_units(state, registry, "p1", orders) == capacity
+    unit_ops.place_units(state, state.systems["102"], "space", "p1", "carrier", 1,
+                         UnitCause.PLACED)
+    assert fleet_pool.fleet_report(state, "102", "p1", registry).excess == 1  # do usunięcia
+    assert production.free_cargo_units(state, registry, "p1", orders) == capacity
 
 
 @ruling("F_sol/military-support/1")

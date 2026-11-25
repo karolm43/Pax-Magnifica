@@ -150,7 +150,7 @@ def test_zeal_dodatkowe_glosy_na_ten_sam_wynik(registry: StaticDataRegistry) -> 
     assert vote.outcome == "for" and vote.votes == influence + 3
 
 
-@ruling("C_action_cards/bribery/4.1")
+@ruling("C_action_cards/bribery/4.1", "F_argent/zeal/1.1")
 def test_bribery_mowca_argent_tylko_od_razu_po_glosie(registry: StaticDataRegistry) -> None:
     state = _agenda_state(registry, [LAW])
     state.players["p1"].faction = "argent"
@@ -584,6 +584,19 @@ def test_helix_do_nexusa_odwraca_go(registry: StaticDataRegistry) -> None:
 
 
 # ============================================================================ Wing Transfer
+
+
+@ruling("F_argent/wing-transfer/1")
+def test_wing_transfer_nie_do_systemu_z_cudzymi_statkami(registry: StaticDataRegistry) -> None:
+    state = _state(registry)
+    state.systems["102"].space_units = {"p1": {"carrier": 1}}
+    state.systems["103"].space_units = {"p2": {"cruiser": 1}}
+    state.systems["103"].command_tokens = ["p1"]
+    active_effects.add_effect(state, argent.WING_TRANSFER, Duration.TACTICAL_ACTION, owner="p1")
+    ctx = {"player": "p1", "position": "102", "params": _mv("103", ["102|carrier|0"])}
+    with pytest.raises(ValueError):
+        argent.wing_transfer_move(state, "p1", ctx)
+    assert state.systems["102"].space_units["p1"] == {"carrier": 1}
 
 
 @ruling("F_argent/wing-transfer/2")

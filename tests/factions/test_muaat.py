@@ -665,3 +665,119 @@ def test_bohater_odblokowanie_3_cele(registry: StaticDataRegistry) -> None:
     assert not unlock(state, registry, "p1")
     state.players["p1"].scored_secrets = ["a", "b", "c"]
     assert unlock(state, registry, "p1")
+
+
+# ===================================================================== dodatkowe rulingi
+
+
+@ruling("F_muaat/star-forge/2")
+def test_star_forge_nie_jest_produkcja(
+    registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Jednostki ze Star Forge nie są „produced”: brak PRODUCTION_USED / UNITS_PRODUCED."""
+    fired: list[GameEvent] = []
+    real_fire = triggers.fire
+
+    def spy(state: GameState, event: GameEvent, *args: Any, **kwargs: Any) -> Any:
+        fired.append(event)
+        return real_fire(state, event, *args, **kwargs)
+
+    monkeypatch.setattr(triggers, "fire", spy)
+    after = _play(_state(), registry, "ability", "star_forge",
+                  {"position": HOME, "unit": "destroyer"})
+    assert after.systems[HOME].space_units["p1"]["destroyer"] == 1
+    assert GameEvent.FACTION_ABILITY_USED in fired
+    assert GameEvent.PRODUCTION_USED not in fired
+    assert GameEvent.UNITS_PRODUCED not in fired
+
+
+@ruling("F_muaat/ember-colossus/1")
+def test_ember_colossus_kazdy_mech_dokalada_piechote(registry: StaticDataRegistry) -> None:
+    state = _state()
+    state.systems[PLAIN].planet_units = {VEFUTII: {"p1": {"mech": 2}}}
+    state.systems[RIVAL].planet_units = {THIBAH: {"p1": {"mech": 1}}}
+    after = _play(state, registry, "ability", "star_forge", {"position": HOME, "unit": "destroyer"})
+    offer = _offers(after, "p1", "Ember Colossus")[0]
+    inputs = muaat.colossus_inputs(after, registry, "p1", offer.ctx)
+    values = [o["value"] for o in inputs[0]["options"]]
+    assert len(values) == 2  # dwa mechy w zasięgu (RIVAL jest za daleko od HOME)
+    done = _accept(after, "p1", "Ember Colossus", {"mechs": values})
+    assert done.systems[PLAIN].planet_units[VEFUTII]["p1"] == {"mech": 2, "infantry": 2}
+
+
+@ruling("F_muaat/adjudicator-baal-nova-seed/3.1")
+def test_nova_seed_purguje_avernus(registry: StaticDataRegistry) -> None:
+    state = _hero_state()
+    state.players["p1"].breakthrough_unlocked = True
+    state.systems[PLAIN].added_planets = ["avernus"]
+    state.systems[PLAIN].planet_owners = {"avernus": "p1"}
+    state.systems[PLAIN].planet_units = {"avernus": {"p1": {"pds": 1}}}
+    state.players["p1"].controlled_planets.append("avernus")
+    _arrive(state, PLAIN)
+    after = _accept(state, "p1", "Nova Seed")
+    system = after.systems[PLAIN]
+    assert system.system_id == muaat.NOVA_SEED_TILE
+    assert "avernus" not in system.added_planets
+    assert "avernus" not in system.planet_owners and "avernus" not in system.planet_units
+    assert "avernus" not in after.players["p1"].controlled_planets
+
+
+@ruling("F_muaat/stellar-genesis/5")
+def test_avernus_do_supernowej_cudze_jednostki_bez_szkody(registry: StaticDataRegistry) -> None:
+    state = _avernus_state(owner="p2")
+    state.systems[PLAIN].planet_units = {"avernus": {"p2": {"pds": 1, "infantry": 2}}}
+    state.systems[PLAIN].space_units["p1"].pop("warsun")
+    state.systems[NOVA].space_units["p1"] = {"warsun": 1}
+    movement.fire_ships_moved(state, "p1", NOVA, PLAIN, {"warsun": 1})
+    after = _accept(state, "p1", "move Avernus")
+    assert "SUPERNOVA" in _grid(after, registry).anomalies_at(NOVA)
+    assert after.systems[NOVA].planet_units["avernus"]["p2"] == {"pds": 1, "infantry": 2}
+    assert after.systems[NOVA].planet_owners["avernus"] == "p2"
+
+
+@ruling("F_muaat/stellar-genesis/6", "F_muaat/stellar-genesis/7")
+def test_avernus_nie_jest_statkiem_i_odlatuje_spod_zetonu(registry: StaticDataRegistry) -> None:
+    """Brak rzutów (ruch planety to nie ruch statku) i żeton dowodzenia w systemie
+    źródłowym - także z siłami naziemnymi na Avernus - nie blokuje przeniesienia."""
+    state = _avernus_state()
+    state.systems[PLAIN].planet_units = {"avernus": {"p1": {"infantry": 2, "mech": 1}}}
+    state.systems[PLAIN].command_tokens = ["p1"]
+    state.systems[PLAIN].space_units["p1"].pop("warsun")
+    state.systems[RIVAL].space_units["p1"] = {"warsun": 1}
+    counter = state.rng_counter
+    movement.fire_ships_moved(
+        state, "p1", RIVAL, PLAIN, {"warsun": 1}, route=[PLAIN, NOVA, RIVAL]
+    )
+    after = _accept(state, "p1", "move Avernus")
+    assert after.systems[RIVAL].planet_units["avernus"]["p1"] == {"infantry": 2, "mech": 1}
+    assert after.rng_counter == counter  # żadnych kości (grawitacyjny rift/removal)
+    assert "avernus" not in after.systems[PLAIN].added_planets
+
+
+@ruling("F_muaat/avernus-the-nucleus/4")
+def test_avernus_zostaje_po_eliminacji_muaat(registry: StaticDataRegistry) -> None:
+    state = _avernus_state()
+    state.systems[PLAIN].planet_units = {"avernus": {"p2": {"pds": 1}}}
+    elimination.eliminate(state, registry, "p1")
+    system = state.systems[PLAIN]
+    assert "p1" not in state.players
+    assert "avernus" in system.added_planets
+    assert system.planet_units["avernus"]["p2"] == {"pds": 1}
+
+
+@ruling("F_muaat/fires-of-the-gashlai/2")
+def test_fires_niedostepna_bez_zetonow_w_puli_floty(registry: StaticDataRegistry) -> None:
+    state = _fires_state()
+    state.players["p1"].fleet_cc = 0
+    with pytest.raises(ValueError, match="fleet pool"):
+        promissory_play.play(state, registry, "p2", "fires")
+    assert "ws" not in state.players["p2"].technologies
+
+
+@ruling("F_muaat/adjudicator-baal-nova-seed/9")
+def test_nova_seed_nie_na_kaflu_fracture(registry: StaticDataRegistry) -> None:
+    state = _hero_state()
+    state.systems["frac1"] = SystemState(position="frac1", system_id="fracture1")
+    state.systems["frac1"].space_units = {"p1": {"warsun": 1}}
+    ctx = {"player": "p1", "position": "frac1", "from": HOME, "ships": {"warsun": 1}}
+    assert muaat.nova_seed_target(state, "p1", ctx) is None

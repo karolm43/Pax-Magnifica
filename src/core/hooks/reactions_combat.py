@@ -202,7 +202,11 @@ def combat_windows(state: GameState) -> list[OpenWindow]:
     def sustain_windows() -> list[OpenWindow]:
         """Okna „when/after Sustain Damage” ze śladu walki; trafienia ze startu walki (Ambush)
         mają osobny klucz pauzy od trafień 1. rundy (``stage``)."""
-        stage = {"stage": "start"} if combat.start_assign else {}
+        stage = (
+            {"stage": "start"} if combat.start_assign
+            else {"stage": f"round_end{len(combat.sustained_ships)}"}  # new use = new window
+            if combat.round_end_assign else {}
+        )
         found: list[OpenWindow] = []
         for entry in combat.sustained_ships:
             ctx = _ctx(combat, str(entry["player"]), base_type=str(entry["base_type"]), **stage)

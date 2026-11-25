@@ -860,3 +860,75 @@ def test_suffi_an_po_pillage(registry: StaticDataRegistry) -> None:
         assert len(state.players[pid].private.action_cards) == hands[pid] + 1
     assert state.players["p1"].leader_states[mentak.AGENT] == "exhausted"
 
+
+
+@ruling("F_mentak/ambush/5")
+def test_ambush_statki_rzucaja_tez_w_pierwszej_rundzie(registry: StaticDataRegistry) -> None:
+    state = _state()
+    _combat(state, {"cruiser": 2}, {"carrier": 3})
+    state.rng_seed = 3
+    mentak.ambush(state, "p1", {"params": {"ships": ["cruiser:0", "cruiser:1"]}})
+    assert state.active_combat is not None
+    assert state.active_combat.step is CombatStep.ROLL and state.active_combat.round == 1
+    after = battle.roll_round(state, _grid(), registry)
+    assert after.active_combat is not None
+    entry = next(e for e in after.active_combat.log if e["phase"] != "AMBUSH")
+    assert sum(len(r["dice"]) for r in entry["rolls"]["p1"]) == 2  # cruisers roll again
+    assert entry["round"] == 1
+
+
+@ruling("F_mentak/pillage/9")
+def test_pillage_za_kazde_tg_ze_scavenge_saar(registry: StaticDataRegistry) -> None:
+    """Saar (sąsiad Mentaka) zdobywa dwie planety w jednej turze - Pillage przy każdym TG."""
+    from src.core import control
+
+    state = _state()
+    state.players["p2"].faction = "saar"
+    state.players["p2"].trade_goods = 2
+    control.set_planet_control(state, "101", "vefutii", "p2", registry)
+    assert state.players["p2"].trade_goods == 3
+    assert [x for x in _labels(state) if "Pillage" in x] == ["Pillage"]
+    state = _accept(state, "p1", "Pillage", {"take": "trade_good"})
+    assert state.players["p2"].trade_goods == 2
+    control.set_planet_control(state, "301", "thibah", "p2", registry)
+    assert state.players["p2"].trade_goods == 3
+    assert [x for x in _labels(state) if "Pillage" in x] == ["Pillage"]
+
+
+@ruling("F_mentak/fourth-moon/1")
+def test_fourth_moon_sustain_zakazany_w_rundzie_jej_zniszczenia(
+    registry: StaticDataRegistry,
+) -> None:
+    """Mentak (obrońca) przypisuje pierwszy i traci Fourth Moon; atakujący, przypisując
+    potem w TEJ SAMEJ rundzie, nadal nie może użyć Sustain Damage."""
+    state = _state()
+    state.players["p1"].technologies = []
+    state.systems["000"].space_units = {"p1": {"flagship": 1}, "p2": {"dreadnought": 1}}
+    state.active_system = "000"
+    combat = ActiveCombat(kind="space", position="000", attacker="p2", defender="p1")
+    combat.step = CombatStep.ROLL
+    combat.pending_hits = {"p1": 1, "p2": 1}
+    state.active_combat = combat
+    state = battle._open_assign(state, _grid(), registry)
+    assert state.pending_window is not None and state.pending_window.current_responder == "p1"
+    state = battle.assign_combat_hits(
+        state, _grid(), registry, "p1", sustain={}, destroy={"flagship": 1}, destroy_damaged={}
+    )
+    assert "flagship" not in state.systems["000"].space_units.get("p1", {})
+    assert state.pending_window is not None and state.pending_window.current_responder == "p2"
+    with pytest.raises(ValueError):
+        battle.assign_combat_hits(
+            state.clone(), _grid(), registry, "p2",
+            sustain={"dreadnought": 1}, destroy={}, destroy_damaged={},
+        )
+
+
+@ruling("F_mentak/pillage/11")
+def test_pillage_blokuje_wydawanie_tg_do_rozstrzygniecia(registry: StaticDataRegistry) -> None:
+    state = _state()
+    economy.gain_trade_goods(state, "p2", 1)
+    assert "Pillage" in _labels(state)
+    with pytest.raises(ValueError, match="Pillage"):
+        economy.spend_trade_goods(state, "p2", 1)
+    state = _accept(state, "p1", "Pillage", {"take": "trade_good"})
+    economy.spend_trade_goods(state, "p2", 1)

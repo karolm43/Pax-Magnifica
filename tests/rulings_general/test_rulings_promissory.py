@@ -121,6 +121,46 @@ def test_diplomacy_token_does_not_return_note(
     assert note in state.players["p1"].promissory_notes_in_play
 
 
+@ruling("C_promissory_notes/support-for-the-throne/4")
+def test_activating_a_system_with_only_control_tokens_keeps_the_note() -> None:
+    state = pn_state()
+    _received(state, "red_sftt")
+    held_vp = state.players["p2"].victory_points  # the note itself gave p2 a point
+    state.systems["101"].planet_owners["pl"] = "p1"  # control token only, no units
+    _activate_by_p2(state, "101")
+    assert "red_sftt" in state.players["p2"].promissory_notes_in_play
+    assert state.players["p2"].victory_points == held_vp
+    state.systems["101"].planet_units["pl"] = {"p1": {"infantry": 1}}  # a unit changes it
+    _activate_by_p2(state, "101")
+    assert "red_sftt" in state.players["p1"].private.promissory_notes
+
+
+@ruling("C_promissory_notes/support-for-the-throne/6")
+def test_note_giver_activates_the_holders_systems_without_penalty() -> None:
+    state = pn_state()
+    holder = _received(state, "red_sftt")
+    held_vp, giver_vp = holder.victory_points, state.players["p1"].victory_points
+    state.systems["101"].space_units = {"p2": {"cruiser": 1}}
+    triggers.fire(
+        state, GameEvent.SYSTEM_ACTIVATED, Moment.AFTER, subject="p1",
+        ctx={"player": "p1", "position": "101"},
+    )
+    assert "red_sftt" in holder.promissory_notes_in_play  # stays with the holder
+    assert (holder.victory_points, state.players["p1"].victory_points) == (held_vp, giver_vp)
+
+
+@ruling("C_promissory_notes/support-for-the-throne/8")
+def test_support_may_be_given_to_the_player_it_makes_win() -> None:
+    state = _sftt_trade_state(Phase.ACTION)
+    state.players["p2"].private.promissory_notes = []
+    done = transaction.resolve_transaction(
+        state, HexGrid(), "p2",
+        give=TransactionSide(promissory_note="red_sftt"),
+        receive=TransactionSide(),
+    )
+    assert done.winner_id == "p2"  # the transfer is legal even though it ends the game
+
+
 @ruling("C_promissory_notes/support-for-the-throne/7")
 def test_simultaneous_support_trade_active_player_scores_first() -> None:
     state = _sftt_trade_state(Phase.ACTION)

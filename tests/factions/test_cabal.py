@@ -235,6 +235,68 @@ def test_devour_infantry_ii_zeton_i_odrodzenie() -> None:
     assert state.table_roll is not None and state.table_roll["playerId"] == "p2"  # rzut odrodzenia
 
 
+def _seek(state: GameState, act: Any, ok: Any) -> GameState:
+    for seed in range(1, 300):
+        candidate = state.clone()
+        candidate.rng_seed = seed
+        result = act(candidate)
+        if ok(result):
+            return result
+    raise AssertionError("no seed produced the expected outcome")
+
+
+@ruling("F_vuilraith/devour/3")
+def test_devour_bombardowanie_nie_ale_afb_tak(registry: StaticDataRegistry) -> None:
+    """Bombardment (poza walką) nie przechwytuje; Anti-Fighter Barrage (w walce) tak."""
+    from src.core import battle, invasion
+    from src.core.invasion import BombardAssignment
+
+    state = _state()
+    state.active_player_id = "p1"
+    state.active_system = ARENA
+    state.tactical_step = TacticalStep.INVASION
+    state.systems[ARENA].planet_owners = {WELLON: "p2"}
+    state.systems[ARENA].space_units = {"p1": {"dreadnought": 3}}
+    state.systems[ARENA].planet_units = {WELLON: {"p2": {"infantry": 4}}}
+    grid = _grid(state, registry)
+    opened = invasion.begin_invasion(state, grid, registry)
+    rolled = _seek(
+        opened,
+        lambda s: invasion.bombard(
+            s, grid, registry, [BombardAssignment("dreadnought", WELLON, 3)]
+        ),
+        lambda s: s.invasion is not None and s.invasion.bombard_pending.get(WELLON, 0) > 0,
+    )
+    need = invasion.required_bombard_hits(rolled, grid, registry, WELLON)
+    after = invasion.assign_bombard_hits(
+        rolled, grid, registry, WELLON, "p2", sustain={}, destroy={"infantry": need},
+        destroy_damaged={},
+    )
+    assert after.systems[ARENA].planet_units[WELLON]["p2"]["infantry"] == 4 - need
+    assert capture.total_held(after, "p1") == 0  # Bombardment nie jest walką
+
+    afb = _state()
+    afb.active_player_id = "p1"
+    afb.active_system = ARENA
+    afb.tactical_step = TacticalStep.SPACE_COMBAT
+    afb.systems[ARENA].space_units = {"p1": {"destroyer": 4}, "p2": {"fighter": 8}}
+    agrid = _grid(afb, registry)
+
+    def run(s: GameState) -> GameState:
+        out = battle.resolve_afb(battle.start_combat(s, agrid, registry), agrid, registry)
+        while (out.active_combat is not None and out.active_combat.step.name == "ASSIGN"
+               and out.pending_window is not None):
+            pid = out.pending_window.current_responder
+            assert pid is not None
+            hits = battle.required_hits(out, agrid, registry, pid)
+            out = battle.assign_combat_hits(out, agrid, registry, pid, sustain={},
+                                            destroy={"fighter": hits}, destroy_damaged={})
+        return out
+
+    done = _seek(afb, run, lambda s: s.systems[ARENA].space_units["p2"].get("fighter", 8) < 8)
+    assert done.players["p1"].captured_tokens.get("fighter", 0) > 0
+
+
 @ruling("F_vuilraith/devour/2")
 def test_devour_nie_bierze_struktur() -> None:
     state = _state()
@@ -354,6 +416,33 @@ def test_amalgamation_nie_zmienia_kosztu_jednostek(registry: StaticDataRegistry)
     assert production.paid_orders(orders, captured) == []
 
 
+@ruling("F_vuilraith/amalgamation/6")
+def test_amalgamation_przechwycony_war_sun_liczy_sie_jako_war_sun(
+    registry: StaticDataRegistry,
+) -> None:
+    """Przechwycony Prototype War Sun (Muaat) to zwykły war sun (typ bazowy)."""
+    state = _producing(_state("muaat"))
+    state.players["p1"].technologies = ["ws"]
+    state.systems[ARENA].space_units = {"p2": {"warsun": 1}}
+    _combat(state)
+    _destroy(state, ARENA, "space", "p2", "warsun")
+    assert state.players["p1"].captured_units == {"p2": {"warsun": 1}}  # typ bazowy
+    after = production.produce(state, _grid(state, registry), registry, "p1",
+                               [ProductionOrder("warsun", 1)], captured={"warsun": {"p2": 1}})
+    assert after.systems[HOME].space_units["p1"]["warsun"] == 1
+    assert after.players["p1"].captured_units == {}
+
+
+@ruling("F_vuilraith/amalgamation/7")
+def test_amalgamation_war_sun_wymaga_wlasnej_technologii(registry: StaticDataRegistry) -> None:
+    state = _producing(_state())
+    state.players["p1"].captured_units = {"p2": {"warsun": 1}}
+    with pytest.raises(ValueError, match="war sun"):
+        production.produce(state, _grid(state, registry), registry, "p1",
+                           [ProductionOrder("warsun", 1)], captured={"warsun": {"p2": 1}})
+    assert state.players["p1"].captured_units == {"p2": {"warsun": 1}}
+
+
 def test_amalgamation_walidacja(registry: StaticDataRegistry) -> None:
     state = _producing(_state())
     state.players["p1"].captured_units = {"p2": {"cruiser": 1}}
@@ -372,7 +461,7 @@ def test_amalgamation_walidacja(registry: StaticDataRegistry) -> None:
 # -------------------------------------------------------------------------- Riftmeld
 
 
-@ruling("abilities:riftmeld#1")
+@ruling("abilities:riftmeld#1", "F_vuilraith/riftmeld/1")
 def test_riftmeld_zwrot_przechwyconej_ignoruje_prerekwizyty(registry: StaticDataRegistry) -> None:
     state = _state()
     tech = registry.technologies["cr2"]
@@ -422,6 +511,16 @@ def test_vortex_bez_celu_niedostepny(registry: StaticDataRegistry) -> None:
     state.systems[ARENA].space_units = {"p2": {"destroyer": _cap("destroyer"), "fighter": 9}}
     # Wszystkie niszczyciele na planszy - typ nie jest celem; myśliwce (żetony) zawsze.
     assert _vortex_values(state, registry) == [f"p2|fighter|{ARENA}|space"]
+
+
+@ruling("F_vuilraith/vortex/4")
+def test_vortex_nie_na_hel_titana(registry: StaticDataRegistry) -> None:
+    """Hel-Titan to struktura (PDS) - nie jest celem Vortexa."""
+    state = _state("titans")
+    state.systems[ARENA].planet_units = {WELLON: {"p2": {"pds": 1}}}
+    assert _vortex_values(state, registry) == []
+    state.systems[ARENA].planet_units[WELLON]["p2"]["infantry"] = 1
+    assert _vortex_values(state, registry) == [f"p2|infantry|{ARENA}|{WELLON}"]
 
 
 @ruling("F_vuilraith/vortex/3")
@@ -574,7 +673,8 @@ def test_bohater_rzuty_kazdego_przeciwnika_widoczne(
     assert [r["seq"] for r in after.table_rolls] == sorted(r["seq"] for r in after.table_rolls)
 
 
-@ruling("leaders:cabalhero#3", "F_vuilraith/it-feeds-on-carrion-dimensional-anchor/5")
+@ruling("leaders:cabalhero#3", "F_vuilraith/it-feeds-on-carrion-dimensional-anchor/4",
+        "F_vuilraith/it-feeds-on-carrion-dimensional-anchor/5")
 def test_bohater_nadwyzka_ladunku_tez_przechwycona(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -660,7 +760,7 @@ def test_crucible_nie_dwa_razy_w_jednym_oknie(registry: StaticDataRegistry) -> N
     assert cabal._crucible_condition(state, registry, "p2", None)  # type: ignore[arg-type]
 
 
-@ruling("F_vuilraith/crucible/4")
+@ruling("F_vuilraith/crucible/4", "F_vuilraith/crucible/4.1")
 def test_crucible_z_nav_suite_plus_jeden(registry: StaticDataRegistry) -> None:
     from src.core import active_effects
     from src.core.game_events import Duration
@@ -680,7 +780,8 @@ def test_crucible_z_nav_suite_plus_jeden(registry: StaticDataRegistry) -> None:
 # ----------------------------------------------------------- Al'raith Ix Ianovar (przełom)
 
 
-@ruling("breakthroughs:cabalbt#1", "F_vuilraith/alraith-ix-ianovar/2",
+@ruling("breakthroughs:cabalbt#1", "F_vuilraith/alraith-ix-ianovar/1",
+        "F_vuilraith/alraith-ix-ianovar/2",
         "F_vuilraith/alraith-ix-ianovar/2.1", "F_vuilraith/alraith-ix-ianovar/2.2")
 def test_przelom_fracture_bez_rzutu_z_synergia(registry: StaticDataRegistry) -> None:
     state = _state()
@@ -724,6 +825,34 @@ def test_przelom_przesuwa_ingress_do_szczeliny(registry: StaticDataRegistry) -> 
     assert state.systems[HOME].ingress_token and state.systems[EAST].ingress_token
     assert not state.systems[FAR].ingress_token
     assert not cabal._ingress_ready(state, "p1", {})  # zużyte
+
+
+@ruling("F_vuilraith/alraith-ix-ianovar/3.1", "F_vuilraith/alraith-ix-ianovar/4")
+def test_przelom_ingress_nie_do_zajetej_szczeliny_ani_do_fracture(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _state()
+    state.players["p1"].breakthrough_unlocked = True
+    state.fracture.in_play = True
+    state.fracture.pending = []
+    state.systems[FAR].ingress_token = True
+    state.systems[EAST].system_id = RIFT_TILE
+    state.systems[EAST].ingress_token = True  # szczelina już z ingressem
+    state.systems[WEST].system_id = CORMUND_TILE
+    fracture_pos = fracture.FRACTURE_POSITIONS[0]
+    board_graph.ensure_system(state, fracture_pos).system_id = RIFT_TILE  # szczelina w Fracture
+    board_graph.ensure_system(state, fracture_pos).planet_units = {
+        "x": {"p1": {"spacedock": 1}}}  # nawet z własnym dokiem
+    cabal._open_ingress_window(state, "p1", {})
+    targets = {o["value"] for o in cabal.ingress_inputs(state, registry, "p1")[1]["options"]}
+    assert fracture_pos in cabal._grid(state).positions  # vacuity guard
+    assert EAST not in targets and fracture_pos not in targets  # 3.1, 4
+    assert {HOME, WEST} <= targets
+    for bad in (EAST, fracture_pos):
+        with pytest.raises(ValueError, match="gravity rift without one"):
+            cabal.move_ingress(state, registry, "p1", {"from_1": FAR, "to_1": bad})
+    cabal.move_ingress(state, registry, "p1", {"from_1": FAR, "to_1": HOME})
+    assert state.systems[HOME].ingress_token
 
 
 @ruling("breakthroughs:cabalbt#3")

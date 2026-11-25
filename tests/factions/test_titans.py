@@ -683,6 +683,21 @@ def test_terraform_eksplorujacy_wybiera_talie(registry: StaticDataRegistry) -> N
         exploration.draw(work, registry, THIBAH)
 
 
+@ruling("F_ul/terraform/4")
+def test_terraform_fracture_planet_with_only_lightning_is_explored(
+    registry: StaticDataRegistry,
+) -> None:
+    """Fracture planets have only the LIGHTNING trait: Terraform makes them explorable."""
+    state = _state()
+    state.systems[RIVAL].planet_owners = {"cocytus": "p2"}
+    assert not exploration.explorable(registry, "cocytus", state)
+    state.planet_attachments["cocytus"] = [titans.TERRAFORM]
+    assert not exploration.explorable(registry, "cocytus")  # without the board: no attachments
+    assert exploration.explorable(registry, "cocytus", state)
+    work = exploration.begin_exploration(state, registry, "p2", RIVAL, ["cocytus"])
+    assert work.exploration is not None and work.exploration.queue == ["cocytus"]
+
+
 # -------------------------------------------------------------------- Slumberstate Computing
 
 

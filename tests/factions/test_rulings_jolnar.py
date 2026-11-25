@@ -522,3 +522,150 @@ def test_compounds_synergia_zolty_zielony(registry: StaticDataRegistry) -> None:
         technology.validate_specialty_payment(
             state, registry, "p2", technology.ResearchPlan("ps", (), False), "industrex"
         )
+
+
+# ================================================================ Brilliant (F_jol_nar/brilliant)
+
+
+@ruling("F_jol_nar/brilliant/1", "abilities:brilliant#1")
+def test_brilliant_tylko_zeton_bez_czterech_zasobow(registry: StaticDataRegistry) -> None:
+    """Secondary Jol-Nar rozstrzyga się jak primary: pierwsza technologia kosztuje 0 zasobów
+    (żeton z puli strategii wydaje karta, nie zasoby), druga opcjonalnie 6 zasobów."""
+    state = _state()
+    ctx = CardContext(registry, None)
+    assert technology_card.SPEC.secondary_costs_token is True
+    options = technology_card._options(state, ctx, "p1", None, {})
+    assert options["cost"] == 0 and options["second_cost"] == technology_card.SECOND_RESEARCH_COST
+    technology_card._secondary(state, ctx, "p1", {"tech": "nm"})
+    assert "nm" in state.players["p1"].technologies
+    assert state.players["p1"].trade_goods == 3  # ani 4 zasoby, ani 6 za drugą
+
+
+@ruling("F_jol_nar/brilliant/2")
+def test_brilliant_druga_technologia_za_szesc_bez_dodatkowego_zetonu(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _state()
+    state.players["p1"].trade_goods = 9
+    tokens_before = state.players["p1"].model_dump(include={"tactical_cc", "strategy_cc"})
+    ctx = CardContext(registry, None)
+    technology_card._secondary(
+        state, ctx, "p1",
+        {"tech": "nm", "second": {"tech": "sdn", "trade_goods": 6, "planets": [], "skips": []}},
+    )
+    assert {"nm", "sdn"} <= set(state.players["p1"].technologies)
+    assert state.players["p1"].trade_goods == 3  # dokładnie 6 zasobów za drugą technologię
+    assert state.players["p1"].model_dump(include={"tactical_cc", "strategy_cc"}) == tokens_before
+    poor = _state()
+    with pytest.raises(ValueError):  # druga technologia bez zapłaty 6 zasobów - błąd
+        technology_card._secondary(
+            poor, ctx, "p1", {"tech": "nm", "second": {"tech": "sdn", "skips": []}}
+        )
+
+
+# ================================================== Spatial Conduit Cylinder (zakres i PDS II)
+
+
+@ruling("F_jol_nar/spatial-conduit-cylinder/1", "technologies:scc#1")
+def test_scc_aktywny_system_musi_miec_jednostke_jolnar() -> None:
+    """Oferta SCC (wyczerpanie po aktywacji, przed ruchem) tylko gdy aktywny system ma
+    jednostkę Jol-Nar; aktywacja pustego systemu nie daje oferty."""
+    state = _state()
+    state.players["p1"].technologies = ["scc"]
+    state.systems["103"] = SystemState(position="103", system_id="20")
+    state.systems["102"].space_units = {"p1": {"cruiser": 1}}
+    state.systems["105"].space_units = {"p1": {"carrier": 1}}
+    empty = state.clone()
+    triggers.fire(empty, GameEvent.SYSTEM_ACTIVATED, Moment.AFTER, subject="p1",
+                  ctx={"player": "p1", "position": "103"})
+    assert not any("Spatial" in o.label for o in empty.pending_offers)
+    triggers.fire(state, GameEvent.SYSTEM_ACTIVATED, Moment.AFTER, subject="p1",
+                  ctx={"player": "p1", "position": "102"})
+    assert any("Spatial" in o.label for o in state.pending_offers)
+    after = _accept(state, "p1", "Spatial Conduit")
+    assert "scc" in after.players["p1"].exhausted_technologies  # przed ruchem
+    assert after.tactical_moved is False
+
+
+@ruling("F_jol_nar/spatial-conduit-cylinder/2")
+def test_scc_pds_ii_w_polaczonym_systemie_strzela_w_aktywny(
+    registry: StaticDataRegistry, grid: HexGrid
+) -> None:
+    from src.core import space_cannon
+    from src.core.game_state import TacticalStep
+
+    state = _state()
+    planet = registry.systems["19"].planets[0]
+    state.systems["105"].planet_units = {planet: {"p1": {"pds": 1}}}
+    state.systems["105"].planet_owners = {planet: "p1"}
+    state.systems["102"].space_units = {"p1": {"cruiser": 1}}
+    after = _conduit(state, "102")
+    after.players["p1"].technologies.append("pds2")  # PDS II: Deep Space Cannon
+    after.tactical_step = TacticalStep.SPACE_CANNON
+    shooters = space_cannon.offense_shooters(after, grid, registry, "p1")
+    assert any(s.remote and s.position == "105" for s in shooters)
+
+
+# ===================================================== J.N.S. Hylarim, Agnlan Oln (zakres kości)
+
+
+@ruling("F_jol_nar/j-n-s-hylarim/1", "units:jolnar_flagship#1")
+def test_hylarim_dziewiatka_i_dziesiatka_to_trzy_trafienia() -> None:
+    """Wynik 9/10 = normalne trafienie + 2 dodatkowe (razem 3); 8 to zwykłe trafienie."""
+    from src.core import battle_rerolls
+
+    state = _state()
+    combat = ActiveCombat(kind="space", position="102", attacker="p1", defender="p2")
+    entry = {"baseType": "flagship", "dice": [9, 10, 8, 2], "hitsOn": 5, "modifier": -1}
+    assert battle_rerolls._entry_hits(state, "p1", combat, entry) == 3 + 3 + 1
+    single = {"baseType": "flagship", "dice": [9], "hitsOn": 5, "modifier": -1}
+    assert battle_rerolls._entry_hits(state, "p1", combat, single) == 3
+
+
+@ruling("F_jol_nar/ta-zern-agnlan-oln/1")
+def test_ta_zern_i_agnlan_oln_to_ten_sam_komponent(registry: StaticDataRegistry) -> None:
+    """Ten sam komponent ``jolnarcommander`` (TE: Agnlan Oln zastępuje Ta Zerna)."""
+    leader = registry.leaders["jolnarcommander"]
+    assert leader.name == "Agnlan Oln" and leader.faction == "jolnar"
+    jolnar_commanders = [
+        lead for lead in registry.leaders.values()
+        if lead.faction == "jolnar" and lead.type == "commander"
+    ]
+    assert [lead.id for lead in jolnar_commanders] == ["jolnarcommander"]
+
+
+@ruling("F_jol_nar/ta-zern-agnlan-oln/2", "leaders:jolnarcommander#1")
+def test_agnlan_kosci_afb_bombardowania_space_cannon(
+    registry: StaticDataRegistry, grid: HexGrid
+) -> None:
+    """Przerzucać można rzuty zdolności: Space Cannon (offense/defense), Bombardment i AFB."""
+    assert set(jolnar._ROLL_LABELS) == {"offense", "defense", "bombardment"}
+    state = _state()
+    state.players["p1"].leader_states = {"jolnarcommander": "unlocked"}
+    state.systems["102"].space_units = {"p1": {"destroyer": 2}, "p2": {"fighter": 3}}
+    state.active_combat = ActiveCombat(
+        kind="space", position="102", attacker="p1", defender="p2", step=CombatStep.AFB
+    )
+    paused = battle.resolve_afb(state, grid, registry)
+    assert any("Agnlan" in o.label for o in paused.pending_offers if o.player_id == "p1")
+
+
+# ====================================================== Genetic Memory, Specialized Compounds
+
+
+@ruling("F_jol_nar/specialized-compounds/3.1")
+def test_ulepszenia_jednostek_nie_maja_koloru(registry: StaticDataRegistry) -> None:
+    for tech_id in ("cv2", "dd2", "inf2", "pds2"):
+        assert technology.tech_color(registry.technologies[tech_id]) is None
+    assert technology.tech_color(registry.technologies["nm"]) is not None
+
+
+@ruling("F_jol_nar/specialized-compounds/4")
+def test_psychoarchaeology_nie_oszczedza_planety_ze_specjalnoscia(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _compound_state()
+    state.players["p1"].technologies = ["pa"]
+    assert _compound(state, registry, {"tech": "ps", "compound_planet": "industrex"}) == "ps"
+    assert "industrex" in state.players["p1"].exhausted_planets
+    assert state.players["p1"].trade_goods == 3

@@ -418,6 +418,27 @@ def test_dirzuga_rophal_piechota_gdy_produkuje_tylko_dok(
     assert _ground(after, TWO_PLANETS, DOCK_PLANET) == {"spacedock": 1, "infantry": 1}
 
 
+@ruling("F_arborec/dirzuga-rophal/6")
+def test_dirzuga_rophal_dziala_w_bliznie_entropicznej(
+    registry: StaticDataRegistry, grid: HexGrid
+) -> None:
+    """Dok w bliźnie entropicznej (tile 116) nie produkuje, ale ma PRODUCTION - Dirzuga Rophal
+    nadal się aktywuje i pozwala wyprodukować jednostkę w tym systemie."""
+    from src.core import entropic_scar
+
+    state = _two_planet_state({})
+    state.systems[TWO_PLANETS] = SystemState(
+        position=TWO_PLANETS, system_id="116", planet_owners={"lemox": "p1"},
+        planet_units={"lemox": {"p1": {"spacedock": 1}}},
+    )
+    assert entropic_scar.is_scar(state, TWO_PLANETS, registry)
+    granted = _commander_grant(state)
+    after = production.produce(
+        granted, grid, registry, "p1", [ProductionOrder("infantry", 1, zone="lemox")]
+    )
+    assert _ground(after, TWO_PLANETS, "lemox") == {"spacedock": 1, "infantry": 1}
+
+
 @ruling("F_arborec/letani-miasmiala-ultrasonic-emitter/4")
 @pytest.mark.parametrize("kind", ["commander", "hero"])
 @pytest.mark.parametrize("zone", [OTHER_PLANET, "space"])

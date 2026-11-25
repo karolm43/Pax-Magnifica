@@ -15,7 +15,9 @@ from src.api.demo_map import build_demo_grid
 from src.core import (
     control,
     economy,
+    expeditions,
     exploration,
+    fracture,
     game_setup,
     ion_storm,
     production,
@@ -43,6 +45,16 @@ from tests.test_exploration import registry as registry  # noqa: F401 - fixture 
 @pytest.fixture(autouse=True)
 def _bound(registry: StaticDataRegistry) -> None:
     rules_hooks.bind_registry(registry)
+
+
+@ruling("C_exploration_cards/ion-storm/5")
+def test_ion_storm_in_an_entropic_scar_discards_the_token(registry: StaticDataRegistry) -> None:
+    base = _state()
+    base.systems["000"].system_id = "116"  # Lemox - an entropic scar
+    state = _with_card(base, registry, "Ion Storm", planet="lemox")
+    done = exploration.resolve(state, registry, "place", "BETA")
+    assert done.systems["000"].ion_storm is None
+    assert _card_id(registry, "Ion Storm") in done.decks.common_play_area
 
 
 # ============================================================================ commodities
@@ -288,6 +300,21 @@ def test_a_planet_can_be_explored_again_by_an_ability(registry: StaticDataRegist
     assert again.exploration is not None and again.exploration.current is not None
 
 
+@ruling("C_exploration_cards/mirage/1")
+def test_mirage_card_holder_gains_control_and_explores_it_as_cultural(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _with_card(_state(), registry, "Mirage")
+    done = exploration.resolve(state, registry, "place")
+    assert done.systems["000"].planet_owners["mirage"] == "p1"  # nikt jej nie kontrolował
+    assert "mirage" in done.players["p1"].controlled_planets
+    assert exploration.planet_traits(registry, "mirage") == ["cultural"]
+    ex = done.exploration
+    assert ex is not None and ex.current is not None  # eksploracja rusza od razu
+    assert ex.current.planet == "mirage" and ex.current.deck == "cultural"
+    assert _card_id(registry, "Mirage") in done.decks.purged
+
+
 @ruling("R_exploration/notes/3")
 def test_transactions_are_allowed_while_a_card_is_revealed(registry: StaticDataRegistry) -> None:
     from tests.test_relics import _state as relic_state
@@ -391,3 +418,60 @@ def test_component_is_purged_even_if_partially_resolved(registry: StaticDataRegi
     relics_actions.codex(state, registry, "p1", {"cards": []})
     assert "codex" in state.decks.purged
     assert economy is not None
+
+
+@ruling("C_exploration_cards/demilitarized-zone/1")
+def test_peace_accords_may_take_a_planet_with_demilitarized_zone(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core.hooks.factions import xxcha
+    from tests.factions.test_xxcha import _planet
+    from tests.factions.test_xxcha import _state as xxcha_state
+
+    state = xxcha_state(registry)
+    free = _planet(registry, "21")
+    state.planet_attachments[free] = ["dmz"]
+    assert ("102", free) in xxcha.peace_targets(state, "p1")
+    xxcha.peace_accords(state, "p1", {"params": {"planet": f"102|{free}"}})
+    assert state.systems["102"].planet_owners[free] == "p1"
+
+
+# ============================================================================ R_frontier_tokens
+
+
+@ruling("R_frontier_tokens/notes/3")
+def test_fracture_entering_play_places_no_frontier_tokens(registry: StaticDataRegistry) -> None:
+    """Żetony frontier kładzie się tylko w setupie - nie w systemach The Fracture bez planet.
+    (Drugie zdanie ruling - Multiverse Shift Empyrean - wymaga frakcji Empyrean: poza testem.)"""
+    from tests.test_thunders_edge import _grid as te_grid
+    from tests.test_thunders_edge import _state as te_state
+
+    grid = te_grid(registry)
+    state = fracture.enter_play(te_state(registry, grid), registry, grid, "p1")
+    planetless = [
+        p for p in fracture.FRACTURE_POSITIONS
+        if not registry.systems[state.systems[p].system_id].planets
+    ]
+    assert planetless, "the Fracture should contain a system without a planet"
+    assert not any(state.systems[p].frontier_token for p in fracture.FRACTURE_POSITIONS)
+
+
+@ruling("R_frontier_tokens/notes/4")
+def test_thunders_edge_placed_in_a_frontier_system_keeps_the_token(
+    registry: StaticDataRegistry,
+) -> None:
+    from tests.test_thunders_edge import _after_action, _claim_five, _pay
+    from tests.test_thunders_edge import _grid as te_grid
+    from tests.test_thunders_edge import _state as te_state
+
+    grid = te_grid(registry)
+    state = game_setup.place_frontier_tokens(te_state(registry, grid), grid, registry)
+    state = _claim_five(_after_action(state), grid, registry)
+    state = expeditions.perform_expedition(state, registry, grid, "p1", "tradeGoods", _pay())
+    target = next(
+        p for p in expeditions.thunders_edge_targets(state, registry, grid)
+        if state.systems[p].frontier_token
+    )
+    placed = expeditions.place_thunders_edge(state, registry, grid, "p1", target)
+    assert placed.systems[target].added_planets == ["thundersedge"]
+    assert placed.systems[target].frontier_token is True

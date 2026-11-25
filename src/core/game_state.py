@@ -841,6 +841,8 @@ class ProductionGrant(BaseModel):
     # Górny limit kosztu JEDNEJ sztuki (Umbat: „units that each have a cost of 4 or less”).
     max_unit_cost: float | None = None
     ships_only: bool = False
+    # ``mandatory`` = karta nie może być użyta bez produkcji (Sling Relay) - ``skip_grant`` odmawia.
+    mandatory: bool = False
     # Dozwolone typy jednostek (``base_type``); pusta lista = bez ograniczenia. Salvage Operations:
     # typy statków zniszczonych w walce (RULES.md 62.8).
     allowed_types: list[str] = Field(default_factory=list)

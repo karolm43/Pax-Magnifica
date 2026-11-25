@@ -19,6 +19,7 @@ from src.core import (
     battle,
     battle_rerolls,
     capacity,
+    damage,
     faction_components,
     invasion,
     leaders,
@@ -194,6 +195,23 @@ def test_exotrireme_tylko_cudze_i_sustain_nie_chroni(registry: StaticDataRegistr
     after = _accept(state, "p1", {"ships": ["dreadnought#1"]})
     assert after.systems["102"].space_units["p2"] == {"carrier": 1}  # zniszczony, nie uszkodzony
     assert after.systems["102"].space_units["p1"] == {"cruiser": 1}
+
+
+@ruling("F_norr/exotrireme/5")
+def test_exotrireme_uszkodzony_po_sustain_nadal_moze_sie_zniszczyc(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _state()
+    state.players["p1"].technologies = ["exo2"]
+    system = state.systems["102"]
+    system.space_units["p1"] = {"dreadnought": 1}
+    system.space_units["p2"] = {"cruiser": 2}
+    damage.set_damaged(system, "space", "p1", "dreadnought", 1)  # użył Sustain Damage w rundzie
+    ctx = {**_round_end_ctx(), "sustained": {"dreadnought": 1}}
+    triggers.fire(state, GameEvent.COMBAT_ROUND, Moment.END, ctx=ctx)
+    after = _accept(state, "p1", {"ships": ["cruiser#1", "cruiser#2"]})
+    assert after.systems["102"].space_units.get("p1", {}) == {}
+    assert after.systems["102"].space_units.get("p2", {}) == {}
 
 
 @ruling("technologies:exo2#4")
@@ -417,6 +435,28 @@ def test_hero_parley_usuwa_piechote_bez_statkow(registry: StaticDataRegistry) ->
     reactions_invasion.parley(state, registry, "p2", {"planet": "industrex"})
     assert state.systems["102"].space_units["p1"] == {"infantry": 2}
     assert capacity.players_with_excess(state, registry, "102") == ["p1"]
+
+
+@ruling("F_norr/shval-harbinger-tekklar-conditioning/2")
+def test_hero_statki_wracaja_do_rezerwy_nie_sa_niszczone(
+    registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.core import capture, production
+
+    destroyed: list[str] = []
+    real = capture.on_destroyed
+
+    def spy(s: GameState, *args: Any) -> None:
+        destroyed.append(str(args[3]))
+        real(s, *args)
+
+    monkeypatch.setattr(capture, "on_destroyed", spy)
+    before = production.reinforcements_left(_state(), "p1", "carrier")
+    state = _hero_landed(registry)
+    assert "carrier" not in state.systems["102"].space_units.get("p1", {})
+    assert production.reinforcements_left(state, "p1", "carrier") == before  # wróciły do rezerwy
+    assert destroyed == []  # zdolności „gdy zniszczony” nie mają czego wyzwolić
+    assert not (state.active_combat and state.active_combat.destroyed_ships)
 
 
 @ruling("R_invasion/rules-reference/3")

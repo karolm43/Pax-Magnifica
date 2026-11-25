@@ -561,3 +561,96 @@ def test_window_use_cudzego_commandera_nie_dla_zablokowanego(
     assert "hacancommander" not in faction_components.borrowed_commanders(state, "p2")
     state.players["p1"].leader_states = {"hacancommander": "unlocked"}
     assert "hacancommander" in faction_components.borrowed_commanders(state, "p2")
+
+
+# ========================================================== Auto-Factories: pula floty (F_hacan)
+
+
+def _autofactories_state() -> GameState:
+    """Hacan z pustą pulą floty, 3 świeże krążowniki w 000 i żetonami w rezerwie."""
+    state = _state()
+    player = state.players["p1"]
+    player.breakthrough_unlocked = True
+    player.fleet_cc = 0
+    player.cc_reinf = 4
+    state.systems["000"].space_units = {"p1": {"cruiser": 3}}
+    state.production_placed = {"space": {"cruiser": 3}}
+    return state
+
+
+def _fire_produced(state: GameState) -> None:
+    triggers.fire(
+        state, GameEvent.UNITS_PRODUCED, Moment.AFTER, subject="p1",
+        ctx={"player": "p1", "units": {"cruiser": 3}},
+    )
+
+
+@ruling("F_hacan/autofactories/1", "breakthroughs:hacanbt#1")
+def test_auto_factories_nowy_zeton_wspiera_swiezo_wyprodukowane_statki() -> None:
+    """Żeton wpada do puli floty zaraz po produkcji - przed sprawdzeniem nadwyżki, więc
+    świeże statki od razu z niego korzystają."""
+    from src.core import fleet_pool
+
+    state = _autofactories_state()
+    assert fleet_pool.fleet_report(state, "000", "p1").excess == 3
+    _fire_produced(state)
+    assert state.players["p1"].fleet_cc == 1
+    assert state.players["p1"].cc_reinf == 3
+    assert fleet_pool.fleet_report(state, "000", "p1").excess == 2
+
+
+@ruling("F_hacan/autofactories/2")
+def test_auto_factories_statki_nie_musza_zostac_by_dostac_zeton() -> None:
+    """Trzy statki przy pustej puli: żeton jest przyznany, a gracz zdejmuje potem 2 nadwyżkowe
+    statki (okno puli floty) - żeton zostaje."""
+    from src.core import fleet_pool
+
+    state = _autofactories_state()
+    _fire_produced(state)
+    opened = fleet_pool.open_fleet_pool_check(state, "000")
+    assert opened.pending_window is not None
+    report = fleet_pool.fleet_report(opened, "000", "p1")
+    assert report.excess == 2
+    after = fleet_pool.resolve_fleet_pool(opened, _registry_for_pool(), "p1", {"cruiser": 2})
+    assert after.systems["000"].space_units["p1"] == {"cruiser": 1}
+    assert after.players["p1"].fleet_cc == 1  # żeton z Auto-Factories zostaje
+
+
+def _registry_for_pool() -> StaticDataRegistry:
+    return StaticDataRegistry()
+
+
+# ================================================================ Pozostałe punkty Hacan
+
+
+@ruling("F_hacan/wrath-of-kenara/2")
+def test_wrath_of_kenara_tylko_rzuty_combat(registry: StaticDataRegistry) -> None:
+    """Oferta Wrath of Kenara jest podpięta do rzutu COMBAT w walce kosmicznej; rzuty Space
+    Cannon, Anti-Fighter Barrage i innych zdolności jednostek jej nie wyzwalają."""
+    state = _state()
+    state.players["p1"].trade_goods = 5
+    state.systems["000"].space_units["p1"] = {"flagship": 1}
+    state.active_combat = ActiveCombat(kind="space", position="000", attacker="p1", defender="p2")
+    assert hacan._kenara_ready(state, "p1", {"kind": "combat", "player": "p1"})
+    for kind in ("space_cannon", "afb", "bombardment"):
+        assert not hacan._kenara_ready(state, "p1", {"kind": kind, "player": "p1"})
+    state.active_combat = ActiveCombat(kind="ground", position="000", attacker="p1", defender="p2")
+    assert not hacan._kenara_ready(state, "p1", {"kind": "combat", "player": "p1"})
+
+
+@ruling("F_hacan/quantum-datahub-node/4")
+def test_qdn_wymiana_to_nie_wybor_karty_strategii(registry: StaticDataRegistry) -> None:
+    """QDN rozstrzyga się na końcu fazy strategii: wtedy nie ma okna „gracz wybiera kartę”
+    (Public Disgrace), a sama wymiana nie otwiera takiego okna."""
+    from src.core.hooks import reactions_stop
+
+    state = _qdn_state()
+    state.players["p1"].strategy_cards = [1, 2]
+    state.players["p2"].strategy_cards = [8, 7]
+    state.players["p3"].strategy_cards = [5, 4]
+    assert reactions_stop.strategy_pick_window(state) == []
+    hacan.quantum_datahub_node(state, "p1", {"params": {"give": 1, "take": "p2|8"}})
+    assert state.players["p1"].strategy_cards == [8, 2]
+    assert reactions_stop.strategy_pick_window(state) == []
+    with pytest.raises(ValueError, match="no open window"):
+        reactions_stop.public_disgrace(state, registry, "p3", {})

@@ -186,7 +186,7 @@ def test_devotion_trafienie_anuluje_shields_holding(registry: StaticDataRegistry
     assert flow.state()["systems"][position]["space_units"][flow.other]["dreadnought"] == 2
 
 
-@ruling("F_yin/devotion/6")
+@ruling("F_yin/devotion/1", "F_yin/devotion/6")
 def test_devotion_i_exotrireme_kolejnosc_od_atakujacego(registry: StaticDataRegistry) -> None:
     """Koniec rundy: Yin (atakujący) rozstrzyga przed N'orr (obrońca) - kolejka okna REACTION."""
     state = _state(registry)
@@ -211,7 +211,7 @@ def test_devotion_i_exotrireme_kolejnosc_od_atakujacego(registry: StaticDataRegi
 # ================================================================================ Impulse Core
 
 
-@ruling("F_yin/impulse-core/1", "technologies:ic#2")
+@ruling("F_yin/impulse-core/1", "F_yin/impulse-core/1.1", "technologies:ic#2")
 def test_impulse_core_przeciwnik_wybiera_i_moze_sustain(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "yin")
     flow.player(lambda p: p["technologies"].append("ic"))
@@ -385,7 +385,10 @@ def _milor_state(registry: StaticDataRegistry) -> GameState:
     return state
 
 
-@ruling("leaders:yinagent#1", "F_yin/brother-milor-omega-omega/2")
+@ruling(
+    "leaders:yinagent#1", "F_yin/brother-milor-omega-omega/2",
+    "F_yin/brother-milor-omega-replaced-by-omega-omega/3",
+)
 def test_milor_po_van_hauge_yin_wygrywa(registry: StaticDataRegistry) -> None:
     state = _milor_state(registry)
     system = state.systems["102"]
@@ -404,7 +407,9 @@ def test_milor_po_van_hauge_yin_wygrywa(registry: StaticDataRegistry) -> None:
     assert combat is not None and combat.step is CombatStep.DONE and combat.winner == "p1"
 
 
-@ruling("F_yin/brother-milor-omega-replaced-by-omega-omega/4")
+@ruling(
+    "F_yin/brother-milor-omega-replaced-by-omega-omega/4", "F_yin/brother-milor-omega-omega/3"
+)
 def test_milor_mysliwce_bez_wolnej_pojemnosci(registry: StaticDataRegistry) -> None:
     state = _milor_state(registry)
     system = state.systems["102"]
@@ -418,6 +423,7 @@ def test_milor_mysliwce_bez_wolnej_pojemnosci(registry: StaticDataRegistry) -> N
 
 @ruling(
     "F_yin/brother-milor-omega-replaced-by-omega-omega/5",
+    "F_yin/brother-milor-omega-omega/4",
     "F_yin/brother-milor-replaced-by-omega/4.1",
 )
 def test_milor_nadwyzka_trafien_przepada(registry: StaticDataRegistry) -> None:
@@ -440,7 +446,10 @@ def test_milor_nadwyzka_trafien_przepada(registry: StaticDataRegistry) -> None:
     assert system.space_units["p2"]["fighter"] == 2
 
 
-@ruling("F_yin/brother-milor-replaced-by-omega/5")
+@ruling(
+    "F_yin/brother-milor-replaced-by-omega/5",
+    "F_yin/brother-milor-omega-replaced-by-omega-omega/6",
+)
 def test_milor_turn_their_fleets_to_dust_przed_mysliwcami(registry: StaticDataRegistry) -> None:
     from src.core.game_state import TacticalStep, TimingWindow, WindowType
 
@@ -677,3 +686,96 @@ def test_dissemination_mecatol_z_zetonem_niedostepny_przez_api(
     })
     assert resp.status_code == 422
     assert flow.state()["players"][flow.me]["leader_states"]["yinhero"] == "unlocked"
+
+
+# ========================================================= Devotion + Direct Hit (devotion/4)
+
+
+@ruling("F_yin/devotion/4")
+def test_devotion_sustain_potem_direct_hit(registry: StaticDataRegistry) -> None:
+    flow = Flow(registry, "yin")
+    position = _devotion_ready(flow, {"dreadnought": 2}, {})
+    flow.player(lambda p: p["private"].update(action_cards=["dh1"]))
+    flow.accept("Devotion", {"ship": "cruiser", "target": "dreadnought"})
+    flow.decline_all()
+    assert flow.battle()["assigning"] == "sol"
+    flow.post("/tactical/battle/assign", {
+        "faction": "sol", "sustain": [{"baseType": "dreadnought", "count": 1}],
+        "destroy": [], "destroyDamaged": [],
+    })
+    assert flow.state()["systems"][position]["space_units"][flow.other]["dreadnought"] == 2
+    rows = flow.client.get("/action-card/playable", params={"player_id": flow.me}).json()
+    assert any(r["card_id"] == "dh1" and r["playable"] for r in rows["cards"])
+    flow.post("/action-card/play", {
+        "player_id": flow.me, "card_id": "dh1", "params": {"ship": "dreadnought"},
+    })
+    flow.finish_hold()
+    assert flow.state()["systems"][position]["space_units"][flow.other]["dreadnought"] == 1
+
+
+# ================================================== Brother Milor ΩΩ: tylko w walce
+
+
+@ruling(
+    "F_yin/brother-milor-omega-replaced-by-omega-omega/5.1",
+    "F_yin/brother-milor-omega-omega/4.1",
+    "F_yin/brother-milor-replaced-by-omega/4.1",
+)
+def test_milor_sustain_potem_direct_hit_reszta_trafien_na_mysliwce(
+    registry: StaticDataRegistry,
+) -> None:
+    """Statek użył Sustain Damage, potem Direct Hit go niszczy: pozostałe trafienia mogą
+    przejść na myśliwce postawione przez Brother Milor."""
+    from src.core import action_cards
+
+    state = _milor_state(registry)
+    system = state.systems["102"]
+    system.space_units = {"p1": {"cruiser": 3}, "p2": {"dreadnought": 1}}
+    system.damaged_units = {"space": {"p2": {"dreadnought": 1}}}
+    combat = state.active_combat
+    assert combat is not None
+    combat.step = CombatStep.ASSIGN
+    combat.pending_hits = {"p2": 1}  # trafienie pozostałe po Sustain Damage
+    combat.sustained_ships = [{"player": "p2", "base_type": "dreadnought", "count": 1}]
+    state.players["p1"].private.action_cards = ["dh1"]
+    action_cards.run_reaction(state, registry, "p1", "dh1", {"ship": "dreadnought"}, {})
+    assert "dreadnought" not in system.space_units.get("p2", {})
+    yin.brother_milor(state, "p1", {
+        "player": "p2", "base_type": "dreadnought", "zone": "space", "position": "102",
+    })
+    assert system.space_units["p2"]["fighter"] == 2
+    grid = grid_from_state(state, registry)
+    assert combat.pending_hits.get("p2", 0) == 1
+    assert battle.required_hits(state, grid, registry, "p2") == 1  # trafienie idzie na myśliwiec
+
+
+@ruling("F_yin/brother-milor-omega-omega/1")
+def test_milor_tylko_przy_zniszczeniu_w_walce(registry: StaticDataRegistry) -> None:
+    state = _milor_state(registry)
+    state.active_combat = None
+    ctx = {"player": "p2", "base_type": "destroyer", "zone": "space", "position": "102"}
+    assert not yin._milor_ready(state, "p1", ctx)  # poza walką - brak oferty
+    state.active_combat = ActiveCombat(kind="space", position="102", attacker="p1", defender="p2")
+    assert yin._milor_ready(state, "p1", ctx)
+
+
+@ruling(
+    "F_yin/brother-milor-omega-omega/5", "F_yin/brother-milor-omega-omega/5.1",
+)
+def test_milor_omega_omega_jednostka_statek_i_sila_naziemna(registry: StaticDataRegistry) -> None:
+    from tests.factions.test_naaz import PLAIN, _offers, _space_fight
+    from tests.factions.test_naaz import _state as naaz_state
+
+    state = _space_fight(naaz_state(other="yin"))
+    state.players["p2"].leader_states = {"yinagent": "unlocked"}
+    unit_ops.remove_units(
+        state, state.systems[PLAIN], "space", "p1", "mech", 1, UnitCause.DESTROYED
+    )
+    state = _accept(state, "p2", "Brother Milor")
+    offer = _offers(state, "p1", "2 fighters or 2 infantry")
+    assert offer, "wybór należy do właściciela zniszczonej jednostki"
+    state = triggers.accept_offer(state, "p1", offer[0].id, {"unit": "infantry"})
+    assert state.systems[PLAIN].space_units["p1"]["infantry"] == 2
+    units = {u.base_type for u in battle.combat_units(
+        state, None, registry, kind="space", position=PLAIN, planet=None, player_id="p1")}
+    assert "infantry" not in units  # nowa piechota w walce kosmicznej nie walczy

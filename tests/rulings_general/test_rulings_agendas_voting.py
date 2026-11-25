@@ -281,6 +281,32 @@ def test_miscount_political_secret_on_the_law(registry: StaticDataRegistry) -> N
     assert rows["p1_ps"]["playable"]
 
 
+@ruling("C_agendas/miscount-disclosed/3.4", "C_agendas/miscount-disclosed/6")
+def test_miscount_keeps_planets_exhausted_and_allows_a_second_transaction(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _state(registry, ["miscount", "mutiny", "secret"])
+    state.decks.agenda_laws = {"conscription": "for"}
+    planet = _planet(state, "p3")
+    out = _reveal(state, registry)
+    out.players["p1"].transacted_with = ["p3"]  # transaction made while voting on Miscount
+    out.players["p3"].transacted_with = ["p1"]
+    out = agenda_phase.cast_vote(out, registry, "p3", "conscription", [planet])
+    out = _abstain_all(out, registry)
+    out = _finish(out, registry, "conscription")
+    out = agenda_phase.continue_agenda(out, registry, "p2")  # revote on the elected law
+    assert out.agenda is not None and out.agenda.agenda_id == "conscription"
+    assert planet in out.players["p3"].exhausted_planets  # planets are not readied in between
+    assert out.agenda.agenda_number == 1  # the revote does not replace the second agenda
+    assert out.players["p1"].transacted_with == []  # one more transaction per pair is allowed
+    assert out.players["p3"].transacted_with == []
+    out = _finish(out, registry, "for")
+    out = agenda_phase.continue_agenda(out, registry, "p2")
+    assert out.agenda is not None and out.agenda.step is AgendaStep.REVEAL
+    assert out.agenda.agenda_number == 2  # ...so a third agenda vote happens in the phase
+    assert planet in out.players["p3"].exhausted_planets
+
+
 @ruling("C_agendas/miscount-disclosed/4")
 def test_deadly_plot_on_miscount_keeps_the_law(registry: StaticDataRegistry) -> None:
     state = _state(registry, ["miscount"])
@@ -306,3 +332,71 @@ def test_deadly_plot_on_the_revote_discards_the_law(registry: StaticDataRegistry
     out = _play(out, registry, "p3", "deadly_plot")
     assert "conscription" not in out.decks.agenda_laws
     assert "conscription" in out.decks.agenda_discard
+
+
+# ======================================================================= Political Censure
+
+
+@ruling("C_agendas/political-censure/2")
+def test_censure_miscount_moves_the_point_to_the_new_owner(registry: StaticDataRegistry) -> None:
+    state = _state(registry, ["miscount"])
+    state.decks.agenda_laws = {"censure": "p1"}
+    state.players["p1"].victory_points = 1  # punkt z poprzedniego wyboru
+    out = _resolve(registry, state, "censure")
+    out = agenda_phase.continue_agenda(out, registry, "p2")
+    out = agenda_phase.cast_vote(out, registry, "p3", "p3", [_planet(out, "p3")])
+    out = _finish(out, registry, "p3")
+    assert out.decks.agenda_laws["censure"] == "p3"
+    assert out.players["p1"].victory_points == 0  # poprzedni właściciel traci punkt
+    assert out.players["p3"].victory_points == 1  # nowy go zdobywa
+
+
+@ruling("C_agendas/political-censure/2")
+def test_censure_miscount_same_player_again_keeps_the_point(registry: StaticDataRegistry) -> None:
+    """Ponownie wybrany gracz traci i odzyskuje punkt - w sumie nadal ma 1 punkt i kartę."""
+    state = _state(registry, ["miscount"])
+    state.decks.agenda_laws = {"censure": "p1"}
+    state.players["p1"].victory_points = 1
+    out = _resolve(registry, state, "censure")
+    out = agenda_phase.continue_agenda(out, registry, "p2")
+    out = agenda_phase.cast_vote(out, registry, "p3", "p1", [_planet(out, "p3")])
+    out = _finish(out, registry, "p1")
+    assert out.decks.agenda_laws["censure"] == "p1"
+    assert out.players["p1"].victory_points == 1
+
+
+@ruling("C_agendas/political-censure/2.1")
+def test_censure_stays_in_play_during_the_revote(registry: StaticDataRegistry) -> None:
+    out = _miscount_censure(registry)
+    assert out.decks.agenda_laws["censure"] == "p1"
+    assert action_cards.forbidden_reason(out, "p1") is not None  # do końca głosowania
+    assert action_cards.forbidden_reason(out, "p3") is None
+
+
+def _miscount_censure(registry: StaticDataRegistry) -> GameState:
+    state = _state(registry, ["miscount"])
+    state.decks.agenda_laws = {"censure": "p1"}
+    state.players["p1"].victory_points = 1
+    out = _resolve(registry, state, "censure")
+    return agenda_phase.continue_agenda(out, registry, "p2")
+
+
+@ruling("C_agendas/political-censure/3")
+def test_censure_only_blocks_action_cards_and_cannot_be_discarded_by_owner(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import strategic_action
+    from src.core.game_state import Phase
+    from src.core.hooks.agendas_common import agenda_source
+
+    state = _state(registry, [])
+    state.phase, state.agenda = Phase.ACTION, None
+    state.active_player_id = "p1"
+    state.players["p1"].strategy_cards = [3]
+    state.decks.agenda_laws = {"censure": "p1"}
+    assert action_cards.forbidden_reason(state, "p1") is not None
+    started = strategic_action.play_strategy_card(state, registry, "p1", 3)  # karty strategii OK
+    assert started.pending_strategy is not None or started.pending_window is not None
+    # Żaden hook Political Censure nie daje właścicielowi własnej oferty/akcji odrzucenia.
+    own = [h for h in rules_hooks._REGISTRY if h.source == agenda_source("censure")]
+    assert own and not any(h.optional for h in own)

@@ -334,6 +334,19 @@ def test_classified_discarded_objective_stays_but_is_not_scorable(
         objectives.score_public(out, registry, HexGrid(), "p2", "dp")  # …ale nikt go nie zdobędzie
 
 
+@ruling("C_agendas/classified-document-leaks/5")
+def test_classified_discarded_objective_not_counted_toward_original_owner_total(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _classified(registry, {"p1": ["dp", "s2", "s3"]})
+    out = _resolve(registry, state, "dp")
+    assert secret_objectives.secret_count(out, "p1") == 2
+    agenda_phase.remove_law(out, "classified")  # the law is discarded
+    assert secret_objectives.secret_count(out, "p1") == 2  # still not counted
+    assert secret_objectives.excess(out, "p1") == 0
+    assert "dp" not in out.players["p1"].scored_secrets
+
+
 @ruling("C_agendas/classified-document-leaks/2")
 def test_miscount_on_classified_cannot_reelect_the_public_objective(
     registry: StaticDataRegistry,
@@ -437,6 +450,18 @@ def test_disarmament_ground_forces_pay_out_together(
     assert out.systems["101"].planet_units[planet]["p1"] == {"pds": 1, "spacedock": 1}
 
 
+@ruling("C_agendas/compensated-disarmament/4.1")
+def test_disarmament_destroys_titans_hel_titan_ground_force(registry: StaticDataRegistry) -> None:
+    state, planet = _disarmament(registry)
+    state.players["p1"].faction = "titans"
+    state.systems["101"].planet_units[planet]["p1"] = {"infantry": 1, "pds": 2, "spacedock": 1}
+    out = _resolve(registry, state, planet)
+    # Hel-Titans (PDS that are also ground forces) are destroyed and pay 1 TG each, together with
+    # the infantry (1) and p3's infantry (1); the space dock is a plain structure.
+    assert out.systems["101"].planet_units[planet]["p1"] == {"spacedock": 1}
+    assert out.players["p1"].trade_goods == state.players["p1"].trade_goods + 4
+
+
 @ruling("C_agendas/compensated-disarmament/3")
 def test_disarmament_empty_planet_can_be_elected(registry: StaticDataRegistry) -> None:
     out = _reveal(_state(registry, ["disarmament"]), registry)
@@ -525,6 +550,26 @@ def test_executive_sanctions_skip_yssaril(registry: StaticDataRegistry) -> None:
 
 
 # ======================================================================= Fleet Regulations
+
+
+@ruling("C_agendas/fleet-regulations/1")
+def test_fleet_regulations_excess_tokens_return_and_excess_ships_removed(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import fleet_pool, limits
+
+    state = _state(registry, ["regulations"])
+    state.players["p1"].fleet_cc = 6
+    state.players["p1"].cc_reinf = 1
+    state.systems["101"].space_units = {"p1": {"dreadnought": 6}}  # fits 6, not 4
+    out = _resolve(registry, state, "for")
+    assert command_tokens.pool_count(out, "p1", "fleet") == 4
+    assert command_tokens.reinforcements(out, "p1") == 3  # excess tokens return to reinforcements
+    assert out.players["p1"].tactical_cc == state.players["p1"].tactical_cc  # not moved elsewhere
+    assert fleet_pool.players_with_excess(out, "101") == ["p1"]
+    out = limits.enforce_limits(out, registry)  # applied after the step: immediate removal window
+    window = out.pending_window
+    assert window is not None and window.window_type is WindowType.FLEET_POOL
 
 
 @ruling("C_agendas/fleet-regulations/2")
@@ -707,3 +752,167 @@ def test_artifact_disaster_three_or_fewer_units_all_destroyed(
     out = _accept(out, "p1", {"units_102": picks})
     assert out.systems["101"].space_units.get("p1", {}) == {}  # ≤3: wszystkie naraz
     assert out.systems["102"].space_units["p1"] == {"carrier": 2}
+
+
+# ================================================================= Arms Reduction / Articles of War
+
+
+@ruling("C_agendas/arms-reduction/1")
+def test_arms_reduction_only_dreadnoughts_and_cruisers_excess_is_removed(
+    registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """„For” dotyka tylko dreadnoughtów i krążowników; myśliwce ponad pojemność zdejmuje
+    dopiero kontrola capacity jako USUNIĘCIE (nie zniszczenie)."""
+    from src.core import capacity, unit_ops
+    from src.core.unit_ops import UnitCause
+
+    state = _state(registry, ["arms_reduction"])
+    state.systems["101"].space_units = {
+        "p1": {"dreadnought": 3, "cruiser": 5, "destroyer": 6, "fighter": 3}
+    }
+    out = _resolve(registry, state, "for")
+    assert out.systems["101"].space_units["p1"] == {
+        "dreadnought": 2, "cruiser": 4, "destroyer": 6, "fighter": 3,  # niszczyciele nietknięte
+    }
+    assert capacity.capacity_report(out, registry, "101", "p1").excess == 1
+    causes: list[UnitCause] = []
+    real = unit_ops.remove_units
+
+    def spy(*args: Any, **kwargs: Any) -> Any:
+        causes.append(args[6] if len(args) > 6 else kwargs["cause"])
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(unit_ops, "remove_units", spy)
+    after = capacity.remove_forced_excess(out, registry, "101")
+    assert after.systems["101"].space_units["p1"]["fighter"] == 2
+    assert causes == [UnitCause.REMOVED]
+
+
+@ruling("C_agendas/articles-of-war/1")
+def test_articles_of_war_mech_keeps_cost_and_combat_values() -> None:
+    """Mech traci zdolności (hooki jednostki), ale nie koszt/wartość walki ani dodatkowe kości
+    Naaz-Rokha (Visz El Vir); Sustain Damage zostaje."""
+    from src.core import battle
+    from src.core.registry import StaticDataRegistry as Registry
+    from tests.factions.test_naaz import PLAIN, VEFUTII
+    from tests.factions.test_naaz import _state as naaz_state
+
+    registry = Registry()
+    rules_hooks.bind_registry(registry)
+
+    def mech() -> Any:
+        state = naaz_state()
+        state.systems[PLAIN].space_units = {"p1": {"flagship": 1}}  # Visz El Vir: +1 kość mecha
+        state.systems[PLAIN].planet_units = {VEFUTII: {"p1": {"mech": 2}}}
+        if law:
+            state.decks.agenda_laws = {"articles_war": "for"}
+        assert rules_hooks.unit_abilities_lost(state, "p1", "mech") is law
+        return battle.combat_units(
+            state, None, registry, kind="ground", position=PLAIN, planet=VEFUTII, player_id="p1"
+        )[0]
+
+    law = False
+    before = mech()
+    law = True
+    after = mech()
+    assert (after.base_hits_on, after.dice_per_unit, after.sustain) == (
+        before.base_hits_on, before.dice_per_unit, before.sustain
+    )
+    assert after.sustain and after.dice_per_unit == 3
+
+
+# ======================================================================= Checks and Balances
+
+
+def _checks_strategy(registry: StaticDataRegistry, **cards: list[int]) -> GameState:
+    state = _strategy_with_checks(registry)
+    for pid, held in cards.items():
+        state.players[pid].strategy_cards = held
+    return state
+
+
+@ruling("C_agendas/checks-and-balances/1")
+def test_checks_chosen_card_goes_to_another_player_unless_nobody_can_get_it(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _checks_strategy(registry)
+    with pytest.raises(ValueError, match="Checks and Balances"):
+        strategy_phase.pick_strategy_card(state, registry, "p2", 1)  # nie zachowa jej
+    with pytest.raises(ValueError, match="Checks and Balances"):
+        strategy_phase.pick_strategy_card(state, registry, "p2", 1, recipient="p2")
+    # p1 i p3 mają już komplet kart (2 przy 3 graczach) - nikt nie może dostać, wybierający zostaje.
+    full = _checks_strategy(registry, p1=[2, 3], p3=[4, 5])
+    kept = strategy_phase.pick_strategy_card(full, registry, "p2", 1)
+    assert kept.players["p2"].strategy_cards == [1]
+    assert strategy_phase.card_recipients(full, "p2") == []
+
+
+@ruling("C_agendas/checks-and-balances/2")
+def test_checks_player_given_a_card_still_chooses_and_gives_on_their_turn(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _checks_strategy(registry)
+    out = strategy_phase.pick_strategy_card(state, registry, "p2", 1, recipient="p3")
+    assert out.players["p3"].strategy_cards == [1]
+    assert strategy_phase.next_strategy_picker(out) == "p3"  # dostał kartę, ale wciąż wybiera
+    with pytest.raises(ValueError, match="Checks and Balances"):
+        strategy_phase.pick_strategy_card(out, registry, "p3", 2)
+    out = strategy_phase.pick_strategy_card(out, registry, "p3", 2, recipient="p1")
+    assert out.players["p1"].strategy_cards == [2] and out.players["p3"].strategy_cards == [1]
+
+
+@ruling("C_agendas/checks-and-balances/3")
+def test_checks_against_applies_to_every_player_regardless_of_vote(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _state(registry, ["checks"])
+    votes = {"p3": "for", "p1": "against", "p2": "against"}
+    out = _resolve(registry, state, "against", votes=votes)
+    for pid in ("p1", "p2", "p3"):  # także p3, który głosował „For”
+        assert rules_hooks.forbidden(rules_hooks.POINT_PLANETS_READY_LIMIT, out, pid) == {"3"}
+
+
+# ======================================================================= Colonial Redistribution
+
+
+@ruling("C_agendas/colonial-redistribution/3")
+def test_redistribution_planet_with_only_neutral_infantry_cannot_be_elected(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core.neutral import NEUTRAL_PLAYER_ID
+
+    state = _state(registry, ["redistribution"])
+    free = _extra_planets(registry, state, 1)[0]
+    state.systems["102"] = SystemState(
+        position="102", system_id="2", planet_units={free: {NEUTRAL_PLAYER_ID: {"infantry": 2}}}
+    )
+    out = _reveal(state, registry)
+    assert out.agenda is not None
+    assert free not in out.agenda.outcomes  # tylko planety kontrolowane przez graczy
+    assert _planet(out, "p1") in out.agenda.outcomes
+
+
+# ======================================================================= Galactic Crisis Pact
+
+
+@ruling("C_agendas/galactic-crisis-pact/1")
+def test_crisis_pact_leadership_secondary_still_buys_tokens_with_influence(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import strategic_action
+
+    state = _state(registry, ["crisis"])
+    out = _resolve(registry, state, "1")  # Leadership
+    window = out.pending_window
+    assert window is not None and window.context["initiative"] == 1
+    responder = window.current_responder
+    assert responder is not None
+    player = out.players[responder]
+    player.cc_reinf, player.trade_goods = 5, 6
+    tokens = (player.tactical_cc, player.fleet_cc, player.strategic_cc)
+    done = strategic_action.resolve_secondary(
+        out, registry, responder, execute=True, payload={"trade_goods": 6, "tactical": 2}
+    )
+    assert done.players[responder].trade_goods == 0  # wpływ wydany: 6 / 3 = 2 żetony
+    assert done.players[responder].tactical_cc == tokens[0] + 2
+    assert done.players[responder].strategic_cc == tokens[2]  # żeton secondary nie został wydany

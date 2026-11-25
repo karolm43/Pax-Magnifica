@@ -37,6 +37,7 @@ from src.core.fleet_pool import unit_name
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, InvasionPhase, Phase, StatusStep
 from src.core.hooks.card_helpers import system_of_planet
+from src.core.movement_paths import _ignores_anomalies
 from src.core.planet_stats import influence_of
 from src.core.reaction_cards import OpenWindow, window_provider
 from src.core.registry import StaticDataRegistry
@@ -468,17 +469,19 @@ def two_ram(_state: GameState, _player_id: str, _ctx: Mapping[str, Any]) -> bool
 
 
 def hero_destinations(state: GameState, player_id: str) -> list[str]:
-    """Systemy bez cudzych statków; nie mgławica / supernowa, pole asteroid tylko z Antimass
-    Deflectors (F_lizix)."""
+    """Systems without other players' ships; never a supernova and an asteroid field only with
+    Antimass Deflectors (F_lizix 5, 5.2) - unless the player ignores anomaly effects on movement
+    (Circlet of the Void: supernova allowed, F_lizix 5.1). Nebula allowed (R_nebula notes/2)."""
     grid = grid_from_state(state, _registry())
-    has_antimass = _ANTIMASS in state.players[player_id].technologies
+    ignores = _ignores_anomalies(state, player_id)
+    has_antimass = ignores or _ANTIMASS in state.players[player_id].technologies
     found: list[str] = []
     for position, system in sorted(state.systems.items()):
         if any(o != player_id and any(n > 0 and is_space_unit(bt) for bt, n in u.items())
                for o, u in system.space_units.items()):
             continue
         anomalies = grid.anomalies_at(position)
-        if any(a in anomalies for a in _NO_ENTRY):
+        if not ignores and any(a in anomalies for a in _NO_ENTRY):
             continue
         if _ASTEROID in anomalies and not has_antimass:
             continue

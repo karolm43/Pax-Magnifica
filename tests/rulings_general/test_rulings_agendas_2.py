@@ -148,7 +148,7 @@ def _pds2(registry: StaticDataRegistry) -> str:
     )
 
 
-@ruling("C_agendas/nexus-sovereignty/3")
+@ruling("C_agendas/nexus-sovereignty/3", "C_agendas/enforced-travel-ban/4")
 @pytest.mark.parametrize("law", ["travel_ban", "nexus"])
 def test_travel_ban_deep_space_cannon_still_shoots(registry: StaticDataRegistry, law: str) -> None:
     state, grid = _wormhole_pair(registry, law)
@@ -282,6 +282,51 @@ def test_industry_no_second_dock_on_a_planet(registry: StaticDataRegistry) -> No
     state, planet = _industry(registry)
     state.systems["101"].planet_units = {planet: {"p1": {"spacedock": 1}}}
     assert structure_problem(state, "p1", planet, "spacedock") is not None
+
+
+@ruling("C_agendas/minister-of-industry/3.1")
+def test_industry_empty_reinforcements_remove_dock_from_system_without_command_token(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import board_reinforcements
+    from src.core.strategy_cards.common import structure_problem
+
+    state, planet = _industry(registry)
+    extra = [p for p in sorted(registry.planets) if p != planet][:3]
+    state.systems["101"].planet_units = {planet: {"p1": {"pds": 1}}}
+    state.systems["102"] = SystemState(
+        position="102", system_id="2", planet_owners={extra[0]: "p1"},
+        planet_units={extra[0]: {"p1": {"spacedock": 1}}}, command_tokens=["p1"],  # token: locked
+    )
+    state.systems["103"] = SystemState(
+        position="103", system_id="3", planet_owners={extra[1]: "p1"},
+        planet_units={extra[1]: {"p1": {"spacedock": 2}}},
+    )
+    assert board_reinforcements.needs_board_source(state, "p1", "spacedock")  # all 3 on the board
+    assert structure_problem(state, "p1", planet, "spacedock") is not None  # plain placement: no
+    assert structure_problem(state, "p1", planet, "spacedock", allow_board=True) is None
+    sources = board_reinforcements.board_sources(state, "p1", "spacedock")
+    assert sources == [f"103|{extra[1]}"]  # not from the system holding p1's command token
+
+
+@ruling("C_agendas/minister-of-industry/5")
+def test_industry_saar_floating_factory_movement_is_not_placing(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import movement
+    from src.core.state_grid import grid_from_state
+    from tests.factions import test_saar as saar_tests
+
+    state = saar_tests._state()
+    state.decks.agenda_laws = {"minister_industry": "p1"}
+    state = saar_tests._activate(state, registry, saar_tests.PLAIN)
+    after = movement.move_fleet(
+        state, grid_from_state(state, registry), registry, saar_tests.HOME,
+        {"spacedock": 1}, {}, "p1", route=[saar_tests.HOME, saar_tests.PLAIN],
+    )
+    assert after.systems[saar_tests.PLAIN].space_units["p1"]["spacedock"] == 1  # it moved in
+    assert after.production_grant is None
+    assert not [o for o in after.pending_offers if o.label == "Minister of Industry"]
 
 
 @ruling("C_agendas/minister-of-industry/4")
@@ -744,3 +789,141 @@ def test_wormhole_research_ground_forces_removed_fighters_destroyed(
     assert causes["fighter"] is UnitCause.DESTROYED and causes["carrier"] is UnitCause.DESTROYED
     assert causes["infantry"] is UnitCause.REMOVED
 
+
+
+# ========================================================= Dodatkowe punkty M-Z (ministrowie)
+
+
+@ruling("C_agendas/minister-of-commerce/2")
+def test_commerce_pays_even_with_maximum_commodities(registry: StaticDataRegistry) -> None:
+    state = _commerce_state(registry)
+    state.players["p1"].commodities = 3  # już maksimum
+    economy.replenish_commodities(state, "p1")
+    assert state.players["p1"].commodities == 3
+    assert state.players["p1"].trade_goods == 2  # 2 sąsiadów, nadal wypłata
+
+
+@ruling("C_agendas/minister-of-war/2")
+def test_minister_of_war_is_not_an_action_fleet_logistics_gives_three(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import action_budget
+
+    state = _state(registry, [])
+    state.phase, state.agenda = Phase.ACTION, None
+    state.active_player_id = "p1"
+    state.players["p1"].technologies = ["fl"]  # Fleet Logistics: 2 akcje
+    state.decks.agenda_laws = {"minister_war": "p1"}
+    state.systems["101"].command_tokens = ["p1"]
+    assert action_budget.actions_allowed(state, "p1") == 2
+    agendas_laws._minister_war(state, "p1", {"params": {"position": "101"}})
+    assert action_budget.actions_allowed(state, "p1") == 3
+    assert action_budget.actions_left(state, "p1") == 3  # rozstrzygnięcie nie zużyło akcji
+
+
+@ruling("C_agendas/public-execution/1")
+def test_public_execution_crafty_does_not_save_the_hand(registry: StaticDataRegistry) -> None:
+    """Limit ręki (Crafty) nie chroni przed odrzuceniem wszystkich kart przez Public Execution."""
+    state = _state(registry, ["execution", "economic_equality"])
+    state.players["p2"].faction = "yssaril"
+    state.players["p2"].private.action_cards = ["sabo1", "sabo2", "sabo3", "sabo4"]
+    out = _resolve(registry, state, "p2")
+    assert out.players["p2"].private.action_cards == []
+
+
+# ======================================================================= Shared Research
+
+
+def _shared_research(registry: StaticDataRegistry) -> GameState:
+    state = _state(registry, ["shared_research"])
+    for pid, home in (("p1", "101"), ("p2", "102"), ("p3", "103")):
+        state.players[pid].home_position = home
+        state.systems.setdefault(home, SystemState(position=home, system_id="2"))
+    return state
+
+
+@ruling("C_agendas/shared-research/1")
+def test_shared_research_against_without_reinforcements_places_nothing(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _shared_research(registry)
+    state.players["p1"].cc_reinf = 0
+    sheet = (state.players["p1"].tactical_cc, state.players["p1"].fleet_cc,
+             state.players["p1"].strategic_cc)
+    out = _resolve(registry, state, "against")
+    assert "p1" not in out.systems["101"].command_tokens
+    assert (out.players["p1"].tactical_cc, out.players["p1"].fleet_cc,
+            out.players["p1"].strategic_cc) == sheet  # nic nie zabrane z arkusza
+    assert "p2" in out.systems["102"].command_tokens  # reszta graczy kładzie żeton
+
+
+@ruling("C_agendas/shared-research/2")
+def test_shared_research_against_home_without_controlled_planets(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _shared_research(registry)
+    assert not state.systems["102"].planet_owners  # p2 nie kontroluje tam planet
+    out = _resolve(registry, state, "against")
+    assert "p2" in out.systems["102"].command_tokens
+
+
+# ======================================================================= Swords to Plowshares
+
+
+@ruling("C_agendas/swords-to-plowshares/1")
+def test_plowshares_for_all_trade_goods_gained_together(
+    registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    state = _state(registry, ["plowshares"])
+    first = _planet(state, "p1")
+    taken = {p for s in state.systems.values() for p in s.planet_owners}
+    second = next(p for p in sorted(registry.planets) if p not in taken)
+    state.systems["102"] = SystemState(
+        position="102", system_id="2", planet_owners={second: "p1"}
+    )
+    state.systems["101"].planet_units = {first: {"p1": {"infantry": 1}}}  # jedyna piechota ginie
+    state.systems["102"].planet_units = {second: {"p1": {"infantry": 3}}}
+    gains: list[tuple[str, int]] = []
+    real = economy.gain_trade_goods
+
+    def spy(st: GameState, pid: str, amount: int, *, cause: str = "") -> None:
+        gains.append((pid, amount))
+        real(st, pid, amount, cause=cause)
+
+    monkeypatch.setattr(economy, "gain_trade_goods", spy)
+    out = _resolve(registry, state, "for")
+    assert out.systems["101"].planet_units[first].get("p1", {}).get("infantry", 0) == 0
+    assert out.systems["102"].planet_units[second]["p1"]["infantry"] == 1
+    assert gains == [("p1", 3)]  # jedna wypłata (Pillage Mentaka zadziała raz na sąsiada)
+
+
+@ruling("C_agendas/swords-to-plowshares/3")
+def test_plowshares_for_ignores_neutral_infantry(registry: StaticDataRegistry) -> None:
+    from src.core.neutral import NEUTRAL_PLAYER_ID
+
+    state = _state(registry, ["plowshares"])
+    taken = {p for s in state.systems.values() for p in s.planet_owners}
+    free = next(p for p in sorted(registry.planets) if p not in taken)
+    state.systems["102"] = SystemState(
+        position="102", system_id="2", planet_units={free: {NEUTRAL_PLAYER_ID: {"infantry": 2}}}
+    )
+    out = _resolve(registry, state, "for")
+    assert out.systems["102"].planet_units[free][NEUTRAL_PLAYER_ID] == {"infantry": 2}
+    assert all(p.trade_goods == 0 for p in out.players.values())
+
+
+# ======================================================================= Wormhole Reconstruction
+
+
+@ruling("C_agendas/wormhole-reconstruction/2.1")
+def test_reconstruction_against_creuss_gate_gets_a_token_too(
+    registry: StaticDataRegistry,
+) -> None:
+    _line(registry, ("101", DELTA))
+    state = _state(registry, ["wormhole_recon"])
+    state.players["p1"].faction = "ghost"
+    state.systems = {
+        "101": SystemState(position="101", system_id=DELTA, space_units={"p1": {"cruiser": 1}}),
+    }
+    out = _resolve(registry, state, "against")
+    assert out.systems["101"].command_tokens == ["p1"]

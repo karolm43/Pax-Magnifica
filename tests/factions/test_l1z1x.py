@@ -172,6 +172,19 @@ def test_pusta_rezerwa_bez_wymiany_struktura_ginie(registry: StaticDataRegistry)
     assert not units.get("p1", {}).get("pds") and not units.get("p2", {}).get("pds")
 
 
+@ruling("F_lizix/assimilate/4")
+def test_assimilate_wymienia_struktury_wspolistniejace(registry: StaticDataRegistry) -> None:
+    """Planeta p2 ze współistniejącymi strukturami p3 - Assimilate wymienia struktury obu."""
+    state = _state()
+    state.players["p3"] = PlayerState(player_id="p3", color="red", faction="hacan")
+    state.seating_order.append("p3")
+    state.systems["102"].planet_units = {THIBAH: {"p2": {"pds": 1}, "p3": {"spacedock": 1}}}
+    _capture(state, registry)
+    units = state.systems["102"].planet_units[THIBAH]
+    assert units.get("p1") == {"pds": 1, "spacedock": 1}
+    assert not any(units.get("p2", {}).values()) and not any(units.get("p3", {}).values())
+
+
 # ================================================================================== Harrow
 
 
@@ -212,7 +225,8 @@ def test_harrow_bombarduje_po_rundzie(registry: StaticDataRegistry) -> None:
     assert combat.round_end_hits.get("p2", 0) == entry["hits"]["p1"]
 
 
-@ruling("F_lizix/harrow/1", "leaders:l1z1xcommander#1", "F_lizix/2ram/1.1")
+@ruling("F_lizix/harrow/1", "leaders:l1z1xcommander#1", "F_lizix/2ram/1",
+        "F_lizix/2ram/1.1")
 def test_harrow_tarcza_blokuje_chyba_ze_2ram(registry: StaticDataRegistry) -> None:
     state = _harrow_state()
     state.systems["102"].planet_units[THIBAH]["p2"]["pds"] = 1
@@ -307,7 +321,8 @@ def _tech_state(registry: StaticDataRegistry) -> tuple[GameState, str]:
     return state, tech.id
 
 
-@ruling("technologies:is#1", "technologies:is#2", "F_lizix/inheritance-systems/1.1")
+@ruling("technologies:is#1", "technologies:is#2", "F_lizix/inheritance-systems/1",
+        "F_lizix/inheritance-systems/1.1")
 def test_inheritance_ignoruje_wszystkie_prerekwizyty_za_osobne_2(
     registry: StaticDataRegistry,
 ) -> None:
@@ -333,6 +348,53 @@ def test_inheritance_ignoruje_wszystkie_prerekwizyty_za_osobne_2(
     )
     with pytest.raises(ValueError, match="cannot ignore"):
         technology.plan_research(state, registry, "p1", other, ["paid:is||2"])
+
+
+@ruling("F_lizix/inheritance-systems/1.2")
+def test_inheritance_minister_of_sciences_nadal_placi_2(registry: StaticDataRegistry) -> None:
+    """Minister of Sciences zwalnia z kosztu badania, nie z osobnych 2 zasobów Inheritance."""
+    state, tech = _tech_state(registry)
+    state.decks.agenda_laws = {"minister_sciences": "p1"}
+    assert rules_hooks.permits(rules_hooks.POINT_TECHNOLOGY_SC_FREE, state, "p1")
+    with pytest.raises(ValueError, match="Spend 2"):
+        technology.plan_research(state, registry, "p1", tech, ["paid:is||0"])
+    plan = technology.plan_research(state, registry, "p1", tech, ["paid:is||2"])
+    assert plan.paid_ignore == ("is", (), 2)
+
+
+@ruling("F_lizix/inheritance-systems/2")
+def test_inheritance_dla_ulepszenia_jednostki_super_dreadnought(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _state()
+    state.players["p1"].technologies = ["is"]
+    state.players["p1"].trade_goods = 2
+    assert technology.prerequisites(registry.technologies["sdn2"])
+    with pytest.raises(ValueError, match="Prerequisites"):
+        technology.plan_research(state, registry, "p1", "sdn2", [])
+    plan = technology.plan_research(state, registry, "p1", "sdn2", ["paid:is||2"])
+    technology.apply_research(state, "p1", plan)
+    assert "sdn2" in state.players["p1"].technologies
+
+
+@ruling("F_lizix/inheritance-systems/3")
+def test_inheritance_zbadana_jako_pierwsza_dziala_od_razu(registry: StaticDataRegistry) -> None:
+    """Dwa badania pod rząd (primary Technology): świeżo zbadane Inheritance ignoruje
+    prerekwizyty drugiej technologii."""
+    state = _state()
+    state.players["p1"].technologies = ["st", "sdn"]  # 2 żółte - prerekwizyty Inheritance
+    state.players["p1"].trade_goods = 2
+    technology.apply_research(state, "p1", technology.plan_research(state, registry, "p1",
+                                                                     "is", []))
+    assert "is" in state.players["p1"].technologies
+    tech = next(
+        t.id for t in technology.tech_pool(state, registry, "p1").values()
+        if t.id not in state.players["p1"].technologies
+        and sum(technology.missing_prerequisites(state, registry, "p1", t).values()) >= 2
+    )
+    plan = technology.plan_research(state, registry, "p1", tech, ["paid:is||2"])
+    technology.apply_research(state, "p1", plan)
+    assert tech in state.players["p1"].technologies
 
 
 def test_inheritance_w_drzewie_i_widoku(registry: StaticDataRegistry) -> None:
@@ -592,6 +654,37 @@ def test_dark_space_navigation_szczelina(registry: StaticDataRegistry) -> None:
                                 _mv("103", [f"101|dreadnought|{i}" for i in range(6)]))
     assert state.systems["103"].space_units.get("p1", {}).get("dreadnought", 0) < 6
     assert state.table_roll is not None and state.table_roll["kind"] == "gravity_rift"
+
+
+@ruling("F_lizix/the-helmsman-dark-space-navigation/4.1")
+def test_dark_space_navigation_szczelina_z_circlet_bez_rzutu(registry: StaticDataRegistry) -> None:
+    state = _hero_state()
+    rift = next(
+        s for s, d in sorted(registry.systems.items())
+        if d.is_gravity_rift and not d.planets and not d.is_asteroid_field and not d.is_nebula
+    )
+    state.systems["101"].system_id = rift
+    state.systems["101"].planet_owners = {}
+    state.systems["101"].space_units = {"p1": {"dreadnought": 6}}
+    state.players["p1"].relics = ["circletofthevoid"]
+    state.rng_seed = 3
+    l1z1x.dark_space_navigation(state, registry, "p1",
+                                _mv("103", [f"101|dreadnought|{i}" for i in range(6)]))
+    assert state.systems["103"].space_units["p1"]["dreadnought"] == 6
+    assert state.table_roll is None
+
+
+@ruling("F_lizix/the-helmsman-dark-space-navigation/5.1")
+def test_dark_space_navigation_supernowa_z_circlet(registry: StaticDataRegistry) -> None:
+    state = _hero_state()
+    supernova = next(s for s, d in sorted(registry.systems.items()) if d.is_supernova)
+    state.systems["103"].system_id = supernova
+    assert "103" not in l1z1x.hero_destinations(state, "p1")
+    state.players["p1"].relics = ["circletofthevoid"]
+    state.players["p1"].exhausted_relics = ["circletofthevoid"]  # passive part works exhausted
+    assert "103" in l1z1x.hero_destinations(state, "p1")
+    l1z1x.dark_space_navigation(state, registry, "p1", _mv("103", ["000|flagship|0"]))
+    assert state.systems["103"].space_units["p1"] == {"flagship": 1}
 
 
 @ruling("F_lizix/the-helmsman-dark-space-navigation/6")

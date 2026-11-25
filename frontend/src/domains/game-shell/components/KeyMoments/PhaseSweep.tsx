@@ -5,6 +5,7 @@ import { useGameState } from "@/api/useGameState";
 import { useActivityFeed } from "@/api/useBoardEditor";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { useGameData } from "@/state/useGameContext";
+import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { useSettingsStore } from "@/state/appStore";
 import { seatColorStyle } from "@/domains/game-shell/components/FactionsInGame/seatColor";
 import { mainPhaseOf, phaseSweep, type Sweep } from "./keyMoments";
@@ -17,7 +18,7 @@ const DURATION: Record<Sweep["variant"], number> = {
   action: 1600,
   status: 1600,
   agenda: 1600,
-  turn: 1300,
+  turn: 2600,
 };
 
 /**
@@ -44,7 +45,8 @@ export function PhaseSweep() {
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
   const adminFastMode = useSettingsStore((s) => s.settings.adminFastMode);
   const { data: gameState } = useGameState(gameId);
-  const round = useGameData()?.gameRound;
+  const gameData = useGameData();
+  const round = gameData?.gameRound;
   const myColor = useMyColor();
 
   const phase = mainPhaseOf(gameState?.phase);
@@ -64,8 +66,19 @@ export function PhaseSweep() {
     const sweep = phaseSweep(before, { phase, round });
     if (sweep) next.push(sweep);
     const turnArrived = turnColor !== null && turnColor !== before.turn;
-    if (phase === "action" && turnArrived && myColor !== null && turnColor === myColor) {
-      next.push({ id: `turn-${round ?? "?"}-${Date.now()}`, variant: "turn", title: "Your turn", subtitle: null });
+    // Strategy phase (picking a card) is a turn too; agenda/status are skipped because the
+    // active player falls back to the speaker between their steps (false "Your turn").
+    if ((phase === "action" || phase === "strategy") && turnArrived && myColor !== null && turnColor === myColor) {
+      const me = gameData?.playerData?.find((p) => p.color === myColor);
+      const who = [me?.userName?.trim(), me ? getPlayerFactionDisplayName(me) : null]
+        .filter((part): part is string => !!part && part.toLowerCase() !== "null")
+        .join(" · ");
+      next.push({
+        id: `turn-${round ?? "?"}-${Date.now()}`,
+        variant: "turn",
+        title: "Your turn",
+        subtitle: who || null,
+      });
     }
     if (next.length > 0) setQueue((cur) => [...cur, ...next].slice(-3));
   }, [phase, round, turnColor, myColor, adminFastMode]);

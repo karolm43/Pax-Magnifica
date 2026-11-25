@@ -14,6 +14,7 @@ import pytest
 
 from src.core import (
     action_budget,
+    active_effects,
     battle,
     card_draw,
     component_action,
@@ -21,6 +22,7 @@ from src.core import (
     economy,
     invasion,
     limits,
+    movement,
     production,
     rules_hooks,
     tactical,
@@ -29,7 +31,7 @@ from src.core import (
     turn_flow,
     unit_ops,
 )
-from src.core.game_events import GameEvent, Moment
+from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, Phase, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.hooks import agendas_laws
@@ -83,6 +85,23 @@ def test_antimass_minus_one_also_in_space_cannon_defense(registry: StaticDataReg
     assert plain_roll["modifier"] == 0 and shielded_roll["modifier"] == -1
 
 
+@ruling("C_technology/antimass-deflectors/2")
+def test_antimass_lost_units_may_leave_an_asteroid_field_but_not_enter(
+    registry: StaticDataRegistry,
+) -> None:
+    from tests.test_movement import _line_grid, _state_with_destroyer_at
+
+    # Statki stoją w polu asteroid (zyskały i utraciły Antimass): wylatują, ale nie wlatują.
+    leave_grid = _line_grid([("000", "18", set()), ("101", "20", {"ASTEROID_FIELD"})])
+    state = _state_with_destroyer_at("101", "000")
+    state.players["p1"].technologies = []
+    ok, reason = movement.can_move(state, leave_grid, registry, "101", "destroyer", "p1")
+    assert ok, reason
+    enter_grid = _line_grid([("000", "18", {"ASTEROID_FIELD"}), ("101", "20", set())])
+    ok, _ = movement.can_move(state, enter_grid, registry, "101", "destroyer", "p1")
+    assert not ok
+
+
 # ============================================================================ Dark Energy Tap
 
 
@@ -120,6 +139,31 @@ def test_ship_placed_outside_the_tactical_action_does_not_explore() -> None:
     state.systems["102"].space_units = {"p1": {"destroyer": 1}}
     ended = tactical.end_tactical_action(state)
     assert ended.exploration is None and ended.systems["101"].frontier_token
+
+
+# ============================================================================ Gravity Drive
+
+
+@ruling("C_technology/gravity-drive/1")
+def test_gravity_drive_stacks_with_flank_speed(registry: StaticDataRegistry) -> None:
+    grid = battle_grid()
+    state = GameState(
+        phase=Phase.ACTION,
+        active_player_id="p1",
+        players={"p1": PlayerState(player_id="p1", color="red", technologies=["gd"])},
+    )
+
+    def move_value(boost: bool) -> int | None:
+        return movement._effective_move_value(
+            state, grid, registry, "000", "cruiser", "p1", boost=boost, tempesta=False
+        )
+
+    base = move_value(False)
+    assert base is not None
+    assert move_value(True) == base + 1  # sam Gravity Drive
+    active_effects.add_effect(state, "action_cards:fs1", Duration.TACTICAL_ACTION, owner="p1")
+    assert move_value(False) == base + 1  # sam Flank Speed
+    assert move_value(True) == base + 2  # oba razem: +2
 
 
 # ============================================================================ Fleet Logistics
@@ -180,6 +224,83 @@ def test_fleet_logistics_cannot_pass_after_an_action() -> None:
         turn_flow.pass_turn(state, "p1")
 
 
+@ruling("C_technology/fleet-logistics/5")
+def test_fleet_logistics_second_action_waits_for_the_strategic_secondary() -> None:
+    from src.core.game_state import StrategyResolution
+
+    state = component_action.play_component_action(_fl_state(["fl"]), "p1")
+    assert action_budget.actions_left(state, "p1") == 1
+    # Pierwsza akcja = strategiczna: dopóki trwają secondary, druga akcja nie może się zacząć.
+    state.pending_strategy = StrategyResolution(initiative=1, owner_id="p1", step="x")
+    with pytest.raises(ValueError, match="Finish your current action"):
+        action_budget.require_free_action(state, "p1")
+    state.pending_strategy = None
+    action_budget.require_free_action(state, "p1")  # po secondary druga akcja jest wolna
+
+
+# ============================================================================ Light/Wave Deflector
+
+
+def _lwd_pickup_state() -> GameState:
+    state = GameState(
+        phase=Phase.ACTION,
+        active_player_id="p1",
+        active_system="000",
+        players={
+            "p1": PlayerState(player_id="p1", color="red", technologies=["cv2", "lwd"]),
+            "p2": PlayerState(player_id="p2", color="blue"),
+        },
+        systems={
+            "201": SystemState(position="201", system_id="21", space_units={"p1": {"carrier": 1}}),
+            "101": SystemState(
+                position="101", system_id="20",
+                space_units={"p2": {"destroyer": 1}},
+                planet_units={"pl": {"p1": {"infantry": 2}}},
+                planet_owners={"pl": "p1"},
+            ),
+        },
+    )
+    state.players["p1"].controlled_planets = ["pl"]
+    return state
+
+
+@ruling("C_technology/light-wave-deflector/1")
+def test_light_wave_ship_may_pick_up_units_in_a_system_with_foreign_ships(
+    registry: StaticDataRegistry,
+) -> None:
+    from tests.test_technologies_combat import _far_grid
+
+    grid = _far_grid()
+    route = ["201", "101", "000"]
+    pickup = movement.CargoPickup("infantry", 2, "pl", "101")
+    done = movement.move_fleet(
+        _lwd_pickup_state(), grid, registry, "201", {"carrier": 1}, [pickup], "p1", route=route
+    )
+    assert done.systems["000"].space_units["p1"] == {"carrier": 1, "infantry": 2}
+    assert done.systems["101"].space_units["p2"] == {"destroyer": 1}  # statek wroga stoi dalej
+    # Bez Light/Wave Deflector ten sam przelot jest zablokowany.
+    blocked = _lwd_pickup_state()
+    blocked.players["p1"].technologies = ["cv2"]
+    with pytest.raises(ValueError):
+        movement.move_fleet(
+            blocked, grid, registry, "201", {"carrier": 1}, [pickup], "p1", route=route
+        )
+
+
+@ruling("C_technology/light-wave-deflector/2")
+def test_light_wave_does_not_allow_production_next_to_foreign_ships(
+    registry: StaticDataRegistry,
+) -> None:
+    state, _planet = _ie_state(registry)
+    state.players["p1"].technologies.append("lwd")
+    state.systems["101"].space_units["p1"] = {"carrier": 1}
+    state.systems["101"].space_units["p2"] = {"destroyer": 1}
+    with pytest.raises(ValueError, match="enemy ships"):
+        production.produce(
+            state, HexGrid(), registry, "p1", [production.ProductionOrder("fighter", 2)]
+        )
+
+
 # ============================================================================ Neural Motivator
 
 
@@ -194,6 +315,77 @@ def test_neural_motivator_only_in_the_status_phase_draw() -> None:
     assert len(state.players["p1"].private.action_cards) == 1
     agendas_laws._policy(state, "p1", {})  # Minister of Policy (koniec fazy statusu)
     assert len(state.players["p1"].private.action_cards) == 2  # nadal po 1 karcie
+
+
+@ruling(
+    "C_technology/neural-motivator/1.1",
+    "C_technology/neural-motivator/1.2",
+    "C_technology/neural-motivator/1.3",
+    "C_technology/neural-motivator/1.4",
+)
+def test_neural_motivator_does_not_change_other_action_card_draws(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import exploration
+    from src.core.hooks import relics_combat
+    from src.core.strategy_cards import politics
+    from tests.test_exploration import _IND, _with_card
+    from tests.test_exploration import _state as exploration_state
+
+    def hand(state: GameState) -> int:
+        return len(state.players["p1"].private.action_cards)
+
+    # 1.1 Politics: secondary dobiera stałą liczbę kart niezależnie od technologii.
+    plain = GameState(players={"p1": PlayerState(player_id="p1", color="red")})
+    plain.decks.action_card_deck = ["a1", "a2", "a3", "a4", "a5", "a6"]
+    with_nm = plain.clone()
+    with_nm.players["p1"].technologies = ["nm"]
+    politics._secondary(plain, None, "p1", {})  # type: ignore[arg-type]
+    politics._secondary(with_nm, None, "p1", {})  # type: ignore[arg-type]
+    assert hand(plain) == hand(with_nm) == politics.ACTION_CARDS_DRAWN
+
+    # 1.2 Minister of Policy.
+    policy = GameState(
+        players={"p1": PlayerState(player_id="p1", color="red", technologies=["nm"])}
+    )
+    policy.decks.action_card_deck = ["a1", "a2", "a3"]
+    agendas_laws._policy(policy, "p1", {})
+    assert hand(policy) == 1
+
+    # 1.3 Functioning Base.
+    base = _with_card(exploration_state(), registry, "Functioning Base", _IND)
+    base.players["p1"].technologies = ["nm"]
+    base.decks.action_card_deck = ["ac1", "ac2", "ac3"]
+    base.players["p1"].trade_goods = 1
+    assert hand(exploration.resolve(base, registry, "draw_tg")) == 1
+
+    # 1.4 The Prophet's Tears.
+    tears = GameState(
+        players={
+            "p1": PlayerState(
+                player_id="p1", color="red", technologies=["nm"], relics=["prophetstears"]
+            )
+        }
+    )
+    tears.decks.action_card_deck = ["a1", "a2", "a3"]
+    relics_combat.prophets_tears_draw(tears, "p1", {})
+    assert hand(tears) == 1
+
+
+# ============================================================================ Hyper Metabolism
+
+
+@ruling("C_technology/hyper-metabolism/1")
+def test_hyper_metabolism_gives_three_command_tokens_instead_of_two() -> None:
+    state = GameState(
+        players={
+            "p1": PlayerState(player_id="p1", color="red", technologies=["hm"]),
+            "p2": PlayerState(player_id="p2", color="blue"),
+        }
+    )
+    point = rules_hooks.POINT_STATUS_COMMAND_TOKENS
+    assert rules_hooks.modify(point, state, "p1", 2) == 3
+    assert rules_hooks.modify(point, state, "p2", 2) == 2
 
 
 # ============================================================================ Psychoarchaeology
@@ -291,6 +483,17 @@ def test_x89_ships_fighting_as_ground_forces_double_their_hits() -> None:
     ctx = {"kind": "ground", "base_type": "cruiser"}
     assert rules_hooks.modify(point, state, "p1", 1, ctx) == 2
     assert rules_hooks.modify(point, state, "p1", 1, {"kind": "space", "base_type": "mech"}) == 1
+
+
+@ruling("C_technology/x89-bacterial-weapon-omega-omega/5")
+def test_x89_exhausts_the_bombarders_own_planet_with_coexisting_enemy_units() -> None:
+    state = _techs(battle_state({"p1": {"dreadnought": 1}}), "p1", "x89c4")
+    state.players["p1"].controlled_planets = ["pl"]  # planeta p1 z jednostkami p2 (coexist)
+    triggers.fire(
+        state, GameEvent.UNIT_ABILITY_USED, Moment.AFTER, subject="p1",
+        ctx={"ability": "bombardment", "player": "p1", "position": "000", "planets": ["pl"]},
+    )
+    assert state.players["p1"].exhausted_planets == ["pl"]
 
 
 @ruling(
@@ -566,6 +769,20 @@ def test_sarween_no_discount_without_production_ability(registry: StaticDataRegi
     assert order_cost(state, registry, "p1", orders) == base
 
 
+@ruling("C_technology/sling-relay/2")
+def test_sling_relay_cannot_be_used_without_producing_a_ship(
+    registry: StaticDataRegistry,
+) -> None:
+    from tests.test_technologies_actions import _dock_state
+
+    done = component_action.play_component_action(
+        _dock_state(["sr"]), "p1", "sr", params={"system": "101"}
+    )
+    with pytest.raises(ValueError, match="cannot be used without producing"):
+        production.skip_grant(done)
+    assert done.production_grant is not None  # the grant stays open until a ship is produced
+
+
 # ========================================================================== Predictive Intelligence
 
 
@@ -633,7 +850,9 @@ def test_transit_diodes_sources_and_destinations() -> None:
 # ============================================================================ Integrated Economy
 
 
-def _ie_state(registry: StaticDataRegistry) -> tuple[GameState, str]:
+def _ie_state(
+    registry: StaticDataRegistry, attachments: list[str] | None = None
+) -> tuple[GameState, str]:
     system_id, planet = next(
         (s.id, p)
         for s in registry.systems.values()
@@ -655,6 +874,8 @@ def _ie_state(registry: StaticDataRegistry) -> tuple[GameState, str]:
             "101": SystemState(position="101", system_id=system_id, planet_owners={planet: "p1"})
         },
     )
+    if attachments:
+        state.planet_attachments[planet] = list(attachments)
     ctx = {"player": "p1", "planet": planet, "position": "101", "previous": None}
     triggers.fire(state, GameEvent.PLANET_CONTROL_GAINED, Moment.AFTER, subject="p1", ctx=ctx)
     offer = state.pending_offers[0]
@@ -700,7 +921,134 @@ def test_integrated_economy_ships_blocked_by_enemy_ships(registry: StaticDataReg
         )
 
 
+@ruling("C_technology/integrated-economy/3")
+def test_integrated_economy_uses_resources_including_explored_attachments(
+    registry: StaticDataRegistry,
+) -> None:
+    from tests.test_exploration import _card_id
+
+    plain, planet = _ie_state(registry)
+    assert plain.production_grant is not None
+    base = plain.production_grant.max_cost
+    attached, _ = _ie_state(registry, [_card_id(registry, "Mining World")])
+    assert attached.production_grant is not None
+    assert attached.production_grant.max_cost > base  # attachment z eksploracji podnosi limit
+
+
+@ruling("C_technology/integrated-economy/5")
+def test_integrated_economy_is_not_a_production_ability_so_sarween_does_not_apply(
+    registry: StaticDataRegistry,
+) -> None:
+    orders = [production.ProductionOrder("cruiser", 1)]
+    state, _planet = _ie_state(registry)
+    assert state.production_grant is not None and state.production_grant.source == (
+        "Integrated Economy"
+    )
+    base = production.order_cost(state, registry, "p1", orders)
+    state.players["p1"].technologies.append("st")
+    assert production.order_cost(state, registry, "p1", orders) == base
+
+
 # ============================================================================ Graviton Laser System
+
+
+def _gls_one_hit(
+    registry: StaticDataRegistry, *, pds: dict[str, int], plasma: bool = False
+) -> GameState:
+    from src.core import space_cannon
+    from tests.test_space_cannon import _grid as sc_grid
+    from tests.test_space_cannon import _state as sc_state
+
+    for seed in range(1, 300):
+        state = sc_state(
+            pds=pds, techs={"p2": ["gls", "ps"] if plasma else ["gls"]}, seed=seed,
+            ships={"p1": {"dreadnought": 2, "fighter": 2}},
+        )
+        opened = space_cannon.open_offense(state, sc_grid(), registry)
+        unit = space_cannon.offense_shooters(opened, sc_grid(), registry, "p2")[0].key
+        fired = space_cannon.fire_offense(
+            opened, sc_grid(), registry, "p2", "p1", exhaust_gls=True,
+            plasma_unit=unit if plasma else None,
+        )
+        pending = space_cannon.pending_hits(fired)
+        if pending is not None and pending.hits == 1:
+            return fired
+    raise AssertionError("no seed with exactly one Space Cannon hit")
+
+
+@ruling("C_technology/graviton-laser-system/1")
+def test_graviton_laser_has_no_effect_in_space_cannon_defense(
+    registry: StaticDataRegistry,
+) -> None:
+    grid = inv_grid()
+    state = inv_state({"p1": {"infantry": 2}}, {_PL1: {"p2": {"pds": 2}}}, {_PL1: "p2"})
+    _techs(state, "p2", "gls")
+    state = invasion.begin_invasion(state, grid, registry)
+    state = invasion.commit_ground_forces(state, registry, {_PL1: {"infantry": 2}})
+    state = invasion.advance(state, grid, registry)
+    state = invasion.defense_fire(state, grid, registry, _PL1)
+    assert "gls" not in state.players["p2"].exhausted_technologies  # nic nie wyczerpuje
+    assert state.invasion is not None
+    if state.invasion.defense_pending.get(_PL1, 0):  # trafienia idą tylko w siły naziemne
+        need = invasion.required_defense_hits(state, grid, registry, _PL1)
+        invasion.assign_defense_hits(
+            state, grid, registry, _PL1, sustain={}, destroy={"infantry": need},
+            destroy_damaged={},
+        )
+
+
+@ruling("C_technology/graviton-laser-system/2")
+def test_graviton_laser_hits_may_still_be_cancelled_by_sustain_damage(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import space_cannon
+
+    fired = _gls_one_hit(registry, pds={"p2": 3})
+    assert "gls" in fired.players["p2"].exhausted_technologies
+    with pytest.raises(ValueError, match="non-fighter"):
+        space_cannon.assign_hits(fired, "p1", {"fighter": 1})
+    done = space_cannon.assign_hits(fired, "p1", sustain={"dreadnought": 1}, registry=registry)
+    system = done.systems["000"]
+    assert system.space_units["p1"] == {"dreadnought": 2, "fighter": 2}  # nic nie zginęło
+    assert damage.damaged_count(system, "space", "p1", "dreadnought") == 1
+
+
+@ruling("C_technology/graviton-laser-system/3")
+def test_graviton_laser_applies_to_all_dice_including_other_units_cannons(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import space_cannon
+
+    # GLS obejmuje KAŻDĄ kość rzutu, także dodatkową kość Plasma Scoring (a nie tylko bazowe).
+    fired = _gls_one_hit(registry, pds={"p2": 2}, plasma=True)
+    roll = space_cannon.read_log(fired)[0]["rolls"][0]
+    assert roll["extraDice"] == 1 and len(roll["dice"]) == 3
+    with pytest.raises(ValueError, match="non-fighter"):
+        space_cannon.assign_hits(fired, "p1", {"fighter": 1})
+
+
+@ruling("C_technology/plasma-scoring/3")
+def test_plasma_scoring_adds_a_die_to_experimental_battlestation(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import action_cards, space_cannon
+    from tests.test_reactions_invasion import _move_state
+
+    def shot(plasma: str | None) -> dict[str, Any]:
+        state = _move_state(seed=1)
+        _techs(state, "p2", "ps")
+        params: dict[str, Any] = {"dock": {"position": "000", "zone": _PL1}}
+        if plasma:
+            params["plasma"] = plasma
+        done, _ = action_cards.play_action_card(state, registry, "p2", "experimental", params)
+        return space_cannon.read_log(done)[0]["rolls"][0]
+
+    form = action_cards.card_inputs(
+        _techs(_move_state(), "p2", "ps"), registry, "p2", "experimental"
+    )[1]
+    assert [i["key"] for i in form[1:]] == ["plasma"]  # choice (auto / none), not automatic
+    assert len(shot("auto")["dice"]) == 4 and shot("auto")["extraDice"] == 1  # SPACE CANNON 5(x3)+1
+    assert len(shot("none")["dice"]) == 3 and len(shot(None)["dice"]) == 3
 
 
 @ruling("R_space_cannon/notes/5")

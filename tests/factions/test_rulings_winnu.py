@@ -144,6 +144,25 @@ def test_reclaimer_pusta_rezerwa_struktura_z_planszy(registry: StaticDataRegistr
     assert not any(str(v).startswith("pds") for v in options)
 
 
+@ruling("F_winnu/reclaimer/1")
+def test_reclaimer_z_hopes_end_nie_stawia_struktury_w_tej_turze(
+    registry: StaticDataRegistry,
+) -> None:
+    """Mech z Imperial Arms Vault pojawia się na końcu tury, już po akcji taktycznej - oferta
+    Reclaimera (koniec akcji) nie wraca."""
+    from src.core.hooks import planets_legendary
+
+    state = _state()
+    planet = _home_planet(registry)
+    _gained_in_action(state, registry, "101", planet)
+    ended = tactical.end_tactical_action(state)  # akcja się kończy, mecha jeszcze nie ma
+    assert not any("Reclaimer" in label for label in _offers(ended))
+    planets_legendary._vault(ended, registry, "p1", "hopesend", {"choice": f"mech:{planet}"})
+    assert ended.systems["101"].planet_units[planet]["p1"]["mech"] == 1
+    assert not any("Reclaimer" in label for label in _offers(ended))
+    assert not ended.systems["101"].planet_units[planet]["p1"].get("pds")
+
+
 @ruling("F_winnu/reclaimer/4")
 def test_reclaimer_wystarczy_na_koniec_akcji(registry: StaticDataRegistry) -> None:
     """Planeta przejęta bez Reclaimera (Infiltrate, eksploracja), mech stoi na niej dopiero na
@@ -238,7 +257,7 @@ def test_htp_zmienia_production_doku(registry: StaticDataRegistry) -> None:
     assert after - before == stats.influence - stats.resources
 
 
-@ruling("technologies:htp#1", "technologies:htp#2")
+@ruling("technologies:htp#1", "technologies:htp#2", "F_winnu/hegemonic-trade-policy/1")
 def test_htp_tylko_przy_produkcji_jedna_planeta(registry: StaticDataRegistry) -> None:
     state = _dock_on_mecatol(registry)
     winnu.hegemonic_trade_policy(state, registry, "p1", {"planet": _MR})

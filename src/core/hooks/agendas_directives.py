@@ -28,6 +28,7 @@ from src.core import (
     research_offer,
     rules_hooks,
     secret_objectives,
+    ship_roles,
     strategic_action,
     strategy_phase,
     technology,
@@ -459,7 +460,9 @@ def _disarmament(state: GameState, _pid: str, ctx: Mapping[str, Any]) -> None:
     owner = system.planet_owners.get(planet)
     destroyed = 0
     for player in list(system.planet_units.get(planet, {})):
-        for base_type in GROUND_FORCES:
+        # Hel-Titans (Titans of Ul) are structures that are also ground forces (F_ul, C_agendas).
+        structure_gf = sorted(ship_roles.structure_ground_forces(state, player))
+        for base_type in (*GROUND_FORCES, *structure_gf):
             count = unit_ops.count_in_zone(system, planet, player, base_type)
             if count:
                 unit_ops.remove_units(state, system, planet, player, base_type, count,

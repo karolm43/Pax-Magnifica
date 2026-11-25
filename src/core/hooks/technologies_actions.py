@@ -128,7 +128,7 @@ def sling_relay(
     exhaust.exhaust_technology(state, player_id, SLING_RELAY)
     state.production_grant = ProductionGrant(
         player_id=player_id, position=system, units=1, free=True, ships_only=True,
-        source="Sling Relay",
+        source="Sling Relay", mandatory=True,
     )
 
 

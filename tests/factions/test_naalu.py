@@ -53,7 +53,7 @@ from src.core.hooks import reactions_misc
 from src.core.hooks.factions import naalu
 from src.core.registry import StaticDataRegistry
 from src.core.state_grid import grid_from_state
-from src.core.strategy_cards import politics
+from src.core.strategy_cards import diplomacy, politics
 from tests.factions.completeness import missing_components
 from tests.rulings import ruling
 
@@ -137,13 +137,14 @@ def _end_strategy(state: GameState) -> GameState:
     return turn_flow.next_phase(work)
 
 
-@ruling("abilities:telepathic#1", "abilities:telepathic#2",
+@ruling("abilities:telepathic#1", "abilities:telepathic#2", "F_naalu/telepathic/2",
         "R_initiative_order/rules-reference/1.1")
 def test_telepathic_zeton_zero_pierwszy_w_inicjatywie() -> None:
     state = _state()
     assert turn_flow.turn_order(state) == ["p2", "p1"]  # karta 2 przed 5
     after = _end_strategy(state)
-    assert initiative_zero.holder(after) == "p1"
+    assert initiative_zero.holder(after) == "p1"  # obowiązkowo, bez oferty (telepathic 2)
+    assert not _offers(after, "p1", "Telepathic")
     assert initiative_zero.initiative(after, "p1") == 0
     assert turn_flow.strict_initiative_order(after) == ["p1", "p2"]
     assert after.active_player_id == "p1"  # pierwszy w fazie akcji
@@ -181,7 +182,8 @@ def _gift_window_state() -> GameState:
     return state
 
 
-@ruling("promissory_notes:gift#1", "promissory_notes:gift#2", "F_naalu/gift-of-prescience/1")
+@ruling("promissory_notes:gift#1", "promissory_notes:gift#2", "F_naalu/gift-of-prescience/1",
+        "F_naalu/telepathic/2")
 def test_gift_of_prescience_zeton_zero_dla_grajacego(registry: StaticDataRegistry) -> None:
     state = _gift_window_state()
     assert reactions_misc.strategy_phase_end(state)  # okno istnieje: komplet kart
@@ -385,6 +387,56 @@ def test_foresight_zeton_juz_w_celu_wraca_do_rezerwy() -> None:
     assert after.players["p1"].strategic_cc == 1
 
 
+@ruling("F_naalu/foresight/4.1")
+def test_foresight_z_gravity_rift_z_circlet_bez_rzutu() -> None:
+    state = _foresight_state()
+    state.systems[ARENA].system_id = "41"  # gravity rift
+    state.players["p1"].relics = ["circletofthevoid"]
+    state.rng_seed = 3
+    after = _accept(_p2_moved(state), "p1", "Foresight", {"destination": EAST})
+    assert after.systems[EAST].space_units["p1"] == {
+        "cruiser": 1, "carrier": 1, "fighter": 2, "infantry": 1, "mech": 1,
+    }
+    assert after.table_roll is None
+
+
+@ruling("F_naalu/foresight/7")
+def test_foresight_bez_limitu_uzyc_w_rundzie() -> None:
+    state = _foresight_state()
+    after = _accept(_p2_moved(state), "p1", "Foresight", {"destination": EAST})
+    assert after.players["p1"].strategic_cc == 1
+    again = _p2_moved(after, EAST)  # p2 goni Naalu - Foresight drugi raz w tej rundzie
+    dest = next(p for p in naalu.foresight_destinations(again, "p1", EAST) if p != ARENA)
+    final = _accept(again, "p1", "Foresight", {"destination": dest})
+    assert final.players["p1"].strategic_cc == 0
+    assert final.systems[dest].space_units["p1"]["cruiser"] == 1
+    assert not _offers(_p2_moved(final, dest), "p1", "Foresight")  # pula strategii pusta
+
+
+@ruling("F_naalu/foresight/8")
+def test_foresight_nie_gdy_statki_tylko_przelatuja() -> None:
+    """Ruch p2 kończy się w EAST (przez ARENA z Naalu) - zdarzenie dotyczy tylko celu ruchu."""
+    state = _foresight_state()
+    state.systems[ARENA].space_units.pop("p2")
+    moved = state.clone()
+    movement.fire_ships_moved(moved, "p2", EAST, RIVAL, {"destroyer": 1})
+    assert not _offers(moved, "p1", "Foresight")
+
+
+@ruling("F_naalu/foresight/9")
+def test_foresight_do_systemu_z_cudzymi_strukturami_bez_inwazji() -> None:
+    state = _foresight_state()
+    state.systems[EAST].planet_owners = {VEFUTII: "p2"}
+    state.systems[EAST].planet_units = {VEFUTII: {"p2": {"pds": 1}}}
+    state.players["p2"].controlled_planets.append(VEFUTII)
+    assert EAST in naalu.foresight_destinations(state, "p1", ARENA)
+    after = _accept(_p2_moved(state), "p1", "Foresight", {"destination": EAST})
+    assert after.systems[EAST].space_units["p1"]["infantry"] == 1  # siły naziemne w przestrzeni
+    assert after.systems[EAST].planet_units[VEFUTII] == {"p2": {"pds": 1}}
+    assert after.systems[EAST].planet_owners[VEFUTII] == "p2"
+    assert after.invasion is None
+
+
 def test_foresight_bez_zetonu_w_puli_strategii() -> None:
     state = _foresight_state()
     state.players["p1"].strategic_cc = 0
@@ -425,6 +477,18 @@ def test_neuroglaive_limit_puli_floty_przed_ruchem(registry: StaticDataRegistry)
     assert window.context["position"] == FAR
     with pytest.raises(ValueError, match="fleet pool"):
         timing.require_no_limit_window(after)  # ruch czeka na usunięcie nadwyżki
+
+
+@ruling("F_naalu/neuroglaive/2")
+def test_neuroglaive_nie_przy_primary_diplomacy() -> None:
+    """Diplomacy kładzie żeton p2 w systemie ze statkami Naalu - to nie aktywacja."""
+    state = _state()
+    state.players["p1"].technologies = [naalu.NEUROGLAIVE]
+    state.systems[HOME].space_units = {"p1": {"cruiser": 1}}
+    diplomacy._primary(state, None, "p1", {"system": HOME, "planets": []})  # type: ignore[arg-type]
+    assert "p2" in state.systems[HOME].command_tokens
+    assert state.players["p2"].fleet_cc == 3
+    assert not _offers(state, "p2", "Neuroglaive")
 
 
 # ------------------------------------------------------------- Hybrid Crystal Fighter II
@@ -501,7 +565,8 @@ def test_bez_matriarch_mysliwce_nie_laduja(registry: StaticDataRegistry) -> None
         invasion.commit_ground_forces(state, registry, {WELLON: {"fighter": 1}})
 
 
-@ruling("units:naalu_flagship#2", "F_naalu/matriarch/2", "F_naalu/matriarch/3")
+@ruling("units:naalu_flagship#2", "F_naalu/matriarch/1", "F_naalu/matriarch/2",
+        "F_naalu/matriarch/3")
 def test_matriarch_mysliwce_wracaja_i_nie_daja_kontroli(registry: StaticDataRegistry) -> None:
     state = _invasion_state(registry)
     state.systems[ARENA].planet_units = {WELLON: {"p2": {"pds": 1}}}  # bez sił naziemnych p2
@@ -537,6 +602,25 @@ def test_matriarch_powrot_po_walce_tylko_z_tej_planety(registry: StaticDataRegis
         "attacker": "p1", "defender": "p2",
     })
     assert after.systems[ARENA].space_units["p1"]["fighter"] == 3
+
+
+@ruling("F_naalu/matriarch/6")
+def test_matriarch_mysliwce_na_planecie_wlasna_wartosc_walki(
+    registry: StaticDataRegistry,
+) -> None:
+    def fighter_hits_on(techs: list[str]) -> int:
+        state = _invasion_state(registry)
+        state.players["p1"].technologies = techs
+        after = invasion.commit_ground_forces(state, registry, {WELLON: {"fighter": 2}})
+        units = battle.combat_units(after, None, registry, kind="ground", position=ARENA,
+                                    planet=WELLON, player_id="p1")
+        return next(u.base_hits_on for u in units if u.base_type == "fighter")
+
+    base = resolve_unit_variant(registry, "naalu", [], "fighter")
+    upgraded = resolve_unit_variant(registry, "naalu", [naalu.HCF2], "fighter")
+    assert base is not None and upgraded is not None
+    assert fighter_hits_on([]) == base.combat_hits_on
+    assert fighter_hits_on([naalu.HCF2]) == upgraded.combat_hits_on != base.combat_hits_on
 
 
 @ruling("F_naalu/matriarch/4")

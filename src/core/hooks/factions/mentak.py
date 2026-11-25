@@ -734,10 +734,21 @@ def sleeper_on_direct_hit(state: GameState, player_id: str, ctx: Mapping[str, An
 def fourth_moon(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
     """Fourth Moon: Other player's ships in this system cannot use SUSTAIN DAMAGE."""
     system = state.systems.get(str(ctx.get("position")))
+    if ctx.get("zone") != _SPACE or system is None:
+        return False
+    if system.space_units.get(player_id, {}).get("flagship", 0) > 0:
+        return True
+    # F_mentak fourth-moon 1: Sustain Damage is used before the Fourth Moon is removed, so the
+    # denial still holds for the rest of the round in which it was destroyed.
+    combat = state.active_combat
     return (
-        ctx.get("zone") == _SPACE
-        and system is not None
-        and system.space_units.get(player_id, {}).get("flagship", 0) > 0
+        combat is not None
+        and combat.kind == _SPACE
+        and combat.position == system.position
+        and any(
+            e.get("player") == player_id and e.get("base_type") == "flagship"
+            for e in combat.destroyed_ships
+        )
     )
 
 

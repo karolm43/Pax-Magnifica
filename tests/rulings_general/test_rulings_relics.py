@@ -23,6 +23,7 @@ from src.core import (
     objective_progress,
     payment,
     relic_cards,
+    relics,
     rules_hooks,
     space_cannon,
     technology,
@@ -295,6 +296,27 @@ def test_dynamis_core_returns_commodities_over_the_printed_value(
     assert state.players["p1"].trade_goods == 5
     assert state.players["p1"].commodities == 3  # nadmiar ponad wartość z karty frakcji wraca
 
+
+
+# ============================================================================ Dominus Orb
+
+
+@ruling("C_relics/dominus-orb/1")
+def test_dominus_orb_does_not_increase_the_move_distance(registry: StaticDataRegistry) -> None:
+    from src.core import movement
+
+    state, grid, _route = _anomaly_line("NONE")
+    before = movement._effective_move_value(
+        state, grid, registry, "101", "cruiser", "p1", boost=False, tempesta=False,  # type: ignore[arg-type]
+    )
+    state.players["p1"].relics = ["dominusorb"]
+    relics_events.dominus_orb(state, "p1", {})
+    after = movement._effective_move_value(
+        state, grid, registry, "101", "cruiser", "p1", boost=False, tempesta=False,  # type: ignore[arg-type]
+    )
+    assert before is not None and after == before
+    # 101 and 104 are not adjacent, so the route stays illegal.
+    assert movement.route_error(state, grid, ["101", "104"], "p1", "cruiser") is not None  # type: ignore[arg-type]
 
 # ============================================================================ Heart of Ixth
 
@@ -596,7 +618,7 @@ def test_scepter_without_reinforcements_means_spending_from_the_sheet(
     assert player.strategic_cc == 1
 
 
-@ruling("C_relics/scepter-of-emelpar/1")
+@ruling("C_relics/scepter-of-emelpar/1", "C_relics/scepter-of-emelpar/3")
 def test_scepter_works_for_objectives_and_faction_abilities(registry: StaticDataRegistry) -> None:
     from src.core import objective_payment
     from src.core.hooks.factions import sol
@@ -739,3 +761,105 @@ def test_triad_is_not_a_planet_for_other_effects(registry: StaticDataRegistry) -
     view = objective_progress.View(state, registry, grid, "p1")
     assert triad not in view.owned
     assert payment.ready_planet_values(state, registry, "p1", "resources")[triad] == 3
+
+
+# ============================================================================ Maw of Worlds (2)
+
+
+@ruling("C_relics/maw-of-worlds/2")
+def test_maw_exhausted_planets_ready_at_the_end_of_the_agenda_phase(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _state(registry, ["mawofworlds"])
+    tech_id = next(iter(technology.tech_pool(state, registry, "p1")))
+    relics_passive.maw_of_worlds(state, "p1", {"params": {"technology": tech_id}})
+    player = state.players["p1"]
+    assert player.controlled_planets and set(player.controlled_planets) <= set(
+        player.exhausted_planets
+    )
+    agenda_phase._ready_all_planets(state)
+    assert player.exhausted_planets == []
+
+
+@ruling("C_relics/the-triad/5")
+def test_maw_does_not_exhaust_the_triad(registry: StaticDataRegistry) -> None:
+    state = _state(registry, ["mawofworlds", "thetriad"])
+    tech_id = next(iter(technology.tech_pool(state, registry, "p1")))
+    relics_passive.maw_of_worlds(state, "p1", {"params": {"technology": tech_id}})
+    player = state.players["p1"]
+    assert "relic:thetriad" not in player.exhausted_planets
+    assert player.exhausted_relics == []  # The Triad stays ready
+
+
+# ============================================================================ The Silver Flame
+
+
+class _Rng:
+    def __init__(self, value: int) -> None:
+        self.value = value
+
+    def randint(self, _low: int, _high: int) -> int:
+        return self.value
+
+
+@ruling("C_relics/the-silver-flame/1")
+def test_silver_flame_saar_keeps_scoring_public_objectives(
+    registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.core import objectives
+
+    monkeypatch.setattr(relics_actions, "next_rng", lambda _s: _Rng(4))
+    for faction, can_score in (("sol", False), ("saar", True)):
+        state = _state(registry, ["thesilverflame"])
+        state.players["p1"].faction = faction
+        new_state, _ = relic_cards.play_relic(state, registry, "p1", "thesilverflame")
+        assert not new_state.systems["103"].planet_owners  # the home system is purged
+        assert objectives.controls_home_planets(new_state, registry, "p1") is can_score
+
+
+@ruling("C_relics/the-silver-flame/2")
+def test_silver_flame_puts_the_fracture_into_play_even_on_a_ten(
+    registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for roll in (10, 4):
+        monkeypatch.setattr(relics_actions, "next_rng", lambda _s, v=roll: _Rng(v))
+        state = _state(registry, ["thesilverflame"])
+        assert not state.fracture.in_play
+        new_state, _ = relic_cards.play_relic(state, registry, "p1", "thesilverflame")
+        assert new_state.fracture.in_play, f"roll {roll}"
+        if roll == 10:
+            assert new_state.systems["103"].planet_owners  # the home system is NOT purged
+
+
+# ============================================================================ The Triad (2, 4, 6)
+
+
+@ruling("C_relics/the-triad/2")
+def test_triad_is_readied_by_effects_that_ready_planets(registry: StaticDataRegistry) -> None:
+    state = _state(registry, ["thetriad"])
+    exhaust.exhaust_planets(state, "p1", ["relic:thetriad"])
+    assert "relic:thetriad" not in payment.ready_planet_values(state, registry, "p1", "influence")
+    exhaust.ready_planets(state, "p1", ["relic:thetriad"])  # e.g. Diplomacy
+    assert "relic:thetriad" in payment.ready_planet_values(state, registry, "p1", "influence")
+
+
+@ruling("C_relics/the-triad/4")
+def test_triad_unknown_fragment_is_a_fourth_fragment_type(registry: StaticDataRegistry) -> None:
+    state = _state(registry, ["thetriad"])
+    player = state.players["p1"]
+    player.relic_fragments = ["crf1", "hrf1", "irf1"]
+    three = payment.ready_planet_values(state, registry, "p1", "resources")["relic:thetriad"]
+    player.relic_fragments = ["crf1", "hrf1", "irf1", "urf1"]
+    four = payment.ready_planet_values(state, registry, "p1", "resources")["relic:thetriad"]
+    assert (three, four) == (6, 7)
+
+
+@ruling("C_relics/the-triad/6")
+def test_saar_gaining_the_triad_gets_no_scavenge_trade_good(registry: StaticDataRegistry) -> None:
+    state = _state(registry, [])
+    player = state.players["p1"]
+    player.faction = "saar"
+    state.decks.relic_deck, state.decks.relic_deck_seeded = ["thetriad"], True
+    before = player.trade_goods
+    assert relics.draw_relic(state, registry, "p1") == "thetriad"
+    assert player.trade_goods == before

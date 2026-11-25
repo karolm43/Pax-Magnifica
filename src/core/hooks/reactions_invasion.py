@@ -30,6 +30,7 @@ from src.core import (
     board_graph,
     combat_bombardment,
     entropic_scar,
+    extra_dice,
     invasion,
     rules_hooks,
     space_cannon,
@@ -700,7 +701,20 @@ def experimental_inputs(
         where = "in orbit" if zone == "space" else f"on {_planet_label(state, registry, zone)}"
         label = f"Space dock {where} (system {position})"
         options.append(_option({"position": position, "zone": zone}, label, f"{position}:{zone}"))
-    return [_choice("dock", "Space dock that fires", options)]
+    inputs = [_choice("dock", "Space dock that fires", options)]
+    if extra_dice.sources(state, player_id, rules_hooks.POINT_SPACE_CANNON_EXTRA_DICE):
+        # Plasma Scoring: "1 of those units MAY roll 1 additional die" - choice + Auto.
+        inputs.append(
+            _choice(
+                "plasma",
+                "Plasma Scoring: roll 1 additional die with the space dock?",
+                [
+                    _option("auto", "Auto (roll the extra die)"),
+                    _option("none", "No extra die"),
+                ],
+            )
+        )
+    return inputs
 
 
 @register_effect("action_cards:experimental")
@@ -741,4 +755,9 @@ def experimental(
         deep=False,
         remote=position != state.active_system,
     )
-    space_cannon.open_remote_shot(state, shooter, active)
+    picks: dict[str, str] | None = None
+    if params.get("plasma") == extra_dice.AUTO:
+        # The only unit that fires is the chosen dock, so "auto" gives it every extra die source.
+        sources = extra_dice.sources(state, player_id, rules_hooks.POINT_SPACE_CANNON_EXTRA_DICE)
+        picks = {e.key: shooter.key for e in sources}
+    space_cannon.open_remote_shot(state, shooter, active, extra_picks=picks)

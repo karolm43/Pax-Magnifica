@@ -578,3 +578,119 @@ def test_war_funding_efekt_rundy_walki_globalny() -> None:
     assert active_effects.has_effect(state, "p2", letnev.WAR_FUNDING_PLAYED)
     triggers.fire(state, GameEvent.COMBAT_ROUND, Moment.END, ctx={"kind": "space"})
     assert not active_effects.has_effect(state, "p2", letnev.WAR_FUNDING_PLAYED)
+
+
+# ==================================================== Munitions Reserves / Gravleash (rulingi)
+
+
+@ruling("F_letnev/munitions-reserves/1")
+def test_munitions_tylko_rzuty_combat_nie_afb(registry: StaticDataRegistry) -> None:
+    from src.core import faction_components
+
+    state = _state()
+    _round_start(state)
+    paid = _accept(state, "p1", "Munitions")
+    paid.pending_offers = []
+    paid.pending_window = None
+    combat = _rolled(paid)
+
+    def row() -> dict[str, Any]:
+        rows = {r["component_id"]: r for r in faction_components.playability(paid, registry, "p1")}
+        return dict(rows["munitions"])
+
+    assert row()["playable"] is True  # rzut combat: wolno
+    combat.afb_assign = True  # straty po Anti-Fighter Barrage
+    assert row()["playable"] is False
+    combat.afb_assign = False
+    combat.log[-1]["phase"] = "AFB"
+    assert row()["playable"] is False
+
+
+def _move_value(
+    state: GameState, registry: StaticDataRegistry, base_type: str, *, boost: bool = False,
+    companions: list[str] | None = None, grid: Any = None,
+) -> int | None:
+    from src.core import movement
+
+    return movement._effective_move_value(
+        state, grid or build_demo_grid(registry), registry, "000", base_type, "p1",
+        boost=boost, tempesta=False, companions=companions,
+    )
+
+
+@ruling("F_letnev/gravleash-maneuvers/3")
+def test_gravleash_kopiuje_wartosc_z_mendosa_ale_nie_z_crucible(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core.hooks.factions import cabal, saar
+
+    state = _state()
+    state.players["p1"].breakthrough_unlocked = True
+    together = ["dreadnought", "cruiser"]
+    assert _move_value(state, registry, "dreadnought", companions=together) == 2
+    # Captain Mendosa podnosi krążownik do 4 - pancernik kopiuje już zmodyfikowaną wartość.
+    active_effects.add_effect(
+        state, saar.MENDOSA, Duration.TACTICAL_ACTION, owner="p1",
+        data={"position": "000", "base_type": "cruiser", "value": 4, "used": False},
+    )
+    assert _move_value(state, registry, "dreadnought", companions=together) == 4
+    # Crucible (+1 za gravity rift) to premia trasy, nie wartości statku: nie jest kopiowana.
+    plain = _state()
+    plain.players["p1"].breakthrough_unlocked = True
+    active_effects.add_effect(plain, cabal.CRUCIBLE_EFFECT, Duration.TACTICAL_ACTION, owner="p1")
+    assert _move_value(plain, registry, "dreadnought", companions=together) == 2
+
+
+@ruling("F_letnev/gravleash-maneuvers/4")
+def test_gravleash_kopia_bez_drugiego_gravity_drive(registry: StaticDataRegistry) -> None:
+    state = _state()
+    state.players["p1"].technologies = ["gd"]
+    state.players["p1"].breakthrough_unlocked = True
+    together = ["dreadnought", "cruiser"]
+    cruiser = _move_value(state, registry, "cruiser", boost=True)
+    assert cruiser == 3  # krążownik 2 + Gravity Drive
+    # Pancernik kopiuje 3 (po Gravity Drive) i NIE dokłada sobie kolejnego +1 (nie 4).
+    assert _move_value(state, registry, "dreadnought", boost=True, companions=together) == 3
+
+
+@ruling("F_letnev/gravleash-maneuvers/5")
+def test_gravleash_bez_premii_gravity_rift(registry: StaticDataRegistry) -> None:
+    from src.core.hex_grid import HexGrid
+    from src.core.movement_paths import rift_bonus
+
+    grid = HexGrid()
+    grid.place_system("000", "41", anomalies={"GRAVITY_RIFT"})
+    for pos, sid in [("101", "20"), ("102", "22"), ("103", "23"), ("104", "24"),
+                     ("105", "25"), ("106", "26")]:
+        grid.place_system(pos, sid, anomalies=set())
+    grid.build_edges()
+    state = _state()
+    state.players["p1"].breakthrough_unlocked = True
+    together = ["dreadnought", "cruiser"]
+    # Start w szczelinie: kopiowana wartość = 2 krążownika, bez +1 ze szczeliny...
+    assert _move_value(state, registry, "dreadnought", companions=together, grid=grid) == 2
+    # ...które trasa dodaje osobno, raz, każdemu wylatującemu statkowi.
+    assert rift_bonus(state, grid, ["000", "101"], "p1") == 1
+
+
+@ruling("F_letnev/gravleash-maneuvers/6")
+def test_gravleash_tylko_rzut_combat_nie_afb(registry: StaticDataRegistry) -> None:
+    state = _state()
+    state.players["p1"].breakthrough_unlocked = True
+    state.systems["102"].space_units["p1"] = {"destroyer": 1, "cruiser": 1}
+    state.systems["102"].space_units["p2"] = {"fighter": 3}
+    state.active_combat = ActiveCombat(kind="space", position="102", attacker="p1", defender="p2")
+    _round_start(state)  # oferta na starcie rundy - przed krokiem Roll Dice
+    after = _accept(state, "p1", "Gravleash", {"ship": "destroyer"})
+    after.pending_offers = []
+    after.pending_window = None
+    grid = build_demo_grid(registry)
+    units = {u.base_type: u for u in battle.side_units(after, grid, registry, "p1")}
+    assert units["destroyer"].single_bonus == 2  # rzut combat: +2 (2 typy statków)
+    assert after.active_combat is not None
+    after.active_combat.step = CombatStep.AFB
+    rolled = battle.resolve_afb(after, grid, registry)
+    assert rolled.active_combat is not None
+    entry = next(e for e in rolled.active_combat.afb["p1"] if e["baseType"] == "destroyer")
+    assert "bonus" not in entry
+    assert entry["hits"] == sum(1 for d in entry["dice"] if d >= entry["hitsOn"])

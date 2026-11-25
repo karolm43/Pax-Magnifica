@@ -50,6 +50,12 @@ def spend_trade_goods(state: GameState, player_id: str, amount: int) -> None:
     if amount < 0:
         raise ValueError("The amount of trade goods to spend cannot be negative.")
     player = _player(state, player_id)
+    if amount > 0 and any(
+        o.event == GameEvent.TRADE_GOODS_GAINED.value and o.label == "Pillage"
+        and o.ctx.get("player") == player_id
+        for o in state.pending_offers
+    ):  # F_mentak pillage 11: no spending between the Pillage conditions and its resolution
+        raise ValueError("Trade goods cannot be spent while a Pillage decision is pending.")
     if amount > player.trade_goods:
         raise ValueError(f"Not enough trade goods: {amount} > {player.trade_goods}.")
     player.trade_goods -= amount

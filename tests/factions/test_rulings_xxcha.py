@@ -95,6 +95,53 @@ def test_peace_accords_planeta_w_tym_samym_systemie(registry: StaticDataRegistry
     assert ("101", second) in xxcha.peace_targets(state, "p1")
 
 
+def _peace(state: GameState, position: str, planet: str) -> None:
+    xxcha.peace_accords(state, "p1", {"params": {"planet": f"{position}|{planet}"}})
+
+
+@ruling("F_xxcha/peace-accords/2")
+def test_peace_accords_nie_stacja_kosmiczna(registry: StaticDataRegistry) -> None:
+    """Stacja kosmiczna to nie planeta - nie jest celem, nawet niczyja i bez jednostek."""
+    station = next(
+        pid for pid, p in sorted(registry.planets.items()) if p.planet_type == "SPACESTATION"
+    )
+    state = _state(registry)
+    state.systems["102"].planet_owners = {station: "p2"}
+    free = _planet(registry, "21")
+    targets = xxcha.peace_targets(state, "p1")
+    assert ("102", free) in targets
+    assert all(planet != station for _, planet in targets)
+    with pytest.raises(ValueError):
+        _peace(state, "102", station)
+
+
+@ruling("F_xxcha/peace-accords/3")
+def test_peace_accords_statki_innego_gracza_w_systemie(registry: StaticDataRegistry) -> None:
+    state = _state(registry)
+    free = _planet(registry, "21")
+    state.systems["102"].space_units = {"p2": {"destroyer": 2, "carrier": 1}}
+    assert ("102", free) in xxcha.peace_targets(state, "p1")
+    _peace(state, "102", free)
+    assert state.systems["102"].planet_owners[free] == "p1"
+    assert free in state.players["p1"].controlled_planets
+
+
+@ruling("F_xxcha/peace-accords/5")
+def test_peace_accords_system_domowy_innego_gracza(registry: StaticDataRegistry) -> None:
+    """Planeta w systemie domowym rywala (bez jednostek) - legalny cel."""
+    state = _state(registry)
+    home = _planet(registry, "01")  # Jord - system domowy Sol
+    state.systems["102"] = SystemState(
+        position="102", system_id="01", planet_owners={home: "p2"}
+    )
+    state.players["p2"].home_position = "102"
+    state.players["p2"].controlled_planets = [home]
+    assert ("102", home) in xxcha.peace_targets(state, "p1")
+    _peace(state, "102", home)
+    assert state.systems["102"].planet_owners[home] == "p1"
+    assert home not in state.players["p2"].controlled_planets
+
+
 # ======================================================================= Quash / Political Favor
 
 
@@ -158,6 +205,39 @@ def test_political_favor_po_political_secret(registry: StaticDataRegistry) -> No
     assert "favor" in favored.players["p1"].private.promissory_notes  # wraca do Xxcha
     assert not promissory_play.silenced(favored, "p1")  # Political Secret bez efektu
     assert favored.players["p2"].transacted_with == []  # nowa agenda = nowa transakcja
+
+
+@ruling("F_xxcha/quash/4", "abilities:quash#1")
+def test_quash_na_prawie_z_miscount_disclosed(registry: StaticDataRegistry) -> None:
+    """Prawo z Miscount Disclosed jest „jak gdyby ujawnione” - Quash je odrzuca i ujawnia
+    kolejną agendę."""
+    from tests.rulings_general.test_rulings_agendas_voting import _miscount
+
+    out = _miscount(registry, "conscription", deck=["mutiny"])
+    out.players["p1"].faction = "xxcha"
+    out.players["p1"].strategic_cc = 1
+    assert xxcha._quash_window(out, registry, "p1") is None
+    quashed, _ = faction_components.play(out, registry, "p1", "ability", "quash")
+    assert "conscription" not in quashed.decks.agenda_laws
+    assert quashed.agenda is not None and quashed.agenda.agenda_id == "mutiny"
+    assert quashed.players["p1"].strategic_cc == 0
+
+
+@ruling("F_xxcha/political-favor/1")
+def test_political_favor_tekst_po_errata(registry: StaticDataRegistry) -> None:
+    """Errata: „Remove 1 token … return it to their reinforcements” - żeton Xxcha trafia do
+    rezerwy (nie jest wydany przez grającego), agenda podmieniona, notka wraca do Xxcha."""
+    text = str(promissory_play.note_def(registry, "favor").texts.get("text", ""))
+    assert "return it to their reinforcements" in text
+    state = _agenda_state(registry)
+    state.players["p2"].private.promissory_notes = ["favor"]
+    pool, reinforcements = state.players["p1"].strategic_cc, state.players["p1"].cc_reinf
+    played, _ = promissory_play.play(state, registry, "p2", "favor")
+    assert played.players["p1"].strategic_cc == pool - 1
+    assert played.players["p1"].cc_reinf == reinforcements + 1
+    assert played.players["p2"].strategic_cc == state.players["p2"].strategic_cc
+    assert played.agenda is not None and played.agenda.agenda_id == "minister_peace"
+    assert "favor" in played.players["p1"].private.promissory_notes
 
 
 # =========================================================================== Instinct Training
@@ -354,6 +434,19 @@ def test_mech_usuniety_przez_pojemnosc_nie_strzela(registry: StaticDataRegistry)
     assert not space_cannon.offense_shooters(cleared, _grid(), registry, "p1")
 
 
+@ruling("F_xxcha/indomitus/2", "units:xxcha_mech#1")
+def test_indomitus_przewozony_w_przestrzeni_strzela(registry: StaticDataRegistry) -> None:
+    """Mech przewożony (w przestrzeni aktywnego systemu, na nośniku) ma Space Cannon."""
+    state = _cannon_state(
+        active="p2", seating=("p1", "p2"),
+        ships={"p1": {"carrier": 1, "mech": 1}, "p2": {"cruiser": 1}},
+    )
+    state.players["p1"].faction = "xxcha"
+    shooters = space_cannon.offense_shooters(state, _grid(), registry, "p1")
+    mech = [s for s in shooters if s.base_type == "mech"]
+    assert mech and mech[0].zone == "space" and mech[0].count == 1
+
+
 @ruling("R_invasion/rules-reference/3")
 def test_space_cannon_defense_tylko_nieaktywni(registry: StaticDataRegistry) -> None:
     state = _state(registry)
@@ -367,6 +460,29 @@ def test_space_cannon_defense_tylko_nieaktywni(registry: StaticDataRegistry) -> 
     )
     owners = {s.player_id for s in invasion.defense_shooters(state, registry, planet)}
     assert owners == {"p2"}  # mechy Xxcha (aktywnego) nie strzelają w obronie
+
+
+# =========================================================================== Ggrocuto Rinn (agent)
+
+
+@ruling("F_xxcha/ggrocuto-rinn/3", "leaders:xxchaagent#1", "leaders:xxchaagent#2")
+def test_ggrocuto_rinn_planeta_i_piechota_innego_gracza(registry: StaticDataRegistry) -> None:
+    """Rinn odnawia planetę rywala (obok planety Xxcha) i usuwa piechotę rywala do jego
+    rezerwy - przez pełne zagranie komponentu."""
+    state = _state(registry)
+    state.players["p1"].leader_states = {"xxchaagent": "unlocked"}
+    near = _planet(registry, "21")
+    state.systems["102"].planet_owners = {near: "p2"}
+    state.systems["102"].planet_units = {near: {"p2": {"infantry": 2}}}
+    state.players["p2"].controlled_planets = [near]
+    state.players["p2"].exhausted_planets = [near]
+    after, _ = faction_components.play(
+        state, registry, "p1", "leader", "xxchaagent", {"planet": f"102|{near}|p2"}
+    )
+    assert near not in after.players["p2"].exhausted_planets
+    assert after.systems["102"].planet_owners[near] == "p2"  # kontrola bez zmian
+    assert after.systems["102"].planet_units[near]["p2"]["infantry"] == 1
+    assert after.players["p1"].leader_states["xxchaagent"] == "exhausted"
 
 
 # ===================================================================== Elder Qanoj (commander)

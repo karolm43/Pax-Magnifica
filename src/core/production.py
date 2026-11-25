@@ -347,8 +347,13 @@ def producers(
     registry: StaticDataRegistry,
     player_id: str,
     position: str,
+    *,
+    ignore_scar: bool = False,
 ) -> list[Producer]:
     """Jednostki gracza z PRODUCTION > 0 w danym systemie (R_production).
+
+    ``ignore_scar``: jednostka w bliźnie entropicznej nadal MA PRODUCTION, choć nie może go użyć
+    (F_arborec dirzuga-rophal/6) - tylko dla warunków „units that have PRODUCTION”.
 
     Przestrzeń: statki z PRODUCTION (np. warianty flagowca/war suna). Planety: struktury
     (doki) — modyfikator względny ("+N") liczony od zasobów planety, na której stoją.
@@ -368,7 +373,7 @@ def producers(
     # Entropic Scar (RULES.md 1.5): jednostki w bliźnie nie mają PRODUCTION - także tekst doku II
     # definiujący X przestaje działać (R_entropic_scars 2.2). Zdolności planet/systemu (Aerie
     # Hololattice, Magmus Reactor, Custodian's Favour) to zdolności tekstowe - zostają.
-    scar = entropic_scar.unit_abilities_blocked(state, position, registry)
+    scar = not ignore_scar and entropic_scar.unit_abilities_blocked(state, position, registry)
     for base_type, total in ({} if scar else system.space_units.get(player_id, {})).items():
         count = total - fresh.get("space", {}).get(base_type, 0)
         pv = _hooked_production_value(
@@ -789,6 +794,18 @@ def validate_captured(
                 raise ValueError(f"You have not captured that many {base_type} units.")
 
 
+def _validate_captured_war_sun(
+    state: GameState, registry: StaticDataRegistry, player_id: str, captured: CapturedSpend | None
+) -> None:
+    """F_vuilraith Amalgamation 7: no war sun from a captured one without the war sun upgrade."""
+    if _captured_counts(captured).get("warsun", 0) <= 0:
+        return
+    player = state.players[player_id]
+    unit = resolve_unit_variant(registry, player.faction, player.technologies, "warsun")
+    if unit is None or unit.id == "nowarsun":
+        raise ValueError("You cannot produce a war sun without owning the war sun unit upgrade.")
+
+
 def paid_orders(
     orders: list[ProductionOrder], captured: CapturedSpend | None
 ) -> list[ProductionOrder]:
@@ -925,6 +942,7 @@ def validate_production(
     # BUDŻET: łączny koszt ≤ dostępne zasoby (sprawdzenie, bez wydawania). Sztuki za przechwycone
     # jednostki (Amalgamation) nie kosztują zasobów.
     validate_captured(state, player_id, orders, captured)
+    _validate_captured_war_sun(state, registry, player_id, captured)
     total_cost = order_cost(
         state, registry, player_id, paid_orders(orders, captured), exhaust_aida=exhaust_aida
     )
@@ -1276,6 +1294,11 @@ def skip_grant(state: GameState) -> GameState:
     """Rezygnacja z jednorazowej produkcji z karty (Freelancers: „you MAY produce")."""
     if state.production_grant is None:
         raise ValueError("There is no card-granted production to skip.")
+    if state.production_grant.mandatory:
+        raise ValueError(
+            f"{state.production_grant.source or 'This card'} cannot be used without producing "
+            "a unit - produce one."
+        )
     new_state = state.clone()
     new_state.production_grant = next_grant(state.production_grant)
     _grant_finished(new_state)

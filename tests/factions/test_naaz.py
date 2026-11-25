@@ -147,12 +147,13 @@ def test_distant_suns_dwie_karty_wybor_jednej(registry: StaticDataRegistry) -> N
     assert drop in state.decks.exploration_discard["hazardous"]
 
 
-@ruling("F_naaz_rokha/distant-suns/1.1")
+@ruling("F_naaz_rokha/distant-suns/1", "F_naaz_rokha/distant-suns/1.1")
 def test_distant_suns_wiele_mechow_jedna_dodatkowa(registry: StaticDataRegistry) -> None:
     state = _state()
     state.systems[PLAIN].planet_units = {VEFUTII: {"p1": {"mech": 3}}}
-    state = exploration.draw(_explore_window(state, VEFUTII, PLAIN), registry, VEFUTII,
-                             extra=True)
+    state = _explore_window(state, VEFUTII, PLAIN)
+    assert exploration.extra_draw_allowed(state, "p1", VEFUTII)  # więcej niż 1 mech - wolno (1)
+    state = exploration.draw(state, registry, VEFUTII, extra=True)
     assert len(state.exploration.current.candidates) == 2  # type: ignore[union-attr]
 
 
@@ -261,8 +262,8 @@ def test_prefab_odswieza_po_eksploracji(registry: StaticDataRegistry) -> None:
     assert VEFUTII not in state.players["p1"].exhausted_planets
 
 
-@ruling("F_naaz_rokha/prefab-arcologies/1", "F_naaz_rokha/prefab-arcologies/2.1",
-        "F_naaz_rokha/prefab-arcologies/2.2")
+@ruling("F_naaz_rokha/prefab-arcologies/1", "F_naaz_rokha/prefab-arcologies/2",
+        "F_naaz_rokha/prefab-arcologies/2.1", "F_naaz_rokha/prefab-arcologies/2.2")
 def test_prefab_po_produkcji_freelancers(registry: StaticDataRegistry) -> None:
     """Planeta gotowa dopiero PO produkcji Freelancers: wyczerpana wcześniej nie płaci (1.1),
     gotowa płaci i potem zostaje odświeżona (1.2)."""
@@ -351,6 +352,23 @@ def test_eidolon_flip_obowiazkowy_na_starcie(registry: StaticDataRegistry) -> No
     state = _space_fight(_state())
     triggers.fire(state, GameEvent.COMBAT, Moment.START, subject="p1",
                   ctx={"kind": "space", "position": PLAIN, "attacker": "p1", "defender": "p2"})
+    assert not _offers(state, "p1", "Eidolon")
+    assert any(n["component"] == "units:naaz_mech" for n in state.ability_notes)
+
+
+@ruling("F_naaz_rokha/eidolon-zgrav-eidolon/2", "units:naaz_mech#1")
+def test_eidolon_flip_w_zwyklej_kolejnosci_graczy(registry: StaticDataRegistry) -> None:
+    """Flip na starcie walki kosmicznej idzie zwykłą kolejką zdolności „start of combat”
+    (od gracza aktywnego) - także gdy Naaz-Rokha broni się, a nie atakuje."""
+    state = _space_fight(_state())
+    state.active_player_id = "p2"
+    assert state.active_combat is not None
+    state.active_combat.attacker, state.active_combat.defender = "p2", "p1"
+    assert triggers.resolution_order(state) == ["p2", "p1"]
+    result = triggers.fire(state, GameEvent.COMBAT, Moment.START, subject="p2",
+                           ctx={"kind": "space", "position": PLAIN, "attacker": "p2",
+                                "defender": "p1"})
+    assert "Eidolon: flip" in result.ran  # obowiązkowo, bez oferty
     assert not _offers(state, "p1", "Eidolon")
     assert any(n["component"] == "units:naaz_mech" for n in state.ability_notes)
 
@@ -655,6 +673,30 @@ def test_eidolon_maximum_zakaz_stawiania_i_produkcji(registry: StaticDataRegistr
     with pytest.raises(ValueError, match="cannot place"):
         unit_ops.place_units(state, state.systems[HOME], NAAZIR, "p1", "mech", 1)
     assert "mech" in production.forbidden_types(state, "p1", "spacedock")
+
+
+@ruling("F_naaz_rokha/eidolon-maximum/6", "breakthroughs:naazbt#5")
+def test_eidolon_maximum_articles_of_war_pozwala_stawiac_mechy(
+    registry: StaticDataRegistry,
+) -> None:
+    """Articles of War: mechy tracą zdolności - zakaz „cannot place your mechs” znika, więc
+    można postawić kolejne Eidolon Maximum."""
+    state = _four_mechs(_state())
+    state.players["p1"].breakthrough_flipped = True
+    assert not _can_place_mech(state)
+    state.decks.agenda_laws = {"articles_war": "for"}
+    assert rules_hooks.unit_abilities_lost(state, "p1", "mech")
+    assert _can_place_mech(state)
+    before = state.systems[HOME].planet_units.get(NAAZIR, {}).get("p1", {}).get("mech", 0)
+    unit_ops.place_units(state, state.systems[HOME], NAAZIR, "p1", "mech", 1)
+    assert state.systems[HOME].planet_units[NAAZIR]["p1"]["mech"] == before + 1
+    assert state.players["p1"].breakthrough_flipped  # karta nadal odwrócona
+
+
+def _can_place_mech(state: GameState) -> bool:
+    from src.core import board_reinforcements
+
+    return board_reinforcements.can_place(state, "p1", "mech")
 
 
 @ruling("breakthroughs:naazbt#6")
