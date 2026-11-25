@@ -228,6 +228,28 @@ describe("buildCargoKeyframes", () => {
   });
 });
 
+describe("fighters leaving a carrier", () => {
+  it("emerge already facing out (turned while hidden), never spinning while visible", () => {
+    const { keyframes } = buildCargoKeyframes({
+      board: { x: 200, y: 0 },
+      land: { x: 300, y: -500 },
+      arrival: { x: 300, y: -380 },
+      rotate: true,
+      packMs: 800,
+      rideMs: 2000,
+      unpackMs: 1000,
+    });
+    const rotation = (k: Keyframe) =>
+      Number(/rotate\((-?[\d.]+)deg\)/.exec(String(k.transform))?.[1]);
+    const unpack = keyframes.filter((k) => (k.offset as number) >= 2800 / 3800 - 1e-9);
+    // Hidden ride frame already carries the launch heading (due south: 90deg on screen = 225 from the NW art).
+    expect(((rotation(unpack[0]) % 360) + 360) % 360).toBeCloseTo(225, 0);
+    // While fading in (first visible frames) the heading holds.
+    const emerging = unpack.slice(0, 5).map(rotation);
+    expect(Math.max(...emerging) - Math.min(...emerging)).toBeLessThan(1);
+  });
+});
+
 describe("flightEffects", () => {
   it("swirls at both wormhole ends, the exit after the entry", () => {
     const effects = flightEffects(start, [

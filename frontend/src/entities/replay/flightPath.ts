@@ -546,8 +546,9 @@ export function buildCargoKeyframes({
   const packHeading = rotate ? unwrapAngle(0, headingTo(origin, board)) : 0;
   for (let i = 0; i <= CARGO_STEPS; i += 1) {
     const u = i / CARGO_STEPS;
-    const turn = smoothstep(clamp01(u / 0.25));
-    const travel = easeInOut(clamp01((u - 0.1) / 0.8));
+    // Fighters bank toward the carrier as they get under way, not in place.
+    const turn = smoothstep(clamp01(u / 0.45));
+    const travel = easeInOut(clamp01((u - 0.05) / 0.85));
     const dock = smoothstep(clamp01((u - 0.6) / 0.4));
     push(
       u * times.packMs,
@@ -557,19 +558,21 @@ export function buildCargoKeyframes({
       1 - dock,
     );
   }
-  // Riding inside the carrier: hidden, carried to the landing point.
-  push(times.packMs + times.rideMs, land, packHeading, PACKED_SCALE, 0);
-
-  // Unpacking: grow out from under the hull while fading in, fly out and brake, then turn
-  // to the parked heading.
+  // Riding inside the carrier: hidden, carried to the landing point. Fighters turn to their
+  // launch heading while still inside, so they come out nose-first instead of spinning out
+  // (user decision).
   const outHeading = rotate ? unwrapAngle(packHeading, headingTo(land, arrival)) : 0;
+  push(times.packMs + times.rideMs, land, outHeading, PACKED_SCALE, 0);
+
+  // Unpacking: launch out of the hull nose-first, growing and fading in, brake, and swing to
+  // the parked heading while braking.
   const parked = rotate ? unwrapAngle(outHeading, 0) : 0;
   const unpackStart = times.packMs + times.rideMs;
   for (let i = 1; i <= CARGO_STEPS; i += 1) {
     const u = i / CARGO_STEPS;
     const emerge = smoothstep(clamp01(u / 0.45));
-    const travel = easeOutCubic(clamp01(u / 0.8));
-    const park = smoothstep(clamp01((u - 0.75) / 0.25));
+    const travel = easeOutCubic(clamp01(u / 0.85));
+    const park = smoothstep(clamp01((u - 0.5) / 0.5));
     push(
       unpackStart + u * times.unpackMs,
       lerp(land, arrival, travel),
