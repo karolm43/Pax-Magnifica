@@ -5,17 +5,20 @@ import type { Point } from "@/entities/data/types";
  *
  * A path is the ship's start point plus ordered legs. A `lane` leg flies to its point; a
  * `jump` leg crosses a wormhole: the ship shrinks into a swirl at the entry point and emerges
- * at the leg's point. Consecutive lane legs form one smooth chain (Catmull-Rom through the
- * waypoints) with launch/braking easing at the chain ends only, so a ship cruises through the
- * systems it passes. Anomalies change the pace: leaving a gravity rift slingshots the ship
- * (faster, glowing trail), entering a nebula damps it (slower, dimmed).
+ * at the leg's point. A `portal` leg crosses a Fracture ingress/egress instead: the ship
+ * streaks into a tear in space and shoots out of the linked one (unlike a wormhole swirl).
+ * Consecutive lane legs form one smooth chain (Catmull-Rom through the waypoints) with
+ * launch/braking easing at the chain ends only, so a ship cruises through the systems it
+ * passes. Anomalies change the flight: leaving a gravity rift slingshots the ship (faster,
+ * glowing), entering a nebula damps it (slower, dimmed), an asteroid field makes it weave
+ * between the rocks (slower), a supernova scorches it (hot glow, shaking).
  *
  * Everything here is pure: the replay planner uses it for timing and effects, the flight
  * hook for keyframes, so what is drawn always matches the replay duration.
  */
 
-export type FlightLegKind = "lane" | "jump";
-export type FlightAnomaly = "rift" | "nebula";
+export type FlightLegKind = "lane" | "jump" | "portal";
+export type FlightAnomaly = "rift" | "nebula" | "asteroid" | "supernova";
 
 export type FlightLeg = Point & {
   kind: FlightLegKind;
@@ -26,8 +29,12 @@ export type FlightLeg = Point & {
 export type FlightEffectKind =
   | "wormholeIn"
   | "wormholeOut"
+  | "portalIn"
+  | "portalOut"
   | "riftWarp"
-  | "nebulaDamp";
+  | "nebulaDamp"
+  | "asteroidDust"
+  | "supernovaFlare";
 
 /** A board effect along the path, timed relative to the flight start. */
 export type FlightEffect = Point & {
@@ -56,13 +63,42 @@ const LOOK_AHEAD_PX = 70;
 const LIFT_SCALE = 0.1;
 const JUMP_SHRINK = 0.42;
 const JUMP_HIDDEN = 0.16;
+/**
+ * Fracture ingress/egress: quicker and more violent than a wormhole. The ship accelerates
+ * into the tear stretching into a streak, flashes out, and shoots out of the linked tear.
+ */
+export const PORTAL_MS = 2000;
+const PORTAL_DIVE = 0.4;
+const PORTAL_EMERGE = 0.55;
+/** How far past the tear the streak carries (px), in and out. */
+const PORTAL_STREAK_PX = 42;
 const RIFT_SPEED = 1.55;
 const NEBULA_SPEED = 0.62;
+const ASTEROID_SPEED = 0.8;
+/** Distance (px, along the path) around an asteroid field / supernova that the ship feels it. */
+const HAZARD_REACH_PX = 115;
+/** Weaving between asteroids: sideways swing (px), its wavelength (px), nose swing (deg). */
+const WEAVE_PX = 9;
+const WEAVE_WAVE_PX = 90;
+const WEAVE_TURN_DEG = 12;
+/** Supernova buffeting (px). */
+const SHAKE_PX = 2.4;
 const EFFECT_MS: Record<FlightEffectKind, number> = {
   wormholeIn: 1100,
   wormholeOut: 1100,
+  portalIn: 1000,
+  portalOut: 1000,
   riftWarp: 1100,
   nebulaDamp: 1500,
+  asteroidDust: 1600,
+  supernovaFlare: 1400,
+};
+/** The effect starts a beat before the ship reaches the system. */
+const ANOMALY_EFFECT: Record<FlightAnomaly, { kind: FlightEffectKind; leadMs: number }> = {
+  rift: { kind: "riftWarp", leadMs: 120 },
+  nebula: { kind: "nebulaDamp", leadMs: 200 },
+  asteroid: { kind: "asteroidDust", leadMs: 300 },
+  supernova: { kind: "supernovaFlare", leadMs: 250 },
 };
 const DENSE_SAMPLES_PER_LEG = 24;
 const KEYFRAME_EVERY_MS = 45;
@@ -90,7 +126,7 @@ type Chain = {
   anomalies: (FlightAnomaly | undefined)[];
   durationMs: number;
 };
-type Jump = { kind: "jump"; from: Point; to: Point; durationMs: number };
+type Jump = { kind: "jump"; from: Point; to: Point; durationMs: number; portal: boolean };
 export type FlightSegment = Chain | Jump;
 
 function legSpeed(
@@ -100,6 +136,7 @@ function legSpeed(
   let speed = 1;
   if (previousAnomaly === "rift") speed *= RIFT_SPEED;
   if (anomaly === "nebula") speed *= NEBULA_SPEED;
+  if (anomaly === "asteroid") speed *= ASTEROID_SPEED;
   return speed;
 }
 
@@ -111,9 +148,16 @@ export function flightSegments(start: Point, legs: FlightLeg[]): FlightSegment[]
   let cursorAnomaly: FlightAnomaly | undefined;
   for (const leg of legs) {
     const to = { x: leg.x, y: leg.y };
-    if (leg.kind === "jump") {
+    if (leg.kind !== "lane") {
       chain = undefined;
-      segments.push({ kind: "jump", from: cursor, to, durationMs: JUMP_MS });
+      const portal = leg.kind === "portal";
+      segments.push({
+        kind: "jump",
+        from: cursor,
+        to,
+        durationMs: portal ? PORTAL_MS : JUMP_MS,
+        portal,
+      });
     } else {
       if (!chain) {
         chain = { kind: "chain", points: [cursor], speeds: [], anomalies: [], durationMs: 0 };
@@ -253,6 +297,8 @@ type Frame = {
   /** 0 = resting on the board, 1 = lifted in flight. */
   lift: number;
   glow?: FlightAnomaly;
+  /** Stretched along the nose (1 = normal): the streak into / out of a Fracture tear. */
+  stretch?: number;
 };
 
 const NO_GLOW = "drop-shadow(0px 0px 0px rgba(0, 0, 0, 0))";
@@ -266,7 +312,39 @@ function shadow(lift: number): string {
 const GLOW: Record<FlightAnomaly, string> = {
   rift: "drop-shadow(0px 0px 7px rgba(192, 132, 252, 0.95))",
   nebula: "drop-shadow(0px 0px 5px rgba(148, 163, 184, 0.7))",
+  asteroid: "drop-shadow(0px 0px 4px rgba(214, 180, 140, 0.65))",
+  supernova: "drop-shadow(0px 0px 9px rgba(251, 146, 60, 0.95))",
 };
+
+/** Screen direction of a heading in rotation units (the art natively faces north-west). */
+function headingVector(rotation: number): Point {
+  const radians = ((rotation + NATIVE_NORTHWEST_ANGLE) * Math.PI) / 180;
+  return { x: Math.cos(radians), y: Math.sin(radians) };
+}
+
+type Hazard = { kind: "asteroid" | "supernova"; dist: number };
+
+/** Asteroid fields and supernovas the chain passes, by distance along it. */
+function chainHazards(chain: Chain, dense: DenseSample[]): Hazard[] {
+  const hazards: Hazard[] = [];
+  chain.anomalies.forEach((anomaly, leg) => {
+    if (anomaly !== "asteroid" && anomaly !== "supernova") return;
+    const sample = lastSampleOfLeg(dense, leg);
+    if (sample) hazards.push({ kind: anomaly, dist: sample.dist });
+  });
+  return hazards;
+}
+
+/**
+ * How strongly a hazard acts at `dist` along the chain (0..1): a bell around the system,
+ * fading out at the chain ends so launch and landing points stay exact.
+ */
+function hazardStrength(hazard: Hazard, dist: number, length: number): number {
+  const away = Math.abs(dist - hazard.dist);
+  if (away >= HAZARD_REACH_PX) return 0;
+  const bell = 0.5 * (1 + Math.cos((Math.PI * away) / HAZARD_REACH_PX));
+  return bell * clamp01(dist / 50) * clamp01((length - dist) / 50);
+}
 
 type ChainTurns = {
   /** Heading held when the chain starts: the ship comes about from it while launching. */
@@ -286,11 +364,15 @@ function chainFrames(
   const total = dense[dense.length - 1].cost;
   const count = Math.min(60, Math.max(12, Math.round(chain.durationMs / KEYFRAME_EVERY_MS)));
   const window = Math.min(TURN_WINDOW_SHARE, TURN_WINDOW_MS / Math.max(1, chain.durationMs));
+  const hazards = chainHazards(chain, dense);
+  const length = dense[dense.length - 1].dist;
   const frames: Frame[] = [];
   let previousHeading = entryRotation;
   for (let i = 0; i <= count; i += 1) {
     const u = i / count;
-    const { point, index } = sampleAtCost(dense, easeInOut(u) * total);
+    const sampled = sampleAtCost(dense, easeInOut(u) * total);
+    const { index } = sampled;
+    let point = sampled.point;
     const course = unwrapAngle(previousHeading, headingAt(dense, index, point));
     previousHeading = course;
     // Comes about while gaining speed, swings to its parked heading while braking.
@@ -303,14 +385,33 @@ function chainFrames(
       const to = unwrapAngle(heading, turns.to);
       heading += (to - heading) * smoothstep(clamp01((u - (1 - window)) / window));
     }
-    const rotation = options.rotateToTrajectory ? heading : 0;
     const leg = dense[index].leg;
-    const glow =
+    let glow: FlightAnomaly | undefined =
       chain.anomalies[leg] === "nebula"
         ? "nebula"
         : leg > 0 && chain.anomalies[leg - 1] === "rift"
           ? "rift"
           : undefined;
+    // Asteroid field: weave between the rocks. Supernova: buffeted by the blast, glowing hot.
+    const dist = dense[index].dist;
+    const side = headingVector(course + 90);
+    for (const hazard of hazards) {
+      const strength = hazardStrength(hazard, dist, length);
+      if (strength <= 0) continue;
+      if (strength > 0.2) glow = hazard.kind;
+      if (hazard.kind === "asteroid") {
+        const phase = (2 * Math.PI * (dist - hazard.dist)) / WEAVE_WAVE_PX;
+        const swing = WEAVE_PX * Math.sin(phase) * strength;
+        point = { x: point.x + side.x * swing, y: point.y + side.y * swing };
+        heading += WEAVE_TURN_DEG * Math.cos(phase) * strength;
+      } else {
+        point = {
+          x: point.x + SHAKE_PX * Math.sin(i * 2.9) * strength,
+          y: point.y + SHAKE_PX * Math.cos(i * 4.3) * strength,
+        };
+      }
+    }
+    const rotation = options.rotateToTrajectory ? heading : 0;
     frames.push({
       timeMs: startMs + u * chain.durationMs,
       point,
@@ -328,15 +429,66 @@ function chainFrames(
  * then emerges from the linked gate already facing its next course. No spinning.
  */
 function jumpFrames(jump: Jump, startMs: number, rotation: number, exitRotation: number): Frame[] {
+  const exit = unwrapAngle(rotation, exitRotation);
+  if (jump.portal) return portalFrames(jump, startMs, rotation, exit);
   const shrinkEnd = startMs + jump.durationMs * JUMP_SHRINK;
   const emergeStart = shrinkEnd + jump.durationMs * JUMP_HIDDEN;
   const end = startMs + jump.durationMs;
-  const exit = unwrapAngle(rotation, exitRotation);
   return [
     { timeMs: startMs, point: jump.from, rotation, scale: 1, lift: 1 },
     { timeMs: shrinkEnd, point: jump.from, rotation, scale: 0, lift: 1 },
     { timeMs: emergeStart, point: jump.to, rotation: exit, scale: 0, lift: 1 },
     { timeMs: end, point: jump.to, rotation: exit, scale: 1, lift: 1 },
+  ];
+}
+
+/**
+ * Fracture ingress -> egress: the ship accelerates into the tear, stretching into a streak,
+ * and is gone in a flash past it; it shoots out of the egress tear as a streak, snaps back
+ * to its shape and flies on. Faster and harder than a wormhole's slow swirl.
+ */
+function portalFrames(jump: Jump, startMs: number, rotation: number, exit: number): Frame[] {
+  const at = (share: number) => startMs + jump.durationMs * share;
+  const ahead = (from: Point, heading: number, px: number): Point => {
+    const direction = headingVector(heading);
+    return { x: from.x + direction.x * px, y: from.y + direction.y * px };
+  };
+  const streak = PORTAL_STREAK_PX;
+  return [
+    { timeMs: startMs, point: jump.from, rotation, scale: 1, lift: 1 },
+    {
+      timeMs: at(PORTAL_DIVE * 0.75),
+      point: ahead(jump.from, rotation, streak * 0.35),
+      rotation,
+      scale: 1,
+      lift: 1,
+      stretch: 2.4,
+    },
+    {
+      timeMs: at(PORTAL_DIVE),
+      point: ahead(jump.from, rotation, streak),
+      rotation,
+      scale: 0,
+      lift: 1,
+      stretch: 4,
+    },
+    {
+      timeMs: at(PORTAL_EMERGE),
+      point: ahead(jump.to, exit, -streak),
+      rotation: exit,
+      scale: 0,
+      lift: 1,
+      stretch: 4,
+    },
+    {
+      timeMs: at(PORTAL_EMERGE + 0.12),
+      point: ahead(jump.to, exit, -streak * 0.35),
+      rotation: exit,
+      scale: 1,
+      lift: 1,
+      stretch: 2.4,
+    },
+    { timeMs: startMs + jump.durationMs, point: jump.to, rotation: exit, scale: 1, lift: 1 },
   ];
 }
 
@@ -401,11 +553,15 @@ export function buildPathKeyframes(options: PathKeyframeOptions): {
   const offsetOf = (frame: Frame) => Math.min(1, frame.timeMs / durationMs);
   const keyframes = frames.map((frame): Keyframe => {
     const scale = frame.scale * (1 + LIFT_SCALE * frame.lift);
+    // The nose axis of the art is its NW diagonal: turn it onto x, stretch, turn back. Every
+    // frame carries the same function list, so frames interpolate component-wise.
+    const stretch = frame.stretch ?? 1;
+    const squeeze = (1 / Math.sqrt(stretch)).toFixed(3);
     return {
       offset: offsetOf(frame),
       opacity: 1,
       filter: `${shadow(frame.lift)} ${frame.glow ? GLOW[frame.glow] : NO_GLOW}`,
-      transform: `translate(-50%, -50%) translate(${frame.point.x}px, ${frame.point.y}px) rotate(${frame.rotation}deg) scale(${scale})`,
+      transform: `translate(-50%, -50%) translate(${frame.point.x}px, ${frame.point.y}px) rotate(${frame.rotation}deg) scale(${scale}) rotate(45deg) scale(${stretch}, ${squeeze}) rotate(-45deg)`,
     };
   });
   const thrust = thrustLevels(frames).map(
@@ -454,7 +610,11 @@ export function flightEffects(start: Point, legs: FlightLeg[]): FlightEffect[] {
     effects.push({ kind, x: point.x, y: point.y, atMs: Math.round(atMs), durationMs: EFFECT_MS[kind] });
   let clock = IGNITION_MS;
   for (const segment of flightSegments(start, legs)) {
-    if (segment.kind === "jump") {
+    if (segment.kind === "jump" && segment.portal) {
+      // The tear opens before the ship reaches it and snaps shut behind it.
+      push("portalIn", segment.from, clock);
+      push("portalOut", segment.to, clock + segment.durationMs * PORTAL_EMERGE - 300);
+    } else if (segment.kind === "jump") {
       push("wormholeIn", segment.from, clock);
       push("wormholeOut", segment.to, clock + segment.durationMs * (JUMP_SHRINK + JUMP_HIDDEN) - 250);
     } else {
@@ -466,7 +626,8 @@ export function flightEffects(start: Point, legs: FlightLeg[]): FlightEffect[] {
         // Time the ship reaches this waypoint: invert the chain easing at its cost.
         const cost = lastSampleOfLeg(dense, leg)?.cost ?? total;
         const atMs = clock + invertEase(total > 0 ? cost / total : 1) * segment.durationMs;
-        push(anomaly === "rift" ? "riftWarp" : "nebulaDamp", point, atMs - (anomaly === "nebula" ? 200 : 120));
+        const { kind, leadMs } = ANOMALY_EFFECT[anomaly];
+        push(kind, point, atMs - leadMs);
       });
     }
     clock += segment.durationMs;

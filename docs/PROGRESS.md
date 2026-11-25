@@ -713,3 +713,17 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   (coexistence I4), slumberstate 3.1 (no binding deals).
 - QA: Titans tests + other tests touching Titans/sleepers (206 passed), ruff, mypy on changed files. Skipped: full
   backend suite, frontend (no change).
+
+## Flight Replay: Fracture Portals, Asteroid Fields, Supernovas (2026-11-25)
+- Fighters unpacking from a carrier turn to their launch heading while still hidden inside it, so they come out
+  nose-first (user: they were "rotating out of ships, not flying out"); the parking turn happens while braking.
+- Ingress/egress (route hop `portal`) is now its own leg kind (`FlightLeg.kind = "portal"`), distinct from a
+  wormhole: `PORTAL_MS` (2 s, quicker than a 2.4 s wormhole), the ship accelerates into the tear stretching along
+  its nose into a streak (`Frame.stretch`), flashes out and shoots out of the egress tear as a streak. Board effect
+  `portalIn` / `portalOut`: a jagged amber-white tear with a crimson glow that rips open and snaps shut.
+- Asteroid field (`ASTEROID_FIELD`, reachable with a tech): slower leg, the ship weaves sideways between the rocks
+  with small nose swings, dusty glow, `asteroidDust` cloud with rock flecks. Supernova (`SUPERNOVA`): hot orange
+  glow, buffeting shake, `supernovaFlare`. Both act in a bell around the system and fade at the chain ends, so
+  launch and landing points stay exact.
+- QA: frontend tsc (app), eslint (changed), vitest (`entities/replay`, `state`, `domains/map`). Skipped: backend
+  (no change: the route already carried `portal` hops and anomaly names), build (no new modules), e2e, visual check.

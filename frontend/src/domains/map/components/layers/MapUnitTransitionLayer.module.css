@@ -239,6 +239,170 @@
   }
 }
 
+/* Fracture ingress / egress: a jagged tear in space (amber-white core, crimson glow) that
+   rips open, swallows the ship and snaps shut - nothing like a wormhole's blue swirl. */
+.portalIn,
+.portalOut {
+  width: 120px;
+  height: 170px;
+  margin: -85px 0 0 -60px;
+  border-radius: 0;
+}
+
+.portalIn::before,
+.portalOut::before {
+  content: "";
+  position: absolute;
+  inset: 8% 18%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgba(254, 215, 170, 0.6),
+    rgba(220, 38, 38, 0.35) 45%,
+    transparent 70%
+  );
+  filter: blur(7px);
+}
+
+.portalIn::after,
+.portalOut::after {
+  content: "";
+  position: absolute;
+  inset: 0 30%;
+  background: linear-gradient(
+    to right,
+    rgba(185, 28, 28, 0),
+    rgba(251, 146, 60, 0.9) 30%,
+    rgba(255, 251, 235, 1) 50%,
+    rgba(251, 146, 60, 0.9) 70%,
+    rgba(185, 28, 28, 0)
+  );
+  clip-path: polygon(
+    50% 0%, 66% 14%, 56% 28%, 78% 46%, 58% 60%, 70% 80%, 50% 100%,
+    34% 82%, 44% 66%, 22% 50%, 42% 34%, 32% 16%
+  );
+}
+
+.portalIn {
+  animation-name: portalIn;
+  animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+.portalOut {
+  animation-name: portalOut;
+  animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+@keyframes portalIn {
+  0% {
+    opacity: 0;
+    transform: rotate(-16deg) scale(0.08, 0.3);
+  }
+  30% {
+    opacity: 1;
+    transform: rotate(-16deg) scale(1, 1);
+  }
+  62% {
+    opacity: 1;
+    transform: rotate(-16deg) scale(1.35, 1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(-16deg) scale(0.04, 1.1);
+  }
+}
+
+@keyframes portalOut {
+  0% {
+    opacity: 0;
+    transform: rotate(14deg) scale(0.08, 0.3);
+  }
+  28% {
+    opacity: 1;
+    transform: rotate(14deg) scale(1.4, 1.05);
+  }
+  55% {
+    opacity: 0.9;
+    transform: rotate(14deg) scale(1, 1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(14deg) scale(0.04, 1.1);
+  }
+}
+
+/* Asteroid field: a drifting cloud of dust and rock flecks as the ship weaves through. */
+.asteroidDust {
+  width: 210px;
+  height: 210px;
+  margin: -105px 0 0 -105px;
+  background:
+    radial-gradient(circle at 28% 36%, rgba(231, 210, 180, 0.95) 0 2px, transparent 3px),
+    radial-gradient(circle at 66% 30%, rgba(214, 190, 160, 0.9) 0 3px, transparent 4px),
+    radial-gradient(circle at 72% 64%, rgba(231, 210, 180, 0.9) 0 2px, transparent 3px),
+    radial-gradient(circle at 38% 70%, rgba(200, 175, 140, 0.9) 0 3px, transparent 4px),
+    radial-gradient(circle at 52% 48%, rgba(231, 210, 180, 0.8) 0 1.5px, transparent 2.5px),
+    radial-gradient(
+      circle,
+      rgba(180, 150, 110, 0.38) 0%,
+      rgba(120, 100, 80, 0.16) 48%,
+      transparent 70%
+    );
+  animation-name: asteroidDust;
+  animation-timing-function: ease-out;
+}
+
+@keyframes asteroidDust {
+  0% {
+    opacity: 0;
+    transform: rotate(0deg) scale(0.7);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(28deg) scale(1.2);
+  }
+}
+
+/* Supernova: a searing orange-white flare washing over the passing ship. */
+.supernovaFlare {
+  width: 230px;
+  height: 230px;
+  margin: -115px 0 0 -115px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 247, 237, 0.92) 0%,
+    rgba(251, 146, 60, 0.72) 18%,
+    rgba(220, 38, 38, 0.36) 42%,
+    transparent 68%
+  );
+  filter: blur(2px);
+  mix-blend-mode: screen;
+  animation-name: supernovaFlare;
+  animation-timing-function: ease-out;
+}
+
+@keyframes supernovaFlare {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  60% {
+    opacity: 0.75;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
 /* Screen-fixed (portaled) - the map layer pans and zooms. */
 .skip {
   position: fixed;

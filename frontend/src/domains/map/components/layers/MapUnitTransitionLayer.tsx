@@ -6,6 +6,7 @@ import { CommandCounter } from "@/domains/map/components/CommandCounter";
 import { ControlToken } from "@/shared/ui/ControlToken";
 import { useEffect, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import type { FlightEffectKind } from "@/entities/replay/flightPath";
 
 const TOKEN_KIND_CLASS = {
   activation: classes.commandTokenPlacement,
@@ -30,9 +31,13 @@ function tokenTimingStyle(token: {
 const EFFECT_CLASS = {
   wormholeIn: classes.wormholeIn,
   wormholeOut: classes.wormholeOut,
+  portalIn: classes.portalIn,
+  portalOut: classes.portalOut,
   riftWarp: classes.riftWarp,
   nebulaDamp: classes.nebulaDamp,
-};
+  asteroidDust: classes.asteroidDust,
+  supernovaFlare: classes.supernovaFlare,
+} satisfies Record<FlightEffectKind, string>;
 
 function isTyping(target: EventTarget | null): boolean {
   return (

@@ -241,6 +241,9 @@ function anomalyAt(move: LiveFleetMove, position: string): FlightAnomaly | undef
   const names = move.anomalies[position] ?? [];
   if (names.includes("GRAVITY_RIFT")) return "rift";
   if (names.includes("NEBULA")) return "nebula";
+  // Reachable only with a tech / ability (Antimass Deflectors, passing supernovas).
+  if (names.includes("ASTEROID_FIELD")) return "asteroid";
+  if (names.includes("SUPERNOVA")) return "supernova";
   return undefined;
 }
 
@@ -289,7 +292,8 @@ export function routeLegs(
       atGate !== undefined &&
       Math.hypot(atGate.worldX - gate.x, atGate.worldY - gate.y) < 1;
     if (!alreadyThere) legs.push({ ...gate, kind: "lane" });
-    legs.push({ ...exit, kind: "jump" });
+    // Fracture ingress -> egress tears differ from a wormhole swirl.
+    legs.push({ ...exit, kind: hop === "portal" ? "portal" : "jump" });
     if (last) legs.push({ ...arrival, kind: "lane", anomaly });
   }
   return legs.length > 0 ? legs : undefined;

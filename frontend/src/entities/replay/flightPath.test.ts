@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   IGNITION_MS,
   JUMP_MS,
+  PORTAL_MS,
   SETTLE_MS,
   buildCargoKeyframes,
   buildPathKeyframes,
@@ -172,7 +173,7 @@ describe("buildPathKeyframes", () => {
   it("shrinks to nothing inside the wormhole", () => {
     const { keyframes } = buildPathKeyframes(base);
     expect(
-      keyframes.some((k) => String(k.transform).endsWith("scale(0)")),
+      keyframes.some((k) => String(k.transform).includes(" scale(0) ")),
     ).toBe(true);
   });
 
@@ -183,6 +184,65 @@ describe("buildPathKeyframes", () => {
     expect(((rotation % 360) + 360) % 360).toBeCloseTo(30, 0);
   });
 
+});
+
+describe("Fracture portal and hazards", () => {
+  const options = (legs: FlightLeg[]) => ({
+    start,
+    legs,
+    rotateToTrajectory: true,
+    startRotationDeg: 0,
+    parkRotationDeg: 0,
+  });
+  const translate = (k: Keyframe) => {
+    const match = /translate\((-?[\d.e-]+)px, (-?[\d.e-]+)px\) rotate/.exec(String(k.transform));
+    return { x: Number(match?.[1]), y: Number(match?.[2]) };
+  };
+
+  it("streaks into an ingress tear and out of the egress, faster than a wormhole", () => {
+    const portal: FlightLeg[] = [
+      { x: 100, y: 0, kind: "lane" },
+      { x: 900, y: 900, kind: "portal" },
+      { x: 950, y: 920, kind: "lane" },
+    ];
+    const segments = flightSegments(start, portal);
+    expect(segments[1]).toMatchObject({ kind: "jump", portal: true, durationMs: PORTAL_MS });
+    expect(PORTAL_MS).toBeLessThan(JUMP_MS);
+    const { keyframes } = buildPathKeyframes(options(portal));
+    // Stretched along the nose into a streak on the way in and out.
+    expect(keyframes.some((k) => String(k.transform).includes("scale(2.4, "))).toBe(true);
+    expect(String(keyframes.at(-1)?.transform)).toContain("translate(950px, 920px)");
+    const kinds = flightEffects(start, portal).map((e) => e.kind);
+    expect(kinds).toEqual(["portalIn", "portalOut"]);
+  });
+
+  it("weaves through an asteroid field and still lands exactly", () => {
+    const legs: FlightLeg[] = [
+      { x: 300, y: 0, kind: "lane", anomaly: "asteroid" },
+      { x: 600, y: 0, kind: "lane" },
+    ];
+    const { keyframes } = buildPathKeyframes(options(legs));
+    const offRoute = Math.max(...keyframes.map((k) => Math.abs(translate(k).y)));
+    expect(offRoute).toBeGreaterThan(3);
+    expect(offRoute).toBeLessThan(12);
+    expect(translate(keyframes.at(-1)!)).toEqual({ x: 600, y: 0 });
+    expect(keyframes.some((k) => String(k.filter).includes("214, 180, 140"))).toBe(true);
+    // Slower than open space.
+    expect(flightPathDuration(start, legs)).toBeGreaterThan(
+      flightPathDuration(start, legs.map(({ anomaly: _drop, ...leg }) => leg)),
+    );
+  });
+
+  it("glows hot and shakes passing a supernova", () => {
+    const legs: FlightLeg[] = [
+      { x: 300, y: 0, kind: "lane", anomaly: "supernova" },
+      { x: 600, y: 0, kind: "lane" },
+    ];
+    const { keyframes } = buildPathKeyframes(options(legs));
+    expect(keyframes.some((k) => String(k.filter).includes("251, 146, 60"))).toBe(true);
+    expect(Math.max(...keyframes.map((k) => Math.abs(translate(k).y)))).toBeGreaterThan(0.5);
+    expect(translate(keyframes.at(-1)!)).toEqual({ x: 600, y: 0 });
+  });
 });
 
 describe("buildCargoKeyframes", () => {

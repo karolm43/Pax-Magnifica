@@ -126,6 +126,42 @@ describe("buildMapReplayPlan with a live move", () => {
     expect(kinds).toContain("wormholeOut");
   });
 
+  it("crosses a Fracture ingress/egress as a portal tear, not a wormhole swirl", () => {
+    const plan = buildMapReplayPlan(
+      line({ "202": [unit("ca", 1)] }),
+      line({ "000": [unit("ca", 1)] }),
+      {
+        liveMove: move({ route: ["202", "000"], hops: ["portal"] }),
+        activeFaction: "sol",
+      },
+    );
+    const legs = moved(plan)!.flightPath!;
+    expect(legs.some((leg) => leg.kind === "portal")).toBe(true);
+    expect(legs.some((leg) => leg.kind === "jump")).toBe(false);
+    const kinds = plan.flightEffects.map((e) => e.kind);
+    expect(kinds).toEqual(expect.arrayContaining(["portalIn", "portalOut"]));
+    expect(kinds).not.toContain("wormholeIn");
+  });
+
+  it("marks asteroid fields and supernovas on the route", () => {
+    const plan = buildMapReplayPlan(
+      line({ "202": [unit("ca", 1)] }),
+      line({ "000": [unit("ca", 1)] }),
+      {
+        liveMove: move({
+          anomalies: { "101": ["ASTEROID_FIELD"], "000": ["SUPERNOVA"] },
+        }),
+        activeFaction: "sol",
+      },
+    );
+    expect(moved(plan)!.flightPath!.map((leg) => leg.anomaly)).toEqual([
+      "asteroid",
+      "supernova",
+    ]);
+    const kinds = plan.flightEffects.map((e) => e.kind);
+    expect(kinds).toEqual(expect.arrayContaining(["asteroidDust", "supernovaFlare"]));
+  });
+
   it("enters and leaves through the wormholes printed on the tiles", () => {
     // 39 = Alpha Wormhole (empty), 26 = Lodor (alpha wormhole).
     const tiles = (units: Record<string, EntityStack[]>) =>
