@@ -85,7 +85,7 @@ from src.api.seats import (
     current_identity,
 )
 from src.api.state_service import StateService
-from src.core import card_hold, error_text
+from src.core import card_hold, error_text, reaction_prefs
 from src.core import reaction_pause as reaction_pause_rules
 from src.core.actor import ActorError
 from src.core.event_store import EventStore
@@ -317,6 +317,18 @@ def create_app(
             author = identity.player_id
         else:
             author = (request.headers.get(ACTOR_HEADER) or "").strip() or None
+        # „I'm back” (RULES.md 54.12 e): każda akcja gracza w UI zeruje jego strajki AFK. Zwolnienie
+        # okna po czasie to zegar klienta, nie akcja gracza; zapis tylko, gdy coś się zmieniło.
+        if (
+            request.method == "POST"
+            and author
+            and not identity.bot
+            and not request.url.path.endswith("/reaction-pause/release")
+        ):
+            current = service.current_state()
+            active = reaction_prefs.with_presence(current, author)
+            if active is not current:
+                service.replace_state(active, label="reaction-settings:presence")
         reset_author = current_author.set(author)
         try:
             return await call_next(request)

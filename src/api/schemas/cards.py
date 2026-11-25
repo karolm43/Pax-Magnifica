@@ -182,6 +182,16 @@ class ReactionPrefsRequest(BaseModel):
     only_involved: bool | None = None
     mute_cards: dict[str, bool] | None = None
     mute_offers: dict[str, bool] | None = None
+    # ``effect_key`` komponentu/agenta -> zasięg (combat/turn/round/always; ``None`` = odwołanie).
+    mute_components: dict[str, str | None] | None = None
+
+
+class ReactionJitterRequest(BaseModel):
+    """„Bluff jitter” hosta (``/reaction-settings/jitter``): 0 = wyłączony, max 2 s."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    seconds: float = Field(ge=0, le=2)
 
 
 class ReactionWindowRequest(BaseModel):
@@ -343,6 +353,7 @@ __all__ = [
     "PlayerUndoRequest",
     "PlayerUndoStatus",
     "QuickWindowsRequest",
+    "ReactionJitterRequest",
     "ReactionPrefsRequest",
     "ReactionWindowRequest",
     "RelicInputsResponse",

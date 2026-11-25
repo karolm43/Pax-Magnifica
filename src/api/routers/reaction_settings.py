@@ -14,6 +14,7 @@ from src.api.context import AppContext, get_ctx
 from src.api.schemas import (
     AutoPassRequest,
     QuickWindowsRequest,
+    ReactionJitterRequest,
     ReactionPrefsRequest,
     ReactionWindowRequest,
     StateEnvelope,
@@ -71,6 +72,19 @@ async def post_quick(
     return await _commit(ctx, new_state, f"reaction-settings:quick:{int(request.enabled)}")
 
 
+@router.post("/jitter", dependencies=[HostOnly], response_model=StateEnvelope)
+async def post_jitter(
+    request: ReactionJitterRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Host ustawia „bluff jitter”: przy „Quick windows” okno bez reakcji zamyka się po 1-2 s."""
+    try:
+        new_state = reaction_window.configure_jitter(ctx.service.current_state(), request.seconds)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    new_state = reaction_window.settle_quick(new_state, ctx.registry)
+    return await _commit(ctx, new_state, "reaction-settings:jitter")
+
+
 @router.post("/prefs", response_model=StateEnvelope)
 async def post_prefs(
     actor: ActorId, request: ReactionPrefsRequest, ctx: AppContext = Depends(get_ctx)
@@ -85,6 +99,7 @@ async def post_prefs(
             only_involved=request.only_involved,
             mute_cards=request.mute_cards,
             mute_offers=request.mute_offers,
+            mute_components=request.mute_components,
         )
         reaction_window.pass_open_windows(new_state, player, ctx.registry)
         new_state = reaction_window.settle_quick(new_state, ctx.registry)

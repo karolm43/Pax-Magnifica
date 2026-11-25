@@ -409,6 +409,16 @@ class ReactionPrefs(BaseModel):
     muted_cards: list[str] = Field(default_factory=list)
     # Klucze ``covers`` komponentów, których oferty „you may” mają nie powstawać (z góry „nie”).
     muted_offers: list[str] = Field(default_factory=list)
+    # Wyciszone komponenty frakcji/agenci z oknem użycia: ``effect_key`` -> zasięg (``combat`` /
+    # ``turn`` / ``round`` / ``always``). Wyciszony komponent nie liczy się jako „ma reakcję”.
+    muted_components: dict[str, PassDeclaration] = Field(default_factory=dict)
+    # AFK (``reaction_prefs.record_timeout``): ile kolejnych okien minęło bez żadnej reakcji
+    # gracza. Od ``AFK_STRIKES`` silnik pasuje za niego, aż wykona dowolną akcję w UI.
+    afk_strikes: int = 0
+    # Czy gracz zrobil cokolwiek w UI od otwarcia ostatniego okna reakcji, w ktorym byl pytany
+    # (``reaction_prefs.window_opened`` zeruje, ``mark_active`` ustawia). Chroni przed strajkiem
+    # za okno, w ktorym gracz gral, ale nie kliknal Pass.
+    responded: bool = False
 
 
 class PlayerPrivateState(BaseModel):
@@ -1314,6 +1324,9 @@ class GameState(BaseModel):
     reaction_window_seconds: int = 5
     # „Quick windows” hosta (RULES.md 54.12): okno kończy się, gdy wszyscy uprawnieni spasowali.
     quick_reaction_windows: bool = False
+    # „Bluff jitter” (``reaction_window.quick_settle``): przy „Quick windows” okno, w którym
+    # wszyscy spasowali, zamyka się po 50-100% tego czasu (s) zamiast natychmiast; 0 = wyłączone.
+    reaction_jitter_seconds: float = 0.0
     # Ślad Sustain Damage poza walką (Space Cannon Offense): ``{player, base_type, count, by,
     # position}`` - okno Direct Hit trwa do następnego kroku Space Cannon (RULES.md 53.5.c).
     sustain_trace: list[dict[str, Any]] = Field(default_factory=list)

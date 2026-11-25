@@ -6,6 +6,7 @@ import { AppModal } from "@/shared/ui/AppModal";
 import type { ControlTokenDisplayMode } from "@/entities/game/controlTokenDisplay";
 import { CurrentGameClockControls } from "@/domains/clock/CurrentGameClockControls";
 import {
+  CurrentGameQuickJitter,
   CurrentGameQuickWindows,
   CurrentGameReactionWindow,
 } from "./CurrentGameReactionWindow";
@@ -266,6 +267,14 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
                 description="End a window as soon as everyone has passed. Faster, but an early end shows that nobody had a fitting card."
               >
                 <CurrentGameQuickWindows gameId={gameId} />
+              </SettingRow>
+            )}
+            {gameId && (
+              <SettingRow
+                label="Quick-window jitter"
+                description="With Quick windows on, a window nobody can answer lingers for 0.5-1x this long instead of vanishing, so the fast end doesn't reveal that nobody holds a card."
+              >
+                <CurrentGameQuickJitter gameId={gameId} />
               </SettingRow>
             )}
           </SettingGroup>

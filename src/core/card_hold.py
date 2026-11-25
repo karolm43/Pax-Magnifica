@@ -146,6 +146,7 @@ def _auto_pass(state: GameState, registry: StaticDataRegistry) -> None:
     held.passed = reaction_window.auto_passers(
         state, registry, held.eligible, category=reaction_prefs.SABOTAGE, involved=held.involved
     )
+    reaction_prefs.window_opened(state, held.eligible)
 
 
 def begin_counter(
@@ -284,7 +285,9 @@ def release(
         raise ValueError(f"Unknown player: {actor_id}")
     if not expired(held, now):
         raise ValueError("The response window is still open.")
-    return resolve(state, registry)
+    result = resolve(state, registry)
+    reaction_window.record_timeout(result, held)  # AFK: eligible who never reacted (54.12)
+    return result
 
 
 def resolve(state: GameState, registry: StaticDataRegistry) -> GameState:

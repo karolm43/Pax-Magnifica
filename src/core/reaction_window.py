@@ -18,6 +18,7 @@ przekazany klon (opisane w docstringach).
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Iterable
 from typing import Protocol
 
@@ -30,6 +31,7 @@ DEFAULT_SECONDS = 5
 MIN_SECONDS = 2
 MAX_SECONDS = 30
 WAIT_EXTENSION_SECONDS = 10
+MAX_JITTER_SECONDS = 2.0
 
 
 class TimedWindow(Protocol):
@@ -110,7 +112,7 @@ def has_playable_reaction(
         return True
     # ⚠️ ZAŁOŻENIE (54.12 d): komponent frakcji z oknem użycia liczy się mimo połowicznej
     # deklaracji (moment komponentu nie jest tu znany) - gracz zostanie zapytany.
-    if window_component_users(state, registry, [player_id]):
+    if window_component_users(state, registry, [player_id], respect_mutes=True):
         return True
     return any(
         row["reaction"] and row["playable"]
@@ -129,10 +131,18 @@ def card_name(registry: StaticDataRegistry, category: ComponentCategory, card_id
 
 
 def window_component_users(
-    state: GameState, registry: StaticDataRegistry, player_ids: Iterable[str]
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_ids: Iterable[str],
+    *,
+    respect_mutes: bool = False,
 ) -> list[str]:
     """Gracze z komponentem frakcji, którego mogą użyć TERAZ w chwilowym oknie (jawne: zdolność,
-    technologia, żetony; bez okien trwających całą fazę - ``standing``)."""
+    technologia, żetony; bez okien trwających całą fazę - ``standing``).
+
+    ``respect_mutes``: pomija komponenty/agentów wyciszonych przez gracza (54.12). Wyciszenia są
+    PRYWATNE, więc tylko auto-pas silnika ich używa - lista uprawnionych (jawna) zostaje pełna.
+    """
     from src.core import faction_components  # lokalnie: importuje moduły okien
 
     ids = list(player_ids)
@@ -140,6 +150,14 @@ def window_component_users(
         row["player_id"]
         for row in faction_components.available_now(state, registry, ids)
         if not row["standing"]
+        and not (
+            respect_mutes
+            and reaction_prefs.is_component_muted(
+                state,
+                row["player_id"],
+                faction_components.effect_key(row["kind"], row["component_id"]),
+            )
+        )
     }
     return [pid for pid in ids if pid in users]
 
@@ -157,6 +175,8 @@ def skips_automatically(
         return True
     if player.control_type is ControlType.BOT or player.private.auto_pass_reactions:
         return True
+    if reaction_prefs.is_afk(state, player_id):
+        return True  # AFK: stół nie czeka na nieobecnego (dowolna akcja w UI go przywraca)
     if reaction_prefs.declares_pass(state, player_id, category):
         return True
     return involved is not None and reaction_prefs.skips_uninvolved(state, player_id, involved)
@@ -194,6 +214,56 @@ def all_passed(window: TimedWindow) -> bool:
 def closes_early(state: GameState, window: TimedWindow) -> bool:
     """„Quick windows” hosta (54.12): okno kończy się, gdy wszyscy uprawnieni spasowali."""
     return state.quick_reaction_windows and all_passed(window)
+
+
+def quick_delay(state: GameState, key: str) -> float:
+    """Opóźnienie zamknięcia okna z „bluff jitter” (s): deterministyczne z klucza okna, w
+    zakresie 50-100% ``reaction_jitter_seconds`` (0 = natychmiast)."""
+    jitter = max(0.0, float(state.reaction_jitter_seconds))
+    if jitter == 0.0:
+        return 0.0
+    fraction = int.from_bytes(hashlib.sha256(key.encode()).digest()[:4], "big") / 0xFFFFFFFF
+    return jitter * (0.5 + 0.5 * fraction)
+
+
+def quick_settle(state: GameState, window: TimedWindow, key: str) -> bool:
+    """„Quick windows”: czy okno ma się zamknąć TERAZ, bo wszyscy spasowali (MUTUJE ``window``).
+
+    Bez jittera zwraca ``True``. Z jitterem okno NIE znika natychmiast (tempo zamknięcia nie
+    zdradza, że nikt nie ma reakcji): skraca się do :func:`quick_delay` liczonego od otwarcia
+    i kończy zwykłym upływem czasu.
+    """
+    if not closes_early(state, window):
+        return False
+    if state.reaction_jitter_seconds <= 0:
+        return True
+    window.seconds = min(float(window.seconds), quick_delay(state, key))
+    return False
+
+
+def record_timeout(state: GameState, window: TimedWindow) -> None:
+    """Okno zakończone upływem czasu: cisi uprawnieni dostają strajk AFK (MUTUJE ``state``).
+
+    Cisi = uprawnieni, którzy nie spasowali (także auto-pasem) i nie prosili o czas.
+    """
+    silent = [
+        pid for pid in window.eligible
+        if pid not in window.passed and pid not in window.extended_by
+    ]
+    reaction_prefs.record_timeout(state, silent)
+
+
+def configure_jitter(state: GameState, seconds: float) -> GameState:
+    """Host ustawia „bluff jitter” przy „Quick windows” (nowy stan).
+
+    Raises:
+        ValueError: Wartość poza ``0``..``MAX_JITTER_SECONDS``.
+    """
+    if not 0.0 <= seconds <= MAX_JITTER_SECONDS:
+        raise ValueError(f"Jitter must be between 0 and {MAX_JITTER_SECONDS} seconds.")
+    new_state = state.clone()
+    new_state.reaction_jitter_seconds = float(seconds)
+    return new_state
 
 
 def configure_quick(state: GameState, enabled: bool) -> GameState:
@@ -268,8 +338,16 @@ def settle_quick(state: GameState, registry: StaticDataRegistry) -> GameState:
     result = state
     if result.reaction_pause is not None and closes_early(result, result.reaction_pause):
         result = result.clone()
-        result.reaction_pause = None
-    if result.held_play is not None and closes_early(result, result.held_play):
-        result = card_hold.resolve(result, registry)
+        pause = result.reaction_pause
+        assert pause is not None
+        if quick_settle(result, pause, pause.key):
+            result.reaction_pause = None
+    held = result.held_play
+    if held is not None and closes_early(result, held):
+        result = result.clone()
+        held = result.held_play
+        assert held is not None
+        if quick_settle(result, held, f"{held.player_id}|{held.card_id}|{held.opened_at}"):
+            result = card_hold.resolve(result, registry)
     return result
 

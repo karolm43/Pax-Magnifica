@@ -9,6 +9,7 @@ from src.api import web_agenda, web_objectives
 from src.core import chronicle as chronicle_core
 from src.core import (
     component_text,
+    faction_components,
     reaction_prefs,
     rules_hooks,
     strategy_phase,
@@ -177,6 +178,25 @@ def _pending_strategy(state: GameState) -> dict[str, Any] | None:
     }
 
 
+def _window_components(
+    state: GameState, player: PlayerState, registry: StaticDataRegistry
+) -> list[dict[str, str]]:
+    """Komponenty/agenci gracza z oknem użycia TERAZ (cel szybkiego „Pass this round”, 54.12).
+
+    Liczone tylko przy otwartym oknie reakcji albo walce (inaczej lista i tak byłaby nieużyta).
+    """
+    if state.reaction_pause is None and state.held_play is None and state.active_combat is None:
+        return []
+    return [
+        {
+            "key": faction_components.effect_key(row["kind"], row["component_id"]),
+            "name": row["name"],
+        }
+        for row in faction_components.available_now(state, registry, [player.player_id])
+        if not row["standing"]
+    ]
+
+
 def _reaction_prefs(
     state: GameState, player: PlayerState, registry: StaticDataRegistry
 ) -> dict[str, Any]:
@@ -194,6 +214,13 @@ def _reaction_prefs(
         "passes": passes,
         "onlyInvolved": prefs.only_involved,
         "mutedCards": list(prefs.muted_cards),
+        "afk": reaction_prefs.is_afk(state, player.player_id),
+        "windowComponents": _window_components(state, player, registry),
+        "mutedComponents": {
+            key: declaration.until
+            for key, declaration in prefs.muted_components.items()
+            if reaction_prefs.is_live(state, declaration)
+        },
         "mutedOffers": [
             {"key": key, "name": component_text.describe_component(registry, key)[0] or key}
             for key in prefs.muted_offers
@@ -213,6 +240,7 @@ def _reaction_pause(state: GameState) -> dict[str, Any] | None:
     return {
         "key": pause.key,
         "label": pause.label,
+        "category": reaction_prefs.category_of_event(pause.event),
         "event": pause.event,
         "subject": pause.subject,
         "subjectColor": _color_of(state, pause.subject) if pause.subject else None,
@@ -451,6 +479,7 @@ def _build_game_state(
         "reactionWindowSeconds": state.reaction_window_seconds,
         # „Quick windows” hosta (RULES.md 54.12): okno kończy się, gdy wszyscy spasowali.
         "quickReactionWindows": state.quick_reaction_windows,
+        "reactionJitterSeconds": state.reaction_jitter_seconds,
         # Stoły transakcji (RULES.md 47.1b): JAWNE tylko pary i Ready; zawartość daje
         # ``GET /transactions/state`` samym stronom.
         "transactionTables": [

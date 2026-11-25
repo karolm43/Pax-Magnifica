@@ -54,6 +54,9 @@ function durations(category: ReactionCategory) {
     category === "agenda"
       ? { value: "agenda", label: "This agenda" }
       : { value: "turn", label: "This turn" },
+    ...(category === "combat" || category === "all"
+      ? [{ value: "combat", label: "This combat" }]
+      : []),
     { value: "round", label: "This round" },
     { value: "always", label: "Always" },
   ];

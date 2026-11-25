@@ -312,6 +312,8 @@ export type ReactionPrefsChange = {
   only_involved?: boolean;
   mute_cards?: Record<string, boolean>;
   mute_offers?: Record<string, boolean>;
+  /** Klucz komponentu -> zasięg (combat/turn/round/always); null = odwołanie. */
+  mute_components?: Record<string, string | null>;
 };
 
 export async function postReactionPrefs(actorId: string, change: ReactionPrefsChange): Promise<void> {
@@ -341,6 +343,16 @@ export async function postReactionWindowSeconds(seconds: number): Promise<void> 
     body: JSON.stringify({ seconds }),
   });
   if (!response.ok) throw new Error(`Failed to set reaction windows (${response.status}).`);
+}
+
+/** Host ustawia „bluff jitter” (0-2 s) przy „Quick windows” (RULES.md 54.12). */
+export async function postReactionJitter(seconds: number): Promise<void> {
+  const response = await fetch(`${BOT_ROOT}/reaction-settings/jitter`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seconds }),
+  });
+  if (!response.ok) throw new Error(`Failed to set quick-window jitter (${response.status}).`);
 }
 
 export async function postHeld(action: "pass" | "release" | "wait", actorId: string): Promise<void> {

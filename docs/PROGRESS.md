@@ -885,3 +885,21 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   the active player's ships"). Backend targeting already matched R_space_cannon (Offense step 2).
 - QA: tsc, eslint (changed), vitest game-shell, `npm run build`, `npm run e2e` (8 passed). Skipped: backend QA
   (frontend-only).
+
+## Reaction pacing: component mutes, per-combat pass, AFK decay, quick jitter (RULES 54.12)
+
+- `reaction_prefs`: `combat` duration (stamp = round|kind|system|planet|attacker|defender; dies with the combat),
+  `muted_components` (key = `faction_components.effect_key`, scopes combat/turn/round/always) -> `has_playable_reaction`
+  skips muted agents/components via `window_component_users(respect_mutes=True)`; the PUBLIC eligible list is
+  unchanged, so a mute never leaks.
+- AFK decay: a window ending by server timeout gives a strike to every eligible player who did not pass (manual or
+  engine), did not ask for time and did nothing in the UI since the window opened (`responded`). `AFK_STRIKES = 2`
+  strikes => `skips_automatically`. Any POST by the player (middleware in `api/app.py`) resets it ("I'm back").
+- Quick windows + `reaction_jitter_seconds` (host, `/reaction-settings/jitter`, 0-2 s): the window shrinks to a
+  deterministic 50-100% of the jitter instead of vanishing (`reaction_window.quick_settle`).
+- UI: `ReactionQuickPass` in `ReactionPauseBanner` ("Pass this combat", "Pass <agent> this round", "Auto-pass
+  uninvolved"); "This combat" duration in the Reactions panel. Contract: `reactionPrefs.windowComponents/mutedComponents/afk`,
+  `reactionPause.category`, `reactionJitterSeconds`.
+- NOT done: quick-pass buttons in `HeldPlayBanner` (Sabotage window; file has a parallel session's edits); no host UI
+  control for jitter yet (endpoint only); involvement filter for "global" agents (Naalu/Saar) = mute, not auto-detected.
+- Tests: `tests/test_reaction_pacing.py` (25).

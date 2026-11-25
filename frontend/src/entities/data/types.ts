@@ -590,6 +590,8 @@ export type GameState = {
   reactionWindowSeconds?: number;
   /** „Quick windows” hosta (RULES.md 54.12): okno kończy się, gdy wszyscy spasowali. */
   quickReactionWindows?: boolean;
+  /** „Bluff jitter” (s) przy „Quick windows”; 0 = wyłączony. */
+  reactionJitterSeconds?: number;
   /** Stoły transakcji (RULES.md 47.1b) — jawne pary, Ready i skrót zawartości (bez treści). */
   transactionTables?: {
     opener: string;
@@ -953,6 +955,8 @@ export type ReactionPauseData = {
   /** Angielska etykieta okna, np. „After an agenda is revealed”. */
   label: string;
   event: string;
+  /** Kategoria deklaracji pasu dla tego okna (RULES.md 54.12); null = tylko „all”. */
+  category?: ReactionCategory | null;
   subject: string | null;
   subjectColor: string | null;
   openedAt: number;
@@ -1441,7 +1445,7 @@ export type ReactionCategory =
   | "agenda_when"
   | "agenda_after";
 /** Jak długo obowiązuje deklaracja pasu. */
-export type PassDuration = "turn" | "round" | "agenda" | "always";
+export type PassDuration = "combat" | "turn" | "round" | "agenda" | "always";
 
 export type ReactionPrefsData = {
   /** Obowiązujące deklaracje: kategoria -> czas trwania. */
@@ -1451,6 +1455,12 @@ export type ReactionPrefsData = {
   mutedCards: string[];
   /** Komponenty z wyciszonymi ofertami „you may” (klucz ``covers`` + pełna nazwa). */
   mutedOffers: { key: string; name: string }[];
+  /** Wyciszone komponenty/agenci: klucz komponentu -> zasięg (combat/turn/round/always). */
+  mutedComponents?: Record<string, PassDuration>;
+  /** Komponenty/agenci z oknem użycia TERAZ (cel „Pass this round”); puste poza oknem/walką. */
+  windowComponents?: { key: string; name: string }[];
+  /** Silnik pasuje za gracza po kilku oknach bez reakcji; dowolna akcja go przywraca. */
+  afk?: boolean;
 };
 
 /** Podgląd ukrytych kart (M'aban Naalu) - ``gameState.peek``. */

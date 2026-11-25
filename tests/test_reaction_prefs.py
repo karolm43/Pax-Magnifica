@@ -236,6 +236,7 @@ def test_api_prefs_i_quick(registry: StaticDataRegistry) -> None:
     assert _reaction_prefs(current, current.players["p2"], registry) == {
         "passes": {"agenda": "round"}, "onlyInvolved": True,
         "mutedCards": ["Sabotage"], "mutedOffers": [],
+        "afk": False, "mutedComponents": {}, "windowComponents": [],
     }
     bad = {"actor_id": "p2", "declare": {"x": "turn"}}
     assert client.post("/reaction-settings/prefs", json=bad).status_code == 422

@@ -151,7 +151,8 @@ def sync(state: GameState, registry: StaticDataRegistry, now: float) -> None:
         state.reaction_pause.passed = reaction_window.auto_passers(
             state, registry, eligible, category=category, involved=involved
         )
-        if reaction_window.closes_early(state, state.reaction_pause):
+        reaction_prefs.window_opened(state, eligible)
+        if reaction_window.quick_settle(state, state.reaction_pause, key):
             state.reaction_pause = None  # „Quick windows”: nikt nie reaguje - bez pauzy (54.12)
         return
 
@@ -191,7 +192,7 @@ def pass_pause(state: GameState, player_id: str) -> GameState:
     new_state = state.clone()
     assert new_state.reaction_pause is not None
     new_state.reaction_pause.passed = [*pause.passed, player_id]
-    if reaction_window.closes_early(new_state, new_state.reaction_pause):
+    if reaction_window.quick_settle(new_state, new_state.reaction_pause, pause.key):
         new_state.reaction_pause = None  # „Quick windows”: wszyscy spasowali (54.12)
     return new_state
 
@@ -223,4 +224,6 @@ def release(state: GameState, now: float) -> GameState:
         raise ValueError("The reaction window is still open.")
     new_state = state.clone()
     new_state.reaction_pause = None
+    # Upływ czasu bez reakcji uprawnionego = strajk AFK (po kilku silnik pasuje za niego).
+    reaction_window.record_timeout(new_state, pause)
     return new_state

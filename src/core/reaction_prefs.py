@@ -8,7 +8,14 @@ Kategorie okien: ``all`` (każde), ``strategy`` (ogłoszona akcja strategiczna),
 agenda), ``combat`` (wygrana walka, Sustain Damage), ``sabotage`` (karta akcji innego gracza).
 Agendę można też odpuścić połowicznie - ``agenda_when`` („No whens”) i ``agenda_after``
 („No afters”): gracz pasuje tylko na karty z tym momentem, karty drugiego momentu dalej go pytają.
-Czas trwania deklaracji: ``turn``, ``round``, ``agenda`` (bieżąca agenda), ``always``.
+Czas trwania deklaracji: ``combat`` (bieżąca walka), ``turn``, ``round``, ``agenda`` (bieżąca
+agenda), ``always``.
+
+Komponenty frakcji/agenci z oknem użycia (Naalu, Saar, agenci walki...) wycisza się osobno
+(``muted_components``, klucz = ``faction_components.effect_key``) z tym samym zasięgiem.
+AFK: okno zakończone upływem czasu bez żadnej reakcji uprawnionego to „strajk”
+(``record_timeout``); po ``AFK_STRIKES`` silnik pasuje za gracza, dopóki nie zrobi czegokolwiek
+w UI (``mark_active``).
 """
 
 from __future__ import annotations
@@ -17,7 +24,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from src.core.game_events import GameEvent
-from src.core.game_state import GameState, PassDeclaration, ReactionPrefs
+from src.core.game_state import ControlType, GameState, PassDeclaration, ReactionPrefs
 
 ALL = "all"
 STRATEGY = "strategy"
@@ -36,8 +43,13 @@ _MOMENT_DECLARATIONS: dict[str, dict[str, str]] = {
 UNTIL_TURN = "turn"
 UNTIL_ROUND = "round"
 UNTIL_AGENDA = "agenda"
+UNTIL_COMBAT = "combat"
 UNTIL_ALWAYS = "always"
-DURATIONS: tuple[str, ...] = (UNTIL_TURN, UNTIL_ROUND, UNTIL_AGENDA, UNTIL_ALWAYS)
+DURATIONS: tuple[str, ...] = (UNTIL_COMBAT, UNTIL_TURN, UNTIL_ROUND, UNTIL_AGENDA, UNTIL_ALWAYS)
+COMPONENT_DURATIONS: tuple[str, ...] = (UNTIL_COMBAT, UNTIL_TURN, UNTIL_ROUND, UNTIL_ALWAYS)
+
+# ⚠️ ZAŁOŻENIE (54.12 e): tyle kolejnych okien bez żadnej reakcji = gracz jest AFK.
+AFK_STRIKES = 2
 
 # Zdarzenie kluczowego okna pauzy (``reaction_pause.PAUSE_POINTS``) -> kategoria deklaracji.
 _EVENT_CATEGORY: dict[str, str] = {
@@ -62,6 +74,14 @@ def stamp(state: GameState, until: str) -> str:
         return f"{state.round_number}|{state.phase.value}|{state.active_player_id or ''}"
     if until == UNTIL_ROUND:
         return str(state.round_number)
+    if until == UNTIL_COMBAT:
+        combat = state.active_combat
+        if combat is None:
+            return ""
+        return (
+            f"{state.round_number}|{combat.kind}|{combat.position}|{combat.planet or ''}"
+            f"|{combat.attacker}|{combat.defender}"
+        )
     if until == UNTIL_AGENDA:
         agenda = state.agenda
         number = agenda.agenda_number if agenda is not None else 0
@@ -73,6 +93,8 @@ def is_live(state: GameState, declaration: PassDeclaration) -> bool:
     """Czy deklaracja nadal obowiązuje."""
     if declaration.until == UNTIL_ALWAYS:
         return True
+    if declaration.until == UNTIL_COMBAT and state.active_combat is None:
+        return False  # deklaracja „ta walka” nie przeżywa walki (pusty znacznik = brak walki)
     return stamp(state, declaration.until) == declaration.stamp
 
 
@@ -109,6 +131,10 @@ def prune(state: GameState) -> None:
         prefs = player.private.reaction_prefs
         if any(not is_live(state, d) for d in prefs.passes.values()):
             prefs.passes = {k: d for k, d in prefs.passes.items() if is_live(state, d)}
+        if any(not is_live(state, d) for d in prefs.muted_components.values()):
+            prefs.muted_components = {
+                k: d for k, d in prefs.muted_components.items() if is_live(state, d)
+            }
 
 
 def _strings(value: Any) -> Iterable[str]:
@@ -186,6 +212,76 @@ def is_offer_muted(state: GameState, player_id: str, covers: str | None) -> bool
     )
 
 
+def is_component_muted(state: GameState, player_id: str, component_key: str) -> bool:
+    """Czy komponent frakcji/agent (``effect_key``) jest teraz wyciszony przez gracza."""
+    player = state.players.get(player_id)
+    if player is None:
+        return False
+    declaration = player.private.reaction_prefs.muted_components.get(component_key)
+    return declaration is not None and is_live(state, declaration)
+
+
+def is_afk(state: GameState, player_id: str) -> bool:
+    """Czy gracz jest AFK (``AFK_STRIKES`` okien z rzędu bez reakcji) - silnik pasuje za niego."""
+    player = state.players.get(player_id)
+    return player is not None and player.private.reaction_prefs.afk_strikes >= AFK_STRIKES
+
+
+def window_opened(state: GameState, asked: Iterable[str]) -> None:
+    """Otwarto okno reakcji: pytani gracze zaczynają „nieobecni” w tym oknie (MUTUJE)."""
+    for pid in asked:
+        player = state.players.get(pid)
+        if player is not None:
+            player.private.reaction_prefs.responded = False
+
+
+def record_timeout(state: GameState, silent: Iterable[str]) -> None:
+    """Okno zakończone upływem czasu: każdy z ``silent``, który nic nie zrobił w UI, dostaje
+    strajk AFK (MUTUJE).
+
+    ``silent`` = uprawnieni, którzy nie spasowali (ręcznie ani auto-pasem) i nie prosili o czas.
+    Gracze pasowani przez silnik nie są „cisi” - ich nikt nie pytał.
+    """
+    for pid in silent:
+        player = state.players.get(pid)
+        if player is None or player.control_type is ControlType.BOT:
+            continue
+        prefs = player.private.reaction_prefs
+        if not prefs.responded:
+            prefs.afk_strikes += 1
+
+
+def mark_active(state: GameState, player_id: str) -> bool:
+    """Gracz zrobił coś w UI („I'm back”): zeruje strajki AFK i odnotowuje obecność w trwającym
+    oknie (MUTUJE). Zwraca, czy coś zmieniono (wołający zapisuje stan tylko wtedy)."""
+    player = state.players.get(player_id)
+    if player is None or player.control_type is ControlType.BOT:
+        return False
+    prefs = player.private.reaction_prefs
+    if prefs.afk_strikes == 0 and prefs.responded:
+        return False
+    prefs.afk_strikes = 0
+    prefs.responded = True
+    return True
+
+
+def with_presence(state: GameState, player_id: str) -> GameState:
+    """``state`` po odnotowaniu obecności gracza (nowy stan) albo ten sam, gdy nic się nie zmienia.
+
+    Wspólne dla commitu HTTP i symulacji silnika (``engine.actions.apply_and_settle``), żeby oba
+    dawały ten sam stan.
+    """
+    player = state.players.get(player_id)
+    if player is None or player.control_type is ControlType.BOT:
+        return state
+    prefs = player.private.reaction_prefs
+    if prefs.afk_strikes == 0 and prefs.responded:
+        return state
+    new_state = state.clone()
+    mark_active(new_state, player_id)
+    return new_state
+
+
 def update(
     state: GameState,
     player_id: str,
@@ -194,10 +290,12 @@ def update(
     only_involved: bool | None = None,
     mute_cards: Mapping[str, bool] | None = None,
     mute_offers: Mapping[str, bool] | None = None,
+    mute_components: Mapping[str, str | None] | None = None,
 ) -> GameState:
     """Zmienia preferencje gracza (nowy stan; samo pasowanie w trwających oknach robi wołający).
 
-    ``declare``: kategoria -> czas trwania (``None`` = odwołanie). ``mute_*``: klucz -> wł./wył.
+    ``declare``: kategoria -> czas trwania (``None`` = odwołanie). ``mute_cards``/``mute_offers``:
+    klucz -> wł./wył. ``mute_components``: ``effect_key`` -> zasięg (``None`` = odwołanie).
 
     Raises:
         ValueError: Nieznany gracz, kategoria albo czas trwania.
@@ -221,6 +319,15 @@ def update(
         prefs.passes = passes
     if only_involved is not None:
         prefs.only_involved = bool(only_involved)
+    for key, until in (mute_components or {}).items():
+        if until is not None and until not in COMPONENT_DURATIONS:
+            raise ValueError(f"Unknown mute scope: {until}")
+        components = {k: d for k, d in prefs.muted_components.items() if k != key}
+        if until is not None:
+            components[key] = PassDeclaration(until=until, stamp=stamp(new_state, until))
+        prefs.muted_components = components
+    if mute_components:
+        prefs.afk_strikes = 0  # świadoma zmiana ustawień = obecność
     prefs.muted_cards = _toggle(prefs.muted_cards, mute_cards)
     prefs.muted_offers = _toggle(prefs.muted_offers, mute_offers)
     return new_state

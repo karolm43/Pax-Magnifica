@@ -32,6 +32,7 @@ from src.core import (
     phase_flow,
     production,
     reaction_pause,
+    reaction_prefs,
     status_phase,
     step_settle,
     strategic_action,
@@ -450,6 +451,14 @@ def apply_and_settle(state: GameState, ctx: EngineContext, action: Action) -> Ga
     To jest pełny skutek ruchu, który zobaczy serwer: koniec gry, limity, pauza reakcji,
     odblokowania liderów, zegar. Symulacje bota używają TEJ funkcji, nie samego ``apply``.
     """
+    # „I'm back” (54.12 e): jak middleware HTTP - akcja gracza odnotowuje jego obecność w oknie.
+    # Zwolnienie okna po czasie to zegar klienta, nie akcja gracza (jak w middleware).
+    present = (
+        state
+        if action.kind == "reaction_pause_release"
+        else reaction_prefs.with_presence(state, action.player_id)
+    )
     return step_settle.settle_step(
-        apply_action(state, ctx, action), ctx.registry, ctx.now, step_label(action), before=state
+        apply_action(present, ctx, action), ctx.registry, ctx.now, step_label(action),
+        before=present,
     )

@@ -2,9 +2,11 @@ import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
+import { useGameData } from "@/state/useGameContext";
 import { postReactionPause } from "@/api/useActionCard";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import { MoreTimeButton, waitingText } from "./reactionWindowParts";
+import { ReactionQuickPass } from "./ReactionQuickPass";
 import { useWindowCountdown } from "./useWindowCountdown";
 import styles from "./HeldPlayBanner.module.css";
 
@@ -36,6 +38,7 @@ export function ReactionPauseBanner({
   const eligible = Boolean(pause && viewerId && pause.eligible.includes(viewerId));
   const passed = Boolean(pause && viewerId && pause.passed.includes(viewerId));
   const deciding = eligible && !passed;
+  const me = useGameData()?.playerData?.find((p) => p.discordId === viewerId);
 
   useEffect(() => {
     if (key && deciding) onNeedHand();
@@ -78,6 +81,14 @@ export function ReactionPauseBanner({
           <MoreTimeButton
             asked={(pause.askedForTime ?? []).includes(viewerId)}
             onAsk={() => void postReactionPause("wait", viewerId)}
+          />
+        )}
+        {deciding && viewerId && me && (
+          <ReactionQuickPass
+            me={me}
+            category={pause.category}
+            inCombat={Boolean(gameState?.activeCombat)}
+            onPassed={() => void postReactionPause("pass", viewerId)}
           />
         )}
       </div>
