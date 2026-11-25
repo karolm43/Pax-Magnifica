@@ -5,6 +5,7 @@ Wydzielone z ``invasion.py``; warstwa pod przebiegiem inwazji."""
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import replace
 from typing import Any
 
 from src.core import (
@@ -41,6 +42,39 @@ from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
 
 # ------------------------------------------------------------------------- bombardment
+
+_TARGET_SEP = "@"  # klucz trafień: "planeta@gracz" przy kilku obrońcach (koegzystencja)
+
+
+def split_bombard_key(key: str) -> tuple[str, str | None]:
+    """Klucz ``bombard_pending`` -> (planeta, gracz-cel albo ``None``)."""
+    planet, sep, target = key.partition(_TARGET_SEP)
+    return planet, (target if sep else None)
+
+
+def pending_key(inv: InvasionState, planet: str, defender: str | None = None) -> str:
+    """Klucz trafień czekających na ``planet`` (dla ``defender`` przy koegzystencji)."""
+    if defender is not None and f"{planet}{_TARGET_SEP}{defender}" in inv.bombard_pending:
+        return f"{planet}{_TARGET_SEP}{defender}"
+    return planet
+
+
+def bombard_target(state: GameState, planet: str, wanted: str | None) -> str | None:
+    """Gracz, którego jednostki na ``planet`` dostają trafienia (R_coexistence 11).
+
+    ⚠️ ZAŁOŻENIE (RULES.md 52, wybór + „Auto”): bez wskazania - kontroler planety, gdy ma tam
+    siły naziemne, inaczej pierwszy obrońca. Wskazany gracz musi mieć siły naziemne na planecie.
+    """
+    inv = _inv(state)
+    defenders = _defenders(state, planet, inv.position, inv.attacker)
+    if wanted is not None:
+        if wanted not in defenders:
+            raise ValueError(f"That player has no ground forces on {planet} to bombard.")
+        return wanted
+    if not defenders:
+        return None
+    owner = _system(state).planet_owners.get(planet)
+    return owner if owner in defenders else defenders[0]
 
 
 def bombard_targets(state: GameState, registry: StaticDataRegistry) -> list[str]:
@@ -213,11 +247,18 @@ def bombard(
                 "If you bombard you must use every unit with Bombardment: "
                 f"assign all {group.count} {group.name}."
             )
-    for planet in {a.planet for a in assignments if a.count > 0}:
-        if len(_defenders(state, planet, invasion.position, invasion.attacker)) > 1:
-            raise ValueError(
-                f"More than one defender on {planet} - resolve it with God-Mode."
-            )
+    # R_coexistence 11 / 11.1: na planecie w koegzystencji każdy przydział wybiera gracza-cel;
+    # osobne rzuty przeciw różnym graczom = osobne przydziały (Plasma Scoring tylko do jednego).
+    # Klucz z graczem tylko tam, gdzie obrońców jest kilku (jeden obrońca: klucz „typ|planeta").
+    several = {
+        a.planet for a in assignments
+        if len(_defenders(state, a.planet, invasion.position, invasion.attacker)) > 1
+    }
+    assignments = [
+        replace(a, target=bombard_target(state, a.planet, a.target))
+        if a.count > 0 and a.planet in several else a
+        for a in assignments
+    ]
 
     rolled = state
     by_planet: dict[str, dict[str, Any]] = {}
@@ -250,7 +291,13 @@ def bombard(
             rules_hooks.POINT_COMBAT_HIT_MULTIPLIER, state, _inv(state).attacker, 1,
             {"kind": "bombardment", "base_type": item.base_type},
         )
-        entry = by_planet.setdefault(item.planet, {"rolls": [], "hits": 0})
+        zone = (
+            f"{item.planet}{_TARGET_SEP}{item.target}" if item.planet in several else item.planet
+        )
+        entry = by_planet.setdefault(zone, {
+            "rolls": [], "hits": 0, "planet": item.planet,
+            "target": item.target or bombard_target(state, item.planet, None),
+        })
         entry["rolls"].append(
             {
                 "baseType": item.base_type,
@@ -272,13 +319,14 @@ def bombard(
         ctx={"ability": "bombardment", "player": inv.attacker, "position": inv.position,
              "planets": sorted(by_planet)},
     )
-    for planet, entry in by_planet.items():
-        defenders = _defenders(new_state, planet, inv.position, inv.attacker)
-        defender = defenders[0] if defenders else None
+    for key, entry in by_planet.items():
+        planet = str(entry["planet"])
+        defender = entry["target"]
         inv.log.append(
             {
                 "phase": "BOMBARDMENT",
                 "planet": planet,
+                "key": key,
                 "defender": defender,
                 "rolls": entry["rolls"],
                 "hits": entry["hits"],
@@ -289,19 +337,21 @@ def bombard(
         if defender is not None and entry["hits"] > 0:
             units = _ground_units(new_state, grid, registry, planet, defender)
             if sum(u.count + u.sustainable for u in units.values()) > 0:
-                inv.bombard_pending[planet] = entry["hits"]
+                # R_coexistence 11.2: nadwyżka nie przechodzi na jednostki innego gracza.
+                inv.bombard_pending[key] = entry["hits"]
                 if defender == NEUTRAL_PLAYER_ID:
-                    _auto_assign_neutral_bombard(new_state, grid, registry, planet)
+                    _auto_assign_neutral_bombard(new_state, grid, registry, key)
     return new_state
 
 
 def _auto_assign_neutral_bombard(
-    state: GameState, grid: HexGrid, registry: StaticDataRegistry, planet: str
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry, key: str
 ) -> None:
     """Straty neutralnych po bombardowaniu przypisuje silnik (R_neutral_units); MUTUJE state."""
     inv = _inv(state)
+    planet, _ = split_bombard_key(key)
     units = _ground_units(state, grid, registry, planet, NEUTRAL_PLAYER_ID)
-    required = required_bombard_hits(state, grid, registry, planet)
+    required = required_bombard_hits(state, grid, registry, key)
     costs = {
         bt: (registry.units[u.unit_id].cost or 0.0)
         for bt, u in units.items()
@@ -312,35 +362,51 @@ def _auto_assign_neutral_bombard(
     )
     plan = battle.plan_losses(units, sustain, destroy, destroy_damaged, required)
     battle.apply_losses(state, inv.position, planet, NEUTRAL_PLAYER_ID, units, plan)
-    for entry in reversed(inv.log):
-        if entry.get("phase") == "BOMBARDMENT" and entry.get("planet") == planet:
-            entry["losses"] = battle.losses_of(units, plan)
-            entry["sustained"] = battle.sustained_of(plan, sustain)
-            break
-    del inv.bombard_pending[planet]
+    entry = bombard_log_entry(inv, key)
+    entry["losses"] = battle.losses_of(units, plan)
+    entry["sustained"] = battle.sustained_of(plan, sustain)
+    del inv.bombard_pending[key]
 
 
 
 
 def required_bombard_hits(
-    state: GameState, grid: HexGrid, registry: StaticDataRegistry, planet: str
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    planet: str,
+    defender: str | None = None,
 ) -> int:
-    """Ile trafień obrońca musi pokryć na planecie: min(trafienia, jednostki + Sustain)."""
+    """Ile trafień obrońca musi pokryć na planecie: min(trafienia, jednostki + Sustain).
+
+    ``planet`` może być kluczem ``planeta@gracz``; ``defender`` wybiera go przy koegzystencji."""
     inv = _inv(state)
-    pending = inv.bombard_pending.get(planet, 0)
+    key = pending_key(inv, planet, defender)
+    pending = inv.bombard_pending.get(key, 0)
     if pending <= 0:
         return 0
-    defender = bombard_defender(inv, planet)
-    units = _ground_units(state, grid, registry, planet, defender)
+    defender = bombard_defender(inv, key)
+    units = _ground_units(state, grid, registry, split_bombard_key(key)[0], defender)
     cancels = battle.sustain_cancels(state, defender)
     return min(pending, sum(u.count + cancels * u.sustainable for u in units.values()))
 
 
-def bombard_defender(inv: InvasionState, planet: str) -> str:
+def bombard_log_entry(inv: InvasionState, key: str) -> dict[str, Any]:
+    """Wpis logu rzutu Bombardment dla klucza trafień (``planeta`` albo ``planeta@gracz``)."""
     for entry in reversed(inv.log):
-        if entry.get("phase") == "BOMBARDMENT" and entry.get("planet") == planet:
-            return str(entry["defender"])
-    raise ValueError(f"No bombardment hits are waiting on {planet}.")
+        if entry.get("phase") == "BOMBARDMENT" and entry.get("key", entry.get("planet")) == key:
+            found: dict[str, Any] = entry
+            return found
+    raise ValueError(f"No bombardment roll was made against {split_bombard_key(key)[0]}.")
+
+
+def bombard_defender(inv: InvasionState, planet: str) -> str:
+    """Gracz pokrywający trafienia czekające pod kluczem ``planet`` (planeta / planeta@gracz)."""
+    try:
+        return str(bombard_log_entry(inv, planet)["defender"])
+    except ValueError:
+        where = split_bombard_key(planet)[0]
+        raise ValueError(f"No bombardment hits are waiting on {where}.") from None
 
 
 def assign_bombard_hits(
@@ -360,13 +426,15 @@ def assign_bombard_hits(
         ValueError: Brak oczekujących trafień na planecie, zły gracz, zła liczba/typ strat.
     """
     inv = _phase(state, InvasionPhase.BOMBARDMENT, "Bombardment")
-    if inv.bombard_pending.get(planet, 0) <= 0:
+    key = pending_key(inv, planet, player_id)
+    planet = split_bombard_key(key)[0]
+    if inv.bombard_pending.get(key, 0) <= 0:
         raise ValueError(f"There are no bombardment hits to assign on {planet}.")
-    defender = bombard_defender(inv, planet)
+    defender = bombard_defender(inv, key)
     if player_id != defender:
         raise ValueError("Only the player controlling the planet assigns the hits.")
     units = _ground_units(state, grid, registry, planet, defender)
-    required = required_bombard_hits(state, grid, registry, planet)
+    required = required_bombard_hits(state, grid, registry, key)
     plan = battle.plan_losses(
         units, sustain, destroy, destroy_damaged, required,
         battle.sustain_cancels(state, defender),
@@ -375,14 +443,12 @@ def assign_bombard_hits(
     new_state = state.clone()
     new_inv = _inv(new_state)
     battle.apply_losses(new_state, new_inv.position, planet, defender, units, plan)
-    for entry in reversed(new_inv.log):
-        if entry.get("phase") == "BOMBARDMENT" and entry.get("planet") == planet:
-            entry["losses"] = battle.losses_of(units, plan)
-            entry["sustained"] = battle.sustained_of(plan, sustain)
-            break
+    entry = bombard_log_entry(new_inv, key)
+    entry["losses"] = battle.losses_of(units, plan)
+    entry["sustained"] = battle.sustained_of(plan, sustain)
     chronicle_log.record_fire(
         new_state, new_inv.attacker, defender, "bombardment", battle.losses_of(units, plan)
     )
     _sustain_events(new_state, defender, battle.sustained_of(plan, sustain))
-    del new_inv.bombard_pending[planet]
+    del new_inv.bombard_pending[key]
     return new_state

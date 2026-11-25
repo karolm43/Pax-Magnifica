@@ -289,6 +289,10 @@ def _apply_planets(
             bt: n for bt, n in src_sys.planet_units.get(planet, {}).get(giver_id, {}).items()
             if n > 0
         }
+        # F_hacan pride-of-kenara 4: najpierw zmiana kontroli, potem ruch jednostek - zyskujący
+        # planetę ma okno „po zdobyciu” (Integrated Economy), zanim koegzystencja się skończy;
+        # cudze jednostki koegzystujące na planecie zostają (R_coexistence 2.1).
+        control.set_planet_control(state, position, planet, receiver_id)
         # F_hacan: Pride of Kenara na planecie w gravity rift - przenoszone jednostki rzucają
         # na usunięcie (R_gravity_rift; jeden rzut „na stół").
         lost = _rift_losses(state, position, giver_id, moving)
@@ -302,7 +306,6 @@ def _apply_planets(
                 unit_ops.transfer_units(
                     state, src_sys, planet, dest_sys, dest, giver_id, base_type, count - gone
                 )
-        control.set_planet_control(state, position, planet, receiver_id)
 
 
 def _rift_losses(

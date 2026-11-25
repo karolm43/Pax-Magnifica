@@ -339,8 +339,9 @@ def invasion_step(obs: Observation, ctx: EngineContext) -> list[Action]:
     assert inv is not None
     nxt = tac.InvasionNext(player_id=pid)
     # Trafienia czekające na obrońców planet (bombardowanie) albo atakującego (obrona).
-    for planet in sorted(inv.bombard_pending):
-        if inv.bombard_pending[planet] > 0 and invasion.bombard_defender(inv, planet) == pid:
+    for key in sorted(inv.bombard_pending):
+        if inv.bombard_pending[key] > 0 and invasion.bombard_defender(inv, key) == pid:
+            planet = invasion.split_bombard_key(key)[0]  # „planeta@gracz” przy koegzystencji
             return _planet_losses(s, ctx, pid, planet, tac.InvasionBombardAssign, bombard=True)
     if inv.phase is InvasionPhase.SPACE_CANNON_DEFENSE:
         for planet in sorted(inv.defense_pending):
@@ -386,7 +387,7 @@ def _planet_losses(
         player_id=pid,
     )
     required = (
-        invasion.required_bombard_hits(s, ctx.grid, ctx.registry, planet)
+        invasion.required_bombard_hits(s, ctx.grid, ctx.registry, planet, pid)
         if bombard
         else invasion.required_defense_hits(s, ctx.grid, ctx.registry, planet)
     )

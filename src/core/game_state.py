@@ -656,6 +656,10 @@ class SystemState(BaseModel):
     # Żetony frakcji w strefach systemu (RULES.md 61.6): {strefa: {rodzaj: właściciel}}, strefa =
     # "space" albo id planety (sleeper Titans of Ul). Zmiana tylko przez ``core/faction_tokens``.
     faction_tokens: dict[str, dict[str, str]] = Field(default_factory=dict)
+    # Coexistence chosen by an effect (R_coexistence, RULES.md 40.1 I7b): {planet: [player_id]}.
+    # Listed players keep their units on the planet WITHOUT the forced ground combat of I7a.
+    # Read and changed only through ``core/coexistence.py`` (stale entries are filtered there).
+    coexisting: dict[str, list[str]] = Field(default_factory=dict)
 
     def token_wormholes(self) -> list[str]:
         """Typy wormhole z żetonów w systemie: Gamma itd. + aktywna strona Ion Storm."""

@@ -745,3 +745,23 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
 - QA: backend ruff + mypy (changed), pytest (`-k move/rift/activity/tactical/transport` + rift-using faction
   tests); frontend tsc (app), eslint (changed), vitest (`entities/replay`, `state`, `domains/map`, ActivityPanel).
   Skipped: full backend suite, build (no new modules), e2e, visual check in a live game.
+
+## Coexistence (block I4): Slumberstate, Pride of Kenara, bombardment of coexisting players (2026-11-25)
+- `core/coexistence.py` (RULES.md 40.1 I7b): coexistence is derived from the board (controller + other players with
+  units on the planet). New `SystemState.coexisting[planet]` = players coexisting BY CHOICE, exempt from the I7a forced
+  ground combat via `coexistence.fighting` (`invasion._contested`, `battle.start_combat`); a commit to the planet
+  starts the combat again. Establish Control keeps players coexisting by choice (and their structures) when an invader
+  takes the planet from its controller (R_coexistence 14-15).
+- Slumberstate Computing (62.18): sentence 1 = field `coexist:<planet>` in the Awaken window ("Auto" = coexist; also
+  for Hecatoncheires + infantry); sentence 2 = MODIFY `POINT_STATUS_ACTION_CARDS` from a rule source every player owns
+  (`coexistence.partners`), so only the Draw Action Cards step draws more.
+- Bombardment (R40 I2): `BombardAssignment.target` / API `target`; on a planet with several defenders the hits wait
+  under `planet@player` (`invasion.split_bombard_key`), the surplus stays with the chosen player, Plasma Scoring adds
+  its die to one roll. "Auto" = the controller. TODO: target picker in the bombardment window (UI sends "Auto").
+- Pride of Kenara: `transaction._apply_planets` changes control before moving the Hacan units (IE window first);
+  coexisting units stay.
+- Gaps closed: `breakthroughs:titansbt#1/#2`, `F_ul/hecatoncheires/5`, `F_ul/slumberstate-computing/5`,
+  `F_hacan/pride-of-kenara/4`, `C_technology/plasma-scoring/2`; R_coexistence 1, 2, 2.1, 11-11.2, 12-15 tested
+  (file stays in `rulings_debt.json`). Not modelled: automatic control hand-off to the last coexisting player (7-7.4).
+- QA: ruling coverage, `pytest --testmon` (2 failures from other sessions' hunks: relics sustain `zone`, frontend
+  locality URL), ruff, mypy. Skipped: frontend (no change), build, e2e. Backend restart needed (new state field).

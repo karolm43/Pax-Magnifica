@@ -201,13 +201,13 @@ def _build(ctx: AppContext, state: GameState) -> InvasionResponse:
         done=inv.bombarded,
         pending=[
             BombardPendingView(
-                planet=planet,
-                defender=key(invasion.bombard_defender(inv, planet)),
+                planet=invasion.split_bombard_key(pending_key)[0],
+                defender=key(invasion.bombard_defender(inv, pending_key)),
                 hits=hits,
-                required=invasion.required_bombard_hits(state, grid, registry, planet),
-                cancels=battle.sustain_cancels(state, invasion.bombard_defender(inv, planet)),
+                required=invasion.required_bombard_hits(state, grid, registry, pending_key),
+                cancels=battle.sustain_cancels(state, invasion.bombard_defender(inv, pending_key)),
             )
-            for planet, hits in sorted(inv.bombard_pending.items())
+            for pending_key, hits in sorted(inv.bombard_pending.items())
         ],
     )
 
@@ -348,7 +348,11 @@ async def post_bombard(
             ctx.current_grid,
             ctx.registry,
             [
-                invasion.BombardAssignment(a.base_type, a.planet, a.count)
+                invasion.BombardAssignment(
+                    a.base_type, a.planet, a.count,
+                    board_edit.resolve_player_id(a.target, ctx.service.current_state())
+                    if a.target else None,
+                )
                 for a in request.assignments
             ],
             request.plasma_unit,

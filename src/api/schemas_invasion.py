@@ -183,6 +183,8 @@ class InvasionBombardItem(BaseModel):
     base_type: str = Field(alias="baseType")
     planet: str
     count: int = 1
+    # Planeta w koegzystencji: czyje jednostki dostają trafienia (R_coexistence 11; brak = Auto).
+    target: str | None = None
 
 
 class InvasionBombardRequest(BaseModel):

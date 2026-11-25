@@ -16,6 +16,7 @@ from typing import Any
 
 from src.core import (
     chronicle,
+    coexistence,
     control,
     custodians,
     exhaust,
@@ -39,11 +40,13 @@ from src.core.invasion_bombard import assign_bombard_hits as assign_bombard_hits
 from src.core.invasion_bombard import bombard as bombard
 from src.core.invasion_bombard import bombard_defender as bombard_defender
 from src.core.invasion_bombard import bombard_groups as bombard_groups
+from src.core.invasion_bombard import bombard_log_entry as bombard_log_entry
 from src.core.invasion_bombard import bombard_modifier as bombard_modifier
 from src.core.invasion_bombard import bombard_targets as bombard_targets
 from src.core.invasion_bombard import ground_bombarders as ground_bombarders
 from src.core.invasion_bombard import plasma_bombard_dice as plasma_bombard_dice
 from src.core.invasion_bombard import required_bombard_hits as required_bombard_hits
+from src.core.invasion_bombard import split_bombard_key as split_bombard_key
 from src.core.invasion_common import _DMZ_REASON, _defenders, _ground_in_zone, _inv, _phase, _system
 from src.core.invasion_common import GROUND_FORCES as GROUND_FORCES
 from src.core.invasion_common import BombardAssignment as BombardAssignment
@@ -392,16 +395,21 @@ def _contested(
 
     Nie patrzy na ``committed``: siły mogły trafić na planetę bez lądowania (Crash Landing,
     koegzystencja) - walka i tak wybucha w kroku Invasion (decyzja użytkownika, RULES.md 40.1).
+    Wyjątek: koegzystencja Z WYBORU (Slumberstate) - ``coexistence.fighting`` (I7b).
     """
     system = state.systems.get(position)
     if system is None:
         return []
     as_ground = attacker_ground_types(state)  # Matriarch: same myśliwce też walczą (62.16)
+    committed = state.invasion.committed if state.invasion is not None else {}
     return [
         p
         for p in system_planets(state, registry, position)
         if _ground_in_zone(system, p, attacker, as_ground)
-        and _defenders(state, p, position, attacker)
+        and coexistence.fighting(
+            state, position, p, attacker, _defenders(state, p, position, attacker),
+            committed=p in committed,
+        )
     ]
 
 
@@ -446,8 +454,12 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
             keeps = rules_hooks.permits(
                 rules_hooks.POINT_CONTROL_STRUCTURES_REPLACED, state, inv.attacker
             )
+            # R_coexistence 15: gracze koegzystujący z wyboru, z którymi nie walczono, zostają
+            # na planecie (razem ze strukturami) i koegzystują z nowym kontrolerem.
+            fought = (combat_result or {}).get("defender")
+            calm = coexistence.peaceful(state, inv.position, planet) - {fought}
             for pid in list(system.planet_units.get(planet, {})):
-                if pid == inv.attacker or keeps:
+                if pid == inv.attacker or keeps or pid in calm:
                     continue
                 structures = {
                     bt: n
@@ -483,6 +495,13 @@ def _establish_control(state: GameState, registry: StaticDataRegistry) -> None:
             if owner != defender:
                 control.set_planet_control(state, inv.position, planet, defender)
         results.append(result)
+    # R_coexistence 16: kto zaangażował siły albo walczył, nie koegzystuje już z wyboru.
+    coexistence.end(
+        state, inv.position, set(inv.committed) | set(inv.combat_results), inv.attacker
+    )
+    for planet, combat_result in inv.combat_results.items():
+        if combat_result.get("defender"):
+            coexistence.end(state, inv.position, [planet], str(combat_result["defender"]))
     inv.results = results
     explored = [str(r["planet"]) for r in results if r["explore"]]
     if explored:
@@ -674,11 +693,8 @@ def parley_return(state: GameState, planet: str) -> dict[str, int]:
 
 
 def _bombard_log_entry(inv: InvasionState, planet: str) -> dict[str, Any]:
-    for entry in reversed(inv.log):
-        if entry.get("phase") == "BOMBARDMENT" and entry.get("planet") == planet:
-            found: dict[str, Any] = entry
-            return found
-    raise ValueError(f"No bombardment roll was made against {planet}.")
+    """Wpis rzutu Bombardment dla klucza trafień (planeta / ``planeta@gracz`` - koegzystencja)."""
+    return bombard_log_entry(inv, planet)
 
 
 def _defense_log_entry(inv: InvasionState, planet: str) -> dict[str, Any]:

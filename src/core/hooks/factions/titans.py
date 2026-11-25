@@ -14,6 +14,7 @@ from typing import Any
 from src.core import (
     active_effects,
     board_reinforcements,
+    coexistence,
     control,
     exhaust,
     exploration,
@@ -36,6 +37,7 @@ from src.core.game_state import CombatStep, GameState, Phase, SystemState
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import (
     POINT_PRODUCTION_GAIN_TRADE_GOOD,
+    POINT_STATUS_ACTION_CARDS,
     POINT_STRUCTURE_PDS_AS_MECH,
     POINT_UNIT_STRUCTURE_GROUND_FORCES,
     SOURCE_BREAKTHROUGH,
@@ -77,6 +79,8 @@ _STRUCTURES_TO_UNLOCK = 5  # „Have 5 structures on the game board.”
 _SUPPLY = "supply"
 _KEEP, _AS_PDS, _AS_MECH = "keep", "pds", "mech"
 _TOKEN = "sleeper:"  # pole Awaken: co zrobić z żetonem na planecie
+_COEXIST = "coexist:"  # pole Awaken: Slumberstate - koegzystencja zamiast walki (zdanie 1)
+_YES, _NO = "coexist", "combat"
 _FROM = "from:"  # pole Awaken: skąd PDS przy pustej rezerwie
 _ALLOW, _REFUSE = "allow", "refuse"
 
@@ -292,6 +296,14 @@ def awaken_inputs(
         options.append(oi.option(_KEEP, "Keep the sleeper token"))
         inputs.append(oi.choice(f"{_TOKEN}{planet}", f"Sleeper on {_planet_name(planet)}",
                                 options, always=True, auto=options[0]["value"]))
+        if _slumber_coexist_possible(state, player_id, position, planet):
+            inputs.append(oi.choice(
+                f"{_COEXIST}{planet}", f"Ground combat on {_planet_name(planet)}", [
+                    oi.option(_YES, "Coexist instead (Slumberstate Computing)"),
+                    oi.option(_NO, "Fight the ground combat"),
+                ], hint="Slumberstate Computing: only if you commit no other units to this "
+                "planet.", always=True, auto=_YES,  # ⚠️ ZAŁOŻENIE 62.18: „Auto” = koegzystencja
+            ))
     left = production.reinforcements_left(state, player_id, _PDS)
     if left is not None and left < len(sleepers):
         for planet in sleepers:
@@ -307,6 +319,39 @@ def awaken_inputs(
                 "token is moved instead.", auto=_SUPPLY,
             ))
     return inputs
+
+
+def _has_slumberstate(state: GameState, player_id: str) -> bool:
+    source = HookSource(SOURCE_BREAKTHROUGH, BREAKTHROUGH)
+    return source in rules_hooks.owned_sources(state, player_id)
+
+
+def _rival_ground_forces(state: GameState, player_id: str, position: str, planet: str) -> bool:
+    """Czy na planecie stoją siły naziemne innego gracza (Coalescence wywoła walkę naziemną)."""
+    system = state.systems.get(position)
+    if system is None:
+        return False
+    return any(
+        invasion_common._ground_in_zone(
+            system, planet, pid, invasion_common.structure_ground_types(state, pid)
+        )
+        for pid in system.planet_units.get(planet, {})
+        if pid != player_id
+    )
+
+
+def _slumber_coexist_possible(
+    state: GameState, player_id: str, position: str, planet: str
+) -> bool:
+    """Slumberstate zdanie 1: Awaken na planecie z cudzymi siłami naziemnymi = walka z
+    Coalescence, którą Titans mogą zamienić na koegzystencję (planeta nie jest ich)."""
+    system = state.systems.get(position)
+    return (
+        _has_slumberstate(state, player_id)
+        and system is not None
+        and system.planet_owners.get(planet) != player_id
+        and _rival_ground_forces(state, player_id, position, planet)
+    )
 
 
 def _settle_planet(state: GameState, player_id: str, position: str, planet: str) -> None:
@@ -366,7 +411,12 @@ def _place_mech(
 def awaken(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Awaken: After you activate a system that contains 1 or more of your sleeper tokens: You may
     replace each of those tokens with 1 PDS from your reinforcements. (⚠️ ZAŁOŻENIE 62.18: każdy
-    żeton osobno; „Auto” = PDS.)"""
+    żeton osobno; „Auto” = PDS.)
+
+    Slumberstate Computing (zdanie 1): When COALESCENCE results in a ground combat, if you commit
+    no other units, you may choose for your units to coexist instead. Wybór pada w tym oknie
+    (pole ``coexist:<planeta>``); zaangażowanie sił na tę planetę w kroku Commit go unieważnia
+    (``coexistence.fighting``, RULES.md 40.1 I7b)."""
     position = str(ctx["position"])
     params = ctx.get("params", {})
     for planet in awaken_sleepers(state, player_id, position):
@@ -381,6 +431,11 @@ def awaken(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
             _place_pds(state, player_id, position, planet, source)
         faction_tokens.remove(state, position, planet, SLEEPER)
         _settle_planet(state, player_id, position, planet)
+        if (
+            str(params.get(f"{_COEXIST}{planet}") or _YES) == _YES
+            and _slumber_coexist_possible(state, player_id, position, planet)
+        ):
+            coexistence.choose(state, position, planet, player_id)
 
 
 def _ouranos_pds(state: GameState, player_id: str, position: str) -> list[str]:
@@ -450,14 +505,16 @@ def pending_hit_targets(state: GameState) -> list[tuple[str, str, str]]:
         for planet in sorted(inv.defense_pending):
             found.append((f"defense:{planet}", inv.attacker,
                           f"Space Cannon Defense on {_planet_name(planet)}"))
-        for planet in sorted(inv.bombard_pending):
+        for key in sorted(inv.bombard_pending):
+            # Klucz „planeta@gracz” przy koegzystencji - trafienia czekają na tego gracza.
+            planet, chosen = invasion.split_bombard_key(key)
             system = state.systems.get(inv.position)
             owners = sorted(
                 pid for pid in (system.planet_units.get(planet, {}) if system else {})
                 if pid != inv.attacker
             )
-            target = owners[0] if owners else inv.attacker
-            found.append((f"bombard:{planet}", target, f"Bombardment of {_planet_name(planet)}"))
+            target = chosen or (owners[0] if owners else inv.attacker)
+            found.append((f"bombard:{key}", target, f"Bombardment of {_planet_name(planet)}"))
     return found
 
 
@@ -713,3 +770,28 @@ def slumberstate_consent(state: GameState, player_id: str, ctx: Mapping[str, Any
     if faction_tokens.on_planet(state, planet, SLEEPER) is not None:
         return  # w międzyczasie ktoś położył żeton - nic do zrobienia
     _put_sleeper(state, player_id, planet, source)
+
+
+# Zdanie 2 dotyczy też gracza BEZ przełomu („you and that player”) - źródło posiada każdy gracz,
+# hook sam szuka właściciela Slumberstate.
+_COEXIST_CARDS = rules_hooks.declare_rule_source(f"breakthroughs:{BREAKTHROUGH}:coexistence")
+
+
+@register(
+    POINT_STATUS_ACTION_CARDS, _COEXIST_CARDS, HookKind.MODIFY,
+    covers=f"breakthroughs:{BREAKTHROUGH}",
+)
+def slumberstate_cards(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> int:
+    """Slumberstate Computing: During the status phase, for each player you are coexisting with,
+    you and that player each draw 1 additional action card. (Tylko krok Draw Action Cards -
+    jedyny odczyt ``POINT_STATUS_ACTION_CARDS``; F_ul slumberstate-computing 5.)"""
+    extra = 0
+    for holder in state.players:
+        if not _has_slumberstate(state, holder):
+            continue
+        partners = coexistence.partners(state, holder)
+        if holder == player_id:
+            extra += len(partners)
+        elif player_id in partners:
+            extra += 1
+    return extra

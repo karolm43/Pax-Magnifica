@@ -75,16 +75,21 @@ class PlanetInfo:
 
 @dataclass(frozen=True)
 class BombardAssignment:
-    """Przydział ``count`` statków typu ``base_type`` do bombardowania ``planet``."""
+    """Przydział ``count`` statków typu ``base_type`` do bombardowania ``planet``.
+
+    ``target`` = gracz, którego jednostki dostają trafienia na planecie w koegzystencji
+    (R_coexistence 11; ``None`` = jedyny obrońca albo „Auto”)."""
 
     base_type: str
     planet: str
     count: int
+    target: str | None = None
 
     @property
     def key(self) -> str:
-        """Identyfikator przydziału (typ|planeta) - wybór jednostki Plasma Scoring."""
-        return f"{self.base_type}|{self.planet}"
+        """Identyfikator przydziału (typ|planeta[|gracz]) - wybór jednostki Plasma Scoring."""
+        base = f"{self.base_type}|{self.planet}"
+        return f"{base}|{self.target}" if self.target else base
 
 
 # --------------------------------------------------------------------------- pomocnicze

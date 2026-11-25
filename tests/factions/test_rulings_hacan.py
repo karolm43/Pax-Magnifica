@@ -520,6 +520,37 @@ def test_pride_of_kenara_w_gravity_rift_rzut(
     assert done.systems["101"].planet_units[dest]["p1"] == {"pds": 1, "space_dock": 1}
 
 
+@ruling("F_hacan/pride-of-kenara/4")
+def test_pride_of_kenara_koegzystencja_i_integrated_economy(
+    registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.core import coexistence
+
+    state, dest = _pride_state(registry)
+    state.players["p3"] = PlayerState(player_id="p3", color="green", faction="xxcha")
+    state.systems["000"].planet_units["mr"]["p3"] = {"infantry": 1}  # p3 coexists on the planet
+    state.players["p2"].technologies = ["ie"]
+    seen: list[dict[str, Any]] = []
+    fire = triggers.fire
+
+    def spy(st: GameState, event: GameEvent, moment: Moment, **kw: Any) -> None:
+        if event is GameEvent.PLANET_CONTROL_GAINED and moment is Moment.AFTER:
+            seen.append({pid: dict(u) for pid, u in st.systems["000"].planet_units["mr"].items()})
+        fire(st, event, moment, **kw)
+
+    monkeypatch.setattr(triggers, "fire", spy)
+    side = TransactionSide(planets=(f"mr>{dest}",))
+    done = transaction.resolve_transaction(state, _grid(), "p2", side, TransactionSide())
+    # Control changes first: the Hacan units are still on the planet in the "after you gain
+    # control" window, so Integrated Economy comes before the mech leaves.
+    assert seen and seen[0]["p1"]["mech"] == 1
+    assert [o for o in done.pending_offers if o.player_id == "p2" and "Integrated" in o.label]
+    assert done.systems["000"].planet_owners["mr"] == "p2"
+    assert done.systems["000"].planet_units["mr"]["p3"] == {"infantry": 1}  # still coexisting
+    assert coexistence.coexisting_players(done, "000", "mr") == ["p3"]
+    assert done.systems["101"].planet_units[dest]["p1"]["mech"] == 1
+
+
 # ================================================================================== Auto-Factories
 
 

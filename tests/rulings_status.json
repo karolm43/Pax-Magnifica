@@ -2,26 +2,14 @@
   "F_ul/heltitan/2": {
     "gap": "Decoy Operation i Transit Diodes przenoszą tylko piechotę i mechy (GROUND_FORCES) - Hel-Titan (struktura i siła naziemna) nie jest jeszcze ich celem (RULES.md 62.18)."
   },
-  "breakthroughs:titansbt#1": {
-    "gap": "Koegzystencja (blok I4) niezaimplementowana - Slumberstate nie zamienia walki z Coalescence na koegzystencję (RULES.md 62.18)."
-  },
-  "breakthroughs:titansbt#2": {
-    "gap": "Koegzystencja (blok I4) niezaimplementowana - brak dodatkowych kart akcji za koegzystujących graczy w fazie statusu (RULES.md 62.18)."
-  },
   "F_ul/awaken/5": {
     "gap": "Awaken and Nullification Field are both SYSTEM_ACTIVATED/AFTER offers, but Nullification Field calls tactical.end_tactical_action, which clears invasion/active_combat - the ground combat caused by Awaken does not still occur."
   },
   "F_ul/coalescence/4": {
     "gap": "When another effect ends the Ul player's turn (e.g. Nullification Field), tactical.end_tactical_action drops the pending invasion/combat; no forced Coalescence combat is resolved afterwards."
   },
-  "F_ul/hecatoncheires/5": {
-    "gap": "Coexistence (block I4) is not implemented - Hecatoncheires DEPLOY via Slumberstate cannot place units into coexistence (see breakthroughs:titansbt#1)."
-  },
   "F_ul/slumberstate-computing/3.1": {
     "gap": "Binding deals are not modelled in the engine (core/transaction.py has no deal/agreement item) - a sleeper placement cannot be part of a binding deal."
-  },
-  "F_ul/slumberstate-computing/5": {
-    "gap": "Coexistence (block I4) is not implemented - no additional action cards in the status phase Draw Action Cards step (see breakthroughs:titansbt#2)."
   },
   "F_naalu/neuroglaive/1": {
     "requires": [
@@ -339,9 +327,6 @@
   "R_exploration/notes/1": {
     "gap": "Engine doesn't make exploration come before 'after you gain control' abilities. set_planet_control fires PLANET_CONTROL_GAINED/AFTER (creating the Integrated Economy offer) before invasion.py starts the exploration; the IE offer can be accepted while the exploration is unresolved."
   },
-  "C_technology/plasma-scoring/2": {
-    "gap": "Bombardment models one defender per planet (invasion_bombard.bombard_defender returns a single defender), so separate Bombardment rolls against multiple coexisting players on one planet do not exist. Ruling: Plasma Scoring adds its die to only one of those rolls."
-  },
   "C_technology/integrated-economy/6": {
     "gap": "There is no Nomad commander (Navarch Feng) hook, and Integrated Economy (technologies_actions.integrated_economy, ProductionGrant.max_cost) has no cost-reduction path. Ruling: effects that let a player produce for less than cost do not change the unit's cost."
   },
@@ -362,9 +347,6 @@
       "faction:nekro"
     ],
     "reason": "Valefar Assimilator (Nekro) is not implemented - nothing copies a faction technology, so there is no token to keep on a technology replaced by Genetic Memory. Test after Nekro lands."
-  },
-  "F_hacan/pride-of-kenara/4": {
-    "gap": "Coexistence (block I4) is not implemented - a planet traded with Pride of Kenara cannot hold coexisting units, and nothing models the Integrated Economy timing (RULES.md 62.18)."
   },
   "C_agendas/armed-forces-standardization/1": {
     "requires": [

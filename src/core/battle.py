@@ -16,6 +16,7 @@ from src.core import (
     ability_notes,
     capacity,
     chronicle,
+    coexistence,
     entropic_scar,
     extra_dice,
     objective_events,
@@ -104,6 +105,12 @@ def start_combat(
         )
     ]
     others = [pid for pid in participants if pid != attacker]
+    if kind == "ground" and planet is not None:
+        # Koegzystencja z wyboru (Slumberstate, RULES.md 40.1 I7b): ci gracze nie walczą.
+        committed = state.invasion is not None and planet in state.invasion.committed
+        others = coexistence.fighting(
+            state, active, planet, attacker, others, committed=committed
+        )
     if attacker not in participants or not others:
         raise ValueError("There is no combat here: both sides need units able to fight.")
     if len(others) > 1:

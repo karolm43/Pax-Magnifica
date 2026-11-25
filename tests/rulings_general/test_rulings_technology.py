@@ -541,6 +541,41 @@ def test_plasma_scoring_one_die_per_bombardment_on_many_planets(
     assert dice == {_PL1: 2, _PL2: 1}  # JEDNA kość Plasma Scoring na całe bombardowanie
 
 
+@ruling(
+    "C_technology/plasma-scoring/2", "R_coexistence/notes/11", "R_coexistence/notes/11.1",
+    "R_coexistence/notes/11.2",
+)
+def test_plasma_scoring_one_die_against_coexisting_players(registry: StaticDataRegistry) -> None:
+    grid = inv_grid()
+    planets = {_PL1: {"p2": {"infantry": 1}, "p3": {"infantry": 2}}}
+    base = _bombard_state({"dreadnought": 3}, planets, ["ps"])
+    base.players["p3"] = PlayerState(player_id="p3", color="p3")
+    base = invasion.begin_invasion(base, grid, registry)
+    # Each unit picks whose units it bombards (11.1): two at p2, one at p3.
+    vs_p2 = BombardAssignment("dreadnought", _PL1, 2, "p2")
+    vs_p3 = BombardAssignment("dreadnought", _PL1, 1, "p3")
+
+    def run(state: GameState) -> GameState:
+        return invasion.bombard(state, grid, registry, [vs_p2, vs_p3], plasma_unit=vs_p3.key)
+
+    done = _seek(base, run, lambda s: _bombard_log(s)[0]["hits"] == 2)
+    entries = {e["defender"]: e for e in _bombard_log(done)}
+    dice = {pid: sum(len(r["dice"]) for r in e["rolls"]) for pid, e in entries.items()}
+    assert dice == {"p2": 2, "p3": 2}  # separate rolls; Plasma Scoring adds 1 die to ONE of them
+    assert done.invasion is not None
+    # 11.2: two hits on p2's single infantry - the surplus does not reach p3's units.
+    assert invasion.required_bombard_hits(done, grid, registry, _PL1, "p2") == 1
+    after = invasion.assign_bombard_hits(
+        done, grid, registry, _PL1, "p2", sustain={}, destroy={"infantry": 1}, destroy_damaged={},
+    )
+    assert after.systems["000"].planet_units[_PL1]["p3"] == {"infantry": 2}
+    # Without a choice, "Auto" bombards the planet's controller.
+    auto = invasion.bombard(base, grid, registry, [BombardAssignment("dreadnought", _PL1, 3)])
+    assert {e["defender"] for e in _bombard_log(auto)} == {"p2"}
+    with pytest.raises(ValueError, match="no ground forces"):
+        invasion.bombard(base, grid, registry, [BombardAssignment("dreadnought", _PL1, 3, "p1")])
+
+
 @ruling("C_technology/plasma-scoring/1.2")
 def test_plasma_scoring_adds_a_die_on_each_defending_planet(registry: StaticDataRegistry) -> None:
     grid = inv_grid()
