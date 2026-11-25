@@ -202,7 +202,7 @@ quoteAuthor:"Keleres Agent Niall, final report",
   },
   {
     kind: "heading",
-    text: "The Letani and the Symphony",
+    text: "The Letani",
   },
   {
     kind: "paragraph",
@@ -214,7 +214,7 @@ quoteAuthor:"Keleres Agent Niall, final report",
   },
   {
     kind: "heading",
-    text: "The Dies Opulen & The Dirzuga",
+    text: "Dirzuga",
   },
   {
     kind: "paragraph",
@@ -234,7 +234,7 @@ quoteAuthor:"Keleres Agent Niall, final report",
   },
   {
     kind: "heading",
-    text: "Galactic Recognition and Hidden Shadows",
+    text: "A Place at the Council",
   },
   {
     kind: "paragraph",
@@ -248,14 +248,6 @@ quoteAuthor:"Keleres Agent Niall, final report",
     kind: "quote",
     text: "While the Arborec insist that the past knowledge and experiences of Dirzuga bodies do not persist beyond this reincarnation, there are some who suspect the Arborec do not tell the entire truth. Such theorists can provide many examples in which the Arborec seem to have come upon information, or intimate understanding of other cultures, that seem inexplicable otherwise.",
   },
-      {
-        kind: "paragraph",
-        text: "Ultimately, despite the objections of the dissident races, the Arborec were admitted as a member of the galactic council. The potential wealth of foodstuffs, medicines, and other treasures of Nestphar proved effective in overcoming any objections.",
-      },
-      {
-        kind: "paragraph",
-        text: "While the Arborec insist that the past knowledge and experiences of Dirzuga bodies do not persist beyond this reincarnation, there are some who suspect the Arborec do not tell the entire truth. Such theorists can provide many examples in which the Arborec seem to have come upon information, or intimate understanding of other cultures, that seem inexplicable otherwise.",
-      },
     ],
   },
   letnev:{
@@ -268,7 +260,7 @@ lore: [
   },
   {
     kind: "heading",
-    text: "The Quann Conflict & The Embargoes",
+    text: "Imperial Sanctions",
   },
   {
     kind: "paragraph",
@@ -280,7 +272,7 @@ lore: [
   },
   {
     kind: "heading",
-    text: "The Fall of Mecatol & Secret Deployments",
+    text: "The Days of Reckoning",
   },
   {
     kind: "paragraph",
@@ -311,7 +303,7 @@ text: "But in the midst of their orgy of self-destruction, a new Empire rose to 
 },
 {
 kind: "heading",
-text: "The Fall and the Gate of Acheron"
+text: "The Gate of Acheron"
 },
 {
 kind: "quote",
@@ -387,7 +379,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Origins and the Soft Power Phase",
+    text: "No More Emperors",
   },
   {
     kind: "paragraph",
@@ -403,7 +395,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Sharsiss and the Obsidian",
+    text: "The Obsidian",
   },
   {
     kind: "paragraph",
@@ -419,7 +411,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Expansion: Cronos and Tallin",
+    text: "Cronos and Tallin",
   },
   {
     kind: "paragraph",
@@ -431,7 +423,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Divergence at Thunder's Edge",
+    text: "The New Obsession",
   },
   {
     kind: "paragraph",
@@ -464,7 +456,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Debt to the Lazax and the Secret Retreat",
+    text: "The Oath to Harkor",
   },
   {
     kind: "paragraph",
@@ -472,7 +464,7 @@ lore:[
   },
   {
     kind: "paragraph",
-    text: "To pay their debt, the remaining Shikrai immediately allied with Avar and Ylir, which they had abandoned long ago when they set out to colonize the stars. The Lazax erased all mention of the worlds from their newly constructed Hall of Cartography, and the newly founded Argent Flight retreated to their sanctuary to wait... and prepare.",
+    text: "To pay their debt, the remaining Shikrai immediately allied with the Lazax, swearing to guard the empire against any return of the Mahact.",
   },
   {
     kind: "paragraph",
@@ -484,7 +476,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Atharal Gas Torus and the Murmuration",
+    text: "The Murmuration",
   },
   {
     kind: "paragraph",
@@ -500,7 +492,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Holy Crusade Against Ancient Evil",
+    text: "The End of Secrecy",
   },
   {
     kind: "paragraph",
@@ -548,7 +540,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Ragh's Call and the Asteroids of Jorun",
+    text: "Ragh's Call",
   },
   {
     kind: "paragraph",
@@ -584,7 +576,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Enslavement and the Doolak Plague",
+    text: "Chains of Jol-Nar",
   },
   {
     kind: "paragraph",
@@ -604,7 +596,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Uprising and the War Sun",
+    text: "The War Sun",
   },
   {
     kind: "paragraph",
@@ -620,7 +612,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Embers Ascendant",
+    text: "The Embers",
   },
   {
     kind: "paragraph",
@@ -652,7 +644,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Imperial Embargoes and Market Stagnation",
+    text: "The Embargoes",
   },
   {
     kind: "paragraph",
@@ -688,7 +680,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Silent Observers",
+    text: "Watchers in the Dark",
   },
   {
     kind: "paragraph",
@@ -696,7 +688,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Biology and the Void",
+    text: "Children of Vacuum",
   },
   {
     kind: "paragraph",
@@ -704,7 +696,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Patience and Communal Anarchy",
+    text: "A Slow Consensus",
   },
   {
     kind: "paragraph",
@@ -716,7 +708,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "A Gathering of Black Wings",
+    text: "Black Wings",
   },
   {
     kind: "paragraph",
@@ -732,7 +724,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Prolific Diaspora",
+    text: "The Human Diaspora",
   },
   {
     kind: "paragraph",
@@ -740,7 +732,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Spark of the Twilight Wars",
+    text: "The First Shot",
   },
   {
     kind: "paragraph",
@@ -748,7 +740,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Governance of New Moscow",
+    text: "New Moscow",
   },
   {
     kind: "paragraph",
@@ -780,7 +772,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Mystery of \"Bad Space\"",
+    text: "Bad Space",
   },
   {
     kind: "paragraph",
@@ -796,7 +788,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "First Contact and the Creuss Gate",
+    text: "First Contact",
   },
   {
     kind: "paragraph",
@@ -812,7 +804,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Ethereal Nature and Runic Armor",
+    text: "Runic Armor",
   },
   {
     kind: "paragraph",
@@ -832,7 +824,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Cybernetic Claimants",
+    text: "Claimants to the Throne",
   },
   {
     kind: "paragraph",
@@ -848,7 +840,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Diaspora of Ibna Vel Syd",
+    text: "Ibna Vel Syd",
   },
   {
     kind: "paragraph",
@@ -864,7 +856,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Prophecy and Steel",
+    text: "Null",
   },
   {
     kind: "paragraph",
@@ -888,7 +880,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Penal Colony and the Passage of Tears",
+    text: "The Penal Colony",
   },
   {
     kind: "paragraph",
@@ -896,7 +888,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Rebellion and Erwan Mentak",
+    text: "Erwan's Peace",
   },
   {
     kind: "paragraph",
@@ -924,7 +916,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Telepathic Mastery and Secret Pacts",
+    text: "Mind-Benders",
   },
   {
     kind: "paragraph",
@@ -936,11 +928,11 @@ lore:[
   },
   {
     kind: "paragraph",
-    text: "Soon after the appearance of the Naalu, several of the great races, sensing the potential of a powerful new ally in explaining how the home worlds, a seemingly isolated civilization claiming no prior contact with the rest of the galaxy, developed premium civilian and military technology similar, and in some cases superior, to the rest of the galaxy.",
+    text: "Soon after the appearance of the Naalu, several of the great races, sensing the potential of a powerful new ally, rushed to open diplomatic relations with Druaa.",
   },
   {
     kind: "heading",
-    text: "The Illusion of Druaa and the Plight of Maaliak",
+    text: "Druaa",
   },
   {
     kind: "paragraph",
@@ -956,7 +948,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Quesh Sish and the Great Plan",
+    text: "The Great Plan",
   },
   {
     kind: "paragraph",
@@ -976,7 +968,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "An Alliance of the Downtrodden",
+    text: "The Rokha Bargain",
   },
   {
     kind: "paragraph",
@@ -992,7 +984,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "A Unified Society",
+    text: "Two Peoples, One House",
   },
   {
     kind: "paragraph",
@@ -1000,7 +992,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Acheron Gateway and Entropic Harvesting",
+    text: "Entropic Harvesting",
   },
   {
     kind: "paragraph",
@@ -1012,7 +1004,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "A New Claim to the Stars",
+    text: "The Tetrarchy's Bid",
   },
   {
     kind: "paragraph",
@@ -1036,7 +1028,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Madness of Mordai",
+    text: "Mordai",
   },
   {
     kind: "paragraph",
@@ -1048,7 +1040,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Rise of the Nekro",
+    text: "The Purge of Flesh",
   },
   {
     kind: "paragraph",
@@ -1064,7 +1056,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Schism and the Resurgence",
+    text: "The Resurgence",
   },
   {
     kind: "paragraph",
@@ -1096,7 +1088,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Information Broker",
+    text: "The Broker",
   },
   {
     kind: "paragraph",
@@ -1108,7 +1100,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Fall of Space Station Sumerian",
+    text: "Sumerian Station",
   },
   {
     kind: "paragraph",
@@ -1120,7 +1112,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "A Formidable Armada",
+    text: "The Nomad's Net",
   },
   {
     kind: "paragraph",
@@ -1144,7 +1136,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Desolation of Quinarra",
+    text: "Quinarra",
   },
   {
     kind: "paragraph",
@@ -1156,7 +1148,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Queen Mother and the Veiled Brood",
+    text: "The Veiled Brood",
   },
   {
     kind: "paragraph",
@@ -1164,7 +1156,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Tekklar Order and the Gathering Swarm",
+    text: "The Tekklar",
   },
   {
     kind: "paragraph",
@@ -1184,7 +1176,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Millennia of Dormancy",
+    text: "The Long Sleep",
   },
   {
     kind: "paragraph",
@@ -1196,7 +1188,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Elysium and the Ul",
+    text: "Elysium",
   },
   {
     kind: "paragraph",
@@ -1208,7 +1200,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Transcendence and the Living Garden",
+    text: "Transcendence",
   },
   {
     kind: "paragraph",
@@ -1220,7 +1212,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "A Steady Hand for the Galaxy",
+    text: "The Ul's Watch",
   },
   {
     kind: "paragraph",
@@ -1244,7 +1236,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Doolak Plague and Saudor",
+    text: "The Doolak Plague",
   },
   {
     kind: "paragraph",
@@ -1252,7 +1244,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Twin Ocean Worlds and the University",
+    text: "The University",
   },
   {
     kind: "paragraph",
@@ -1260,7 +1252,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Physiology and Evolution",
+    text: "Beneath the Waves",
   },
   {
     kind: "paragraph",
@@ -1268,7 +1260,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Circle of Regents Ascendant",
+    text: "The Circle of Regents",
   },
   {
     kind: "paragraph",
@@ -1288,7 +1280,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Ruin of Acheron",
+    text: "Acheron",
   },
   {
     kind: "paragraph",
@@ -1304,7 +1296,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Incursion from the Rift",
+    text: "Beyond the Rift",
   },
   {
     kind: "paragraph",
@@ -1324,7 +1316,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Cabal and the Spreading Rot",
+    text: "The Cabal",
   },
   {
     kind: "paragraph",
@@ -1348,7 +1340,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Imperial Servants & The Diaspora",
+    text: "Servants of the Throne",
   },
   {
     kind: "paragraph",
@@ -1360,7 +1352,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Estrangement and the True Inheritors",
+    text: "The Estranged Cousins",
   },
   {
     kind: "paragraph",
@@ -1376,7 +1368,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Defiance of Muab Di Faruuq",
+    text: "Muad Di Faruuq",
   },
   {
     kind: "paragraph",
@@ -1404,7 +1396,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Unheeded Warnings",
+    text: "Unheeded Warnings",
   },
   {
     kind: "paragraph",
@@ -1412,7 +1404,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Fall of Archon Tau",
+    text: "Archon Tau",
   },
   {
     kind: "paragraph",
@@ -1424,7 +1416,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Kingdom on Archon Ren",
+    text: "Archon Ren",
   },
   {
     kind: "paragraph",
@@ -1436,7 +1428,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Sentinels of Peace",
+    text: "The Cost of Peace",
   },
   {
     kind: "paragraph",
@@ -1460,7 +1452,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Obsession of Darien Van Hauge",
+    text: "Darien Van Hauge",
   },
   {
     kind: "paragraph",
@@ -1476,7 +1468,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Exile to Lael and the Hills of Grace",
+    text: "The Hills of Grace",
   },
   {
     kind: "paragraph",
@@ -1496,7 +1488,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Creation of the Brothers",
+    text: "The Spinners",
   },
   {
     kind: "paragraph",
@@ -1512,7 +1504,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Blessed and The Untouched",
+    text: "The Blessed",
   },
   {
     kind: "paragraph",
@@ -1536,7 +1528,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Swamps of Fianni & The Aborigines",
+    text: "The Fianni Swamps",
   },
   {
     kind: "paragraph",
@@ -1560,7 +1552,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Retillion and Shalloq",
+    text: "Shadows of the Canopy",
   },
   {
     kind: "paragraph",
@@ -1576,39 +1568,35 @@ lore:[
   },],
   },
   keleresa: {
-    quote: "By the time the Senate agrees that a fire has started, a dozen worlds are already ash. Ask for forgiveness after the threat is dead.",
+    quote: "When the Senate finally agrees that a fire has started, a dozen worlds are already ash. I prefer to ask forgiveness over cold embers.",
     quoteAuthor: "Tribunii Kuuasi Aun Jalatai",
     lore: [{
     kind: "paragraph",
-    text: "When the Galactic Council first chartered the Keleres, its founders envisioned a modest investigative bureau that would mediate minor trade disputes and police the spacelanes. None of them anticipated a galaxy tearing itself apart at the seams. As ancient gene-sorcerers awoke from millennia of slumber and dimensional rifts began bleeding horrors into realspace, the fractured empires of the Council remained paralyzed by mutual distrust—each waiting for a rival to bleed first.",
+    text: "When the Galactic Council first chartered the Keleres, most senators envisioned a modest bureau to mediate trade disputes and police the spacelanes. Instead, the agency inherited every crisis the Great Civilizations lacked the stomach—or the consensus—to confront themselves. As dormant Mahact kings stirred and dimensional tears split open along the rim, the Council Chambers deadlocked in mutual suspicion.",
   },
   {
     kind: "heading",
-    text: "The Burden of Command",
+    text: "Overwing Zeta",
   },
   {
     kind: "paragraph",
-    text: "For a canny commander like Tribunii Kuuasi Aun Jalatai, the dysfunctions of the Keleres are simply a tactical equation to be solved. Drawn from the ranks of the Argent Flight, Jalatai knows that an organization built from the cast-offs, exiles, and unwanted soldiers of twenty different species will never march in parade-ground unison. The secret to commanding the Keleres lies in knowing when to use a scalpel, when to set the agency aside, and precisely who among its unruly ranks is right for a suicide mission.",
+    text: "Drawn from the ranks of the Argent Flight, Tribunii Kuuasi Aun Jalatai treated the Keleres's dysfunction as a tactical problem. An agency staffed with the cast-offs, exiles, and dissidents of twenty species could never fight like a parade-ground army. So Jalatai stopped trying to make them march in step, pairing small investigative cells with rapid-response Shikrai strike wings seconded from the Atharal Torus.",
   },
   {
     kind: "paragraph",
-    text: "To give the Council's shadow agency the teeth it desperately lacked, Jalatai forged a direct operational link between the Keleres intelligence apparatus and the rapid-response strike wings of the Atharal Torus, codenamed Overwing Zeta. While multi-species investigative cells—crewed by disgraced Letnev tacticians, rogue Hylar engineers, and Sol defectors—infiltrate frontier systems to track existential threats, Jalatai’s interceptor flotillas wait on high alert just beyond sensor range.",
+    text: "Known internally as Overwing Zeta, those interceptor squadrons wait just outside sensor range whenever a Keleres team goes ashore. If a cell uncovers a Vuil’raith cult, an awakened Mahact vault, or an illegal bio-weapons cache, Jalatai does not spend three weeks petitioning the Promenade for a warrant that rival delegates will veto out of spite.",
   },
   {
     kind: "heading",
-    text: "Vigilance Above the Law",
+    text: "Asking Forgiveness",
   },
   {
     kind: "paragraph",
-    text: "Whenever a Keleres field cell uncovers a Vuil’raith cult, a dormant Mahact vault, or a clandestine bio-weapons facility, Jalatai does not waste days petitioning the Galactic Council for a mandate that will inevitably be vetoed by self-interested ambassadors. Instead, Overwing Zeta strikes immediately, burning the corruption from orbit and extracting the field agents before local planetary defense grids can even power up their targeting arrays.",
-  },
-  {
-    kind: "paragraph",
-    text: "Such unilateral action has made Jalatai countless enemies in the senate chambers, where outraged delegates routinely demand the Tribunii's dismissal for violating sovereign airspace. Yet for those Tribunii who possess the resolve to wield the full might of the Keleres, the rewards far outweigh the political peril: they stand as the only true bulwark between a blind, squabbling galaxy and the abyss.",
+    text: "Instead, Overwing Zeta drops out of warp, scours the threat from orbit, and extracts the agents before local defense batteries can lock onto their transponders. Outraged ambassadors routinely demand Jalatai's removal for violating sovereign space. Jalatai accepts every reprimand with a bow, returns to Custodia Vigilia, and sends the next patrol wing out before sunrise.",
   },
   {
     kind: "quote",
-    text: "The Council debates while stars go dark; the Keleres exist to make sure there is still a galaxy left when they finish talking.",
+    text: "The Council may have its laws, and the great houses may have their pride. Someone still has to keep the sky from falling.",
   },],
   },
   keleresm: {
@@ -1616,71 +1604,63 @@ lore:[
     quoteAuthor: "Tribunii Harka Leeds",
     lore: [{
     kind: "paragraph",
-    text: "Across the galaxy, planetary governors compete for trade opportunities, the Great Civilizations joust for superiority on the battlefront, and still other, more insidious factions play at shaping galactic history for their own ends. In a galaxy fraught with so many agendas, it is no surprise that the Galactic Council took it upon itself to assemble an executive agency of its own to manage its affairs. The Keleres of the Council are that force, yet they are far from the gleaming honor guard the senate once envisioned. They are a ragtag shadow service of bureaucrats, soldiers, and spies drawn from every corner of known space, perpetually at odds with themselves and rarely appreciated by the galaxy they bleed to protect.",
+    text: "Across the galaxy, planetary governors compete for trade opportunities, the Great Civilizations joust for superiority on the battlefront, and still other, more insidious factions play at shaping galactic history for their own ends. In a galaxy fraught with so many agendas, it is no surprise that the Galactic Council took it upon itself to assemble an executive agency of its own. The Keleres of the Council are that force, though they bear little resemblance to the gleaming honor guard the Senate once imagined.",
   },
   {
     kind: "heading",
-    text: "An Army of Exiles and Liabilities",
+    text: "The Council's Castoffs",
   },
   {
     kind: "paragraph",
-    text: "By decree, every member state of the Council must contribute recruits to the Keleres, selected according to local custom. In practice, the Great Powers quickly realized that the agency could be used as both a political dumping ground and a Trojan horse. Rather than sending their finest officers, planetary regimes routinely offload political dissidents, disgraced commanders, dangerous prisoners, and inconvenient whistleblowers who are too prominent to execute quietly. At the same time, intelligence ministries seed these drafts with double agents meant to clandestinely advance their homeworlds' agendas from within.",
+    text: "By decree, every member state of the Council must contribute recruits to the Keleres, selected according to local custom. In practice, planetary governments treat the draft as a convenient way to rid themselves of political dissidents, disgraced commanders, and whistleblowers too prominent to execute. Intelligence ministries round out the quotas with double agents expected to report every Council secret back home.",
   },
   {
     kind: "paragraph",
-    text: "Left with a roster of cynical outcasts and compromised operatives, the Keleres should have collapsed in its infancy. Instead, under the leadership of Tribunii Harka Leeds, this volatility became the agency's greatest weapon. A veteran of the Mentak Coalition’s clandestine networks, Leeds recognized that conventional law enforcement could never survive the corruption of Mecatol Rex. If the Council would only give him criminals, misfits, and spies, then he would run the Keleres like an outlaw syndicate.",
+    text: "Left with a roster of cynical exiles and compromised informants, the Keleres had every reason to collapse under its own weight. Under Tribunii Harka Leeds, that motley crew became an asset. A longtime veteran of the Mentak Coalition, Leeds knew that polite procedures meant nothing in the Fringe; if the Council would only give him rogues and misfits, he would run them like a corsair fleet.",
   },
   {
     kind: "heading",
-    text: "Black Budgets and Unsanctioned Strikes",
+    text: "Out of Moll Primus",
   },
   {
     kind: "paragraph",
-    text: "Operating out of shadow ports and hidden slipways financed through Moll Primus, Leeds insulates the Keleres from the bureaucratic paralysis of the Council floor. When senate committees stall funding or leak operational details to rival empires, Leeds’s cells fund themselves—seizing the black-market vaults of planetary warlords, commandeering smuggling vessels, and turning the Great Powers' own disavowed rogues against their former masters.",
-  },
-  {
-    kind: "paragraph",
-    text: "Field teams under Leeds rarely wait for formal warrants. When timeliness is a factor, Keleres operatives cross sovereign borders in unmarked corvettes, neutralizing pirate cartels, sabotaging illegal weapons labs, and brokering backroom truces at the barrel of a gun. Time and again, Leeds stands before the Galactic Council to accept formal censure for his agents' unauthorized interventions—knowing full well that the very councilors condemning him in public sleep safer because of the crimes his people committed in the dark.",
+    text: "When Senate committees freeze Keleres budgets or leak patrol schedules, Leeds works out of shadow ports and drydocks along the Moll Primus rim. His crews requisition smugglers' hulls, impound illicit cargoes to pay for fuel, and slip across unguarded borders without waiting for a formal seal. Time and again, Leeds stands before the Council to answer for another unauthorized raid, knowing the same delegates condemning him in public sleep easier for it at night.",
   },
   {
     kind: "quote",
-    text: "In a galaxy ruled by thieves and emperors, justice cannot afford to wait for a quorum.",
+    text: "Let the senators argue over jurisdiction. Out here, nobody checks the wax seal before firing.",
   },],
   },
   keleresx: {
-    quote: "The Great Powers send us their outcasts, their whistleblowers, and their spies, never realizing they have handed us every secret required to rule them.",
+    quote: "Every house on the Promenade sends us its spies and its castoffs. Give me a week with their personnel files, and I will tell you which border they plan to cross next.",
     quoteAuthor: "Tribunii Odlynn Myrr",
     lore: [{
     kind: "paragraph",
-    text: "The Galactic Council elects three of its own to serve as the Tribunii, the supreme directors of the Keleres. Among the delegates on Mecatol Rex, appointment to the Tribunii is viewed with a mixture of ambition and dread. While the office grants immense authority to implement the designs of the Council in a concrete way, the chaotic nature of the Keleres guarantees a steady stream of diplomatic scandals and operational failures—each of which becomes a weapon in the hands of political rivals seeking accountability.",
+    text: "The Galactic Council elects three of its own to serve as the Tribunii, the supreme directors of the Keleres. Among the delegates on Mecatol Rex, appointment to the office is viewed with a mixture of ambition and dread. While the post grants rare authority to enforce Council law directly, the unruly nature of the Keleres guarantees a steady stream of diplomatic scandals and operational blunders that political rivals are quick to exploit.",
   },
   {
     kind: "heading",
-    text: "The Lethal Seat of the Tribunii",
+    text: "Seven Tribunii in Five Years",
   },
   {
     kind: "paragraph",
-    text: "So fraught is this political environment that few Councilors survive the office for long. In the first five years following the Keleres’ founding, seven different individuals held the title of Tribunii. Two were forced to resign in disgrace after covert operations went catastrophically wrong, one was killed on a field mission in the borderlands, and another was assassinated in a ruthless inter-agency power struggle right in the shadow of the Imperial Palace.",
+    text: "Few Councilors survive the seat for long. In the first five years following the agency's founding, seven different individuals held the title of Tribunii. Two resigned in disgrace after covert operations collapsed, one died in the borderlands, and another was assassinated in an inter-agency struggle within sight of the Imperial Palace.",
   },
   {
     kind: "paragraph",
-    text: "Into this viper's nest stepped Tribunii Odlynn Myrr. Backed by the diplomatic apparatus of the Xxcha Kingdom, Myrr understood that the true battlefield of the Keleres was not merely in deep space, but within the labyrinthine corridors of Mecatol City itself. Where previous directors tried to brute-force their fractured ranks into submission, Myrr embraced the subtle art of institutional leverage.",
+    text: "Where earlier directors tried to hammer the fractured bureau into obedience, Tribunii Odlynn Myrr of the Xxcha Kingdom treated the Keleres like a parliamentary puzzle. Raised in the diplomatic halls of Archon Ren, Myrr understood that the agency's real battles were fought as often in the archives and committee rooms of Mecatol City as in deep space.",
   },
   {
     kind: "heading",
-    text: "The Web of Operation Archon",
+    text: "Paper and Leverage",
   },
   {
     kind: "paragraph",
-    text: "Every Great Civilization believed it had cleverly infiltrated the Keleres by planting informants among the bureaucrats, archivists, and junior diplomats sent to fulfill their recruitment quotas. Myrr patiently mapped every single one of those loyalties. Instead of purging the double agents, she compartmentalized them—feeding carefully tailored intelligence back to their home capitals while using the agency’s cast-off analysts and exiled jurists to audit the secret finances and treaty violations of the Council’s most powerful members.",
-  },
-  {
-    kind: "paragraph",
-    text: "Under Myrr’s oversight, the Keleres operates as an unseen constitutional shield. Before an aggressive empire can launch a border invasion, its supply contracts are mysteriously frozen by Council injunction, its covert staging grounds are exposed to rival powers, and a multi-species Keleres peacekeeping task force drops out of warp directly across its approach vector. The Great Powers fume at the interference, yet none dare move openly against a Tribunii who holds the receipts to every treasonous whisper on Mecatol Rex.",
+    text: "Every great power thought itself clever for slipping spies into the ranks of Keleres clerks, archivists, and junior attaches. Rather than purging those informants, Myrr cataloged every one of them—feeding harmless dispatches back to their handlers while setting the agency's exiled jurists and cast-off auditors to examine the Great Powers' own treaty violations. When an ambitious house moves toward war, it often finds its shipping charters frozen and a Keleres picket waiting in its lane before a single fleet order leaves the Promenade.",
   },
   {
     kind: "quote",
-    text: "Let the great empires believe they have filled our ranks with their pawns; every spy they send us is another thread by which we bind their hands.",
+    text: "Force is clumsy, and armies are loud. A well-placed injunction can halt a dreadnought before it ever leaves drydock.",
   },],
   },
   bastion: {
@@ -1696,7 +1676,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Crucible of Retreat & Defiance",
+    text: "Salient Sun",
   },
   {
     kind: "paragraph",
@@ -1712,7 +1692,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Siege of Oridian",
+    text: "Ordinian",
   },
   {
     kind: "paragraph",
@@ -1728,7 +1708,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Fall of the Orlandio & The Seraphs",
+    text: "The Seraphs",
   },
   {
     kind: "paragraph",
@@ -1744,7 +1724,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Rise of the Last Bastion",
+    text: "The Last Bastion",
   },
   {
     kind: "paragraph",
@@ -1772,7 +1752,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Ikatena Incident and Liberation",
+    text: "Ikatena",
   },
   {
     kind: "paragraph",
@@ -1788,7 +1768,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Exile to Ahk Creuxx",
+    text: "Ahk Creuxx",
   },
   {
     kind: "paragraph",
@@ -1804,7 +1784,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Crimson Rebellion and Thunder's Edge",
+    text: "The Crimson Rebellion",
   },
   {
     kind: "paragraph",
@@ -1832,7 +1812,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Waveform Arbitrator",
+    text: "The Arbitrator",
   },
   {
     kind: "paragraph",
@@ -1844,7 +1824,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Trap at Ikatena",
+    text: "Ikatena",
   },
   {
     kind: "paragraph",
@@ -1860,7 +1840,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Independence and the Conclave",
+    text: "The Conclave of Singers",
   },
   {
     kind: "paragraph",
@@ -1872,7 +1852,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Pelagic Enclaves & Thunder's Edge",
+    text: "The Deep Enclaves",
   },
   {
     kind: "paragraph",
@@ -1896,7 +1876,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Twin Worlds and the Zio Qen",
+    text: "The Zio Qen",
   },
   {
     kind: "paragraph",
@@ -1904,7 +1884,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "Transactions, Debt, and Corporate Strife",
+    text: "The Ledger of Life",
   },
   {
     kind: "paragraph",
@@ -1916,7 +1896,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Consortium and the Wider Galaxy",
+    text: "Cash in Hand",
   },
   {
     kind: "paragraph",
@@ -1924,7 +1904,7 @@ lore:[
   },
   {
     kind: "heading",
-    text: "The Waveform Arbitrator & The Greatest Debt",
+    text: "The Greatest Debt",
   },
   {
     kind: "paragraph",
