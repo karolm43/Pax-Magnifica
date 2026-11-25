@@ -18,8 +18,11 @@ import { attribution, quoted } from "@/entities/lore/typography";
 import { DecodedText, useDecode } from "./GlyphText";
 import styles from "./FactionBackdrop.module.css";
 
+/** Enough of a faction to find its portrait: id + leader ids (setup `FactionInfo` or a seated player). */
+type PortraitSource = Pick<FactionInfo, "id" | "leaders">;
+
 /** Id lidera-bohatera (hero) frakcji — do domyślnego portretu, gdy brak własnego pliku. */
-function heroLeaderId(faction: FactionInfo): string | undefined {
+function heroLeaderId(faction: PortraitSource): string | undefined {
   return faction.leaders.find((id) => getLeaderById(id)?.type === "hero");
 }
 
@@ -28,7 +31,7 @@ function heroLeaderId(faction: FactionInfo): string | undefined {
  * portret bohatera → ikona frakcji (ostatni element = placeholder). Wspólny dla sceny
  * wyboru frakcji i planszy otwierającej grę (`GameIntro`).
  */
-export function portraitCandidates(faction: FactionInfo): string[] {
+export function portraitCandidates(faction: PortraitSource): string[] {
   const lore = getFactionLore(faction.id);
   const own = lore?.portrait
     ? [lore.portrait]

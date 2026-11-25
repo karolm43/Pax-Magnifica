@@ -1,13 +1,20 @@
 import { PlayerData } from "@/entities/data/types";
 import { usePlayerCardComputedData } from "@/domains/player/components/PlayerCardShared/usePlayerCardComputedData";
 import { getPlayerCardLayoutFields } from "@/domains/player/components/PlayerCardShared/getPlayerCardLayoutFields";
-import { PlayerCardDeck } from "@/domains/player/components/PlayerCardShared/PlayerCardDeck";
+import {
+  PlayerCardDeck,
+  type DeckSection,
+} from "@/domains/player/components/PlayerCardShared/PlayerCardDeck";
 import { PlayerCardBox } from "@/domains/player/components/PlayerCardBox";
 import { PlayerCardHeaderFull } from "@/domains/player/components/PlayerCardHeader/PlayerCardHeaderCompact";
 import { useSettingsStore } from "@/state/appStore";
 
 type Props = {
   playerData: PlayerData;
+  /** Skip the header - the Player tab's Command Banner already shows identity and tokens. */
+  hideHeader?: boolean;
+  /** Draw only these deck groups (default: all). */
+  sections?: readonly DeckSection[];
 };
 
 /**
@@ -28,6 +35,7 @@ export default function PlayerCard(props: Props) {
       isActive={player.active}
       faction={player.faction}
     >
+      {!props.hideHeader && (
       <PlayerCardHeaderFull
         userName={player.userName}
         playerId={props.playerData.discordId}
@@ -45,8 +53,9 @@ export default function PlayerCard(props: Props) {
         neighbors={player.neighbors}
         showNeighbors={settings.showPlayerAreaNeighborship}
       />
+      )}
 
-      <PlayerCardDeck playerData={props.playerData} />
+      <PlayerCardDeck playerData={props.playerData} sections={props.sections} />
     </PlayerCardBox>
   );
 }

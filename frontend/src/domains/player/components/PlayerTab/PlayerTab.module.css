@@ -27,65 +27,57 @@
   min-width: 0;
 }
 
-/* --- Nagłówek --- */
-.hero {
+/* --- Telemetria pod banerem --- */
+.telemetry {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
-  border: 1px solid color-mix(in srgb, var(--pc) 55%, transparent);
+  gap: 8px 16px;
+  padding: 6px 12px;
+  border: 1px solid var(--ds-h14);
   border-radius: var(--ds-radius-md);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--pc) 22%, transparent), transparent 70%);
+  background: rgba(255, 255, 255, 0.02);
 }
 
-.heroIcon {
-  display: grid;
-  place-items: center;
-  padding: 3px;
-  border-radius: 50%;
-  box-shadow: 0 0 0 2px var(--pc);
-}
-
-.heroText {
-  flex: 1;
-  min-width: 0;
-}
-
-.heroText h2 {
-  margin: 0;
-  font-size: 18px;
-  color: var(--ds-ink-hi);
-}
-
-.heroText p {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--ds-ink-lo);
-}
-
-.heroVp {
+.readouts {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+}
+
+.readout {
+  display: inline-flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 5px;
+  font-size: 13px;
   color: var(--ds-ink-hi);
 }
 
-.heroVp b {
-  font-size: 26px;
-  line-height: 1;
-}
-
-.heroVp small {
+.readout small {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--ds-ink-lo);
 }
 
-.rank {
-  margin-left: 6px;
-  padding: 1px 7px;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pc) 35%, transparent);
+.readout i {
+  font-style: normal;
+  color: var(--ds-ink-lo);
+}
+
+.readout[data-warn] b {
+  color: #fbbf24;
+}
+
+/* --- Zakładki dolnej części --- */
+.viewTabs {
+  margin-bottom: 8px;
+}
+
+.view {
+  display: grid;
+  gap: 12px;
 }
 
 /* --- Panele --- */
@@ -151,6 +143,27 @@
 
 .ref {
   font-weight: 700;
+}
+
+/* Odnośnik w odprawie: klik = pełna karta (jak chipy w panelu gracza). */
+.refLink {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline dotted color-mix(in srgb, var(--pc) 70%, transparent);
+  text-underline-offset: 3px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.refLink:hover {
+  color: color-mix(in srgb, var(--pc) 45%, var(--ds-ink-hi));
+}
+
+.refLink:focus-visible {
+  outline: 2px solid var(--ds-accent, #2563eb);
+  outline-offset: 2px;
 }
 
 /* --- Stół --- */
@@ -383,6 +396,21 @@
 
 .buildItem[data-zero] {
   opacity: 0.45;
+}
+
+/* Zablokowane (brak posiłków / pełna pula floty): mocniej przygaszone, bez koloru gracza. */
+.buildItem[data-blocked] {
+  opacity: 0.35;
+  filter: grayscale(1);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.buildItem[data-blocked] .buildText small:last-child {
+  color: #fbbf24;
+}
+
+.budget {
+  color: var(--ds-ink-hi);
 }
 
 .buildUnit {

@@ -74,7 +74,8 @@ describe("empireStats", () => {
   });
 
   it("kalkulator budowy: koszt z danych, limit zasobów/PRODUCTION/posiłków", () => {
-    const s = empireStats(player(), TILES);
+    // Pula floty 8: przy doku stoją 3 statki, więc miejsca (5) wystarcza - nie ogranicza.
+    const s = empireStats(player({ fleetCC: 8 }), TILES);
     expect(s.budget).toBe(5); // 3 gotowe zasoby + 2 TG
     const byId = Object.fromEntries(s.build.map((b) => [b.asyncId, b]));
     const p = player();
@@ -89,6 +90,23 @@ describe("empireStats", () => {
     expect(byId.ff.reinforcements).toBeNull();
     expect(byId.ff.max).toBe(4);
     expect(byId.ff.limitedBy).toBe("production");
+  });
+
+  it("Shipyard: pełna pula floty w systemie z PRODUCTION blokuje statki, nie myśliwce", () => {
+    // Dom (PRODUCTION 4) ma 3 nie-myśliwce przy puli 3 - nowy okręt i tak trzeba by usunąć.
+    const s = empireStats(player({ influence: 4.5 } as Partial<PlayerData>), TILES);
+    expect(s.fleetRoom).toBe(0);
+    const byId = Object.fromEntries(s.build.map((b) => [b.asyncId, b]));
+    expect(byId.dd).toMatchObject({ max: 0, limitedBy: "fleetPool" });
+    expect(byId.ff.limitedBy).not.toBe("fleetPool");
+    expect(byId.gf.limitedBy).not.toBe("fleetPool");
+    expect(s.readyInfluence).toBe(4);
+  });
+
+  it("Shipyard: bez systemu z PRODUCTION pula floty nie jest liczona", () => {
+    const s = empireStats(player(), { "202": TILES["202"] });
+    expect(s.fleetRoom).toBeNull();
+    expect(s.build.some((b) => b.limitedBy === "fleetPool")).toBe(false);
   });
 
   it("porady: pula floty pełna, brak posiłków, specjalizacje", () => {

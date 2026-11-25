@@ -38,7 +38,7 @@ type Props = {
 };
 
 /** Speaker and tyrant markers followed by the player's strategy cards. */
-function HeaderTokens({
+export function HeaderTokens({
   faction,
   factionDisplayName,
   playerId,

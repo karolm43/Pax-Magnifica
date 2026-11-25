@@ -25,8 +25,15 @@ import { useGameData } from "@/state/useGameContext";
 import { useSettingsStore } from "@/state/appStore";
 import styles from "./PlayerCardDeck.module.css";
 
+/** Groups of compartments; the Player tab deals them out over its sub-views. */
+export type DeckSection = "loadout" | "status" | "tech" | "units" | "planets";
+
+const ALL_SECTIONS: readonly DeckSection[] = ["loadout", "status", "tech", "units", "planets"];
+
 type Props = {
   playerData: PlayerData;
+  /** Which groups to draw (default: all, in the band's fixed order). */
+  sections?: readonly DeckSection[];
 };
 
 
@@ -54,7 +61,8 @@ function getTechRackDepth(techIds: string[]) {
  * Container queries, not media queries, drive the reflow: the tab's grid
  * deals cards anywhere from ~480px to ~1000px wide.
  */
-export function PlayerCardDeck({ playerData }: Props) {
+export function PlayerCardDeck({ playerData, sections = ALL_SECTIONS }: Props) {
+  const show = (section: DeckSection) => sections.includes(section);
   const gameData = useGameData();
   const settings = useSettingsStore((state) => state.settings);
   const player = getPlayerCardLayoutFields(playerData);
@@ -108,7 +116,7 @@ export function PlayerCardDeck({ playerData }: Props) {
           the deck's first plate, subdivided into bays by a hairline lattice.
           Chips wrap inside their bay, so group boundaries hold at any card
           width instead of groups tumbling onto ragged rows. */}
-      {hasLoadout && (
+      {show("loadout") && hasLoadout && (
         <Compartment density="flush" className={styles.loadoutSection}>
           <Box className={styles.loadoutRail}>
             <PlayerCardAbilitiesFactionTechsMobile
@@ -129,6 +137,7 @@ export function PlayerCardDeck({ playerData }: Props) {
           card is too narrow to seat them. The planet ledger sits here rather
           than beside the planet cards — it is a spending figure, and the
           cards get the card's full width back. */}
+      {show("status") && (
       <Box className={styles.row}>
         <Compartment brackets density="flush" className={styles.statusSection}>
           <LogisticsPlate
@@ -179,7 +188,9 @@ export function PlayerCardDeck({ playerData }: Props) {
           </Compartment>
         )}
       </Box>
+      )}
 
+      {show("tech") && (
       <Compartment className={styles.techSection}>
         <Box className={styles.techRack}>
           {techCategories.map((techType, index) => (
@@ -193,7 +204,9 @@ export function PlayerCardDeck({ playerData }: Props) {
           ))}
         </Box>
       </Compartment>
+      )}
 
+      {show("units") && (
       <Box className={styles.row}>
         <Compartment className={styles.unitsSection}>
           <PlayerCardUnitsArea
@@ -217,7 +230,9 @@ export function PlayerCardDeck({ playerData }: Props) {
           </Compartment>
         )}
       </Box>
+      )}
 
+      {show("planets") && (
       <Compartment className={styles.planetsSection}>
         <Box className={styles.planetsFlow}>
           <PlayerCardPlanetsArea
@@ -238,8 +253,9 @@ export function PlayerCardDeck({ playerData }: Props) {
           <OmenDice dice={playerData.omenDice} />
         </Box>
       </Compartment>
+      )}
 
-      {Array.isArray(player.plotCards) && player.plotCards.length > 0 && (
+      {show("planets") && Array.isArray(player.plotCards) && player.plotCards.length > 0 && (
         <Compartment className={styles.plotsSection}>
           <PlotCardsList
             plotCards={player.plotCards}

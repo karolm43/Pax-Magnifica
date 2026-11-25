@@ -26,10 +26,10 @@ export type BuildOption = {
   asyncId: string;
   name: string;
   cost: number;
-  /** Ile maksymalnie: min(zasoby, PRODUCTION największego systemu, posiłki). */
+  /** Ile maksymalnie: min(zasoby, PRODUCTION największego systemu, posiłki, miejsce w puli floty). */
   max: number;
   /** Co ogranicza ``max`` (do podpowiedzi). */
-  limitedBy: "resources" | "production" | "reinforcements";
+  limitedBy: "resources" | "production" | "reinforcements" | "fleetPool";
   /** Posiłki; null = bez limitu (żetony fighter/infantry). */
   reinforcements: number | null;
 };
@@ -48,6 +48,13 @@ export type EmpireStats = {
   maxProduction: number;
   /** Zasoby do wydania: gotowe planety + trade goods. */
   budget: number;
+  /** Wpływy gotowych planet (silnik: ``influence``) - bez trade goods. */
+  readyInfluence: number;
+  /**
+   * Ile jeszcze nie-myśliwców zmieści pula floty w najlepszym systemie z PRODUCTION
+   * (pula − statki już tam stojące); null = brak systemu z PRODUCTION.
+   */
+  fleetRoom: number | null;
   build: BuildOption[];
   /** Typy jednostek bez plastików w posiłkach (poza żetonami fighter/infantry). */
   depleted: string[];
@@ -86,10 +93,12 @@ export function empireStats(
     }
   }
 
+  const fleetPool = player.fleetCC + (player.mahactEdict?.length ?? 0);
   let present = 0;
   let controlled = 0;
   let largestFleet = 0;
   let maxProduction = 0;
+  let fleetRoom: number | null = null;
   for (const tile of Object.values(tiles ?? {})) {
     const own = tile.unitsByFaction?.[player.faction] ?? [];
     const planets = Object.values(tile.planets ?? {});
@@ -108,7 +117,9 @@ export function empireStats(
       .filter((e) => e.entityType === "unit" && SHIP_IDS.has(e.entityId) && e.entityId !== "ff")
       .reduce((sum, e) => sum + e.count, 0);
     largestFleet = Math.max(largestFleet, fleet);
-    maxProduction = Math.max(maxProduction, tile.productionByColor?.[player.color] ?? 0);
+    const production = tile.productionByColor?.[player.color] ?? 0;
+    maxProduction = Math.max(maxProduction, production);
+    if (production > 0) fleetRoom = Math.max(fleetRoom ?? 0, Math.max(0, fleetPool - fleet));
   }
 
   const budget = Math.max(0, Math.floor(player.resources ?? 0)) + (player.tg ?? 0);
@@ -125,6 +136,8 @@ export function empireStats(
       ["production", maxProduction],
     ];
     if (reinforcements !== null) caps.push(["reinforcements", reinforcements]);
+    // R_fleet_pool: non-fighter ships count against the fleet pool in the system they are built in.
+    if (fleetRoom !== null && SHIP_IDS.has(asyncId) && asyncId !== "ff") caps.push(["fleetPool", fleetRoom]);
     const [limitedBy, max] = caps.reduce((a, b) => (b[1] < a[1] ? b : a));
     build.push({ asyncId, name: unit.name, cost: unit.cost, max, limitedBy, reinforcements });
   }
@@ -146,9 +159,11 @@ export function empireStats(
       pds: deployed(player, "pd"),
     },
     largestFleet,
-    fleetPool: player.fleetCC + (player.mahactEdict?.length ?? 0),
+    fleetPool,
     maxProduction,
     budget,
+    readyInfluence: Math.max(0, Math.floor(player.influence ?? 0)),
+    fleetRoom,
     build,
     depleted,
   };

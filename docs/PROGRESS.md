@@ -851,3 +851,24 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   the range lens (cannon volley animation is in progress elsewhere).
 - QA: tsc, eslint (changed files), vitest (new + movement/invasion/map/state folders; `StrategyCardTable.test.tsx`
   runs out of memory also on clean HEAD), `npm run build`, `npm run e2e` (8 passed). Backend unchanged here.
+
+## Player tab: Command Banner, telemetry strip, tabbed deck, Opponent Intel
+- `CommandBanner` replaces the plain `.hero`: faction portrait (same `portraitCandidates` chain as the faction
+  picker, now typed on `{id, leaders}` so a seated player works), tinted with `--pc`, faction quote + author,
+  "Lore" button (full lore in `AppModal`), table tokens via the exported `HeaderTokens` (speaker, tyrant,
+  strategy cards, `FactionVoice`), plus `NeedsToFollow`, `Neighbors`, `Breakthrough` moved up from the card header.
+- `PlayerCard` gets `hideHeader` and `sections`; `PlayerCardDeck` draws only the requested groups
+  (`loadout | status | tech | units | planets`). Player tab: telemetry strip under the banner (`ResourceBarFor` +
+  fleet use, hand AC/limit · SO · PN, strategy cards ready, agenda votes), then tabs Briefing | Status |
+  Tech & units | Planets. Players tab unchanged.
+- `commanderTips`: `briefingMode` = self / scout (another player viewed from my seat). Scout = Opponent Intel
+  (VP distance, objectives they can score, near objectives with progress, unplayed SCs, neighbour + trade stock,
+  hand counts, fleet pool). Self adds near-objective progress `(3/4)`, unlocked commanders, secondaries to follow
+  (`unfollowedSCs` - the backend still always sends `[]`). Fixed: the status-phase secret tip used
+  `numScoreableSecrets`, which is the secret LIMIT (always 3); it now uses `numUnscoredSecrets`.
+- Tip references are buttons: click opens the full card (`ComponentCard`, same as the decision-window ⓘ).
+- `empireStats`: `readyInfluence`, `fleetRoom` (best production system: fleet pool − non-fighter ships there);
+  Shipyard caps non-fighter ships by it (`limitedBy: "fleetPool"`) and greys blocked tiles ("fleet pool full" /
+  "none left").
+- QA: tsc, eslint (changed files), vitest (player, setup, game-shell, chat), `npm run build`; screenshots of the
+  live game (self, scout, Tech & units). Skipped: backend QA (frontend-only), e2e (the Player tab is not always mounted).

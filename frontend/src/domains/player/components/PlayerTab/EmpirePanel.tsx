@@ -22,6 +22,13 @@ const LIMIT_COPY: Record<BuildOption["limitedBy"], string> = {
   resources: "resources",
   production: "PRODUCTION",
   reinforcements: "reinforcements",
+  fleetPool: "fleet pool",
+};
+
+/** Why a unit cannot be built at all - shown on the dimmed tile (resources/PRODUCTION = plain 0×). */
+const BLOCKED_COPY: Partial<Record<BuildOption["limitedBy"], string>> = {
+  reinforcements: "none left",
+  fleetPool: "fleet pool full",
 };
 
 function Stat({ label, value, sub, title }: { label: string; value: ReactNode; sub?: ReactNode; title: string }) {
@@ -113,15 +120,21 @@ export function EmpirePanel({ player, stats }: { player: PlayerData; stats: Empi
 
       <h4 className={styles.subTitle}>Shipyard</h4>
       <p className={styles.hint}>
-        With {stats.budget} to spend (ready resources + trade goods) and PRODUCTION up to{" "}
-        {stats.maxProduction} in one system, you could build:
+        With <b className={styles.budget}>{stats.budget}</b> to spend (ready resources + trade goods),{" "}
+        <b className={styles.budget}>{stats.readyInfluence}</b> ready influence and PRODUCTION up to{" "}
+        {stats.maxProduction} in one system
+        {stats.fleetRoom !== null ? ` (room for ${stats.fleetRoom} more ships under your fleet pool)` : ""}, you
+        could build:
       </p>
       <ul className={styles.build}>
-        {stats.build.map((b) => (
+        {stats.build.map((b) => {
+          const blocked = b.max === 0 ? BLOCKED_COPY[b.limitedBy] : undefined;
+          return (
           <li
             key={b.asyncId}
             className={styles.buildItem}
             data-zero={b.max === 0 || undefined}
+            data-blocked={blocked ? "" : undefined}
             title={`${b.name}: cost ${costLabel(b.cost)} · up to ${b.max}, limited by ${LIMIT_COPY[b.limitedBy]}${
               b.reinforcements === null ? "" : ` · ${b.reinforcements} in reinforcements`
             }`}
@@ -139,12 +152,17 @@ export function EmpirePanel({ player, stats }: { player: PlayerData; stats: Empi
               <b>{b.max}×</b>
               <small>{b.name}</small>
               <small>
-                cost {costLabel(b.cost)}
-                {b.max > 0 || b.limitedBy !== "resources" ? ` · ${LIMIT_COPY[b.limitedBy]}` : ""}
+                {blocked ?? (
+                  <>
+                    cost {costLabel(b.cost)}
+                    {b.max > 0 || b.limitedBy !== "resources" ? ` · ${LIMIT_COPY[b.limitedBy]}` : ""}
+                  </>
+                )}
               </small>
             </span>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </section>
   );

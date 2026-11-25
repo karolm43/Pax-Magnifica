@@ -26,7 +26,17 @@ export type TipContext = {
   agenda: AgendaPhaseData | null;
   /** Statystyki imperium (``empireStats``); brak = bez porad o planszy. */
   empire?: EmpireStats;
+  /**
+   * Who is reading the briefing (the desk player). When it is someone else than ``player``,
+   * the briefing switches to OPPONENT INTEL (what that player threatens), not "what to do".
+   */
+  viewer?: PlayerData | null;
 };
+
+/** ``self`` = my own seat (or no seat - spectator); ``scout`` = another player viewed from my seat. */
+export function briefingMode(ctx: Pick<TipContext, "player" | "viewer">): "self" | "scout" {
+  return ctx.viewer && ctx.viewer.discordId !== ctx.player.discordId ? "scout" : "self";
+}
 
 const ORDINAL = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"];
 
@@ -51,7 +61,7 @@ export function scorableObjectives(player: PlayerData, objectives: Objective[]):
 }
 
 /** Cele, do których brakuje JEDNEGO kroku (np. 2/3 planet). */
-function nearObjectives(player: PlayerData, objectives: Objective[]): Objective[] {
+export function nearObjectives(player: PlayerData, objectives: Objective[]): Objective[] {
   return objectives.filter(
     (o) =>
       o.revealed &&
@@ -103,11 +113,12 @@ function phaseTips(ctx: TipContext): Tip[] {
       });
     }
   } else if (phase.startsWith("status")) {
-    if (player.numScoreableSecrets > 0) {
+    // ``numScoreableSecrets`` is the secret-objective LIMIT (web_objectives.py), not "scorable now".
+    if (player.numUnscoredSecrets > 0) {
       tips.push({
         id: "secret",
         tone: "good",
-        text: `Status phase: you can score ${player.numScoreableSecrets} secret objective(s) now.`,
+        text: `Status phase: you hold ${player.numUnscoredSecrets} unscored secret objective(s) - score one whose condition you meet.`,
       });
     }
     tips.push({
@@ -162,10 +173,33 @@ function objectiveTips(ctx: TipContext): Tip[] {
       id: "score-near",
       tone: "info",
       text: "One step away from:",
-      refs: near.map((o) => ({ kind: "objective", id: o.key, name: o.name })),
+      refs: near.map((o) => ({ kind: "objective", id: o.key, name: withProgress(o, player) })),
     });
   }
   return tips;
+}
+
+/** Objective name with the engine's progress for that player, e.g. "Expand Borders (5/6)". */
+function withProgress(o: Objective, player: PlayerData): string {
+  return `${o.name} (${o.factionProgress[player.faction] ?? 0}/${o.progressThreshold})`;
+}
+
+function displayName(p: PlayerData): string {
+  return p.flexibleDisplayName || p.faction;
+}
+
+/** Strategy cards played by others that this player has not followed yet (web-data ``unfollowedSCs``). */
+function secondaryTips(ctx: TipContext): Tip[] {
+  const pending = ctx.player.unfollowedSCs ?? [];
+  if (pending.length === 0) return [];
+  return [
+    {
+      id: "follow-secondary",
+      tone: "action",
+      text: "Secondary abilities you can still follow:",
+      refs: pending.map((sc) => ({ kind: "strategy", id: String(sc) })),
+    },
+  ];
 }
 
 function raceTips(ctx: TipContext): Tip[] {
@@ -241,6 +275,16 @@ function componentTips(ctx: TipContext): Tip[] {
       refs: ready.map((l) => ({ kind: "leader", id: l.id })),
     });
   }
+  // Commanders have no exhaust: once unlocked their ability is always on - a reminder to use it.
+  const commanders = player.leaders.filter((l) => l.type === "commander" && !l.locked && !l.purged);
+  if (commanders.length > 0) {
+    tips.push({
+      id: "commanders",
+      tone: "info",
+      text: "Commander unlocked - its ability is active:",
+      refs: commanders.map((l) => ({ kind: "leader", id: l.id })),
+    });
+  }
   if ((player.lawsOwned ?? []).length > 0) {
     tips.push({
       id: "laws",
@@ -289,17 +333,92 @@ function empireTips(ctx: TipContext): Tip[] {
   return tips;
 }
 
+/**
+ * OPPONENT INTEL: the same web-data read from the other side of the table - what this player
+ * can score, how close they are to winning, what they still hold. Tones are from the viewer's
+ * point of view: ``warn`` = a threat to me, ``good`` = an opening for me.
+ */
+function intelTips(ctx: TipContext): Tip[] {
+  const { player, objectives, vpsToWin, viewer, empire } = ctx;
+  const name = displayName(player);
+  const tips: Tip[] = [];
+  const need = Math.max(0, vpsToWin - player.totalVps);
+  const rank = vpRank(player, ctx.players);
+  tips.push({
+    id: "intel-race",
+    tone: need <= 2 ? "warn" : "info",
+    text: `${name}: ${ORDINAL[rank - 1] ?? `#${rank}`} place, ${need} VP from victory (${player.totalVps}/${vpsToWin}).`,
+  });
+  const ready = scorableObjectives(player, objectives);
+  if (ready.length > 0) {
+    tips.push({
+      id: "intel-score-ready",
+      tone: "warn",
+      text: `Can score in the status phase (${ready.reduce((s, o) => s + o.pointValue, 0)} VP):`,
+      refs: ready.map((o) => ({ kind: "objective", id: o.key, name: o.name })),
+    });
+  }
+  const near = nearObjectives(player, objectives);
+  if (near.length > 0) {
+    tips.push({
+      id: "intel-score-near",
+      tone: "info",
+      text: "One step away from:",
+      refs: near.map((o) => ({ kind: "objective", id: o.key, name: withProgress(o, player) })),
+    });
+  }
+  const unplayed = player.scs.filter((sc) => !player.exhaustedSCs.includes(sc));
+  if (unplayed.length > 0) {
+    tips.push({
+      id: "intel-sc",
+      tone: "info",
+      text: player.passed ? "Strategy card held:" : "Strategy card still to play:",
+      refs: unplayed.map((sc) => ({ kind: "strategy", id: String(sc) })),
+    });
+  }
+  if (viewer && (player.neighbors ?? []).includes(viewer.color)) {
+    tips.push({
+      id: "intel-neighbor",
+      tone: "good",
+      text: `${name} is your neighbour - you can trade with them (${player.commodities}/${player.commoditiesTotal} commodities, ${player.tg} trade goods).`,
+    });
+  }
+  tips.push({
+    id: "intel-hand",
+    tone: "info",
+    text: `In hand: ${player.acCount} action card(s), ${player.soCount ?? 0} unscored secret objective(s), ${player.pnCount ?? 0} promissory note(s).`,
+  });
+  if (empire && empire.fleetPool > 0) {
+    tips.push({
+      id: "intel-fleet",
+      tone: empire.largestFleet >= empire.fleetPool ? "good" : "info",
+      text:
+        empire.largestFleet >= empire.fleetPool
+          ? `Fleet pool ${empire.fleetPool} - their largest fleet (${empire.largestFleet}) is at the cap.`
+          : `Fleet pool ${empire.fleetPool} - largest fleet ${empire.largestFleet} non-fighter ships.`,
+    });
+  }
+  if (player.tacticalCC === 0 && ctx.phase === "action" && !player.passed) {
+    tips.push({ id: "intel-no-tactic", tone: "good", text: "No tactic tokens left - they cannot activate systems." });
+  }
+  return tips;
+}
+
 /** Wszystkie wskazówki w kolejności ważności: co teraz → szanse na punkty → ostrzeżenia → reszta. */
 export function commanderTips(ctx: TipContext): Tip[] {
   const order: Record<TipTone, number> = { action: 0, good: 1, warn: 2, info: 3 };
-  const tips = [
-    ...phaseTips(ctx),
-    ...objectiveTips(ctx),
-    ...economyTips(ctx),
-    ...componentTips(ctx),
-    ...empireTips(ctx),
-    ...raceTips(ctx),
-  ];
+  const tips =
+    briefingMode(ctx) === "scout"
+      ? [...intelTips(ctx), ...componentTips(ctx).filter((t) => t.id !== "commanders")]
+      : [
+          ...phaseTips(ctx),
+          ...secondaryTips(ctx),
+          ...objectiveTips(ctx),
+          ...economyTips(ctx),
+          ...componentTips(ctx),
+          ...empireTips(ctx),
+          ...raceTips(ctx),
+        ];
   return tips
     .map((tip, index) => ({ tip, index }))
     .sort((a, b) => order[a.tip.tone] - order[b.tip.tone] || a.index - b.index)
