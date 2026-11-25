@@ -37,6 +37,7 @@ const EFFECT_CLASS = {
   nebulaDamp: classes.nebulaDamp,
   asteroidDust: classes.asteroidDust,
   supernovaFlare: classes.supernovaFlare,
+  blackHole: classes.blackHole,
 } satisfies Record<FlightEffectKind, string>;
 
 function isTyping(target: EventTarget | null): boolean {

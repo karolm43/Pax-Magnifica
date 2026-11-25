@@ -8,6 +8,7 @@ import {
 import type { EntityStack } from "@/entities/positioning";
 import type {
   AuthoritativeTransitionOptions,
+  LiveFleetMove,
   LocatedStack,
   MapCombatLaser,
   MapUnitTransition,
@@ -20,6 +21,7 @@ import type {
 import {
   liveLegs,
   packRidingCargo,
+  swallowLegs,
   staggerFleetLaunch,
   resolveLiveMovement,
 } from "./liveMovement";
@@ -515,6 +517,23 @@ export function planMovements({
     };
     const sourceLocated = findLocated(previousStacks, from);
     if (!sourceLocated) continue;
+    if (unit.lostAt && options.liveMove?.kind === "move") {
+      const lost = swallowedMovement({
+        current,
+        move: options.liveMove,
+        sourceLocated,
+        from,
+        states: unit.states,
+        rift: unit.lostAt,
+        delayMs: movementStart,
+      });
+      if (!lost) continue;
+      // Left the source but never arrives anywhere: the map only loses it.
+      addTotal(inventory.expectedTotals, lost.sourceKey, -stateCount(unit.states));
+      inventory.locations.set(lost.sourceKey, from);
+      movements.push(lost);
+      continue;
+    }
     const finalDestination =
       findLocated(currentStacks, preferredDestination) ??
       currentStacks.find(
@@ -639,6 +658,56 @@ export function planMovements({
     packRidingCargo(movements);
   }
   return { movements, movementArrivals, stagedRotations };
+}
+
+/**
+ * A ship (or cargo) swallowed by a gravity rift: flies with the fleet up to the rift and
+ * spirals into its black hole. It has its own destination key, so arrivals, combat and
+ * losses at the real target never count it.
+ */
+function swallowedMovement({
+  current,
+  move,
+  sourceLocated,
+  from,
+  states,
+  rift,
+  delayMs,
+}: {
+  current: GameData;
+  move: LiveFleetMove;
+  sourceLocated: LocatedStack;
+  from: UnitLocation;
+  states: StateCounts;
+  rift: string;
+  delayMs: number;
+}): PlannedMovement | undefined {
+  const flightPath = swallowLegs(current, move, sourceLocated, rift);
+  const center = flightPath?.at(-1);
+  if (!flightPath || !center) return undefined;
+  const sourceKey = rawLocationKey(from);
+  const lostKey = `rift-lost\u0000${rift}\u0000${sourceKey}`;
+  const stack = stackWithStates(sourceLocated, states);
+  const transition: MapUnitTransition = {
+    kind: "moved",
+    stack,
+    toX: center.x,
+    toY: center.y,
+    locationKey: lostKey,
+    layoutUnitStates: states,
+    delayMs,
+    flightPath,
+  };
+  return {
+    transition,
+    source: from,
+    sourceKey,
+    destinationKey: lostKey,
+    target: { ...from, position: rift },
+    arrival: { position: rift, stack, worldX: center.x, worldY: center.y },
+    staged: false,
+    lostAt: rift,
+  };
 }
 
 /** The movement to animate: a live move (Activity route) or a compact movement state. */

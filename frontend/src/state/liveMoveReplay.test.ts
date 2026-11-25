@@ -96,6 +96,27 @@ describe("liveMoveFromEntry", () => {
     ).toEqual({ kind: "landing", faction: "sol", planets: ["lodor"] });
   });
 
+  it("reads ships and cargo a gravity rift swallowed, as map unit ids", () => {
+    const lost = (value: string, delta: number): ActivityFact => ({
+      type: "rift_lost",
+      player_id: "p1",
+      value,
+      delta,
+      detail: "101",
+    });
+    const move = liveMoveFromEntry(
+      entry([routeFact, lost("cruiser", 1), lost("fighter", 2)]),
+      players,
+    );
+    expect(move).toMatchObject({
+      kind: "move",
+      lost: [
+        { unitId: "ca", count: 1, at: "101" },
+        { unitId: "ff", count: 2, at: "101" },
+      ],
+    });
+  });
+
   it("ignores entries without a route and other actions", () => {
     expect(liveMoveFromEntry(entry([]), players)).toBeUndefined();
     expect(
@@ -119,6 +140,14 @@ describe("pairing a move with the live map", () => {
   it("recognises the move only when units left the source and reached the target", () => {
     expect(moveLanded(before, after, move)).toBe(true);
     expect(moveLanded(before, unrelated, move)).toBe(false);
+  });
+
+  it("still replays a move whose whole fleet a gravity rift swallowed", () => {
+    const gone = data({ "202": 0, "000": 0 });
+    expect(moveLanded(before, gone, move)).toBe(false);
+    expect(
+      moveLanded(before, gone, { ...move, lost: [{ unitId: "ca", count: 2, at: "101" }] }),
+    ).toBe(true);
   });
 
   it("uses the map from when the entry arrived if the map refreshed later", () => {

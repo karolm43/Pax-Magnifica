@@ -327,6 +327,10 @@ def test_rift_removes_ship_on_one_to_three(registry: StaticDataRegistry) -> None
         assert (die <= 3) == (o in removed)
         # Statek usunięty nie zostaje w źródle (wraca do rezerwy).
         assert "carrier" not in o.systems["202"].space_units.get("p1", {})
+        # The move record names the rift each loss happened in (replay: swallowed there).
+        assert o.last_move is not None
+        expected = [("carrier", 1, "201")] if o in removed else []
+        assert [(x.base_type, x.count, x.at) for x in o.last_move.lost] == expected
 
 
 def test_no_rift_roll_for_normal_route(registry: StaticDataRegistry) -> None:
@@ -366,6 +370,12 @@ def test_rift_removal_takes_loaded_cargo_but_leaves_later_cargo(
         # ...a piechota z dalszego systemu zostaje na planecie (nie miał jej kto zabrać).
         assert o.systems["101"].planet_units["pl"]["p1"]["infantry"] == 2
         assert "infantry" not in o.systems["000"].space_units.get("p1", {})
+        # The fighters went down with the carrier in the rift.
+        assert o.last_move is not None
+        assert [(x.base_type, x.count, x.at) for x in o.last_move.lost] == [
+            ("carrier", 1, "201"),
+            ("fighter", 2, "201"),
+        ]
 
 
 def test_pickup_from_planet_of_the_active_system(registry: StaticDataRegistry) -> None:

@@ -243,6 +243,52 @@ describe("buildMapReplayPlan with a live move", () => {
     expect((infantry.delayMs ?? 0) + ride.packMs + ride.rideMs).toBe(carrierLanded);
   });
 
+  it("flies a ship lost in a gravity rift to the rift and swallows it there", () => {
+    const plan = buildMapReplayPlan(
+      line({ "202": [unit("ca", 2)] }),
+      line({ "000": [unit("ca", 1)] }),
+      {
+        liveMove: move({
+          anomalies: { "101": ["GRAVITY_RIFT"] },
+          lost: [{ unitId: "ca", count: 1, at: "101" }],
+        }),
+        activeFaction: "sol",
+      },
+    );
+    const flights = plan.transitions.filter(
+      (t) => t.kind === "moved" && t.stack.entityId === "ca",
+    );
+    expect(flights).toHaveLength(2);
+    const doomed = flights.find((t) => t.flightPath?.at(-1)?.kind === "swallow")!;
+    const survivor = flights.find((t) => t !== doomed)!;
+    // Swallowed at the center of 101 (tile at 0,300 -> center 172.5,449.5).
+    expect(doomed.flightPath!.at(-1)).toMatchObject({ x: 172.5, y: 449.5 });
+    expect(doomed.stack.count).toBe(1);
+    expect(survivor.flightPath!.at(-1)).toMatchObject({ x: survivor.toX, y: survivor.toY });
+    expect(plan.flightEffects.map((e) => e.kind)).toContain("blackHole");
+    // Nothing fades out at the target: the lost ship never counted as arriving there.
+    expect(plan.transitions.filter((t) => t.kind === "removed" && !t.sourceHold)).toEqual([]);
+  });
+
+  it("sinks the cargo of a swallowed carrier with it", () => {
+    const units = [unit("cv", 1), unit("gf", 2, 200, 180)];
+    const plan = buildMapReplayPlan(line({ "202": units }), line({}), {
+      liveMove: move({
+        anomalies: { "202": ["GRAVITY_RIFT"] },
+        lost: [
+          { unitId: "cv", count: 1, at: "202" },
+          { unitId: "gf", count: 2, at: "202" },
+        ],
+      }),
+      activeFaction: "sol",
+    });
+    // Lost leaving the rift it started in: it spirals in right where it stands.
+    expect(moved(plan, "cv")!.flightPath).toEqual([
+      { x: 172.5, y: 749.5, kind: "swallow" },
+    ]);
+    expect(moved(plan, "gf")!.cargoRide).toMatchObject({ lost: true });
+  });
+
   it("flies ground forces from space down to the planets of an invasion", () => {
     const tiles = (space: EntityStack[], planet: EntityStack[]) =>
       ({

@@ -57,6 +57,8 @@ export type CargoRide = {
   packMs: number;
   rideMs: number;
   unpackMs: number;
+  /** Went down with its carrier in a gravity rift: boards, never unpacks. */
+  lost?: boolean;
 };
 
 /** A wormhole swirl or anomaly pulse drawn on the board during a flight. */
@@ -73,7 +75,12 @@ export type LiveFleetMove = {
   /** One per hop: `lane` or the link that jumped it (`wormhole` / `portal` / `jump`). */
   hops: string[];
   anomalies: Record<string, string[]>;
+  /** Ships / cargo a gravity rift removed on the way (Activity `rift_lost`). */
+  lost?: RiftLoss[];
 };
+
+/** Units of a move swallowed by a gravity rift: map unit id, how many, the rift system. */
+export type RiftLoss = { unitId: string; count: number; at: string };
 
 /** Ground forces committed from space to planets (Activity `invasion.commit`). */
 export type LiveLanding = {
@@ -172,6 +179,8 @@ export type PlannedMovement = {
   finalDestination?: LocatedStack;
   arrival: LocatedStack;
   staged: boolean;
+  /** Swallowed by the gravity rift in this system (flies there, never arrives). */
+  lostAt?: string;
 };
 
 export type ReplayInventory = {
@@ -193,6 +202,8 @@ export type ResolvedMovement = {
       states: StateCounts;
       /** Destination holder for this unit (landings spread over planets). */
       toHolder?: string;
+      /** Swallowed by the gravity rift in this system: never reaches the target. */
+      lostAt?: string;
     }[];
   }[];
 };

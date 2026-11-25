@@ -1050,6 +1050,19 @@ function describeFact(
           </>
         ),
       };
+    case "rift_lost": {
+      const rift = fact.detail ?? "";
+      return {
+        key,
+        tone: "bad",
+        text: (
+          <>
+            {prefix}lost {delta} {resolveUnitName(fact.value ?? "")} to the gravity rift in{" "}
+            <Named kind="system" id={rift} name={ctx.systemName(rift)} systemText={ctx.systemHint(rift)} />
+          </>
+        ),
+      };
+    }
     case "move_route": {
       // The flight itself replays on the map; the feed names only waypoints and wormhole jumps.
       const route = fact.route ?? [];

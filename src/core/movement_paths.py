@@ -9,8 +9,9 @@ from __future__ import annotations
 from collections import deque
 
 from src.core import rules_hooks
-from src.core.game_state import GameState, MoveCargo, MoveRecord, SystemState
+from src.core.game_state import GameState, MoveCargo, MoveLoss, MoveRecord, SystemState
 from src.core.hex_grid import HexGrid
+from src.core.unit_catalog import is_space_unit
 
 # Anomalie znaczące dla przejezdności węzłów POŚREDNICH trasy (RULES.md 32.1 R6).
 _SUPERNOVA = "SUPERNOVA"
@@ -27,13 +28,17 @@ _RIFT_SEARCH_CAP = 7
 
 
 def _ships_of_other_players(system: SystemState | None, player_id: str) -> bool:
-    """Czy w przestrzeni systemu stoją statki INNEGO gracza (blokada R4)."""
+    """Czy w przestrzeni systemu stoją statki INNEGO gracza (blokada R4).
+
+    Only ships block: a Floating Factory (Saar space dock in the space area) or ground forces
+    in space do not (F_saar floating-factory/12 - other players' ships may move through).
+    """
     if system is None:
         return False
     for owner, by_type in system.space_units.items():
         if owner == player_id:
             continue
-        if any(count > 0 for count in by_type.values()):
+        if any(count > 0 and is_space_unit(bt) for bt, count in by_type.items()):
             return True
     return False
 
@@ -521,12 +526,14 @@ def build_move_record(
     player_id: str,
     ships: dict[str, int],
     cargo: list[tuple[str, int, str, str]],
+    lost: list[MoveLoss] | None = None,
 ) -> MoveRecord:
     """Presentation record of a confirmed fleet move (``GameState.last_move``).
 
     ``cargo`` items are ``(base_type, count, from_zone, from_position)``. Hops are classified
     from the map graph: ``lane`` for plain adjacency, otherwise the link kind (``wormhole`` /
     ``portal``), or ``jump`` for adjacency granted by a hook (Lost Star Chart, Conduit).
+    ``lost`` = units a gravity rift removed on the way, with the rift they were lost in.
     """
     hops: list[str] = []
     for a, b in zip(route, route[1:], strict=False):
@@ -548,4 +555,5 @@ def build_move_record(
             for bt, n, zone, pos in cargo
             if n > 0
         ],
+        lost=[loss for loss in lost or [] if loss.count > 0],
     )

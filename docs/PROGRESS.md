@@ -727,3 +727,21 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   launch and landing points stay exact.
 - QA: frontend tsc (app), eslint (changed), vitest (`entities/replay`, `state`, `domains/map`). Skipped: backend
   (no change: the route already carried `portal` hops and anomaly names), build (no new modules), e2e, visual check.
+
+## Flight Replay: Ships Swallowed by a Gravity Rift (2026-11-25)
+- User request: a ship that fails its gravity rift roll should be shown swallowed by a black hole. Before, the lost
+  ship flew all the way to the destination and faded out there.
+- Backend (presentation only, no rule change): `_resolve_rift_losses` also returns `MoveLoss` entries (unit type,
+  count, rift system `at`) for lost ships and the cargo that went down with them; `MoveRecord.lost` carries them and
+  `tactical.move` emits one `rift_lost` Activity fact each (value = unit, delta = count, detail = rift). Feed line:
+  "lost N <unit> to the gravity rift in <system>".
+- Frontend: `liveMoveFromEntry` reads `rift_lost` (base type -> map unit id); a move whose whole fleet was lost still
+  replays. `resolveFleetMove` splits each moved stack into survivors and `lostAt` units; the planner flies a lost
+  unit with the fleet up to its rift (`swallowLegs`) and a final `swallow` leg (`SWALLOW_MS`): caught, it is dragged
+  into an ever tighter, faster spiral, stretched thin and shrunk to nothing at the rift's center. Own destination
+  key, so arrivals/combat/losses at the real target never count it. Lost cargo boards a doomed carrier and never
+  unpacks (`CargoRide.lost`); surviving cargo rides a carrier that gets through. Board effect `blackHole`: a
+  lightless core in a spinning purple-orange accretion ring that opens before the capture and collapses after.
+- QA: backend ruff + mypy (changed), pytest (`-k move/rift/activity/tactical/transport` + rift-using faction
+  tests); frontend tsc (app), eslint (changed), vitest (`entities/replay`, `state`, `domains/map`, ActivityPanel).
+  Skipped: full backend suite, build (no new modules), e2e, visual check in a live game.

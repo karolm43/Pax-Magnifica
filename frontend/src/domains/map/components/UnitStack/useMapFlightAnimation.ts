@@ -209,6 +209,7 @@ export function useMapFlightAnimation({
           rideMs: ride.rideMs,
           unpackMs: ride.unpackMs,
           rotate: rotateToTrajectory,
+          lost: ride.lost,
         })
       : flight;
     const keyframes =

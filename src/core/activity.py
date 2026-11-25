@@ -67,7 +67,8 @@ class ActivityFact(BaseModel):
     # delta = liczba, detail = id planety).
     # "move_route" (one per fleet move: route/hops/anomalies, so every client replays the flight),
     # "carried" (cargo of that move: value = unit type, delta = count, detail = source zone
-    # "space" / planet id).
+    # "space" / planet id), "rift_lost" (a ship / its cargo removed by a gravity rift roll on
+    # that move: value = unit type, delta = count, detail = the rift system).
     # "area" (TYLKO we wpisie z użyciem bohatera: value = pozycja systemu, detail = "gain" / "loss"
     # jednostek gracza albo "token_removed" jego żetonu dowodzenia — miejsce efektu na planszy,
     # RULES.md 64.4; feed go nie wypisuje).
@@ -630,6 +631,13 @@ def _movement_facts(
                     detail=item.from_zone,
                 )
                 for item in record.cargo
+            )
+            facts.extend(
+                ActivityFact(
+                    type="rift_lost", player_id=actor, value=loss.base_type, delta=loss.count,
+                    detail=loss.at,
+                )
+                for loss in record.lost
             )
         old = before.systems.get(subject)
         new = after.systems.get(subject)

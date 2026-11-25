@@ -17,7 +17,11 @@ import type { Point } from "@/entities/data/types";
  * hook for keyframes, so what is drawn always matches the replay duration.
  */
 
-export type FlightLegKind = "lane" | "jump" | "portal";
+/**
+ * `swallow`: the ship failed its gravity rift roll - the leg's point is the rift's center,
+ * where it spirals into a black hole and is gone (always the last leg).
+ */
+export type FlightLegKind = "lane" | "jump" | "portal" | "swallow";
 export type FlightAnomaly = "rift" | "nebula" | "asteroid" | "supernova";
 
 export type FlightLeg = Point & {
@@ -34,7 +38,8 @@ export type FlightEffectKind =
   | "riftWarp"
   | "nebulaDamp"
   | "asteroidDust"
-  | "supernovaFlare";
+  | "supernovaFlare"
+  | "blackHole";
 
 /** A board effect along the path, timed relative to the flight start. */
 export type FlightEffect = Point & {
@@ -92,6 +97,7 @@ const EFFECT_MS: Record<FlightEffectKind, number> = {
   nebulaDamp: 1500,
   asteroidDust: 1600,
   supernovaFlare: 1400,
+  blackHole: 3300,
 };
 /** The effect starts a beat before the ship reaches the system. */
 const ANOMALY_EFFECT: Record<FlightAnomaly, { kind: FlightEffectKind; leadMs: number }> = {
@@ -127,7 +133,16 @@ type Chain = {
   durationMs: number;
 };
 type Jump = { kind: "jump"; from: Point; to: Point; durationMs: number; portal: boolean };
-export type FlightSegment = Chain | Jump;
+type Swallow = { kind: "swallow"; center: Point; durationMs: number };
+export type FlightSegment = Chain | Jump | Swallow;
+
+/**
+ * Swallowed by a gravity rift: caught at the rift, the ship is dragged into an ever tighter,
+ * ever faster spiral, stretched thin (spaghettified) and shrunk to nothing at its center.
+ */
+export const SWALLOW_MS = 2400;
+const SWALLOW_TURNS = 1.6;
+const SWALLOW_STEPS = 32;
 
 function legSpeed(
   previousAnomaly: FlightAnomaly | undefined,
@@ -148,7 +163,10 @@ export function flightSegments(start: Point, legs: FlightLeg[]): FlightSegment[]
   let cursorAnomaly: FlightAnomaly | undefined;
   for (const leg of legs) {
     const to = { x: leg.x, y: leg.y };
-    if (leg.kind !== "lane") {
+    if (leg.kind === "swallow") {
+      chain = undefined;
+      segments.push({ kind: "swallow", center: to, durationMs: SWALLOW_MS });
+    } else if (leg.kind !== "lane") {
       chain = undefined;
       const portal = leg.kind === "portal";
       segments.push({
@@ -492,6 +510,50 @@ function portalFrames(jump: Jump, startMs: number, rotation: number, exit: numbe
   ];
 }
 
+/** The spiral into the black hole, from where the ship was caught (`from`). */
+function swallowFrames(
+  swallow: Swallow,
+  startMs: number,
+  rotation: number,
+  from: Point,
+  turn: boolean,
+): Frame[] {
+  const { center } = swallow;
+  const radius = Math.hypot(from.x - center.x, from.y - center.y);
+  const angle0 = Math.atan2(from.y - center.y, from.x - center.x);
+  // Orbit the way the nose already points, so the capture reads as one motion.
+  const nose = headingVector(rotation);
+  const tangent = { x: -Math.sin(angle0), y: Math.cos(angle0) };
+  const direction = nose.x * tangent.x + nose.y * tangent.y >= 0 ? 1 : -1;
+  const frames: Frame[] = [{ timeMs: startMs, point: from, rotation, scale: 1, lift: 1 }];
+  let heading = rotation;
+  for (let step = 1; step <= SWALLOW_STEPS; step += 1) {
+    const t = step / SWALLOW_STEPS;
+    const pull = t * t;
+    const angle = angle0 + direction * SWALLOW_TURNS * 2 * Math.PI * t ** 1.5;
+    const point = {
+      x: center.x + Math.cos(angle) * radius * (1 - pull),
+      y: center.y + Math.sin(angle) * radius * (1 - pull),
+    };
+    const previous = frames[frames.length - 1].point;
+    if (turn && Math.hypot(point.x - previous.x, point.y - previous.y) > 0.5) {
+      const motion = unwrapAngle(heading, angleOf(previous, point));
+      // The nose is wrenched round onto the spiral over its first part.
+      heading += (motion - heading) * smoothstep(clamp01(t / 0.3));
+    }
+    frames.push({
+      timeMs: startMs + t * swallow.durationMs,
+      point,
+      rotation: turn ? heading : 0,
+      scale: 1 - smoothstep(clamp01((t - 0.2) / 0.8)),
+      lift: 1,
+      glow: "rift",
+      stretch: 1 + 2.6 * pull,
+    });
+  }
+  return frames;
+}
+
 /** Heading a chain starts on (rotation units). */
 function chainStartHeading(segment: FlightSegment | undefined): number | undefined {
   return segment?.kind === "chain" ? headingAt(denseChain(segment), 0) : undefined;
@@ -529,12 +591,14 @@ export function buildPathKeyframes(options: PathKeyframeOptions): {
             from: index === 0 ? rotation : undefined,
             to: segment === lastSegment ? park : undefined,
           })
-        : jumpFrames(
-            segment,
-            clock,
-            rotation,
-            turn ? (chainStartHeading(segments[index + 1]) ?? rotation) : 0,
-          );
+        : segment.kind === "swallow"
+          ? swallowFrames(segment, clock, rotation, frames[frames.length - 1].point, turn)
+          : jumpFrames(
+              segment,
+              clock,
+              rotation,
+              turn ? (chainStartHeading(segments[index + 1]) ?? rotation) : 0,
+            );
     // Each segment starts where the previous one ended: drop the duplicated joint frame.
     frames.push(...produced.slice(1));
     clock += segment.durationMs;
@@ -542,11 +606,13 @@ export function buildPathKeyframes(options: PathKeyframeOptions): {
   });
   const last = frames[frames.length - 1];
   clock += SETTLE_MS;
+  // Swallowed: nothing is left to set down.
+  const gone = lastSegment?.kind === "swallow";
   frames.push({
     timeMs: clock,
     point: last.point,
-    rotation: turn ? unwrapAngle(rotation, park) : 0,
-    scale: 1,
+    rotation: gone ? last.rotation : turn ? unwrapAngle(rotation, park) : 0,
+    scale: gone ? 0 : 1,
     lift: 0,
   });
   const durationMs = Math.max(1, clock);
@@ -610,7 +676,10 @@ export function flightEffects(start: Point, legs: FlightLeg[]): FlightEffect[] {
     effects.push({ kind, x: point.x, y: point.y, atMs: Math.round(atMs), durationMs: EFFECT_MS[kind] });
   let clock = IGNITION_MS;
   for (const segment of flightSegments(start, legs)) {
-    if (segment.kind === "jump" && segment.portal) {
+    if (segment.kind === "swallow") {
+      // The rift opens into a black hole just before the ship is caught.
+      push("blackHole", segment.center, clock - 400);
+    } else if (segment.kind === "jump" && segment.portal) {
       // The tear opens before the ship reaches it and snaps shut behind it.
       push("portalIn", segment.from, clock);
       push("portalOut", segment.to, clock + segment.durationMs * PORTAL_EMERGE - 300);
@@ -672,18 +741,21 @@ const easeOutCubic = (u: number) => 1 - (1 - u) ** 3;
  * hangar and only then shrink and vanish. Riding: hidden while the carrier flies. Unpacking:
  * emerge from the carrier's landing point `land`, launch out, brake at `arrival`, (fighters
  * turn back to the parked heading). `rotate` = fighters; ground forces stay upright.
+ * `lost` = went down with its carrier in a gravity rift: boards and never comes out.
  */
 export function buildCargoKeyframes({
   board,
   land,
   arrival,
   rotate = false,
+  lost = false,
   ...times
 }: CargoRideTimes & {
   board: Point;
   land: Point;
   arrival: Point;
   rotate?: boolean;
+  lost?: boolean;
 }): {
   keyframes: Keyframe[];
   durationMs: number;
@@ -724,6 +796,11 @@ export function buildCargoKeyframes({
   // (user decision).
   const outHeading = rotate ? unwrapAngle(packHeading, headingTo(land, arrival)) : 0;
   push(times.packMs + times.rideMs, land, outHeading, PACKED_SCALE, 0);
+  if (lost) {
+    push(durationMs, land, outHeading, PACKED_SCALE, 0);
+    keyframes[keyframes.length - 1].offset = 1;
+    return { durationMs, keyframes };
+  }
 
   // Unpacking: launch out of the hull nose-first, growing and fading in, brake, and swing to
   // the parked heading while braking.

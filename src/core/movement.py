@@ -21,7 +21,7 @@ from src.core import floating_structures, ion_storm, rules_hooks, timing, trigge
 from src.core.combat import player_variant, resolve_unit_variant
 from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.game_events import GameEvent, Moment
-from src.core.game_state import GameState, SystemState
+from src.core.game_state import GameState, MoveLoss, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.movement_paths import (
     _GRAVITY_RIFT,
@@ -596,7 +596,7 @@ def _resolve_rift_losses(
     cargo: list[CargoPickup],
     from_pos: str,
     player_id: str,
-) -> tuple[dict[str, int], list[CargoPickup]]:
+) -> tuple[dict[str, int], list[CargoPickup], list[MoveLoss]]:
     """Rzuty gravity rift dla ruchu wzdłuż ``route`` (R_gravity_rift) — MUTUJE ``state`` (klon).
 
     Każdy statek wychodzący ze szczeliny albo przez nią przelatujący rzuca d10; 1–3 usuwa go
@@ -604,7 +604,8 @@ def _resolve_rift_losses(
     zabierany po drodze w kolejności systemów: statki usunięte przez szczelinę zabierają ze sobą
     ładunek, który ponad ich pojemność już załadowano (najpóźniej załadowany znika pierwszy),
     a ładunek z dalszych systemów, na który zabrakło pojemności, zostaje na miejscu.
-    Zwraca (statki, ładunek), które faktycznie docierają do celu.
+    Zwraca (statki, ładunek), które faktycznie docierają do celu, oraz straty z systemem
+    szczeliny, w którym przepadły (``MoveLoss``; tylko prezentacja - animacja pochłonięcia).
 
     ⚠️ ZAŁOŻENIE: ładunek nie jest przypisany do konkretnych statków (pojemność jest wspólna), więc
     nadwyżkę ponad pojemność ocalałych usuwamy od ostatnio załadowanego — źródło reguł tego nie
@@ -612,7 +613,7 @@ def _resolve_rift_losses(
     """
     rifts = rift_roll_nodes(state, grid, route, player_id)
     if not rifts:
-        return ships, cargo
+        return ships, cargo, []
     player = state.players.get(player_id)
     faction_id = player.faction if player is not None else None
     technologies = player.technologies if player is not None else []
@@ -620,6 +621,7 @@ def _resolve_rift_losses(
     lost_ships: dict[str, int] = {}
     loaded: list[CargoPickup] = []
     removed_cargo: list[CargoPickup] = []
+    losses: list[MoveLoss] = []
     rolls: list[int] = []
     rng = next_rng(state)
 
@@ -653,12 +655,14 @@ def _resolve_rift_losses(
             if gone:
                 survivors[base_type] -= gone
                 lost_ships[base_type] = lost_ships.get(base_type, 0) + gone
+                losses.append(MoveLoss(base_type=base_type, count=gone, at=node))
         excess = used() - provided()
         while excess > 0 and loaded:
             last = loaded[-1]
             unit = max(per_unit(last.base_type), 1)
             drop = min(last.count, -(-excess // unit))
             removed_cargo.append(replace(last, count=drop))
+            losses.append(MoveLoss(base_type=last.base_type, count=drop, at=node))
             excess -= drop * unit
             if drop == last.count:
                 loaded.pop()
@@ -687,7 +691,7 @@ def _resolve_rift_losses(
             item.count,
             UnitCause.REMOVED,
         )
-    return {bt: n for bt, n in survivors.items() if n > 0}, loaded
+    return {bt: n for bt, n in survivors.items() if n > 0}, loaded, losses
 
 
 def move_fleet(
@@ -936,8 +940,9 @@ def move_fleet(
         new_state.systems[active] = dest
 
     # Gravity rift na trasie: rzuty usuwają część statków (i przewożony nimi ładunek).
+    losses: list[MoveLoss] = []
     if plan_route is not None:
-        ships, cargo_items = _resolve_rift_losses(
+        ships, cargo_items, losses = _resolve_rift_losses(
             new_state, grid, registry, plan_route, ships, cargo_items, from_pos, player_id
         )
 
@@ -965,6 +970,7 @@ def move_fleet(
     new_state.last_move = build_move_record(
         grid, plan_route or [from_pos, active], player_id, dict(ships),
         [(c.base_type, c.count, c.from_zone, c.from_position or from_pos) for c in cargo_items],
+        losses,
     )
     ion_storm.note_move(new_state, grid, registry, from_pos, active, ion_storm_token)
     if ships:

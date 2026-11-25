@@ -11,6 +11,7 @@ from src.core.event_store import EventStore
 from src.core.game_state import (
     GameState,
     MoveCargo,
+    MoveLoss,
     MoveRecord,
     Phase,
     PlayerState,
@@ -495,3 +496,32 @@ def test_ruch_floty_niesie_trase_i_ladunek_do_odtworzenia_lotu() -> None:
     other = derive_activity("tactical:move:202", before, after)
     assert other is not None
     assert not [f for f in other.facts if f.type in ("move_route", "carried")]
+
+
+def test_ruch_floty_niesie_straty_w_gravity_rift() -> None:
+    """Ships (and their cargo) a gravity rift removed on the move become ``rift_lost`` facts
+    naming the rift system, so clients replay them being swallowed there."""
+    before = _state()
+    after = _state()
+    before.systems["202"] = SystemState(
+        position="202", system_id="27", space_units={"p1": {"carrier": 2, "fighter": 1}}
+    )
+    after.systems["202"] = SystemState(position="202", system_id="27")
+    after.systems["000"] = SystemState(
+        position="000", system_id="18", space_units={"p1": {"carrier": 1}}
+    )
+    after.active_system = "000"
+    after.last_move = MoveRecord(
+        player_id="p1", route=["202", "101", "000"], hops=["lane", "lane"],
+        anomalies={"101": ["GRAVITY_RIFT"]}, ships={"carrier": 1},
+        lost=[
+            MoveLoss(base_type="carrier", count=1, at="101"),
+            MoveLoss(base_type="fighter", count=1, at="101"),
+        ],
+    )
+    entry = derive_activity("tactical:move:202", before, after)
+    assert entry is not None
+    assert [(f.value, f.delta, f.detail) for f in entry.facts if f.type == "rift_lost"] == [
+        ("carrier", 1, "101"),
+        ("fighter", 1, "101"),
+    ]

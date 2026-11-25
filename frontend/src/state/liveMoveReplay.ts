@@ -1,7 +1,8 @@
 import type { ActivityEntry, ActivityPlayer } from "@/api/boardQueries";
 import type { GameData } from "@/entities/game/types";
 import { landingPosition } from "@/entities/replay/liveMovement";
-import type { LiveMove } from "@/entities/replay/types";
+import type { LiveMove, RiftLoss } from "@/entities/replay/types";
+import { BASE_TYPE_BY_ASYNC } from "@/domains/map/components/UnitStack/cargo";
 import {
   allUnitStacks,
   stackHolder,
@@ -39,13 +40,28 @@ export function liveMoveFromEntry(
   const fact = activity.facts.find((f) => f.type === "move_route");
   const route = fact?.route;
   if (!route || route.length < 2) return undefined;
+  const lost = riftLosses(activity.facts);
   return {
     kind: "move",
     faction,
     route: [...route],
     hops: [...(fact.hops ?? [])],
     anomalies: { ...(fact.anomalies ?? {}) },
+    ...(lost.length > 0 ? { lost } : {}),
   };
+}
+
+const ASYNC_BY_BASE_TYPE = Object.fromEntries(
+  Object.entries(BASE_TYPE_BY_ASYNC).map(([asyncId, baseType]) => [baseType, asyncId]),
+);
+
+/** Ships / cargo a gravity rift swallowed on the move (`rift_lost` facts), as map unit ids. */
+function riftLosses(facts: ActivityEntry["activity"]["facts"]): RiftLoss[] {
+  return facts.flatMap((f) =>
+    f.type === "rift_lost" && f.value && f.detail && (f.delta ?? 0) > 0
+      ? [{ unitId: ASYNC_BY_BASE_TYPE[f.value] ?? f.value, count: f.delta!, at: f.detail }]
+      : [],
+  );
 }
 
 /** Systems to highlight while the action replays. */
@@ -94,11 +110,13 @@ export function moveLanded(before: GameData, after: GameData, move: LiveMove): b
   }
   const source = move.route[0];
   const target = move.route[move.route.length - 1];
+  // A gravity rift may swallow the whole fleet: then nothing arrives at the target.
+  const arrived =
+    unitsAt(after, move.faction, target, inSpace) >
+      unitsAt(before, move.faction, target, inSpace) || (move.lost?.length ?? 0) > 0;
   return (
     unitsAt(after, move.faction, source, anywhere) <
-      unitsAt(before, move.faction, source, anywhere) &&
-    unitsAt(after, move.faction, target, inSpace) >
-      unitsAt(before, move.faction, target, inSpace)
+      unitsAt(before, move.faction, source, anywhere) && arrived
   );
 }
 

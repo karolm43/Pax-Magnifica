@@ -1140,6 +1140,18 @@ class MoveCargo(BaseModel):
     from_position: str
 
 
+class MoveLoss(BaseModel):
+    """Units of one ``MoveRecord`` removed by a gravity rift roll on the way (R_gravity_rift):
+    a ship that rolled 1-3, or cargo it was carrying. ``at`` = the rift system they were lost
+    in, so the replay can draw them being swallowed there (presentation only)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    base_type: str
+    count: int
+    at: str
+
+
 class MoveRecord(BaseModel):
     """The last confirmed fleet move of the current tactical action (presentation only).
 
@@ -1158,6 +1170,8 @@ class MoveRecord(BaseModel):
     anomalies: dict[str, list[str]] = Field(default_factory=dict)
     ships: dict[str, int] = Field(default_factory=dict)
     cargo: list[MoveCargo] = Field(default_factory=list)
+    # Ships / cargo a gravity rift removed on the way (not part of ``ships`` / ``cargo``).
+    lost: list[MoveLoss] = Field(default_factory=list)
 
 
 class GameState(BaseModel):

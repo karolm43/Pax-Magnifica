@@ -3,6 +3,7 @@ import {
   IGNITION_MS,
   JUMP_MS,
   PORTAL_MS,
+  SWALLOW_MS,
   SETTLE_MS,
   buildCargoKeyframes,
   buildPathKeyframes,
@@ -242,6 +243,63 @@ describe("Fracture portal and hazards", () => {
     expect(keyframes.some((k) => String(k.filter).includes("251, 146, 60"))).toBe(true);
     expect(Math.max(...keyframes.map((k) => Math.abs(translate(k).y)))).toBeGreaterThan(0.5);
     expect(translate(keyframes.at(-1)!)).toEqual({ x: 600, y: 0 });
+  });
+});
+
+describe("swallowed by a gravity rift", () => {
+  const legs: FlightLeg[] = [
+    { x: 300, y: 0, kind: "lane", anomaly: "rift" },
+    { x: 300, y: -40, kind: "swallow" },
+  ];
+  const keyframes = buildPathKeyframes({
+    start,
+    legs,
+    rotateToTrajectory: true,
+    startRotationDeg: 0,
+    parkRotationDeg: 0,
+  }).keyframes;
+  const transform = (k: Keyframe) => String(k.transform);
+
+  it("spirals into the rift's center, stretched thin, and is gone", () => {
+    expect(flightPathDuration(start, legs)).toBe(
+      flightPathDuration(start, legs.slice(0, 1)) + SWALLOW_MS,
+    );
+    const last = keyframes.at(-1)!;
+    expect(transform(last)).toContain("translate(300px, -40px)");
+    expect(transform(last)).toContain(" scale(0) ");
+    // Spaghettified on the way in.
+    expect(keyframes.some((k) => /scale\(3\.\d+, /.test(transform(k)))).toBe(true);
+  });
+
+  it("orbits the black hole instead of flying straight at it", () => {
+    const xs = keyframes.map(
+      (k) => Number(/translate\((-?[\d.e-]+)px, /.exec(transform(k).replace("translate(-50%, -50%) ", ""))?.[1]),
+    );
+    // Swings to both sides of the center while circling in.
+    expect(Math.max(...xs)).toBeGreaterThan(305);
+    expect(Math.min(...xs.slice(-20))).toBeLessThan(295);
+  });
+
+  it("opens a black hole just before the ship is caught", () => {
+    const effects = flightEffects(start, legs);
+    const hole = effects.find((e) => e.kind === "blackHole");
+    expect(hole).toMatchObject({ x: 300, y: -40 });
+    expect(hole!.atMs).toBeLessThan(flightPathDuration(start, legs) - SWALLOW_MS);
+  });
+
+  it("keeps lost cargo hidden inside its carrier", () => {
+    const { keyframes: cargo } = buildCargoKeyframes({
+      board: { x: 50, y: 0 },
+      land: { x: 300, y: -40 },
+      arrival: { x: 320, y: -20 },
+      packMs: 800,
+      rideMs: 2000,
+      unpackMs: 1000,
+      lost: true,
+    });
+    const after = cargo.filter((k) => (k.offset as number) >= 800 / 3800 - 1e-9);
+    expect(after.every((k) => k.opacity === 0)).toBe(true);
+    expect(cargo.at(-1)!.offset).toBe(1);
   });
 });
 

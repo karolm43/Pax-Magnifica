@@ -20,6 +20,7 @@ import type {
   LocatedStack,
   PlannedMovement,
   ResolvedMovement,
+  RiftLoss,
   StateCounts,
 } from "@/entities/replay/types";
 import {
@@ -69,6 +70,8 @@ function resolveFleetMove(
     allUnitStacks(current).map((located) => [locatedKey(located), located]),
   );
   const sources = new Map<string, ResolvedMovement["sources"][number]>();
+  // Rift losses still to assign to the units that left (per unit type, rift by rift).
+  const losses = (move.lost ?? []).map((loss) => ({ ...loss }));
   for (const located of allUnitStacks(previous)) {
     const { stack, position } = located;
     if (stack.faction !== move.faction || !onRoute.has(position)) continue;
@@ -83,11 +86,40 @@ function resolveFleetMove(
     if (stateCount(left) === 0) continue;
     const key = `${position}\u0000${holder}`;
     const source = sources.get(key) ?? { position, holder, units: [] };
-    source.units.push({ faction: move.faction, unitId: stack.entityId, states: left });
+    const { survivors, swallowed } = takeRiftLosses(losses, stack.entityId, left);
+    if (stateCount(survivors) > 0) {
+      source.units.push({ faction: move.faction, unitId: stack.entityId, states: survivors });
+    }
+    for (const { states, at } of swallowed) {
+      source.units.push({ faction: move.faction, unitId: stack.entityId, states, lostAt: at });
+    }
     sources.set(key, source);
   }
   if (sources.size === 0) return undefined;
   return { targetPosition: target, targetHolder: "space", sources: [...sources.values()] };
+}
+
+/**
+ * Splits units that left a system into those that fly on and those a gravity rift swallows,
+ * consuming the move's `losses` budget for this unit type.
+ */
+function takeRiftLosses(
+  losses: RiftLoss[],
+  unitId: string,
+  left: StateCounts,
+): { survivors: StateCounts; swallowed: { states: StateCounts; at: string }[] } {
+  let survivors = left;
+  const swallowed: { states: StateCounts; at: string }[] = [];
+  for (const loss of losses) {
+    if (loss.unitId !== unitId || loss.count <= 0) continue;
+    const take = Math.min(loss.count, stateCount(survivors));
+    if (take <= 0) break;
+    const states = statesForCount(survivors, take);
+    survivors = subtractStates(survivors, states);
+    loss.count -= take;
+    swallowed.push({ states, at: loss.at });
+  }
+  return { survivors, swallowed };
 }
 
 /** Position of the system holding any of `planets` (landings name planets, not systems). */
@@ -299,6 +331,37 @@ export function routeLegs(
   return legs.length > 0 ? legs : undefined;
 }
 
+/**
+ * Flight of a ship that failed its gravity rift roll: along the route up to the rift (in
+ * formation), then a `swallow` leg into the rift's center. A ship lost leaving the rift it
+ * started in spirals in from where it stands. Undefined when the rift is not on this map.
+ */
+export function swallowLegs(
+  data: GameData,
+  move: LiveFleetMove,
+  source: LocatedStack,
+  rift: string,
+): FlightLeg[] | undefined {
+  const center = tileCenter(data, rift);
+  const sourceCenter = tileCenter(data, source.position);
+  const riftIndex = move.route.indexOf(rift);
+  const startIndex = move.route.indexOf(source.position);
+  if (!center || !sourceCenter || riftIndex < 0) return undefined;
+  const swallow: FlightLeg = { ...center, kind: "swallow" };
+  if (startIndex < 0 || riftIndex <= startIndex) return [swallow];
+  const caught = {
+    x: center.x + (source.worldX - sourceCenter.x) * FORMATION_KEEP,
+    y: center.y + (source.worldY - sourceCenter.y) * FORMATION_KEEP,
+  };
+  const toRift: LiveFleetMove = {
+    ...move,
+    route: move.route.slice(0, riftIndex + 1),
+    hops: move.hops.slice(0, riftIndex),
+  };
+  const legs = routeLegs(data, toRift, source, caught);
+  return legs ? [...legs, swallow] : undefined;
+}
+
 function capacityOf(unitId: string): number {
   return getGenericUnitDataByAsyncId(unitId)?.capacityValue ?? 0;
 }
@@ -357,9 +420,11 @@ export function packRidingCargo(movements: PlannedMovement[]): void {
     movement.transition.delayMs = (movement.transition.delayMs ?? 0) + PACK_MS;
   }
   for (const item of cargo) {
+    // Cargo lost in a rift rides a doomed carrier; survivors ride one that gets through.
+    const fellow = carriers.filter((c) => !c.lostAt === !item.lostAt);
+    const pool = fellow.length > 0 ? fellow : carriers;
     const carrier =
-      carriers.find((c) => c.source.position === item.source.position) ??
-      carriers[0];
+      pool.find((c) => c.source.position === item.source.position) ?? pool[0];
     const { transition } = item;
     const sameSystem = carrier.source.position === item.source.position;
     // Hidden from boarding until the carrier (launching in its own wave) has landed.
@@ -374,6 +439,7 @@ export function packRidingCargo(movements: PlannedMovement[]): void {
       packMs: PACK_MS,
       rideMs: Math.max(0, landedAt - boardedAt),
       unpackMs: UNPACK_MS,
+      ...(item.lostAt ? { lost: true } : {}),
     };
     transition.flightPath = undefined;
   }
