@@ -42,6 +42,7 @@ from src.core.game_state import GameState, SystemState
 from src.core.hooks import card_labels
 from src.core.hooks import card_targets_economy as targets
 from src.core.hooks.card_helpers import controlled
+from src.core.legendary_planets import MECATOL_PLANETS
 from src.core.planet_stats import is_legendary, planet_stats
 from src.core.registry import StaticDataRegistry
 from src.core.relic_actions import blocker
@@ -313,14 +314,29 @@ def _converter_planets(
     sources = {s.position for s in targets.bombardment_systems(state, registry, player_id)}
     if not sources:
         return []
-    grid = grid_from_state(state, registry)
+    # Adjacency over the WHOLE board: ``grid_from_state`` only knows systems with a state entry,
+    # so an untouched system (no units, no tokens) would never be adjacent. The bound map grid
+    # covers every tile; the state grid adds state-only links (wormhole tokens, Fracture portals).
+    # R_adjacency: a unit is not adjacent to the system it is in, so a source never reaches its
+    # own system (unless ANOTHER source is adjacent to it).
+    state_grid = grid_from_state(state, registry)
+    near: set[str] = set()
+    for src in sources:
+        reach = set(board_graph.adjacent_positions(src))
+        if src in state_grid.positions:
+            reach |= state_grid.neighbors(src)
+        near |= reach - {src}
     homes = targets.home_planet_ids(state, registry)
     result: list[tuple[str, str]] = []
     # Cała plansza: planeta bez jednostek (system bez wpisu w stanie) też jest celem.
     for position, planet in board_planets(state, registry):
-        if custodians.is_mecatol_position(state, position):
-            continue
-        if not any(src != position and grid.are_adjacent(position, src) for src in sources):
+        # "other than Mecatol Rex": by planet id - a Mecatol system without a state entry is not
+        # recognised by ``custodians.is_mecatol_position``.
+        if (
+            planet in MECATOL_PLANETS
+            or custodians.is_mecatol_position(state, position)
+            or position not in near
+        ):
             continue
         system = state.systems.get(position)
         owner = system.planet_owners.get(planet) if system is not None else None

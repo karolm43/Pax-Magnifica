@@ -711,6 +711,82 @@ def test_converter_targets_adjacent_systems_only_and_never_own_planets(
     assert not any(state.systems[pos].planet_owners.get(p) == "p1" for p, pos in targets.items())
 
 
+def _bare_converter_state(registry: StaticDataRegistry) -> tuple[GameState, str]:
+    """Only the dreadnought's system has a state entry; every other system is untouched."""
+    grid = build_demo_grid(registry)
+    source = "101"
+    state = _state(registry, ["stellarconverter"])
+    state.systems = {
+        source: SystemState(
+            position=source, system_id=grid.system_id_at(source),
+            space_units={"p1": {"dreadnought": 1}},
+        )
+    }
+    return state, source
+
+
+@ruling(
+    "C_relics/stellar-converter/2", "R_adjacency/rules-reference/2", "R_adjacency/notes/1",
+    "R_adjacency/rules-reference/2.1",
+)
+def test_converter_targets_planets_without_units_in_untouched_adjacent_systems(
+    registry: StaticDataRegistry,
+) -> None:
+    """Bug: the state-only grid made every system without a state entry non-adjacent, so a
+    planet with no units (nobody ever touched its system) could never be chosen."""
+    from src.core.system_planets import planets_of_system
+
+    grid = build_demo_grid(registry)
+    state, source = _bare_converter_state(registry)
+    targets = dict(relics_actions._converter_planets(state, registry, "p1"))
+    neighbours = grid.neighbors(source)
+    expected = {
+        planet
+        for position in neighbours
+        for planet in planets_of_system(state, registry, position, grid)
+        if planet not in ("mr", "mrte") and not is_legendary(state, registry, planet)
+    }
+    assert expected, "demo map: no non-legendary planet next to 101"
+    assert set(targets) == expected
+    assert all(pos in neighbours and pos != source for pos in targets.values())
+    # Not the unit's own system (a unit is not adjacent to the system it is in).
+    assert not set(targets) & set(planets_of_system(state, registry, source, grid))
+
+
+@ruling("C_relics/stellar-converter/2")
+def test_converter_never_targets_mecatol_rex_even_without_a_state_entry(
+    registry: StaticDataRegistry,
+) -> None:
+    grid = build_demo_grid(registry)
+    state, source = _bare_converter_state(registry)
+    assert "000" in grid.neighbors(source) and "000" not in state.systems
+    assert "mr" not in dict(relics_actions._converter_planets(state, registry, "p1"))
+
+
+def test_converter_destroys_unit_less_planet_and_shows_token_and_feed_fact(
+    registry: StaticDataRegistry,
+) -> None:
+    """Planet with no units: destroyed, the map gets ``destroyedPlanets`` (token) and the
+    Activity feed a ``planet_destroyed`` fact (drives the board animation)."""
+    from src.api.web_tiles import _build_tile_unit_data
+    from src.core import relic_cards
+    from src.core.activity import derive_activity
+
+    state, _source = _bare_converter_state(registry)
+    planet, position = relics_actions._converter_planets(state, registry, "p1")[0]
+    after, _ = relic_cards.play_relic(state, registry, "p1", "stellarconverter", {"planet": planet})
+    assert after.systems[position].destroyed_planets == [planet]
+    assert "stellarconverter" in after.decks.purged
+    tiles, _ = _build_tile_unit_data(build_demo_grid(registry), registry, after, {})
+    assert tiles[position]["destroyedPlanets"] == [planet]
+    assert planet not in tiles[position]["planets"]
+    entry = derive_activity("relic:play:p1:stellarconverter", state, after)
+    assert entry is not None
+    facts = {(f.type, f.value, f.detail) for f in entry.facts}
+    assert ("planet_destroyed", planet, position) in facts
+    assert ("relic", "stellarconverter", "lost") in facts
+
+
 @ruling("C_relics/stellar-converter/1")
 def test_system_with_only_a_destroyed_planet_has_no_planets(registry: StaticDataRegistry) -> None:
     from src.core.system_planets import planets_of_system

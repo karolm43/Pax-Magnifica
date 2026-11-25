@@ -12,8 +12,16 @@ import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { seatColorStyle } from "@/domains/game-shell/components/FactionsInGame/seatColor";
 import { useFactions, type FactionInfo } from "@/api/useNewGame";
 import { FactionPortraitLayer } from "@/domains/setup/FactionBackdrop";
-import { momentsForEntry, type KeyMoment } from "./keyMoments";
-import { HERO_BOARD_FX, coversForQueue, useHeroFx } from "./heroBoardFx";
+import { STELLAR_CONVERTER, momentsForEntry, type KeyMoment } from "./keyMoments";
+import {
+  HERO_BOARD_FX,
+  RELIC_BOARD_FX,
+  coversForQueue,
+  useHeroFx,
+  veiledPlanetsForQueue,
+} from "./heroBoardFx";
+import { getPlanetData } from "@/entities/lookup/planets";
+import { getRelicData } from "@/entities/lookup/relics";
 import styles from "./KeyMomentStage.module.css";
 
 /** Czas sceny (ms) bez wygaszania. */
@@ -22,6 +30,7 @@ const DURATION: Record<KeyMoment["kind"], number> = {
   fracture: 5200,
   breakthrough: 4000,
   custodians: 4200,
+  converter: 0, // bez sceny portretu: od razu efekt na planszy
 };
 /** Wygaszanie sceny (zgodne z CSS `.leaving`). */
 const LEAVE_MS = 450;
@@ -168,6 +177,28 @@ function CustodiansScene({ moment, player }: { moment: Extract<KeyMoment, { kind
 }
 
 /**
+ * Stellar Converter nie ma sceny portretu — efekt gra na planszy, a u góry ekranu wisi podpis:
+ * nazwa reliktu, zniszczona planeta i kto go użył (bez przyciemniania ekranu, nieklikalny).
+ */
+function ConverterCaption({ moment, player }: { moment: Extract<KeyMoment, { kind: "converter" }>; player: ActivityPlayer | undefined }) {
+  const relic = getRelicData(STELLAR_CONVERTER);
+  const planet = getPlanetData(moment.planet)?.name ?? moment.planet;
+  return (
+    <div
+      className={styles.boardCaption}
+      style={player?.color ? seatColorStyle(player.color) : undefined}
+      role="status"
+      aria-live="polite"
+    >
+      <span className={styles.eyebrow}>Relic</span>
+      <h2 className={styles.captionTitle}>{relic?.name ?? "Stellar Converter"}</h2>
+      <span className={styles.subline}>{planet} is destroyed</span>
+      <Who player={player} id={moment.player} />
+    </div>
+  );
+}
+
+/**
  * Kluczowe momenty gry (RULES.md 64): użycie bohatera, wejście The Fracture, zdobyty przełom,
  * zdjęcie żetonu Custodians. Każdy NOWY wpis feedu Activity z takim faktem odtwarza krótką
  * scenę u WSZYSTKICH graczy (także u sprawcy). Sceny idą w kolejce; „Skip” / Esc ją pomija.
@@ -208,6 +239,12 @@ export function KeyMomentStage() {
     setCovers(coversForQueue(queue));
   }, [queue, setCovers]);
   useEffect(() => () => setCovers({}), [setCovers]);
+  // Żeton zniszczonej planety (Stellar Converter) czeka, aż efekt na planszy go odsłoni.
+  const setVeiledPlanets = useHeroFx((s) => s.setVeiledPlanets);
+  useEffect(() => {
+    setVeiledPlanets(veiledPlanetsForQueue(queue));
+  }, [queue, setVeiledPlanets]);
+  useEffect(() => () => setVeiledPlanets({}), [setVeiledPlanets]);
   // Scena reliktu (RelicRevealWatcher) czeka, aż kolejka momentów się opróżni.
   const setStageBusy = useHeroFx((s) => s.setStageBusy);
   useEffect(() => {
@@ -229,15 +266,20 @@ export function KeyMomentStage() {
       } else if (busy > 0 && waited < DICE_MAX_WAIT_MS) {
         timer = window.setTimeout(tryStart, Math.min(busy, 400));
       } else {
-        setShown("on");
+        setShown(current.kind === "converter" ? "board" : "on");
       }
     };
     tryStart();
     return () => window.clearTimeout(timer);
   }, [current]);
 
-  // Przepis efektu na planszy (tylko bohaterowie z wpisem w HERO_BOARD_FX).
-  const recipe = current?.kind === "hero" ? HERO_BOARD_FX[current.leaderId] : undefined;
+  // Przepis efektu na planszy (bohaterowie z wpisem w HERO_BOARD_FX, relikty z RELIC_BOARD_FX).
+  const recipe =
+    current?.kind === "hero"
+      ? HERO_BOARD_FX[current.leaderId]
+      : current?.kind === "converter"
+        ? RELIC_BOARD_FX[STELLAR_CONVERTER]
+        : undefined;
   const owner = current?.player ? feed?.players[current.player] : undefined;
 
   useEffect(() => {
@@ -253,16 +295,26 @@ export function KeyMomentStage() {
 
   // Efekt na mapie trwa tylko w stanie „board”; zdjęcie (koniec / Skip / nowa gra) czyści warstwę.
   useEffect(() => {
-    if (shown !== "board" || current?.kind !== "hero" || !recipe) return;
-    playFx({
-      heroId: current.leaderId,
-      recipe,
-      faction: owner?.faction ?? null,
-      color: owner?.color ?? null,
-      replaced: current.replaced,
-      planets: current.planets,
-      areas: current.areas,
-    });
+    if (shown !== "board" || !current || !recipe) return;
+    if (current.kind === "hero") {
+      playFx({
+        heroId: current.leaderId,
+        recipe,
+        faction: owner?.faction ?? null,
+        color: owner?.color ?? null,
+        replaced: current.replaced,
+        planets: current.planets,
+        areas: current.areas,
+      });
+    } else if (current.kind === "converter") {
+      playFx({
+        heroId: STELLAR_CONVERTER,
+        recipe,
+        faction: owner?.faction ?? null,
+        color: owner?.color ?? null,
+        planets: [current.planet],
+      });
+    } else return;
     return () => stopFx();
     // Zależności celowo tylko [shown, current]: jeden start na wejście w „board”.
   }, [shown, current]);
@@ -286,11 +338,16 @@ export function KeyMomentStage() {
   if (!current || shown === "wait") return null;
   const player = owner;
   if (shown === "board") {
-    // Sama plansza gra efekt — zostaje tylko dyskretny „Skip”.
+    // Sama plansza gra efekt — zostaje dyskretny „Skip” (i podpis reliktu, który nie ma sceny).
     return (
-      <button type="button" className={styles.skip} data-board onClick={skip}>
-        Skip <IconPlayerTrackNext size={14} />
-      </button>
+      <>
+        {current.kind === "converter" && (
+          <ConverterCaption moment={current} player={player} />
+        )}
+        <button type="button" className={styles.skip} data-board onClick={skip}>
+          Skip <IconPlayerTrackNext size={14} />
+        </button>
+      </>
     );
   }
   let scene: ReactNode;
@@ -307,6 +364,8 @@ export function KeyMomentStage() {
     case "custodians":
       scene = <CustodiansScene moment={current} player={player} />;
       break;
+    case "converter":
+      return null; // od razu plansza (`board`)
   }
   return (
     <div

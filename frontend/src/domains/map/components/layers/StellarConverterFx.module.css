@@ -1,0 +1,257 @@
+/*
+ * Stellar Converter on the board (RELIC_BOARD_FX.stellarconverter, 8.2 s). Moments:
+ * charge 0–1.4 s, beams 1.4–3.4 s, lattice envelops 1.7 s and squeezes 2.7–3.38 s,
+ * burst + token reveal 3.4 s, ash belt until the end. Cold tone from --tone (layer).
+ */
+/* Circles, ellipses and shards scale/rotate around their own centre; <g> wrappers keep the
+   default origin (= planet centre, via translate), so rotating a <g> throws shards outward. */
+.converter circle,
+.converter ellipse,
+.converter path {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.charge {
+  opacity: 0;
+  mix-blend-mode: screen;
+  animation: convCharge 1700ms ease-in calc(var(--i) * 120ms) both, convFade 400ms ease-out 3400ms forwards;
+}
+
+.chargeRing {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+  opacity: 0;
+  animation: convChargeRing 800ms cubic-bezier(0.6, 0, 0.9, 0.5) calc(150ms + var(--k) * 380ms + var(--i) * 120ms) both;
+}
+
+.beamGlow,
+.beamCore,
+.beamFilament {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+}
+
+.beamGlow {
+  stroke: rgb(var(--tone) / 0.55);
+  stroke-width: 34;
+  filter: blur(8px);
+  animation: convBeam 2300ms ease-out calc(1400ms + var(--i) * 90ms) both;
+}
+
+.beamCore {
+  stroke: rgb(var(--tone));
+  stroke-width: 11;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+  animation:
+    convBeam 2300ms ease-out calc(1400ms + var(--i) * 90ms) both,
+    convFlicker 90ms steps(2) 1750ms 18 alternate;
+}
+
+.beamFilament {
+  stroke: #fff;
+  stroke-width: 3;
+  animation: convBeam 2300ms ease-out calc(1400ms + var(--i) * 90ms) both;
+}
+
+.lattice {
+  opacity: 0;
+  animation:
+    convLattice 1700ms cubic-bezier(0.3, 0, 0.7, 1) 1700ms both,
+    convSpin 1700ms linear 1700ms both;
+}
+
+.latticeLine {
+  fill: none;
+  stroke: rgb(200 240 255 / 0.85);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 5px rgb(var(--tone))) drop-shadow(0 0 12px rgb(var(--tone) / 0.7));
+}
+
+.heat {
+  opacity: 0;
+  mix-blend-mode: screen;
+  animation: convHeat 1450ms ease-in 2000ms both;
+}
+
+.crack {
+  fill: none;
+  stroke: rgb(255 240 200);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 4px rgb(255 150 60)) drop-shadow(0 0 10px rgb(255 90 40));
+  animation: convCrack 1100ms ease-in 2300ms both;
+}
+
+.cracks {
+  animation: convFade 200ms ease-out 3400ms forwards;
+}
+
+.core {
+  opacity: 0;
+  mix-blend-mode: screen;
+  animation: convCore 700ms ease-in 2750ms both;
+}
+
+.flash {
+  opacity: 0;
+  mix-blend-mode: screen;
+  animation: convFlash 1800ms cubic-bezier(0.1, 0.8, 0.3, 1) 3380ms both;
+}
+
+.ring {
+  fill: none;
+  stroke: rgb(220 245 255);
+  stroke-width: 4;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 8px rgb(var(--tone))) drop-shadow(0 0 20px rgb(var(--tone) / 0.6));
+  opacity: 0;
+  animation: convRing 2600ms cubic-bezier(0.05, 0.6, 0.3, 1) 3420ms both;
+}
+
+.ring[data-late] {
+  stroke: rgb(255 180 110);
+  stroke-width: 2;
+  animation-delay: 3650ms;
+  animation-duration: 3200ms;
+}
+
+.shock {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.9);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+  opacity: 0;
+  animation: convShock 1500ms cubic-bezier(0.05, 0.7, 0.3, 1) 3400ms both;
+}
+
+.shard {
+  fill: rgb(70 50 55);
+  stroke: rgb(255 170 90);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 4px rgb(255 120 50));
+  opacity: 0;
+  animation: convShard 3000ms cubic-bezier(0.1, 0.75, 0.35, 1) calc(3420ms + var(--lag)) both;
+}
+
+.spark {
+  fill: rgb(230 248 255);
+  filter: drop-shadow(0 0 4px rgb(var(--tone)));
+  opacity: 0;
+  animation: convSpark 1900ms cubic-bezier(0.1, 0.7, 0.4, 1) calc(3420ms + var(--lag)) both;
+}
+
+.ashBelt {
+  opacity: 0;
+  animation: convAsh 4600ms ease-out 3600ms both, convDrift 4600ms linear 3600ms both;
+}
+
+.ash {
+  fill: rgb(190 180 175 / 0.75);
+}
+
+/* --- Keyframes ---------------------------------------------------------------------------- */
+
+@keyframes convFade {
+  to { opacity: 0; }
+}
+@keyframes convCharge {
+  0% { opacity: 0; scale: 0.3; }
+  70% { opacity: 0.9; scale: 1; }
+  85% { opacity: 1; scale: 1.25; }
+  100% { opacity: 0.85; scale: 0.9; }
+}
+@keyframes convChargeRing {
+  0% { opacity: 0; scale: 1.6; }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; scale: 0.1; }
+}
+@keyframes convBeam {
+  0% { opacity: 0; stroke-dashoffset: 1; }
+  4% { opacity: 1; }
+  16% { stroke-dashoffset: 0; }
+  86% { opacity: 1; stroke-dashoffset: 0; }
+  100% { opacity: 0; stroke-dashoffset: 0; }
+}
+@keyframes convFlicker {
+  from { stroke-width: 11; }
+  to { stroke-width: 15; }
+}
+@keyframes convLattice {
+  0% { opacity: 0; scale: 1.7; }
+  30% { opacity: 1; scale: 1; }
+  58% { opacity: 1; scale: 1; }
+  98% { opacity: 1; scale: 0.42; }
+  100% { opacity: 0; scale: 0.38; }
+}
+@keyframes convSpin {
+  from { rotate: 0deg; }
+  to { rotate: 160deg; }
+}
+@keyframes convHeat {
+  0% { opacity: 0; scale: 1; }
+  80% { opacity: 0.9; scale: 0.96; }
+  100% { opacity: 1; scale: 0.82; }
+}
+@keyframes convCrack {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes convCore {
+  0% { opacity: 0; scale: 0.4; }
+  100% { opacity: 1; scale: 1.1; }
+}
+@keyframes convFlash {
+  0% { opacity: 0; scale: 0.2; }
+  10% { opacity: 1; scale: 0.8; }
+  100% { opacity: 0; scale: 1.25; }
+}
+@keyframes convRing {
+  0% { opacity: 0; scale: 0.3; }
+  8% { opacity: 1; }
+  100% { opacity: 0; scale: 4.4; }
+}
+@keyframes convShock {
+  0% { opacity: 0; scale: 0.4; }
+  8% { opacity: 1; }
+  100% { opacity: 0; scale: 5.5; }
+}
+@keyframes convShard {
+  0% { opacity: 0; translate: 0 0; rotate: 0deg; }
+  6% { opacity: 1; }
+  70% { opacity: 0.9; }
+  100% { opacity: 0; translate: var(--dist) 0; rotate: var(--spin); }
+}
+@keyframes convSpark {
+  0% { opacity: 0; translate: 0 0; }
+  8% { opacity: 1; }
+  100% { opacity: 0; translate: var(--dist) 0; }
+}
+@keyframes convAsh {
+  0% { opacity: 0; scale: 0.6; }
+  20% { opacity: 1; scale: 1; }
+  75% { opacity: 0.8; }
+  100% { opacity: 0; scale: 1.15; }
+}
+@keyframes convDrift {
+  from { rotate: 0deg; }
+  to { rotate: 28deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .converter * {
+    animation-duration: 1ms !important;
+  }
+}

@@ -14,6 +14,7 @@ import {
   type HeroFxRecipe,
 } from "@/domains/game-shell/components/KeyMoments/heroBoardFx";
 import { Mark, MarkDefs } from "./HeroFxMarks";
+import { StellarConverterDefs, StellarConverterMark } from "./StellarConverterMark";
 import classes from "./HeroBoardFxLayer.module.css";
 
 /**
@@ -234,6 +235,7 @@ export function HeroBoardFxLayer({
   const layerRef = useRef<HTMLDivElement>(null);
   useQuake(layerRef, run?.recipe.quake, run?.id);
   const uncover = useHeroFx((s) => s.uncover);
+  const unveilPlanet = useHeroFx((s) => s.unveilPlanet);
   const params = useParams<{ mapid: string }>();
   const { data: gameState } = useGameState(params.mapid ?? DEFAULT_GAME_ID);
 
@@ -249,8 +251,18 @@ export function HeroBoardFxLayer({
     for (const r of run.replaced ?? []) {
       timers.push(window.setTimeout(() => uncover(r.position), run.recipe.revealAt ?? 0));
     }
-    return () => timers.forEach((t) => window.clearTimeout(t));
-  }, [run, uncover]);
+    // Stellar Converter: the destroyed planet token appears under the flash.
+    if (run.recipe.target === "destroyed") {
+      for (const planet of run.planets ?? []) {
+        timers.push(window.setTimeout(() => unveilPlanet(planet), run.recipe.revealAt ?? 0));
+      }
+    }
+    return () => {
+      timers.forEach((t) => window.clearTimeout(t));
+      // Skip / end: never leave the token hidden.
+      if (run.recipe.target === "destroyed") (run.planets ?? []).forEach(unveilPlanet);
+    };
+  }, [run, uncover, unveilPlanet]);
 
   if (!run) return null;
   const { recipe } = run;
@@ -295,10 +307,24 @@ export function HeroBoardFxLayer({
         </div>
       )}
       <svg className={classes.svg} width={contentSize.width} height={contentSize.height}>
-        {recipe.mark === "nova" ? <NovaDefs /> : <MarkDefs />}
+        {recipe.mark === "nova" ? (
+          <NovaDefs />
+        ) : recipe.mark === "converter" ? (
+          <StellarConverterDefs />
+        ) : (
+          <MarkDefs />
+        )}
         {targets.map((tile, index) =>
           recipe.mark === "nova" ? (
             <NovaMark key={tile.position} tile={tile} />
+          ) : recipe.mark === "converter" ? (
+            <StellarConverterMark
+              key={tile.position}
+              tiles={tiles}
+              tile={tile}
+              planet={run.planets?.find((p) => tile.destroyedPlanets?.includes(p))}
+              ownerKeys={[run.faction, run.color].filter((k): k is string => !!k)}
+            />
           ) : (
             <Mark
               key={tile.position}

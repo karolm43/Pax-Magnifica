@@ -14,7 +14,11 @@ import { placePlanetEntitiesForTile } from "./planetPlacement";
 import { placeSpaceEntities } from "./spacePlacement";
 import { EntityStack } from "./types";
 import { PrePlacementTile } from "@/entities/game/types";
-import { calculateSystemIndicatorLayout } from "./placementHelpers";
+import {
+  calculateSystemIndicatorLayout,
+  createPlacementFromCoords,
+  tokenToEntityStack,
+} from "./placementHelpers";
 import { getTileById } from "@/entities/lookup/systems";
 
 const hasCrowdedSystemRim = (
@@ -68,8 +72,32 @@ export const getAllEntityPlacementsForTile = (
     tile.planets,
   );
 
-  return [...spaceEntityPlacements, ...planetEntityPlacements];
+  // Destroyed planet token (Stellar Converter): drawn over the printed planet, which is no
+  // longer in `tile.planets` (no circle, no units, no stats).
+  const destroyedPlacements = (tile.destroyedPlanets ?? []).flatMap((name) => {
+    const planet = planets.find((p) => p.name === name);
+    if (!planet) return [];
+    return [
+      {
+        ...createPlacementFromCoords(
+          planet.x,
+          planet.y,
+          tokenToEntityStack(DESTROYED_PLANET_TOKEN, "neutral"),
+        ),
+        planetName: name,
+      },
+    ];
+  });
+
+  return [
+    ...spaceEntityPlacements,
+    ...planetEntityPlacements,
+    ...destroyedPlacements,
+  ];
 };
+
+/** Token id (tokens catalog) placed on a planet destroyed by Stellar Converter. */
+export const DESTROYED_PLANET_TOKEN = "worlddestroyed";
 
 export const findSystemIndicatorLayout = (
   systemId: string,

@@ -61,6 +61,8 @@ class ActivityFact(BaseModel):
     # "winner", "battle_result" (player_id = zwycięzca walki, detail = "winner"/"draw",
     # delta = liczba rund), "rider" (value = karta, detail = przewidziany wynik agendy),
     # "tile_replaced" (value = pozycja, detail = "<stary kafel>><nowy kafel>"; Nova Seed),
+    # "planet_destroyed" (value = planet id, detail = system position; Stellar Converter,
+    # The Silver Flame - the destroyed planet token lies there now),
     # "faction_token" / "faction_token_removed" (value = rodzaj żetonu, detail = planeta / space),
     # "moved" (ruch floty: player_id, value = typ jednostki, delta = liczba, detail = pozycja celu —
     # ruch sam się znosi w sumach, więc dopisujemy go osobno), "landed" (desant: value = typ,
@@ -776,6 +778,12 @@ def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
             facts.append(
                 ActivityFact(type="tile_replaced", value=position, detail=f"{old_tile}>{tile}")
             )
+    for position, system in sorted(after.systems.items()):
+        old_system = before.systems.get(position)
+        gone_before = set(old_system.destroyed_planets) if old_system is not None else set()
+        for planet in system.destroyed_planets:
+            if planet not in gone_before:  # Stellar Converter / The Silver Flame
+                facts.append(ActivityFact(type="planet_destroyed", value=planet, detail=position))
     if after.winner_id and not before.winner_id:
         facts.append(ActivityFact(type="winner", player_id=after.winner_id))
     known = {e.player_id for e in before.eliminated_players}

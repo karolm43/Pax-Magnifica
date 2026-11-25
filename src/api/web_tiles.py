@@ -292,6 +292,9 @@ def _build_tile_unit_data(
             "anomaly": bool(grid.anomalies_at(position)),
             "production": _tile_production(state, grid, registry, position),
             "pds": _pds_coverage_entry(sc_coverage.get(position), entity_keys),
+            # Planets destroyed by Stellar Converter / The Silver Flame: gone from ``planets``
+            # (no circle, no stats), the map draws the "destroyed planet" token in their place.
+            "destroyedPlanets": list(sys_state.destroyed_planets) if sys_state is not None else [],
         }
 
     return tile_unit_data, tile_positions

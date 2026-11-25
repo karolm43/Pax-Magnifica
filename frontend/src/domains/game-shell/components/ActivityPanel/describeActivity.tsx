@@ -1026,6 +1026,19 @@ function describeFact(
         ),
       };
     }
+    case "planet_destroyed": {
+      // Stellar Converter / The Silver Flame: the destroyed planet token lies there now.
+      const planet = fact.value ?? "";
+      return {
+        key,
+        tone: "bad",
+        text: (
+          <>
+            <Named kind="planet" id={planet} name={resolvePlanetName(planet)} /> was destroyed
+          </>
+        ),
+      };
+    }
     case "battle_result": {
       // Podsumowanie bitwy: zwycięzca w nagłówku, tu długość walki.
       const rounds = `${delta} round${delta === 1 ? "" : "s"}`;

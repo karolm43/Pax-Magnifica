@@ -457,7 +457,7 @@ export function MarkDefs() {
   );
 }
 
-const DRAW: Record<Exclude<FxMark, "nova" | "maw">, () => ReactNode> = {
+const DRAW: Record<Exclude<FxMark, "nova" | "maw" | "converter">, () => ReactNode> = {
   bloom: Bloom,
   beam: Beam,
   coins: Coins,
@@ -483,7 +483,7 @@ export function Mark({
   index,
   neighbors = [],
 }: {
-  mark: Exclude<FxMark, "nova">;
+  mark: Exclude<FxMark, "nova" | "converter">;
   tile: Tile;
   index: number;
   /** Sąsiednie kafle (Cabal: macki sięgają do nich). */

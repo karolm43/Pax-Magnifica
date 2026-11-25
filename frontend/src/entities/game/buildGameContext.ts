@@ -276,6 +276,7 @@ function buildPrePlacementTile(
     hasAttachments: hasAttachments(planets),
     controlledBy: getTileController(planets, spaceUnitsByFaction),
     borderAnomalies: context.borderAnomaliesByTile[position],
+    destroyedPlanets: tileData.destroyedPlanets,
   };
 }
 

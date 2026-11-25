@@ -7,6 +7,8 @@ import { stateCount, unitStates } from "@/entities/replay/unitState";
 import { isBadgeUnit } from "../UnitStack/unitType";
 import { getTokenData } from "@/entities/lookup/tokens";
 import { useSettingsStore } from "@/state/appStore";
+import { useHeroFx } from "@/domains/game-shell/components/KeyMoments/heroBoardFx";
+import { DESTROYED_PLANET_TOKEN } from "@/entities/positioning";
 
 type Props = {
   systemId: string;
@@ -39,6 +41,10 @@ export function UnitImagesLayer({
   const showExhaustedPlanets = useSettingsStore(
     (state) => state.settings.showExhaustedPlanets,
   );
+  // Destroyed planet token waiting for the Stellar Converter blast (`useHeroFx.veiledPlanets`).
+  const veiledPlanets = useHeroFx((s) => s.veiledPlanets);
+  const veiled = (entityId: string, planetName: string | undefined) =>
+    entityId === DESTROYED_PLANET_TOKEN && !!planetName && planetName in veiledPlanets;
   // Żeton-planeta (Avernus) szarzeje cały, gdy planeta jest wyczerpana.
   const tokenPlanetExhausted = (entityId: string, entityType: string) => {
     if (entityType !== "token" || !showExhaustedPlanets) return false;
@@ -90,10 +96,11 @@ export function UnitImagesLayer({
           damageAtMs={delayedDamage?.damageAtMs}
           delayedDamageStates={delayedDamage?.states}
           replayHidden={
-            mapReplay.active &&
-            (hiddenUntilReplayEnd ||
-              ((isBadgeUnit(stack.entityId) || stack.entityType !== "unit") &&
-                mapReplay.arrivalLocations.has(locationKey)))
+            veiled(stack.entityId, stack.planetName) ||
+            (mapReplay.active &&
+              (hiddenUntilReplayEnd ||
+                ((isBadgeUnit(stack.entityId) || stack.entityType !== "unit") &&
+                  mapReplay.arrivalLocations.has(locationKey))))
           }
           onUnitMouseOver={
             onUnitMouseOver

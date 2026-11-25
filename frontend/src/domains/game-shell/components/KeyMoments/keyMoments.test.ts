@@ -124,6 +124,24 @@ describe("momentsForEntry (RULES.md 64)", () => {
     ]);
     expect(momentsForEntry(e, isHero)).toEqual([{ kind: "custodians", seq: 7, player: "p3" }]);
   });
+
+  it("Stellar Converter: relic purged + destroyed planet = converter moment", () => {
+    const e = entry([
+      fact({ type: "relic", player_id: "p1", value: "stellarconverter", detail: "lost" }),
+      fact({ type: "planet_destroyed", value: "lodor", detail: "205" }),
+    ]);
+    expect(momentsForEntry(e, isHero)).toEqual([
+      { kind: "converter", seq: 7, player: "p1", planet: "lodor", position: "205" },
+    ]);
+  });
+
+  it("The Silver Flame destroying a home system is not the converter moment", () => {
+    const e = entry([
+      fact({ type: "relic", player_id: "p1", value: "thesilverflame", detail: "lost" }),
+      fact({ type: "planet_destroyed", value: "jord", detail: "103" }),
+    ]);
+    expect(momentsForEntry(e, isHero)).toEqual([]);
+  });
 });
 
 describe("phaseSweep", () => {

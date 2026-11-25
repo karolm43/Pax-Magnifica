@@ -903,3 +903,16 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
 - NOT done: quick-pass buttons in `HeldPlayBanner` (Sabotage window; file has a parallel session's edits); no host UI
   control for jitter yet (endpoint only); involvement filter for "global" agents (Naalu/Saar) = mute, not auto-detected.
 - Tests: `tests/test_reaction_pacing.py` (25).
+
+## Stellar Converter: targets without units, destroyed planet token, board effect (RULES 59, 64.4a)
+
+- Bug: `_converter_planets` used `grid_from_state` (only systems with a state entry), so a planet in an untouched
+  system (no units/tokens) was never adjacent -> no legal target. Now adjacency = bound map grid + state-only links;
+  Mecatol Rex excluded by planet id (also without a state entry).
+- Bug: the destroyed planet token was never drawn. Web-data `tileUnitData[pos].destroyedPlanets` -> `positioning`
+  places `worlddestroyed` on the printed planet (planet stays out of `tile.planets`).
+- Activity fact `planet_destroyed` (also The Silver Flame) + feed line; KeyMoment `converter` (only with the relic
+  purged) -> `RELIC_BOARD_FX.stellarconverter` + `StellarConverterMark` (charge, beams from adjacent ships, lattice
+  squeeze, burst, debris ring, ash) with sounds; token veiled until the flash; caption instead of a portrait scene.
+- Tests: `test_rulings_relics.py` (3 new), `keyMoments.test.ts` (2), `StellarConverterMark.test.ts` (4),
+  `positioning/destroyedPlanet.test.ts` (1).

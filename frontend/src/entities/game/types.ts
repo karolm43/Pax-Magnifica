@@ -104,6 +104,8 @@ export type Tile = {
   commandCounters: string[];
   entityPlacements: EntityStack[];
   borderAnomalies?: BorderAnomalyInfo[];
+  /** Planets destroyed on this tile (gone from `planets`; the map draws the destroyed token). */
+  destroyedPlanets?: string[];
 };
 
 export type PrePlacementTile = Omit<Tile, "entityPlacements">;

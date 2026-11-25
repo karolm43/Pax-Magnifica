@@ -23,7 +23,15 @@ export type KeyMoment =
   /** Przełom frakcji zdobyty. */
   | { kind: "breakthrough"; seq: number; player: string }
   /** Żeton Custodians zdjęty z Mecatol Rex. */
-  | { kind: "custodians"; seq: number; player: string | null };
+  | { kind: "custodians"; seq: number; player: string | null }
+  /**
+   * Stellar Converter: the player's BOMBARDMENT ships fire at a planet in an adjacent system and
+   * destroy it (fact `planet_destroyed` in the entry that purged the relic).
+   */
+  | { kind: "converter"; seq: number; player: string | null; planet: string; position: string };
+
+/** Relic whose purge + `planet_destroyed` fact is the Stellar Converter moment. */
+export const STELLAR_CONVERTER = "stellarconverter";
 
 /** Kafel wymieniony w tym samym wpisie (Nova Seed): mapa pokazuje stary do chwili wybuchu. */
 export type ReplacedTile = { position: string; from: string };
@@ -88,6 +96,18 @@ export function momentsForEntry(entry: ActivityEntry, isHero: IsHero): KeyMoment
       kind: f.detail as HeroArea["kind"],
     }));
   if (hero?.kind === "hero" && areas.length > 0) hero.areas = areas;
+  // Stellar Converter: zniszczona planeta we wpisie, w którym relikt zszedł z gry (The Silver
+  // Flame też niszczy planety — dom gracza — ale to nie ten moment).
+  const converterUsed =
+    !godmode &&
+    a.facts.some((f) => f.type === "relic" && f.value === STELLAR_CONVERTER && f.detail === "lost");
+  if (converterUsed) {
+    for (const f of a.facts) {
+      if (f.type === "planet_destroyed" && f.value) {
+        out.push({ kind: "converter", seq, player: a.actor_id, planet: f.value, position: f.detail ?? "" });
+      }
+    }
+  }
   // Fracture otwiera scenę: jeśli w jednym wpisie jest kilka momentów (przełom -> rzut 1/10),
   // najpierw przełom, potem Fracture.
   return out.sort((x, y) => order(x) - order(y));

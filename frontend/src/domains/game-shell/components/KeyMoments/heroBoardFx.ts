@@ -20,7 +20,8 @@ export type FxTarget =
   | "mecatol" // Mecatol Rex
   | "nova" // kafel supernowej Muaat (Nova Seed) — po wymianie kafla
   | "docks" // systemy z dokami bohatera (Dimensional Tear Cabal, przekaźnik Saar)
-  | "planet"; // system planety, do której bohater dołączył kartę (Geoform -> Elysium)
+  | "planet" // system planety, do której bohater dołączył kartę (Geoform -> Elysium)
+  | "destroyed"; // system planety zniszczonej przez Stellar Converter (`tile.destroyedPlanets`)
 
 /** Wygląd efektu w systemie docelowym (każdy bohater ma własny, pasujący do frakcji). */
 export type FxMark =
@@ -41,7 +42,8 @@ export type FxMark =
   | "blast" // Saar: fala Armageddon Relay
   | "psi" // Naalu: fale psioniczne i oko
   | "maw" // Cabal: wir Event Horizon wciągający sąsiednie systemy
-  | "awaken"; // Titans: przebudzenie Elysium
+  | "awaken" // Titans: przebudzenie Elysium
+  | "converter"; // Stellar Converter: okręty z BOMBARDMENT rozbijają planetę
 
 export type HeroFxRecipe = {
   /** Przyciemnienie całej planszy (0–1). */
@@ -344,6 +346,41 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   },
 };
 
+/**
+ * Efekty RELIKTÓW na planszy (bez sceny portretu — od razu mapa). Klucz = id reliktu.
+ * Stellar Converter: inny styl niż Nova Seed (gorąca supernowa gwiazdy) — zimna, „techniczna”
+ * energia: okręty z BOMBARDMENT ładują się, wiązki zbiegają się na planecie w sąsiednim systemie,
+ * siatka pola otula planetę i ją ściska („concentrated”), skorupa pęka i planeta rozpada się
+ * w pierścień odłamków („scattered”); pod błyskiem pojawia się żeton zniszczonej planety.
+ */
+export const RELIC_BOARD_FX: Record<string, HeroFxRecipe> = {
+  stellarconverter: {
+    dim: 0.6,
+    target: "destroyed",
+    mark: "converter",
+    tone: "120 205 255",
+    ms: 8200,
+    flashAt: 3400,
+    revealAt: 3450,
+    quake: [
+      { at: 2600, px: 2, ms: 800 },
+      { at: 3400, px: 9, ms: 1000 },
+    ],
+    sounds: [
+      { at: 0, name: "warSunEnter", gain: 0.55, rate: 1.35 },
+      { at: 500, name: "assaultCannon", gain: 0.75, rate: 0.75 },
+      { at: 1450, name: "sunfire", gain: 0.7, rate: 0.8 },
+      { at: 1600, name: "laser", gain: 0.45, rate: 0.6 },
+      { at: 2000, name: "explosionHeavy", gain: 0.8, rate: 0.7, reverse: true, endIn: 1400 },
+      { at: 3400, name: "explosionHeavy", gain: 1, rate: 0.62 },
+      { at: 3440, name: "groundBlast", gain: 0.9, rate: 0.55 },
+      { at: 3700, name: "explosionHeavy", gain: 0.55, rate: 0.9 },
+      { at: 4300, name: "impact", gain: 0.45, rate: 0.6 },
+      { at: 4800, name: "impact", gain: 0.35, rate: 0.5 },
+    ],
+  },
+};
+
 const GROUND = new Set(["gf", "mf"]);
 const DEFENSE = new Set(["pd", "mf"]);
 const DOCK = "sd";
@@ -397,6 +434,10 @@ export function fxTargets(
     case "planet": {
       const planets = new Set(owner.planets ?? []);
       return pick((t) => Object.keys(t.planets).some((p) => planets.has(p)));
+    }
+    case "destroyed": {
+      const planets = new Set(owner.planets ?? []);
+      return pick((t) => (t.destroyedPlanets ?? []).some((p) => planets.has(p)));
     }
     case "docks": {
       const docks = new Set([DOCK]);
@@ -453,6 +494,13 @@ type HeroFxStore = {
   run: HeroFxRun | null;
   /** Pozycja -> kafel sprzed wymiany: `MapTile` rysuje go, póki efekt go nie odsłoni. */
   covers: Record<string, string>;
+  /**
+   * Planety, których żeton zniszczenia czeka pod efektem (Stellar Converter): mapa go nie
+   * rysuje, póki efekt nie odsłoni go w `recipe.revealAt`.
+   */
+  veiledPlanets: Record<string, true>;
+  setVeiledPlanets: (planets: Record<string, true>) => void;
+  unveilPlanet: (planet: string) => void;
   /** Kolejka momentów (scena bohatera itd.) niepusta - inne sceny (relikt) czekają na koniec. */
   stageBusy: boolean;
   setStageBusy: (busy: boolean) => void;
@@ -466,6 +514,15 @@ type HeroFxStore = {
 export const useHeroFx = create<HeroFxStore>((set) => ({
   run: null,
   covers: {},
+  veiledPlanets: {},
+  setVeiledPlanets: (veiledPlanets) => set({ veiledPlanets }),
+  unveilPlanet: (planet) =>
+    set((s) => {
+      if (!(planet in s.veiledPlanets)) return s;
+      const rest = { ...s.veiledPlanets };
+      delete rest[planet];
+      return { veiledPlanets: rest };
+    }),
   stageBusy: false,
   setStageBusy: (stageBusy) => set((s) => (s.stageBusy === stageBusy ? s : { stageBusy })),
   play: (run) => set({ run: { ...run, id: Date.now() } }),
@@ -485,4 +542,11 @@ export function coversForQueue(queue: { kind: string; replaced?: ReplacedTile[] 
   const covers: Record<string, string> = {};
   for (const m of queue) for (const r of m.replaced ?? []) covers[r.position] ??= r.from;
   return covers;
+}
+
+/** Planety zniszczone w czekających momentach Stellar Converter (żeton czeka na wybuch). */
+export function veiledPlanetsForQueue(queue: { kind: string; planet?: string }[]) {
+  const veiled: Record<string, true> = {};
+  for (const m of queue) if (m.kind === "converter" && m.planet) veiled[m.planet] = true;
+  return veiled;
 }

@@ -225,6 +225,8 @@ export type TileUnitData = {
   pds: {
     [factionName: string]: { count: number; expected: number };
   } | null;
+  /** Planets destroyed by Stellar Converter / The Silver Flame (destroyed planet token). */
+  destroyedPlanets?: string[];
 };
 
 export type LawInPlay = {
