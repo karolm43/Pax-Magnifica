@@ -347,6 +347,10 @@ export function UnitStack({
             y={yPos}
             zIndex={baseZIndex + zIndexOffset - 1}
             throttled={!!mapTransition?.flightPath}
+            deflectors={
+              mapTransition?.flightPath?.some((leg) => leg.anomaly === "asteroid") ?? false
+            }
+            gravityDrive={mapTransition?.gravityDrive ?? false}
           />,
           unit,
         ];

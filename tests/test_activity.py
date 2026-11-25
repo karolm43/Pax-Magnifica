@@ -525,3 +525,57 @@ def test_ruch_floty_niesie_straty_w_gravity_rift() -> None:
         ("carrier", 1, "101"),
         ("fighter", 1, "101"),
     ]
+
+
+def test_ruch_floty_niesie_uzycie_gravity_drive() -> None:
+    """A ship type that spent Gravity Drive on the move becomes a ``gravity_drive`` fact, so
+    clients replay the ship with its gravity field."""
+    before = _state()
+    after = _state()
+    before.systems["202"] = SystemState(
+        position="202", system_id="27", space_units={"p1": {"cruiser": 1}}
+    )
+    after.systems["202"] = SystemState(position="202", system_id="27")
+    after.systems["000"] = SystemState(
+        position="000", system_id="18", space_units={"p1": {"cruiser": 1}}
+    )
+    after.active_system = "000"
+    after.last_move = MoveRecord(
+        player_id="p1", route=["202", "101", "000"], hops=["lane", "lane"],
+        ships={"cruiser": 1}, boosted=["cruiser"],
+    )
+    entry = derive_activity("tactical:move:202", before, after)
+    assert entry is not None
+    assert [(f.player_id, f.value) for f in entry.facts if f.type == "gravity_drive"] == [
+        ("p1", "cruiser")
+    ]
+
+
+def test_strzal_space_cannon_niesie_grupy_rzutow_do_odtworzenia() -> None:
+    """``spacecannon.fire`` carries one ``cannon_shot`` per roll group (shooter system and zone,
+    target player, hits) so every client can replay the volley; a pass carries none."""
+    import json
+
+    before = _state()
+    after = _state()
+    after.active_system = "000"
+    entry_log = {
+        "roller": "p1", "target": "p2", "hits": 2, "passed": False, "destroyed": {},
+        "rolls": [
+            {"baseType": "pds", "zone": "lodor", "position": "000", "hits": 2, "dice": [9, 10]},
+            {"baseType": "pds", "zone": "space", "position": "101", "hits": 0, "dice": [3]},
+        ],
+    }
+    after.space_cannon_log = json.dumps([entry_log])
+    fired = derive_activity("space-cannon:fire:p1", before, after)
+    assert fired is not None
+    shots = [f for f in fired.facts if f.type == "cannon_shot"]
+    assert [(f.player_id, f.value, f.detail, f.delta, f.dice, f.route) for f in shots] == [
+        ("p1", "p2", "lodor", 2, 2, ["000", "000"]),
+        ("p1", "p2", "space", 0, 1, ["101", "000"]),
+    ]
+
+    after.space_cannon_log = json.dumps([{**entry_log, "passed": True}])
+    passed = derive_activity("space-cannon:fire:p1", before, after)
+    assert passed is not None
+    assert not [f for f in passed.facts if f.type == "cannon_shot"]

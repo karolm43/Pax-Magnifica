@@ -10,8 +10,10 @@ import type { Point } from "@/entities/data/types";
  * Consecutive lane legs form one smooth chain (Catmull-Rom through the waypoints) with
  * launch/braking easing at the chain ends only, so a ship cruises through the systems it
  * passes. Anomalies change the flight: leaving a gravity rift slingshots the ship (faster,
- * glowing), entering a nebula damps it (slower, dimmed), an asteroid field makes it weave
- * between the rocks (slower), a supernova scorches it (hot glow, shaking).
+ * glowing), entering a nebula damps it (slower, dimmed), an asteroid field slows it while its
+ * Antimass Deflectors glow around the hull and fling the rocks away (no weaving - the ship
+ * holds its line), a supernova scorches it (hot glow, shaking). A ship that spent Gravity
+ * Drive wraps itself in a gravity field for the whole flight.
  *
  * Everything here is pure: the replay planner uses it for timing and effects, the flight
  * hook for keyframes, so what is drawn always matches the replay duration.
@@ -39,6 +41,9 @@ export type FlightEffectKind =
   | "nebulaDamp"
   | "asteroidDust"
   | "supernovaFlare"
+  | "gravityDrive"
+  | "cannonFlash"
+  | "cannonImpact"
   | "blackHole";
 
 /** A board effect along the path, timed relative to the flight start. */
@@ -82,13 +87,15 @@ const NEBULA_SPEED = 0.62;
 const ASTEROID_SPEED = 0.8;
 /** Distance (px, along the path) around an asteroid field / supernova that the ship feels it. */
 const HAZARD_REACH_PX = 115;
-/** Weaving between asteroids: sideways swing (px), its wavelength (px), nose swing (deg). */
-const WEAVE_PX = 9;
-const WEAVE_WAVE_PX = 90;
-const WEAVE_TURN_DEG = 12;
+/**
+ * Antimass Deflectors: the field around the hull is fully up within SHIELD_FULL_PX of an
+ * asteroid field and ramps up / down over the next SHIELD_RAMP_PX (distance along the path).
+ */
+const SHIELD_FULL_PX = 70;
+const SHIELD_RAMP_PX = 70;
 /** Supernova buffeting (px). */
 const SHAKE_PX = 2.4;
-const EFFECT_MS: Record<FlightEffectKind, number> = {
+export const EFFECT_DURATION_MS: Record<FlightEffectKind, number> = {
   wormholeIn: 1100,
   wormholeOut: 1100,
   portalIn: 1000,
@@ -97,6 +104,9 @@ const EFFECT_MS: Record<FlightEffectKind, number> = {
   nebulaDamp: 1500,
   asteroidDust: 1600,
   supernovaFlare: 1400,
+  gravityDrive: 2200,
+  cannonFlash: 420,
+  cannonImpact: 800,
   blackHole: 3300,
 };
 /** The effect starts a beat before the ship reaches the system. */
@@ -305,6 +315,8 @@ export type PathKeyframeOptions = {
   rotateToTrajectory: boolean;
   startRotationDeg: number;
   parkRotationDeg: number;
+  /** The ship spent Gravity Drive: it flies wrapped in a gravity field. */
+  gravityDrive?: boolean;
 };
 
 type Frame = {
@@ -317,6 +329,8 @@ type Frame = {
   glow?: FlightAnomaly;
   /** Stretched along the nose (1 = normal): the streak into / out of a Fracture tear. */
   stretch?: number;
+  /** Antimass Deflector field strength (0..1) while crossing an asteroid field. */
+  shield?: number;
 };
 
 const NO_GLOW = "drop-shadow(0px 0px 0px rgba(0, 0, 0, 0))";
@@ -362,6 +376,12 @@ function hazardStrength(hazard: Hazard, dist: number, length: number): number {
   if (away >= HAZARD_REACH_PX) return 0;
   const bell = 0.5 * (1 + Math.cos((Math.PI * away) / HAZARD_REACH_PX));
   return bell * clamp01(dist / 50) * clamp01((length - dist) / 50);
+}
+
+/** Deflector field strength at `dist` along the chain: a plateau around the asteroid field. */
+function shieldStrength(hazard: Hazard, dist: number): number {
+  const away = Math.abs(dist - hazard.dist);
+  return smoothstep(clamp01((SHIELD_FULL_PX + SHIELD_RAMP_PX - away) / SHIELD_RAMP_PX));
 }
 
 type ChainTurns = {
@@ -410,24 +430,22 @@ function chainFrames(
         : leg > 0 && chain.anomalies[leg - 1] === "rift"
           ? "rift"
           : undefined;
-    // Asteroid field: weave between the rocks. Supernova: buffeted by the blast, glowing hot.
+    // Asteroid field: the deflector field glows up around the hull. Supernova: buffeted by
+    // the blast, glowing hot.
     const dist = dense[index].dist;
-    const side = headingVector(course + 90);
+    let shield = 0;
     for (const hazard of hazards) {
+      if (hazard.kind === "asteroid") {
+        shield = Math.max(shield, shieldStrength(hazard, dist));
+        continue;
+      }
       const strength = hazardStrength(hazard, dist, length);
       if (strength <= 0) continue;
       if (strength > 0.2) glow = hazard.kind;
-      if (hazard.kind === "asteroid") {
-        const phase = (2 * Math.PI * (dist - hazard.dist)) / WEAVE_WAVE_PX;
-        const swing = WEAVE_PX * Math.sin(phase) * strength;
-        point = { x: point.x + side.x * swing, y: point.y + side.y * swing };
-        heading += WEAVE_TURN_DEG * Math.cos(phase) * strength;
-      } else {
-        point = {
-          x: point.x + SHAKE_PX * Math.sin(i * 2.9) * strength,
-          y: point.y + SHAKE_PX * Math.cos(i * 4.3) * strength,
-        };
-      }
+      point = {
+        x: point.x + SHAKE_PX * Math.sin(i * 2.9) * strength,
+        y: point.y + SHAKE_PX * Math.cos(i * 4.3) * strength,
+      };
     }
     const rotation = options.rotateToTrajectory ? heading : 0;
     frames.push({
@@ -437,6 +455,7 @@ function chainFrames(
       scale: 1,
       lift: 1,
       glow,
+      shield,
     });
   }
   return frames;
@@ -566,10 +585,14 @@ function chainStartHeading(segment: FlightSegment | undefined): number | undefin
  *
  * `thrust` animates the flying ship's engine flames on the same timeline: they flare as it
  * launches, burn with its speed, die down as it brakes and go cold once it lands.
+ * `shield` (Antimass Deflectors in an asteroid field) and `drive` (Gravity Drive) animate the
+ * ship-attached force fields the same way.
  */
 export function buildPathKeyframes(options: PathKeyframeOptions): {
   keyframes: Keyframe[];
   thrust: Keyframe[];
+  shield: Keyframe[];
+  drive: Keyframe[];
   durationMs: number;
 } {
   const segments = flightSegments(options.start, options.legs);
@@ -637,11 +660,37 @@ export function buildPathKeyframes(options: PathKeyframeOptions): {
       transform: `scale(${level.toFixed(3)}, ${(0.65 + 0.35 * Math.min(1, level)).toFixed(3)})`,
     }),
   );
-  for (const list of [keyframes, thrust]) {
+  const shield = frames.map(
+    (frame): Keyframe => ({
+      offset: offsetOf(frame),
+      opacity: frame.shield ?? 0,
+      transform: `translate(-50%, -50%) scale(${(0.82 + 0.18 * (frame.shield ?? 0)).toFixed(3)})`,
+    }),
+  );
+  const drive = frames.map((frame): Keyframe => {
+    const level = options.gravityDrive ? driveLevel(frame, durationMs) : 0;
+    return {
+      offset: offsetOf(frame),
+      opacity: level,
+      transform: `translate(-50%, -50%) scale(${(0.7 + 0.3 * level).toFixed(3)})`,
+    };
+  });
+  for (const list of [keyframes, thrust, shield, drive]) {
     list[0].offset = 0;
     list[list.length - 1].offset = 1;
   }
-  return { keyframes, thrust, durationMs };
+  return { keyframes, thrust, shield, drive, durationMs };
+}
+
+/**
+ * Gravity field strength: it builds while the ship lifts off, holds through the flight and
+ * collapses as the ship settles. Inside a wormhole (scale 0) it is gone with the ship.
+ */
+function driveLevel(frame: Frame, durationMs: number): number {
+  if (frame.scale <= 0) return 0;
+  const build = clamp01(frame.timeMs / IGNITION_MS);
+  const release = clamp01((durationMs - frame.timeMs) / SETTLE_MS);
+  return smoothstep(Math.min(build, release)) * (frame.timeMs <= IGNITION_MS ? 1 : 0.8);
 }
 
 /**
@@ -670,10 +719,16 @@ function thrustLevels(frames: Frame[]): number[] {
 // --- Effects ---------------------------------------------------------------
 
 /** Wormhole swirls and anomaly pulses along the path, timed from the flight start. */
-export function flightEffects(start: Point, legs: FlightLeg[]): FlightEffect[] {
+export function flightEffects(
+  start: Point,
+  legs: FlightLeg[],
+  { gravityDrive = false }: { gravityDrive?: boolean } = {},
+): FlightEffect[] {
   const effects: FlightEffect[] = [];
   const push = (kind: FlightEffectKind, point: Point, atMs: number) =>
-    effects.push({ kind, x: point.x, y: point.y, atMs: Math.round(atMs), durationMs: EFFECT_MS[kind] });
+    effects.push({ kind, x: point.x, y: point.y, atMs: Math.round(atMs), durationMs: EFFECT_DURATION_MS[kind] });
+  // Gravity Drive: space buckles around the ship as it lifts off.
+  if (gravityDrive) push("gravityDrive", start, 0);
   let clock = IGNITION_MS;
   for (const segment of flightSegments(start, legs)) {
     if (segment.kind === "swallow") {

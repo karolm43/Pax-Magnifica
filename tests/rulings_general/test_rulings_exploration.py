@@ -315,6 +315,36 @@ def test_mirage_card_holder_gains_control_and_explores_it_as_cultural(
     assert _card_id(registry, "Mirage") in done.decks.purged
 
 
+@ruling("R_exploration/notes/1")
+def test_exploration_comes_before_after_you_gain_control_abilities(
+    registry: StaticDataRegistry,
+) -> None:
+    """Integrated Economy (po zdobyciu planety) nie może być użyte, dopóki planeta czeka na
+    eksplorację; po rozstrzygnięciu karty oferta działa."""
+    from src.core import triggers
+    from src.core.game_events import GameEvent, Moment
+
+    planet = next(
+        p for p in (_CULT, _IND) if (registry.planets[p].resources or 0) > 0
+    )
+    state = _state()
+    state.players["p1"].technologies = ["ie"]
+    state.systems["000"].planet_owners[planet] = "p1"
+    state.players["p1"].controlled_planets = [planet]
+    ctx = {"player": "p1", "planet": planet, "position": "000", "previous": None}
+    triggers.fire(state, GameEvent.PLANET_CONTROL_GAINED, Moment.AFTER, subject="p1", ctx=ctx)
+    offer = next(o for o in triggers.offers_for(state, "p1") if "Integrated Economy" in o.label)
+    exploring = exploration.begin_exploration(state, registry, "p1", "000", [planet])
+    assert exploring.exploration is not None  # the planet is waiting for / being explored
+    with pytest.raises(ValueError, match="Finish exploring"):
+        triggers.accept_offer(exploring, "p1", offer.id, {})
+    option = next(o for o in exploration.options_for(exploring, registry) if o.enabled)
+    explored = exploration.finish(exploration.resolve(exploring, registry, option.id, None))
+    assert explored.exploration is None
+    after = triggers.accept_offer(explored, "p1", offer.id, {})
+    assert after.production_grant is not None
+
+
 @ruling("R_exploration/notes/3")
 def test_transactions_are_allowed_while_a_card_is_revealed(registry: StaticDataRegistry) -> None:
     from tests.test_relics import _state as relic_state

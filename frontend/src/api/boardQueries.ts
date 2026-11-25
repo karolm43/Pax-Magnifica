@@ -614,6 +614,9 @@ export type ActivityFact = {
   route?: string[] | null;
   hops?: string[] | null;
   anomalies?: Record<string, string[]> | null;
+  /** Only `cannon_shot` (`delta` = hits): dice the roll group threw; `value` = target player,
+   *  `detail` = shooter zone (`space` / planet id), `route` = [shooter system, active system]. */
+  dice?: number | null;
 };
 
 export type ActivityKind =

@@ -569,6 +569,10 @@ class PlayerState(BaseModel):
     # Karta przełomu odwrócona (Absolute Synergy Naaz-Rokha: Eidolon Maximum na karcie mecha,
     # RULES.md 62.15). Zmiana tylko przez ``core/breakthrough.py`` (flip / flip_back).
     breakthrough_flipped: bool = False
+    # Siła naziemna-statek w przestrzeni (Eidolon Maximum, F_naaz_rokha eidolon-maximum 3) liczy się
+    # „albo do pojemności, albo do puli floty” - wybór gracza: ``fleet`` (domyślnie, „Auto”) /
+    # ``capacity``. Zmiana tylko przez ``floating_structures.choose_ground_ship_pool``.
+    ground_ship_pool: str = "fleet"
 
     # Promissory notes POŁOŻONE w strefie gracza (play area) — identyfikatory kart
     # zagranych i leżących odkryte, np. Support for the Throne, Alliance (RULES.md 2d,
@@ -808,6 +812,10 @@ class InvasionState(BaseModel):
     # zamknięciu tej inwazji otwiera się następna. Pusty ``source`` = zwykła inwazja taktyczna.
     source: str = ""
     queue: list[dict[str, Any]] = Field(default_factory=list)
+    # Tura aktywnego gracza zakończona efektem (Nullification Field), a walka naziemna Coalescence
+    # i tak się odbywa (F_ul coalescence 4): tylko Ground Combat + Establish Control, po czym
+    # akcja i tura kończą się same (``invasion.advance``).
+    forced_end: bool = False
 
 
 class ProductionGrant(BaseModel):
@@ -1178,6 +1186,9 @@ class MoveRecord(BaseModel):
     cargo: list[MoveCargo] = Field(default_factory=list)
     # Ships / cargo a gravity rift removed on the way (not part of ``ships`` / ``cargo``).
     lost: list[MoveLoss] = Field(default_factory=list)
+    # Base types of ships that used the one-ship Gravity Drive bonus on this move (presentation:
+    # the replay shows their gravity field).
+    boosted: list[str] = Field(default_factory=list)
 
 
 class GameState(BaseModel):
@@ -1351,6 +1362,10 @@ class GameState(BaseModel):
     # Karty akcji leżące jawnie NA karcie zdolności legendarnej planety: {planet_id: [card_id]}
     # (Dok 'N Pic's Salvage Yard na Garbozii). Zostają przy karcie, gdy zmienia ona kontrolera.
     legendary_cards: dict[str, list[str]] = Field(default_factory=dict)
+    # Cards a player is playing FROM the Salvage Yard right now: {player_id: [card_id]}. They sit in
+    # the hand only for the duration of the play and are PURGED (not discarded) when they leave it
+    # (``card_draw.borrow_salvage_yard_card`` / ``discard_specific_action_cards``).
+    salvage_yard_borrowed: dict[str, list[str]] = Field(default_factory=dict)
     # Trade goods leżące na kartach strategii: {numer_inicjatywy: liczba_TG}.
     # Niewybrane karty akumulują +1 TG na koniec fazy strategii; wybór przekazuje
     # TG graczowi i zeruje licznik (RULES.md 13).

@@ -125,6 +125,43 @@ def test_awaken_walka_naziemna_w_kroku_invasion(registry: StaticDataRegistry) ->
     assert invasion_common_contested(after, registry, EAST) == [ALBION]
 
 
+@ruling("F_ul/awaken/5", "F_ul/coalescence/4")
+def test_nullification_field_nie_zatrzymuje_walki_awaken(registry: StaticDataRegistry) -> None:
+    """Efekt kończący turę Titanów nie odwołuje walki naziemnej; poza nią nic się nie dzieje."""
+    from src.core import invasion, turn_flow
+    from src.core.game_state import InvasionPhase, TacticalStep
+    from src.core.hooks.factions import xxcha
+
+    state = _state(other="xxcha")
+    state.players["p2"].technologies = ["nf"]
+    _own(state, EAST, ALBION, pid="p2", units={"infantry": 1})
+    _sleeper(state, EAST, ALBION)
+    state.systems[EAST].space_units = {"p2": {"cruiser": 1}}
+    after = _accept(_activate(state, registry, EAST), "p1", "Awaken",
+                    {f"sleeper:{ALBION}": "pds"})
+    xxcha.nullification_field(after, "p2", {"player": "p1", "position": EAST})
+    # The turn is NOT over: only the ground combat step is left.
+    assert after.active_player_id == "p1" and after.active_system == EAST
+    assert after.tactical_step is TacticalStep.INVASION
+    assert after.invasion is not None and after.invasion.forced_end
+    assert after.invasion.phase is InvasionPhase.GROUND_COMBAT
+    assert not after.pending_offers  # no "after activation" abilities
+    with pytest.raises(ValueError):
+        turn_flow.end_turn(after, "p1", registry=registry)  # combat blocks ending
+    with pytest.raises(ValueError):
+        invasion.advance(after, _grid(after, registry), registry)  # combat still to be fought
+    # Combat resolved (planet captured by the Titans) -> action and turn end automatically.
+    after.invasion.combat_results[ALBION] = {"outcome": "won"}
+    after.systems[EAST].planet_units[ALBION]["p2"] = {}
+    for _ in range(2):
+        if after.invasion is None:
+            break
+        after = invasion.advance(after, _grid(after, registry), registry)
+    assert after.invasion is None and after.active_system is None
+    assert after.active_player_id == "p2"  # turn passed on
+    assert after.systems[EAST].planet_owners[ALBION] == "p1"
+
+
 @ruling("F_ul/awaken/6")
 def test_zeton_zostaje_po_zmianie_kontroli(registry: StaticDataRegistry) -> None:
     state = _state()

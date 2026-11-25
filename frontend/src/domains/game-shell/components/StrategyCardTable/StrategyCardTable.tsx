@@ -253,11 +253,14 @@ export function StrategyCardTable(): ReactElement | null {
   // Stół zmienia rozmiar (wybrane karty, minimalizacja) i okno bywa zmniejszane: przycinamy
   // bieżące przesunięcie, żeby stół nie wyjechał poza ekran.
   const tableRef = useRef<HTMLDivElement>(null);
+  const tableVisible = gameState?.phase === "strategy" && Boolean(cards && cards.length > 0);
   useEffect(() => {
     const el = tableRef.current;
-    if (!el) return;
+    if (!tableVisible || !el) return;
     const fit = () => {
-      const fix = clampDragDelta(el.getBoundingClientRect(), 0, 0);
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return;
+      const fix = clampDragDelta(rect, 0, 0);
       if (fix.dx === 0 && fix.dy === 0) return;
       setOffset((cur) => ({ dx: cur.dx + fix.dx, dy: cur.dy + fix.dy }));
     };
@@ -270,7 +273,7 @@ export function StrategyCardTable(): ReactElement | null {
       window.removeEventListener("resize", fit);
       observer?.disconnect();
     };
-  });
+  }, [tableVisible]);
 
   // Gating fazy: render tylko w fazie strategii (Requirement 8.1). Poza nią —
   // komponent nie istnieje w drzewie (zwraca ``null``), więc nie dubluje się z

@@ -1,13 +1,4 @@
 {
-  "F_ul/heltitan/2": {
-    "gap": "Decoy Operation i Transit Diodes przenoszą tylko piechotę i mechy (GROUND_FORCES) - Hel-Titan (struktura i siła naziemna) nie jest jeszcze ich celem (RULES.md 62.18)."
-  },
-  "F_ul/awaken/5": {
-    "gap": "Awaken and Nullification Field are both SYSTEM_ACTIVATED/AFTER offers, but Nullification Field calls tactical.end_tactical_action, which clears invasion/active_combat - the ground combat caused by Awaken does not still occur."
-  },
-  "F_ul/coalescence/4": {
-    "gap": "When another effect ends the Ul player's turn (e.g. Nullification Field), tactical.end_tactical_action drops the pending invasion/combat; no forced Coalescence combat is resolved afterwards."
-  },
   "F_ul/slumberstate-computing/3.1": {
     "gap": "Binding deals are not modelled in the engine (core/transaction.py has no deal/agreement item) - a sleeper placement cannot be part of a binding deal."
   },
@@ -31,18 +22,6 @@
   },
   "F_naalu/iconoclast-omega-replaced-by-omega-omega/*": {
     "na": "Nieaktywny wariant mecha (Codex: zakaz AFB) - grą gra Iconoclast TE (naalu_mech_te)."
-  },
-  "F_naaz_rokha/eidolon-maximum/3": {
-    "gap": "Eidolon Maximum w przestrzeni liczy się zawsze do puli floty (statek), nigdy do pojemności - wariant „albo pojemność” niedostępny (test: test_eidolon_maximum_rusza_sie_i_liczy_do_puli)."
-  },
-  "F_naaz_rokha/eidolon-maximum/2.1": {
-    "gap": "Eidolon Maximum on a planet does not join space combat - battle.combat_units(kind=\"space\") only sees mechs in the space area (POINT_COMBAT_SPACE_GROUND_VARIANT covers space units only)."
-  },
-  "F_naaz_rokha/eidolon-maximum/2.2": {
-    "gap": "Eidolon Maximum on a planet is not a ship for ship_roles.space_ships - it does not block movement, count toward ship objectives or blockade space docks."
-  },
-  "F_naaz_rokha/eidolon-maximum/2.3": {
-    "gap": "Direct Hit na Eidolon Maximum działa w walce kosmicznej (ślad Sustain Damage), ale nie w walce naziemnej - Direct Hit w silniku obsługuje tylko walkę kosmiczną i Space Cannon."
   },
   "_opis": "Rulingi/zdania kart BEZ testu, z jawnym powodem (tests/rulings.py, strażnik tests/test_ruling_coverage.py). 'na' = nie dotyczy (powód). 'requires' = wymaga niezaimplementowanych elementów (faction:<moduł>, <kategoria>:<id> jak w rules_hooks.covered_components) - gdy wszystkie będą gotowe, strażnik wymusi test. Klucz zakończony '/*' = cała sekcja.",
   "F_xxcha/xxekir-grom-political-data-nexus-replaced-by-omega/*": {
@@ -135,9 +114,6 @@
   "F_letnev/arc-secundus/2": {
     "na": "Nieaktywny wariant: w grze jest tylko Magen Defense Grid ΩΩ (md, codex4) - md_base jest zastąpiony (technologies_combat.declare_superseded); ruling 3.1 ma test."
   },
-  "F_letnev/gravleash-maneuvers/7": {
-    "gap": "The Gravleash bonus is chosen once at the start of the combat round and stored on that ship's roll; rerolling (Munitions Reserves, battle_rerolls.reroll_combat_dice) keeps it on the same ship. Nothing lets the player move the bonus to another ship after a reroll."
-  },
   "F_letnev/gravleash-maneuvers/8": {
     "requires": [
       "faction:nomad"
@@ -204,18 +180,12 @@
   "C_technology/assault-cannon/2.2": {
     "na": "Lista przykładów zdolności usuwających statki na starcie walki; mechanizm (warunek ≥3 statków sprawdzany w chwili rozstrzygania) testują /2, /2.1 i /3."
   },
-  "C_technology/assault-cannon/3.1": {
-    "gap": "Brak okna „po dołożeniu statków na starcie walki każdy inny gracz może użyć jednej zdolności przed Assault Cannon” - hooki startu walki rozstrzygają się po kolei bez takiego okna."
-  },
   "C_technology/assault-cannon/3.2": {
     "requires": [
       "faction:nekro",
       "faction:naaz"
     ],
     "reason": "Przykłady dokładania statków na starcie walki: The Alastor (Nekro), Eidolon (Naaz-Rokha), Sleeper Cell + Ambush (Mentak, bohater)."
-  },
-  "C_promissory_notes/ceasefire/3": {
-    "gap": "Pod Ceasefire aktywny gracz nie może przenieść sił naziemnych z planet aktywnego systemu do jego przestrzeni na statki, które już tam są - silnik pobiera ładunek z planet tylko przy ruchu statków (movement.move_fleet), a Ceasefire blokuje każdy ruch."
   },
   "F_muaat/magmus-reactor-replaced-by-omega/2": {
     "na": "Ruling dotyczy starej wersji Magmus Reactor (TG za war suna przy produkcji). Assety mają tekst Ω: „Your ships can move into supernovas. Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability...” (RULES.md 62.13)."
@@ -263,9 +233,6 @@
   "F_vuilraith/amalgamation/5": {
     "gap": "Alliance commandera Naalu/Yin (dodatkowy myśliwiec/piechota za 1 zasób) + Amalgamation - kombinacja niezweryfikowana testem; aktywne warianty tych commanderów nie dają darmowej sztuki przy produkcji."
   },
-  "F_vuilraith/the-stillness-of-stars/4": {
-    "gap": "Trade primary zbiera wybór graczy z darmowym secondary (krok choose_free_players) PRZED wykonaniem primary - oferta agenta pojawia się po uzupełnieniu commodities, ale już po tym wyborze."
-  },
   "F_vuilraith/it-feeds-on-carrion-dimensional-anchor/6": {
     "requires": [
       "faction:nekro"
@@ -300,9 +267,6 @@
   "F_vuilraith/dimensional-tear/5": {
     "gap": "Nekro copying Dimensional Tear II (its space docks become gravity rifts for the Vuil'raith player) is not implemented."
   },
-  "F_muaat/adjudicator-baal-nova-seed/10": {
-    "gap": "Foresight (Naalu) rozstrzyga się w oknie SYSTEM_ACTIVATED, przed ruchem war suna, więc silnik nie modeluje kolejności 'Nova Seed przed Foresight' dla systemu z okrętami Naalu; wymaga okna po ruchu wspólnego dla obu zdolności."
-  },
   "F_mentak/corsair/4": {
     "requires": [
       "faction:nekro"
@@ -323,9 +287,6 @@
   },
   "R_frontier_tokens/notes/2": {
     "na": "No tile in the active assets has a space station without planets. The only SPACESTATION planet, 'loststation', is in no system tile. game_setup.place_frontier_tokens skips any system with a non-empty planets list, so it would also skip a station-only tile if one were added."
-  },
-  "R_exploration/notes/1": {
-    "gap": "Engine doesn't make exploration come before 'after you gain control' abilities. set_planet_control fires PLANET_CONTROL_GAINED/AFTER (creating the Integrated Economy offer) before invasion.py starts the exploration; the IE offer can be accepted while the exploration is unresolved."
   },
   "C_technology/integrated-economy/6": {
     "gap": "There is no Nomad commander (Navarch Feng) hook, and Integrated Economy (technologies_actions.integrated_economy, ProductionGrant.max_cost) has no cost-reduction path. Ruling: effects that let a player produce for less than cost do not change the unit's cost."
@@ -360,9 +321,6 @@
     ],
     "reason": "Nekro cannot vote but may own and resolve Committee Formation. Nekro is not implemented."
   },
-  "C_agendas/minister-of-war/1": {
-    "gap": "Minister of War's offer is registered only for TACTICAL_ACTION END and COMPONENT_ACTION AFTER (agendas_laws.py). A strategic action (STRATEGIC_ACTION AFTER) does not trigger it, though the ruling says any action does."
-  },
   "C_agendas/public-execution/2": {
     "requires": [
       "faction:keleres"
@@ -387,17 +345,11 @@
     ],
     "reason": "Nekro's Valefar Assimilator technologies count for the \"Against\" effect. Nekro is not implemented."
   },
-  "C_agendas/classified-document-leaks/7": {
-    "gap": "The limit of one scored objective per combat is not enforced (ASSUMPTION in R41.md): a player holding the elected objective and a secret objective may score both from the same combat."
-  },
   "C_agendas/classified-document-leaks/8": {
     "requires": [
       "faction:firmament"
     ],
     "reason": "The Firmament control token on the elected secret objective. Firmament is not implemented."
-  },
-  "C_agendas/compensated-disarmament/5": {
-    "gap": "Coexistence (block I4) is not implemented, so units coexisting on the elected planet do not exist and cannot pay their trade goods to the planet's controller (see breakthroughs:titansbt#1)."
   },
   "C_agendas/fleet-regulations/3": {
     "requires": [
@@ -429,22 +381,7 @@
   "C_agendas/miscount-disclosed/7": {
     "na": "Holy Planet of Ixth, Shard of the Throne and The Crown of Emphidia were removed in Prophecy of Kings; those base-game agendas are not in the active decks."
   },
-  "C_agendas/wormhole-research/5": {
-    "gap": "Wormhole Research destroys ships in alpha/beta systems at once, before the research and Anti-Intellectual Revolution choices resolve, so a player cannot pick one of those doomed ships for Anti-Intellectual Revolution (the engine forces another ship to be destroyed instead)."
-  },
-  "C_agendas/wormhole-research/5.1": {
-    "gap": "Same ordering gap as C_agendas/wormhole-research/5: Anti-Intellectual Revolution destruction does not precede the Wormhole Research destruction, so the Vuil'raith capture exemption for The Terror Between is not modelled."
-  },
-  "C_agendas/wormhole-research/5.2": {
-    "gap": "Same ordering gap as C_agendas/wormhole-research/5: capacity is not resolved before Wormhole Research destroys ships, so fighters removed for capacity vs. captured ships is not modelled."
-  },
-  "C_units/war-sun/1": {
-    "gap": "validate_production does not reject a war sun order without the War Sun unit upgrade: resolve_unit_variant falls back to the 'nowarsun' placeholder (cost 0) and production accepts it (Muaat's Prototype War Sun exception, /1.1, is covered)."
-  },
   "C_units/war-sun/2": {
     "na": "Refers to the base Magen Defense Grid exhaust ability (needs a unit with PLANETARY SHIELD); only Magen Defense Grid ΩΩ is in play (technologies_combat.MAGEN_ALIAS, superseded md_base/md_c1) and its structure-based text has no Planetary Shield condition."
-  },
-  "C_legendary_planets/dok-n-pics-salvage-yard-garbozia/2": {
-    "gap": "Playing action cards that lie on Dok 'N Pic's Salvage Yard is not implemented (planets_legendary.py docstring, RULES.md 60.6) - cards are only placed on the card (legendary_cards), so 'no need to ready the card' and the new controller playing them (/5) cannot be exercised."
   }
 }

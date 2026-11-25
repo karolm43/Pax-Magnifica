@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from collections import deque
 
-from src.core import rules_hooks
-from src.core.game_state import GameState, MoveCargo, MoveLoss, MoveRecord, SystemState
+from src.core import rules_hooks, ship_roles
+from src.core.game_state import GameState, MoveCargo, MoveLoss, MoveRecord
 from src.core.hex_grid import HexGrid
 from src.core.unit_catalog import is_space_unit
 
@@ -27,12 +27,14 @@ _RIFT_SEARCH_EXTRA = 3
 _RIFT_SEARCH_CAP = 7
 
 
-def _ships_of_other_players(system: SystemState | None, player_id: str) -> bool:
-    """Czy w przestrzeni systemu stoją statki INNEGO gracza (blokada R4).
+def _ships_of_other_players(state: GameState, position: str, player_id: str) -> bool:
+    """Czy w systemie stoją statki INNEGO gracza (blokada R4).
 
-    Only ships block: a Floating Factory (Saar space dock in the space area) or ground forces
-    in space do not (F_saar floating-factory/12 - other players' ships may move through).
+    Only ships block: a Floating Factory (Saar space dock in the space area) or ordinary ground
+    forces do not (F_saar floating-factory/12). Eidolon Maximum on a planet is a ship, so it
+    blocks too (F_naaz_rokha eidolon-maximum 2.2).
     """
+    system = state.systems.get(position)
     if system is None:
         return False
     for owner, by_type in system.space_units.items():
@@ -40,7 +42,10 @@ def _ships_of_other_players(system: SystemState | None, player_id: str) -> bool:
             continue
         if any(count > 0 and is_space_unit(bt) for bt, count in by_type.items()):
             return True
-    return False
+    return any(
+        other != player_id and ship_roles.has_planet_ships(state, other, position)
+        for other in state.players
+    )
 
 
 def passage_blocked(state: GameState, position: str, player_id: str) -> bool:
@@ -87,9 +92,7 @@ def _node_passable_intermediate(
         return False  # Shared Research: przelot przez mgławicę (wejście nadal tylko do aktywnej)
     if passage_blocked(state, position, player_id):
         return False  # Aerie Hololattice: przelot przez system ze strukturami Argent (F_argent)
-    if _ships_of_other_players(
-        state.systems.get(position), player_id
-    ) and not rules_hooks.permits(
+    if _ships_of_other_players(state, position, player_id) and not rules_hooks.permits(
         rules_hooks.POINT_MOVEMENT_PASS_FOREIGN_SHIPS,
         state,
         player_id,
@@ -527,6 +530,7 @@ def build_move_record(
     ships: dict[str, int],
     cargo: list[tuple[str, int, str, str]],
     lost: list[MoveLoss] | None = None,
+    boosted: list[str] | None = None,
 ) -> MoveRecord:
     """Presentation record of a confirmed fleet move (``GameState.last_move``).
 
@@ -534,6 +538,7 @@ def build_move_record(
     from the map graph: ``lane`` for plain adjacency, otherwise the link kind (``wormhole`` /
     ``portal``), or ``jump`` for adjacency granted by a hook (Lost Star Chart, Conduit).
     ``lost`` = units a gravity rift removed on the way, with the rift they were lost in.
+    ``boosted`` = base types of ships that spent the Gravity Drive bonus on this move.
     """
     hops: list[str] = []
     for a, b in zip(route, route[1:], strict=False):
@@ -556,4 +561,5 @@ def build_move_record(
             if n > 0
         ],
         lost=[loss for loss in lost or [] if loss.count > 0],
+        boosted=list(boosted or []),
     )

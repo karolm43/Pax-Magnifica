@@ -23,7 +23,7 @@ Funkcje MUTUJĄ przekazany stan — wołający pracuje na klonie roboczym.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -116,6 +116,7 @@ def fire(
     subject: str | None = None,
     ctx: dict[str, Any] | None = None,
     open_window: bool = True,
+    hook_filter: Callable[[Hook], bool] | None = None,
 ) -> FireResult:
     """Emituje zdarzenie: uruchamia hooki posiadaczy źródeł w kolejności rozstrzygania.
 
@@ -124,6 +125,8 @@ def fire(
         subject: Gracz, którego dotyczy zdarzenie (``ctx["subject"]``).
         ctx: Dane zdarzenia dla hooków i filtrów ``where`` (np. ``{"phase": "strategy"}``).
         open_window: Czy oferty opcjonalnych reakcji mają otworzyć okno REACTION.
+        hook_filter: Opcjonalnie zawęża zdarzenie do wybranych hooków (np. Assault Cannon jako
+            osobny etap startu walki, po zdolnościach dokładających statki).
 
     Returns:
         ``FireResult``; ``replaced=True`` oznacza, że wołający ma pominąć swój krok.
@@ -145,6 +148,8 @@ def fire(
             for pid in order:
                 for hook in rules_hooks.hooks_at(point, state, pid):
                     if hook.kind is not kind or not _matches(hook, context):
+                        continue
+                    if hook_filter is not None and not hook_filter(hook):
                         continue
                     if hook.condition is not None and not hook.condition(state, pid, context):
                         continue
@@ -361,6 +366,15 @@ def _advance_window(state: GameState, player_id: str) -> None:
         return  # gracz ma jeszcze oferty i nie czeka na kolejną turę w kolejce (repeat_offer)
     window.responded = [*window.responded, player_id]
     window.cursor += 1
+    # Gracz, którego oferty wygasły po zdolności poprzednika (Nova Seed -> Foresight), nie
+    # dostaje tury w kolejce - nie ma na co odpowiadać.
+    while (
+        not window.is_complete
+        and window.current_responder is not None
+        and not offers_for(state, window.current_responder)
+    ):
+        window.responded = [*window.responded, window.current_responder]
+        window.cursor += 1
     if window.is_complete:
         state.pending_window = None
 
@@ -383,6 +397,45 @@ def _take_offer(state: GameState, player_id: str, offer_id: str) -> PendingOffer
     return offer
 
 
+def _require_explored_before_control_abilities(state: GameState, offer_id: str) -> None:
+    """R_exploration notes 1: planeta bez poprzedniego kontrolera jest EKSPLOROWANA przed
+    zdolnościami „after you gain control of a planet” (np. Integrated Economy)."""
+    offer = next((o for o in state.pending_offers if o.id == offer_id), None)
+    exploration = state.exploration
+    if (
+        offer is None or exploration is None
+        or (offer.event, offer.moment)
+        != (GameEvent.PLANET_CONTROL_GAINED.value, Moment.AFTER.value)
+    ):
+        return
+    planet = offer.ctx.get("planet")
+    current = exploration.current
+    if planet in exploration.queue or (current is not None and current.planet == planet):
+        raise ValueError(
+            "Finish exploring this planet first - 'after you gain control' abilities come after "
+            "the exploration."
+        )
+
+
+def _drop_stale_offers(state: GameState, resolved: PendingOffer) -> None:
+    """Po rozstrzygnięciu zdolności gasi oferty TEGO SAMEGO okna (zdarzenie + moment), których
+    warunek już nie zachodzi (MUTUJE). Zdolności o tym samym czasie rozstrzygają się kolejno
+    (R_abilities), więc wcześniejsza może unieważnić późniejszą - Nova Seed niszczy statki,
+    którymi Naalu użyłby Foresight (F_muaat nova-seed 10)."""
+    kept: list[PendingOffer] = []
+    for other in state.pending_offers:
+        hook = rules_hooks.hook_by_seq(other.hook_seq)
+        if (
+            (other.event, other.moment) == (resolved.event, resolved.moment)
+            and hook is not None and hook.condition is not None
+            and not other.mandatory
+            and not hook.condition(state, other.owner_id or other.player_id, other.ctx)
+        ):
+            continue
+        kept.append(other)
+    state.pending_offers = kept
+
+
 def accept_offer(
     state: GameState, player_id: str, offer_id: str, params: dict[str, Any] | None = None
 ) -> GameState:
@@ -392,6 +445,7 @@ def accept_offer(
         ValueError: Oferta nieznana / cudza / nie ta kolej, albo gracz nie ma już źródła hooka.
     """
     work = state.clone()
+    _require_explored_before_control_abilities(work, offer_id)
     offer = _take_offer(work, player_id, offer_id)
     owner = offer.owner_id or offer.player_id
     hook = rules_hooks.hook_by_seq(offer.hook_seq)
@@ -406,6 +460,7 @@ def accept_offer(
     cleaned = offer_inputs.validate_params(inputs, dict(params or {}))
     context = {**offer.ctx, "decider": player_id, "params": cleaned, "accepted": True}
     hook.fn(work, owner, context)
+    _drop_stale_offers(work, offer)
     _advance_window(work, player_id)
     return work
 

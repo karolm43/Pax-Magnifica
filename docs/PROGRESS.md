@@ -746,6 +746,44 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   tests); frontend tsc (app), eslint (changed), vitest (`entities/replay`, `state`, `domains/map`, ActivityPanel).
   Skipped: full backend suite, build (no new modules), e2e, visual check in a live game.
 
+## Timing-window / ordering gaps closed (2026-11-25)
+- Six `gap` entries removed from `tests/rulings_status.json`, each with a `@ruling` test:
+  - `F_ul/awaken/5`, `F_ul/coalescence/4`: Nullification Field no longer drops Awaken's ground combat —
+    `invasion.begin_forced_combat` (`InvasionState.forced_end`) runs only Ground Combat + Establish Control, then ends
+    the action and the turn. Space combat from Coalescence is not covered.
+  - `F_muaat/adjudicator-baal-nova-seed/10`: same-window offers are re-validated after each accepted ability
+    (`triggers._drop_stale_offers`); emptied responders are skipped in the REACTION queue. Nova Seed (active) now
+    kills Foresight's offer.
+  - `F_vuilraith/the-stillness-of-stars/4`: `CardSpec.on_begin` — Trade's +3 TG and replenish run when the card is
+    played, the agent's window opens before `choose_free_players`; `submit_primary_step` blocked until it closes.
+    Old tests that expected the primary effect at the end were updated.
+  - `R_exploration/notes/1`: `accept_offer` refuses "after you gain control" offers while the planet is still queued
+    for / being explored.
+  - `C_technology/assault-cannon/3.1`: Assault Cannon is a separate combat-start stage after all other start offers
+    (`triggers.fire(hook_filter=)`, `battle._assault_cannon_stage`). ⚠️ ASSUMPTION documented in R56.5.
+- QA: ruff (src, tests), mypy (changed files; the only error, `battle.py` `has_planet_ships`, is another session's
+  hunk), pytest timing/ruling coverage + full suite (see report).
+
+## Flight Replay: Antimass Deflector Fields, Gravity Drive, Space Cannon Volley (2026-11-25)
+- User feedback: the asteroid-field weave looked ugly; wanted the Antimass Deflectors visible as fields, an
+  animation for Gravity Drive, and one for Space Cannon shooting at ships in the next step.
+- Asteroid field (`flightPath.ts`): weaving removed - the ship holds its line (still slower). An energy bubble with a
+  hex lattice and rim sparks glows up around each hull while it crosses the field (`buildPathKeyframes().shield`,
+  `[data-shield]` in `UnitStack/FlightEngines.tsx`); the board effect `asteroidDust` is now rocks flung outward over a
+  cyan ripple.
+- Gravity Drive: backend `MoveRecord.boosted` (base types that spent the bonus, `movement.move_fleet`) -> Activity
+  fact `gravity_drive` (+ feed line). The boosted ship flies in a violet gravity well (`drive` timeline, `[data-drive]`)
+  and a `gravityDrive` effect (rings sucked inward, shockwave) opens at launch (`MapUnitTransition.gravityDrive`).
+- Space Cannon Offense: `spacecannon.fire` now carries one `cannon_shot` fact per roll group (target player, zone,
+  hits, new `ActivityFact.dice`, route = [shooter system, active system]). Every client replays it as a
+  `LiveCannon` (`entities/replay/cannonVolley.ts`): after the physical dice land (`CANNON_DICE_LEAD_MS`) amber slugs
+  leave each shooter (planet / unit / system), hits strike a target ship with a burst + shock ring, misses sail wide.
+  Moves nothing, so it pairs with the live map at once. ⚠️ ASSUMPTION (presentation only): the dice lead is a fixed
+  2.6 s, not synced to the dice stage; ships destroyed by the hits still vanish without a fade (assign step).
+- QA: backend pytest (`-k move/activity/space_cannon/tactical/gravity/rift`, 356 passed), ruff + mypy (changed);
+  frontend tsc (app), eslint (changed), vitest (`entities/replay`, `state`, `domains/map`, ActivityPanel). Skipped:
+  full backend suite, build, e2e, visual check in a live game. Backend restart needed (new fields / facts).
+
 ## Coexistence (block I4): Slumberstate, Pride of Kenara, bombardment of coexisting players (2026-11-25)
 - `core/coexistence.py` (RULES.md 40.1 I7b): coexistence is derived from the board (controller + other players with
   units on the planet). New `SystemState.coexisting[planet]` = players coexisting BY CHOICE, exempt from the I7a forced
@@ -765,6 +803,19 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   (file stays in `rulings_debt.json`). Not modelled: automatic control hand-off to the last coexisting player (7-7.4).
 - QA: ruling coverage, `pytest --testmon` (2 failures from other sessions' hunks: relics sustain `zone`, frontend
   locality URL), ruff, mypy. Skipped: frontend (no change), build, e2e. Backend restart needed (new state field).
+
+## Gap sweep: Compensated Disarmament /5, Wormhole Research /5-5.2, Salvage Yard /2
+- Compensated Disarmament /5: already correct after block I4 (the controller gets every TG, coexisting players
+  pay out to nobody); now pinned by a coexistence test.
+- Wormhole Research (R51): the alpha/beta destruction is DEFERRED (`core/wormhole_research.py`, active effect
+  `agendas:wormhole_research:destroy`). `agenda_phase.continue_agenda` settles it, i.e. only after the research and
+  Anti-Intellectual Revolution choices (doomed ships can be picked), then capacity (`capacity.open_capacity_check`; a
+  CAPACITY window keeps the speaker on "continue" until it is closed), then destroys with flagships LAST so The Terror
+  Between still captures the others (and captures nothing when it was destroyed for the Revolution).
+- Salvage Yard (R60.6): cards on Garbozia are played "as if in hand" - `card_draw.salvage_yard_cards` /
+  `borrow_salvage_yard_card`, purge via `discard_specific_action_cards` (`GameState.salvage_yard_borrowed`). No UI tray yet.
+- Gaps closed: `C_agendas/compensated-disarmament/5`, `C_agendas/wormhole-research/5`, `/5.1`, `/5.2`,
+  `C_legendary_planets/dok-n-pics-salvage-yard-garbozia/2`. Backend restart needed (new state field).
 
 ## Tactical window redesign, phase 1: batched flight plan + guided step entry (RULES.md 32.4, 19.1)
 - `POST /tactical/move-batch` -> `core/movement_batch.move_batch`: the whole Move Ships declaration (legs from

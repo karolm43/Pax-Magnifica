@@ -97,6 +97,7 @@ export function flightOptions(
     startRotationDeg: rotation(transition?.startRotationDeg),
     holdRotationDeg: rotation(transition?.holdRotationDeg),
     parkRotationDeg: rotation(transition?.parkRotationDeg),
+    gravityDrive: transition?.gravityDrive,
     // Waypoints relative to the element's own origin (the flight translates from 0,0).
     path: transition?.flightPath?.map((leg) => ({ ...leg, x: leg.x - x, y: leg.y - y })),
     cargoRide: transition?.cargoRide && {

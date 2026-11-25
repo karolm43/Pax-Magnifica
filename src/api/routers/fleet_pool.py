@@ -16,7 +16,7 @@ from src.api.context import AppContext, get_ctx
 from src.api.schemas import BattleLossItem, StateEnvelope
 from src.api.web_data import entity_key_map
 from src.core import actor as actor_rules
-from src.core import board_edit, capacity, fleet_pool
+from src.core import board_edit, capacity, fleet_pool, floating_structures
 from src.core.game_state import WindowType
 from src.core.unit_catalog import ASYNC_ID_BY_BASE_TYPE
 
@@ -74,6 +74,8 @@ class FleetPoolView(BaseModel):
     suggestion: dict[str, int] = Field(default_factory=dict)
     remaining: int = 0  # ilu graczy czeka w kolejce (łącznie z bieżącym)
     capacity: CapacityInfo = Field(default_factory=CapacityInfo)
+    # Siła naziemna-statek (Eidolon Maximum): ``fleet`` albo ``capacity`` (wybór gracza).
+    ground_ship_pool: str = Field(default="fleet", serialization_alias="groundShipPool")
 
 
 class FleetPoolResolveRequest(BaseModel):
@@ -132,6 +134,7 @@ async def get_fleet_pool(ctx: AppContext = Depends(get_ctx)) -> FleetPoolView:
         ],
         suggestion=fleet_pool.auto_removal(state, ctx.registry, pid, report),
         remaining=remaining,
+        ground_ship_pool=state.players[pid].ground_ship_pool,
         capacity=CapacityInfo(
             general=cap.general,
             fighter_only=cap.fighter_only,
@@ -167,4 +170,33 @@ async def post_fleet_pool_resolve(
     ctx.service.replace_state(new_state, label=f"fleet-pool:{player_id}")
     await ctx.service.broadcast()
     await ctx.broadcast_map()
+    return ctx.service.envelope()
+
+
+class GroundShipPoolRequest(BaseModel):
+    """Wybór puli dla siły naziemnej-statku w przestrzeni: ``fleet`` | ``capacity`` | ``auto``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    faction: str
+    pool: str
+
+
+@router.post("/tactical/fleet-pool/ground-ship-pool", response_model=StateEnvelope)
+async def post_ground_ship_pool(
+    actor: ActorId,
+    request: GroundShipPoolRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Eidolon Maximum liczy się albo do pojemności, albo do puli floty (F_naaz_rokha 3)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Choose ground ship pool"
+    )
+    state = ctx.service.current_state()
+    try:
+        player_id = board_edit.resolve_player_id(request.faction, state)
+        new_state = floating_structures.choose_ground_ship_pool(state, player_id, request.pool)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    ctx.service.replace_state(new_state, label=f"ground-ship-pool:{player_id}")
+    await ctx.service.broadcast()
     return ctx.service.envelope()

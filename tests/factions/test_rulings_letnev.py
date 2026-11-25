@@ -673,6 +673,36 @@ def test_gravleash_bez_premii_gravity_rift(registry: StaticDataRegistry) -> None
     assert rift_bonus(state, grid, ["000", "101"], "p1") == 1
 
 
+@ruling("F_letnev/gravleash-maneuvers/7")
+def test_gravleash_bonus_moves_to_another_ship_on_a_reroll(registry: StaticDataRegistry) -> None:
+    state = _state()
+    state.systems["102"].space_units["p1"] = {"destroyer": 1, "cruiser": 1}
+    combat = _rolled(state)
+    combat.rolls["p1"] = [
+        {"baseType": "cruiser", "name": "Cruiser", "dice": [1], "hitsOn": 7, "modifier": 0,
+         "hits": 0},
+        {"baseType": "destroyer", "name": "Destroyer", "dice": [5], "hitsOn": 7, "modifier": 0,
+         "bonus": [2], "hits": 0},
+    ]
+    active_effects.add_effect(
+        state, letnev.GRAVLEASH, Duration.COMBAT_ROUND, owner="p1",
+        data={"base_type": "destroyer", "position": "102"},
+    )
+    inputs = letnev.munitions_inputs(state, registry, "p1")
+    pick = next(i for i in inputs if i["key"] == "gravleash_ship")
+    assert pick["auto"] == "destroyer"  # "Auto" keeps the current ship
+    assert {o["value"] for o in pick["options"]} == {"destroyer", "cruiser"}
+    letnev.munitions_reroll(
+        state, registry, "p1", {"dice": ["1:0"], "gravleash_ship": "cruiser"}
+    )
+    cruiser, destroyer = combat.rolls["p1"]
+    assert cruiser["bonus"] == [2] and "bonus" not in destroyer  # the original ship loses it
+    effect = active_effects.effects_for(state, "p1", letnev.GRAVLEASH)[0]
+    assert effect.data["base_type"] == "cruiser"
+    with pytest.raises(ValueError, match="your ships"):
+        letnev.reassign_gravleash(state, registry, "p1", "dreadnought")
+
+
 @ruling("F_letnev/gravleash-maneuvers/6")
 def test_gravleash_tylko_rzut_combat_nie_afb(registry: StaticDataRegistry) -> None:
     state = _state()

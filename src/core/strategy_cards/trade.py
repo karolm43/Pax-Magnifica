@@ -1,7 +1,8 @@
 """Trade (inicjatywa 5, base) — RULES.md 30.6, R_trade.
 
-Primary: +3 trade goods → uzupełnij commodities → wskaż graczy z DARMOWYM, obowiązkowym
-secondary. Secondary: uzupełnij commodities (koszt: 1 żeton ze strategy pool).
+Primary: +3 trade goods → uzupełnij commodities (od razu po zagraniu, ``on_begin``; okno „po
+uzupełnieniu”) → wskaż graczy z DARMOWYM, obowiązkowym secondary.
+Secondary: uzupełnij commodities (koszt: 1 żeton ze strategy pool).
 
 Krok 3 można negocjować przy stole transakcji (RULES.md 47.4): gracze z umową
 (``draft["deal_players"]``) są wskazani zawsze, a po ich uzupełnieniu silnik otwiera stół
@@ -50,12 +51,14 @@ def _on_step(
     draft["free_players"] = chosen
 
 
-def _primary(
+def _begin(
     state: GameState, _ctx: CardContext, owner_id: str, _draft: Draft
 ) -> None:
+    """Kroki 1-2 primary od razu po zagraniu: +3 TG i uzupełnienie commodities. Zdolność „po
+    uzupełnieniu” (The Stillness of Stars) dostaje własne okno, a dopiero potem aktywny wskazuje
+    graczy z darmowym secondary (F_vuilraith the-stillness-of-stars 4)."""
     economy.gain_trade_goods(state, owner_id, PRIMARY_TRADE_GOODS)
-    # Oferty „after replenishes” czekają w oknie secondary (jak oferty „after primary”).
-    economy.replenish_commodities(state, owner_id, open_window=False)
+    economy.replenish_commodities(state, owner_id)
 
 
 def _secondary(
@@ -78,7 +81,7 @@ def _options(
 SPEC = CardSpec(
     primary_steps=("choose_free_players",),
     on_step=_on_step,
-    primary=_primary,
+    on_begin=_begin,
     secondary=_secondary,
     secondary_costs_token=True,
     options=_options,

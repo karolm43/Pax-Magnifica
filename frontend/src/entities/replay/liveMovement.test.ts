@@ -5,7 +5,8 @@ import {
   buildMapReplayPlan,
   replayRunDuration,
 } from "./historicalMapTransitions";
-import type { LiveFleetMove, LiveMove } from "./types";
+import type { LiveCannon, LiveFleetMove, LiveMove } from "./types";
+import { CANNON_DICE_LEAD_MS } from "./cannonVolley";
 import { PACK_MS, flightPathDuration } from "./flightPath";
 import { LAUNCH_WAVE_MS } from "./liveMovement";
 import { getPrintedLinkPoints } from "@/entities/geometry/wormholePoints";
@@ -160,6 +161,25 @@ describe("buildMapReplayPlan with a live move", () => {
     ]);
     const kinds = plan.flightEffects.map((e) => e.kind);
     expect(kinds).toEqual(expect.arrayContaining(["asteroidDust", "supernovaFlare"]));
+  });
+
+  it("wraps a Gravity Drive ship in its field and opens a gravity well at launch", () => {
+    const plan = buildMapReplayPlan(
+      line({ "202": [unit("ca", 1)] }),
+      line({ "000": [unit("ca", 1)] }),
+      { liveMove: move({ boosted: ["ca"] }), activeFaction: "sol" },
+    );
+    expect(moved(plan)?.gravityDrive).toBe(true);
+    expect(plan.flightEffects.find((e) => e.kind === "gravityDrive")).toMatchObject({
+      delayMs: moved(plan)?.delayMs ?? 0,
+    });
+    const plain = buildMapReplayPlan(
+      line({ "202": [unit("ca", 1)] }),
+      line({ "000": [unit("ca", 1)] }),
+      { liveMove: move(), activeFaction: "sol" },
+    );
+    expect(moved(plain)?.gravityDrive).toBeUndefined();
+    expect(plain.flightEffects.map((e) => e.kind)).not.toContain("gravityDrive");
   });
 
   it("enters and leaves through the wormholes printed on the tiles", () => {
@@ -331,5 +351,53 @@ describe("replayRunDuration", () => {
     expect(run(false, false)).toBe(1800);
     expect(run(true, false)).toBe(0);
     expect(run(false, true)).toBe(0);
+  });
+});
+
+describe("Space Cannon volley replay", () => {
+  const volley = (shots: LiveCannon["shots"]): LiveMove => ({
+    kind: "cannon",
+    faction: "hacan",
+    targetFaction: "sol",
+    active: "000",
+    shots,
+  });
+  const fleet = line({ "000": [unit("ca", 2)] });
+
+  it("fires one bolt per die after the dice land and flashes only on hits", () => {
+    const plan = buildMapReplayPlan(fleet, fleet, {
+      liveMove: volley([{ position: "101", zone: "space", dice: 3, hits: 1 }]),
+    });
+    expect(plan.transitions).toEqual([]);
+    expect(plan.lasers).toHaveLength(3);
+    expect(plan.lasers.every((l) => l.color === "cannon")).toBe(true);
+    expect(Math.min(...plan.lasers.map((l) => l.delayMs))).toBe(CANNON_DICE_LEAD_MS);
+    const kinds = plan.flightEffects.map((e) => e.kind);
+    expect(kinds.filter((k) => k === "cannonFlash")).toHaveLength(3);
+    expect(kinds.filter((k) => k === "cannonImpact")).toHaveLength(1);
+    // The hit strikes the target fleet exactly; the misses sail wide of it.
+    const [hit, ...misses] = plan.lasers;
+    const strike = plan.flightEffects.find((e) => e.kind === "cannonImpact")!;
+    expect({ x: hit.toX, y: hit.toY }).toEqual({ x: strike.x, y: strike.y });
+    expect(misses.every((l) => l.toX !== hit.toX || l.toY !== hit.toY)).toBe(true);
+    expect(plan.durationMs).toBeGreaterThan(CANNON_DICE_LEAD_MS);
+  });
+
+  it("caps a huge volley but still strikes with every drawn bolt that hit", () => {
+    const plan = buildMapReplayPlan(fleet, fleet, {
+      liveMove: volley([{ position: "101", zone: "space", dice: 20, hits: 20 }]),
+    });
+    expect(plan.lasers.length).toBeLessThanOrEqual(16);
+    expect(plan.flightEffects.filter((e) => e.kind === "cannonImpact")).toHaveLength(
+      plan.lasers.length,
+    );
+  });
+
+  it("draws nothing for an empty volley", () => {
+    const plan = buildMapReplayPlan(fleet, fleet, {
+      liveMove: { ...(volley([]) as LiveCannon), shots: [] },
+    });
+    expect(plan.lasers).toEqual([]);
+    expect(plan.durationMs).toBe(0);
   });
 });

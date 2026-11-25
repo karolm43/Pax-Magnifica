@@ -38,6 +38,13 @@ def effect_key(card_id: str) -> str:
     return f"{ComponentCategory.ACTION_CARD.value}:{card_id}"
 
 
+def _borrowed(state: GameState, player_id: str, card_id: str) -> GameState:
+    """Clone of ``state`` with the Salvage Yard card in the hand (Dok 'N Pic's Salvage Yard)."""
+    probe = state.clone()
+    card_draw.borrow_salvage_yard_card(probe, player_id, card_id)
+    return probe
+
+
 def card_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str, card_id: str
 ) -> tuple[bool, list[dict[str, Any]]]:
@@ -52,7 +59,9 @@ def card_inputs(
     if player is None:
         raise ValueError(f"Unknown player: {player_id}")
     if card_id not in player.private.action_cards:
-        raise ValueError(f"You do not have the action card {card_id}.")
+        if card_id not in card_draw.salvage_yard_cards(state, player_id):
+            raise ValueError(f"You do not have the action card {card_id}.")
+        state = _borrowed(state, player_id, card_id)  # Salvage Yard: "as if in your hand"
     if not isinstance(registry.catalog.get(ComponentCategory.ACTION_CARD, card_id), ActionCardDef):
         raise ValueError(f"Unknown action card: {card_id}")
     key = effect_key(card_id)
@@ -107,16 +116,23 @@ def playability(
     if player is None:
         raise ValueError(f"Unknown player: {player_id}")
     result: list[dict[str, Any]] = []
-    for card_id in dict.fromkeys(player.private.action_cards):
+    in_hand = list(dict.fromkeys(player.private.action_cards))
+    yard = [c for c in dict.fromkeys(card_draw.salvage_yard_cards(state, player_id))
+            if c not in in_hand]  # Dok 'N Pic's Salvage Yard: played "as if in your hand"
+    original = state
+    for card_id in [*in_hand, *yard]:
+        # Salvage Yard cards are judged on a clone where they already lie in the hand.
+        state = _borrowed(original, player_id, card_id) if card_id in yard else original
         spec = registry.catalog.timing_spec(ComponentRef(ComponentCategory.ACTION_CARD, card_id))
         # ``reaction`` = karta grana w odpowiedzi na okno (nie ACTION): UI sygnalizuje ją także
         # przy zwiniętej ręce, bo okno reakcji mija z następnym krokiem gry (RULES.md 54.8).
         entry: dict[str, Any] = {
             "card_id": card_id, "playable": False, "reason": None, "implemented": False,
             "reaction": spec is None or spec.trigger is not TriggerKind.ACTION,
+            "from_planet": card_draw.SALVAGE_YARD_PLANET if card_id in yard else None,
         }
         result.append(entry)
-        over = hand_limit.over_limit_reason(state, player_id)
+        over = hand_limit.over_limit_reason(original, player_id)
         if over is not None:  # R_action_cards: nadwyżki nie wolno „zagrać do siedmiu”
             entry["reason"] = over
             continue
@@ -293,7 +309,11 @@ def play_action_card(
     player = state.players.get(player_id)
     if player is None:
         raise ValueError(f"Unknown player: {player_id}")
-    if card_id not in player.private.action_cards:
+    on_yard = (
+        card_id not in player.private.action_cards
+        and card_id in card_draw.salvage_yard_cards(state, player_id)
+    )
+    if card_id not in player.private.action_cards and not on_yard:
         raise ValueError(f"You do not have the action card {card_id}.")
     if promissory_play.silenced(state, player_id):
         raise ValueError("Political Secret: you cannot play action cards during this agenda.")
@@ -303,6 +323,10 @@ def play_action_card(
     over = hand_limit.over_limit_reason(state, player_id)
     if over is not None:
         raise ValueError(over)
+    if on_yard:
+        # Dok 'N Pic's Salvage Yard: the card is played as if in hand (needs no readying) and is
+        # purged afterwards (``card_draw.discard_specific_action_cards``).
+        state = _borrowed(state, player_id, card_id)
     card = registry.catalog.get(ComponentCategory.ACTION_CARD, card_id)
     if not isinstance(card, ActionCardDef):
         raise ValueError(f"Unknown action card: {card_id}")

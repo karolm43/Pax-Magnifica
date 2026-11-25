@@ -411,6 +411,26 @@ def test_policy_draws_one_more_card_at_the_end_of_status(registry: StaticDataReg
     assert state.players["p2"].private.action_cards == []
 
 
+@ruling("C_agendas/minister-of-war/1")
+def test_minister_of_war_is_offered_after_a_strategic_action_primary(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _state(registry, [])
+    state.phase, state.agenda = Phase.ACTION, None
+    state.active_player_id = "p1"
+    state.decks.agenda_laws = {"minister_war": "p1"}
+    state.systems["101"].command_tokens = ["p1"]
+    ctx = {"player": "p1", "initiative": 1, "ability": "primary"}
+    triggers.fire(state, GameEvent.STRATEGIC_ACTION, Moment.AFTER, subject="p1", ctx=ctx)
+    offers = [o for o in state.pending_offers if o.label == "Minister of War"]
+    assert offers, "Minister of War must be offered after a strategic action"
+    # A secondary ability is not the owner's action: no offer.
+    state.pending_offers.clear()
+    triggers.fire(state, GameEvent.STRATEGIC_ACTION, Moment.AFTER, subject="p1",
+                  ctx={**ctx, "ability": "secondary"})
+    assert not [o for o in state.pending_offers if o.label == "Minister of War"]
+
+
 @ruling("C_agendas/minister-of-war/3")
 def test_minister_of_war_extra_action_without_turn_events(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
@@ -743,10 +763,26 @@ def _wr_state(registry: StaticDataRegistry) -> GameState:
     return state
 
 
+def _wr_settle(state: GameState, registry: StaticDataRegistry, *, keep: str = "") -> GameState:
+    """Declines the remaining (optional) offers of everyone but ``keep``, then the speaker
+    continues: only then Wormhole Research destroys the ships (C_agendas)."""
+    from src.core import agenda_phase
+
+    while True:
+        other = [o for o in state.pending_offers if o.player_id != keep]
+        if not other:
+            break
+        state = triggers.decline_offer(state, other[0].player_id, other[0].id)
+    return agenda_phase.continue_agenda(state, registry, "p2")
+
+
 @ruling("C_agendas/wormhole-research/1", "C_agendas/wormhole-research/3")
 def test_wormhole_research_delta_ships_research_and_survive(registry: StaticDataRegistry) -> None:
     out = _resolve(registry, _wr_state(registry), "for")
     assert {o.player_id for o in out.pending_offers} == {"p1", "p3"}  # p2 bez wormhole
+    # Nothing is destroyed until the research choices are done (see wormhole-research/5).
+    assert out.systems["102"].space_units["p3"]["carrier"] == 1
+    out = _wr_settle(out, registry)
     assert out.systems["101"].space_units["p1"] == {"cruiser": 1}  # delta: statek zostaje
     assert out.systems["102"].space_units["p3"] == {"spacedock": 1}  # Floating Factory zostaje
 
@@ -755,7 +791,7 @@ def test_wormhole_research_delta_ships_research_and_survive(registry: StaticData
 def test_wormhole_research_nexus_like_system_is_destroyed(registry: StaticDataRegistry) -> None:
     state = _wr_state(registry)
     state.systems["101"].wormhole_tokens = ["ALPHA"]  # delta + alpha w jednym systemie
-    out = _resolve(registry, state, "for")
+    out = _wr_settle(_resolve(registry, state, "for"), registry)
     assert out.systems["101"].space_units.get("p1", {}) == {}
 
 
@@ -785,10 +821,81 @@ def test_wormhole_research_ground_forces_removed_fighters_destroyed(
         return real(state, system, zone, pid, base, n, cause)
 
     monkeypatch.setattr(unit_ops, "remove_units", spy)
-    _resolve(registry, _wr_state(registry), "for")
+    _wr_settle(_resolve(registry, _wr_state(registry), "for"), registry)
     assert causes["fighter"] is UnitCause.DESTROYED and causes["carrier"] is UnitCause.DESTROYED
     assert causes["infantry"] is UnitCause.REMOVED
 
+
+
+def _wr_revolution(
+    registry: StaticDataRegistry, p3_ships: dict[str, int], pick: str, *, faction: str = "sol"
+) -> GameState:
+    """Anti-Intellectual Revolution is a law; p3 (ships in alpha 102 + a cruiser in 103)
+    researches and destroys ``pick`` ("<position>|space|<type>|0") for it; the others pass later.
+    Returns the state before the speaker continues (the doomed ships are still on the board)."""
+    state = _wr_state(registry)
+    state.decks.agenda_laws = {"revolution": "for"}
+    state.players["p3"].faction = faction
+    state.players["p2"].faction = "sol"
+    state.systems["102"].space_units = {
+        "p3": dict(p3_ships), "p2": {"cruiser": 1},
+    }
+    state.systems["103"].space_units = {"p3": {"cruiser": 1}}
+    out = _resolve(registry, state, "for")
+    p2 = next(o for o in out.pending_offers if o.player_id == "p2")  # p2 is asked first
+    out = triggers.decline_offer(out, "p2", p2.id)
+    tech = next(
+        t.id for t in sorted(technology.tech_pool(out, registry, "p3").values(), key=lambda t: t.id)
+        if not technology.prerequisites(t) and not t.faction
+    )
+    out = _accept(out, "p3", {"research": {"tech": tech}})
+    revolution = next(o for o in out.pending_offers if "Revolution" in o.label)
+    return triggers.accept_offer(out, "p3", revolution.id, {"units": [pick]})
+
+
+@ruling("C_agendas/wormhole-research/5")
+def test_wormhole_research_doomed_ship_may_be_destroyed_for_the_revolution(
+    registry: StaticDataRegistry,
+) -> None:
+    out = _wr_revolution(registry, {"carrier": 1}, "102|space|carrier|0")
+    # The Revolution choice was real (the carrier in alpha OR the cruiser in 103) and p3 took the
+    # doomed carrier, so the cruiser in 103 is spared - the engine used to force that cruiser.
+    assert out.systems["103"].space_units["p3"] == {"cruiser": 1}
+    assert "carrier" not in out.systems["102"].space_units.get("p3", {})
+    out = _wr_settle(out, registry)
+    assert out.systems["103"].space_units["p3"] == {"cruiser": 1}
+    assert out.systems["102"].space_units.get("p2", {}) == {}  # still destroyed by the agenda
+
+
+_TERROR = {"flagship": 1, "carrier": 1}
+
+
+@ruling("C_agendas/wormhole-research/5.1")
+def test_wormhole_research_vuilraith_flagship_destroyed_for_the_revolution_captures_nothing(
+    registry: StaticDataRegistry,
+) -> None:
+    gone = _wr_settle(_wr_revolution(registry, _TERROR, "102|space|flagship|0", faction="cabal"),
+                      registry)
+    assert gone.players["p3"].captured_units == {} and gone.players["p3"].captured_tokens == {}
+    assert gone.systems["102"].space_units.get("p2", {}) == {}
+    # Control: the flagship survives (another ship is chosen) and captures the cruiser of p2.
+    kept = _wr_settle(_wr_revolution(registry, _TERROR, "102|space|carrier|0", faction="cabal"),
+                      registry)
+    assert kept.players["p3"].captured_units.get("p2", {}) == {"cruiser": 1}
+
+
+@ruling("C_agendas/wormhole-research/5.2")
+def test_wormhole_research_capacity_is_resolved_before_the_ships_are_destroyed(
+    registry: StaticDataRegistry,
+) -> None:
+    fleet = {"flagship": 1, "carrier": 1, "fighter": 7}  # capacity: flagship 3 + carrier 4 = 7
+    out = _wr_revolution(registry, fleet, "102|space|carrier|0", faction="cabal")
+    out = _wr_settle(out, registry)
+    # Without the carrier the fleet is over capacity: the excess fighters are REMOVED first (not
+    # captured); only the fighters that remain are destroyed by the agenda and captured.
+    assert out.systems["102"].space_units.get("p3", {}).get("fighter", 0) == 0
+    captured = out.players["p3"].captured_tokens.get("fighter", 0)
+    assert captured == 3  # what the flagship alone can carry, not all 7
 
 
 # ========================================================= Dodatkowe punkty M-Z (ministrowie)

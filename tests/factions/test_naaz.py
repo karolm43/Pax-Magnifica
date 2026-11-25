@@ -16,6 +16,7 @@ from src.core import (
     exploration,
     faction_components,
     fleet_pool,
+    floating_structures,
     leaders,
     objective_events,
     production,
@@ -634,6 +635,132 @@ def test_eidolon_maximum_rusza_sie_i_liczy_do_puli(registry: StaticDataRegistry)
         state, grid, registry, PLAIN, "mech", "p1", boost=False, tempesta=False) == 3
     assert fleet_pool.fleet_report(state, PLAIN, "p1", registry).ships.get("mech") == 1
     assert "mech" not in capacity.capacity_report(state, registry, PLAIN, "p1").cargo
+
+
+def _maximum_on_planet(registry: StaticDataRegistry, other: str = "sol") -> GameState:
+    """Eidolon Maximum (p1) stoi na planecie Vefutii; w przestrzeni tylko niszczyciel p2."""
+    state = _state(other)
+    state.players["p1"].breakthrough_unlocked = True
+    state.players["p1"].breakthrough_flipped = True
+    state.systems[PLAIN].space_units = {"p2": {"destroyer": 1}}
+    state.systems[PLAIN].planet_units = {VEFUTII: {"p1": {"mech": 1}}}
+    state.active_system = PLAIN
+    return state
+
+
+@ruling("F_naaz_rokha/eidolon-maximum/2.1")
+def test_eidolon_maximum_na_planecie_walczy_w_kosmosie(registry: StaticDataRegistry) -> None:
+    state = _maximum_on_planet(registry)
+    assert battle.space_combat_required(state)  # statek na planecie + wrogi statek w przestrzeni
+    units = {u.base_type: u for u in battle.combat_units(
+        state, None, registry, kind="space", position=PLAIN, planet=None, player_id="p1")}
+    assert units["mech"].unit_id == "naaz_voltron" and units["mech"].zone == VEFUTII
+    assert units["mech"].sustain and units["mech"].base_hits_on == 4
+    # Straty i uszkodzenia dotyczą mecha NA PLANECIE, nie przestrzeni.
+    plan = {"mech": (1, 1)}
+    battle.apply_losses(state, PLAIN, "space", "p1", units, plan)
+    assert damage_of(state, VEFUTII) == 1 and damage_of(state, "space") == 0
+    battle.apply_losses(state, PLAIN, "space", "p1", units, {"mech": (0, 0)})
+    assert not state.systems[PLAIN].planet_units[VEFUTII].get("p1")
+    # Zwykły (niewyrzucony) mech na planecie nie walczy w kosmosie.
+    plain = _maximum_on_planet(registry)
+    plain.players["p1"].breakthrough_flipped = False
+    assert not battle.combat_units(
+        plain, None, registry, kind="space", position=PLAIN, planet=None, player_id="p1")
+    assert not battle.space_combat_required(plain)
+
+
+def damage_of(state: GameState, zone: str) -> int:
+    from src.core.damage import damaged_count
+
+    return damaged_count(state.systems[PLAIN], zone, "p1", "mech")
+
+
+@ruling("F_naaz_rokha/eidolon-maximum/2.2")
+def test_eidolon_maximum_na_planecie_jest_statkiem(registry: StaticDataRegistry) -> None:
+    from src.core import movement_paths, production
+
+    state = _maximum_on_planet(registry)
+    state.systems[PLAIN].space_units = {}
+    assert ship_roles.space_ships(state, registry, "p1", PLAIN) == {"mech": 1}
+    assert movement_paths._ships_of_other_players(state, PLAIN, "p2")  # blokuje przelot
+    assert production.is_blockaded(state, "p2", PLAIN)  # blokuje doki / produkcję statków
+    state.systems[PLAIN].space_units = {"p2": {"spacedock": 1}}
+    assert floating_structures.is_blockaded(state, "p2", PLAIN)
+    assert not movement_paths._ships_of_other_players(state, PLAIN, "p1")
+    state.players["p1"].breakthrough_flipped = False  # zwykły mech nie jest statkiem
+    assert not ship_roles.space_ships(state, registry, "p1", PLAIN)
+    assert not movement_paths._ships_of_other_players(state, PLAIN, "p2")
+
+
+def _skip_round_start(state: GameState, grid: Any, registry: StaticDataRegistry) -> GameState:
+    """Przepuszcza okno „start of combat round” (nikt nie ma reakcji) i wznawia walkę."""
+    from src.core import timing
+
+    window = state.pending_window
+    while window is not None and window.current_responder is not None:
+        state = timing.respond_current(state, window.current_responder)
+        if timing.is_window_complete(state):
+            state = timing.close_window(state)
+        window = state.pending_window
+    return battle.resume_after_triggers(state, grid, registry)
+
+
+@ruling("F_naaz_rokha/eidolon-maximum/2.3")
+def test_direct_hit_niszczy_eidolon_maximum_w_walce_naziemnej(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import action_cards, board_graph
+
+    state = _maximum_on_planet(registry)
+    grid = grid_from_state(state, registry)
+    previous = board_graph._PROVIDER
+    board_graph.bind_grid_provider(lambda: grid)
+    try:
+        for seed in range(1, 400):
+            state = _maximum_on_planet(registry, "saar")
+            state.rng_seed = seed
+            state.systems[PLAIN].space_units = {}
+            state.systems[PLAIN].planet_units = {
+                VEFUTII: {"p1": {"mech": 1}, "p2": {"infantry": 6}}}
+            state.active_player_id = "p2"
+            state.players["p2"].private.action_cards = ["dh1"]
+            state.tactical_step = TacticalStep.INVASION
+            combat_state = _skip_round_start(
+                battle.start_combat(state, grid, registry, VEFUTII), grid, registry)
+            combat_state = battle.roll_round(combat_state, grid, registry)
+            combat = combat_state.active_combat
+            assert combat is not None
+            if (combat.step is CombatStep.ASSIGN and combat.pending_hits.get("p1") == 1
+                    and combat.pending_hits.get("p2", 0) > 0):
+                break
+        else:
+            raise AssertionError("no seed")
+        state = battle.assign_combat_hits(combat_state, grid, registry, "p1",
+                                          sustain={"mech": 1}, destroy={}, destroy_damaged={})
+        assert state.active_combat is not None and state.active_combat.sustained_ships
+        rows = {r["card_id"]: r for r in action_cards.playability(state, registry, "p2")}
+        assert rows["dh1"]["playable"]  # statek (Maximum) użył Sustain Damage w walce naziemnej
+        done, _ = action_cards.play_action_card(state, registry, "p2", "dh1", {"ship": "mech"})
+        assert not done.systems[PLAIN].planet_units[VEFUTII].get("p1")
+        assert not done.players["p1"].breakthrough_flipped  # zniszczony - karta wraca
+    finally:
+        board_graph.bind_grid_provider(previous)
+
+
+@ruling("F_naaz_rokha/eidolon-maximum/3")
+def test_eidolon_maximum_albo_pojemnosc_albo_pula_floty(registry: StaticDataRegistry) -> None:
+    state = _four_mechs(_state())
+    state.players["p1"].breakthrough_flipped = True
+    assert fleet_pool.fleet_report(state, PLAIN, "p1", registry).ships.get("mech") == 1  # Auto
+    choice = floating_structures.choose_ground_ship_pool(state, "p1", "capacity")
+    assert "mech" not in fleet_pool.fleet_report(choice, PLAIN, "p1", registry).ships
+    assert capacity.capacity_report(choice, registry, PLAIN, "p1").cargo["mech"] == 1
+    assert "mech" not in capacity.capacity_report(state, registry, PLAIN, "p1").cargo
+    back = floating_structures.choose_ground_ship_pool(choice, "p1", "auto")
+    assert fleet_pool.fleet_report(back, PLAIN, "p1", registry).ships.get("mech") == 1
+    with pytest.raises(ValueError, match="Choose"):
+        floating_structures.choose_ground_ship_pool(state, "p1", "both")
 
 
 @ruling("breakthroughs:naazbt#3", "F_naaz_rokha/eidolon-maximum/4")

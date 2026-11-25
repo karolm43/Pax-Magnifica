@@ -24,6 +24,7 @@ from src.core import (
     exhaust,
     legendary_planets,
     rules_hooks,
+    ship_roles,
     timing,
     triggers,
     unit_ops,
@@ -494,6 +495,9 @@ def is_blockaded(state: GameState, player_id: str, position: str) -> bool:
     return any(
         owner != player_id and any(c > 0 for c in by_type.values())
         for owner, by_type in system.space_units.items()
+    ) or any(
+        other != player_id and ship_roles.has_planet_ships(state, other, position)
+        for other in state.players
     )
 
 
@@ -794,11 +798,15 @@ def validate_captured(
                 raise ValueError(f"You have not captured that many {base_type} units.")
 
 
-def _validate_captured_war_sun(
-    state: GameState, registry: StaticDataRegistry, player_id: str, captured: CapturedSpend | None
+def _validate_war_sun_owned(
+    state: GameState, registry: StaticDataRegistry, player_id: str, orders: list[ProductionOrder],
+    captured: CapturedSpend | None,
 ) -> None:
-    """F_vuilraith Amalgamation 7: no war sun from a captured one without the war sun upgrade."""
-    if _captured_counts(captured).get("warsun", 0) <= 0:
+    """C_units/war-sun/1: a war sun can be produced only with the War Sun unit upgrade (or
+    Muaat's Prototype War Sun). Also F_vuilraith Amalgamation 7 (war sun from a captured one)."""
+    if _captured_counts(captured).get("warsun", 0) <= 0 and not any(
+        o.base_type == "warsun" for o in orders
+    ):
         return
     player = state.players[player_id]
     unit = resolve_unit_variant(registry, player.faction, player.technologies, "warsun")
@@ -942,7 +950,7 @@ def validate_production(
     # BUDŻET: łączny koszt ≤ dostępne zasoby (sprawdzenie, bez wydawania). Sztuki za przechwycone
     # jednostki (Amalgamation) nie kosztują zasobów.
     validate_captured(state, player_id, orders, captured)
-    _validate_captured_war_sun(state, registry, player_id, captured)
+    _validate_war_sun_owned(state, registry, player_id, orders, captured)
     total_cost = order_cost(
         state, registry, player_id, paid_orders(orders, captured), exhaust_aida=exhaust_aida
     )

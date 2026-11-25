@@ -216,7 +216,9 @@ def combat_windows(state: GameState) -> list[OpenWindow]:
 
     # Walka czekająca na decyzje ze startu walki / rundy (krok TRIGGERS) nadal JEST na starcie:
     # karty i notki „At the start of combat / of a combat round” wolno wtedy zagrać (RULES.md 53.5).
-    at_start = step is CombatStep.TRIGGERS and combat.resume in ("start", "round_start")
+    at_start = step is CombatStep.TRIGGERS and combat.resume in (
+        "start", "start_assault", "round_start"
+    )
     # Wpis Ambush (rzut na starcie walki, RULES.md 62.8) nie kończy startu walki.
     started = [e for e in combat.log if e.get("phase") != "AMBUSH"]
     if combat.round == 1 and not started and (
@@ -248,7 +250,7 @@ def combat_windows(state: GameState) -> list[OpenWindow]:
             out.append(
                 OpenWindow(GameEvent.RETREAT_DECLARED, Moment.AFTER, _ctx(combat, retreater))
             )
-    if space and step is CombatStep.ASSIGN and combat.sustain_hold:
+    if step is CombatStep.ASSIGN and combat.sustain_hold:
         # Wstrzymanie po Sustain Damage ostatniej strony: tylko okna „po Sustain Damage”.
         return sustain_windows()
     if space and step is CombatStep.ASSIGN:
@@ -259,6 +261,8 @@ def combat_windows(state: GameState) -> list[OpenWindow]:
                     OpenWindow(GameEvent.HITS_ASSIGNED, Moment.BEFORE, _ctx(combat, pid, hits=hits))
                 )
         out.extend(sustain_windows())
+    elif step is CombatStep.ASSIGN and combat.sustained_ships:
+        out.extend(sustain_windows())  # walka naziemna: tylko statek-siła naziemna (Maximum)
     if space and step in _LIVE_STEPS:
         for lost in combat.destroyed_ships:
             out.append(
@@ -875,9 +879,21 @@ def _sustained_of(combat: ActiveCombat, state: GameState, player_id: str) -> lis
         str(entry["base_type"])
         for entry in combat.sustained_ships
         if entry["player"] == player_id
-        and damage.damaged_count(system, "space", player_id, str(entry["base_type"])) > 0
+        and damage.damaged_count(
+            system, _sustained_zone(combat, player_id, str(entry["base_type"])), player_id,
+            str(entry["base_type"]),
+        ) > 0
         and not _direct_hit_immune(state, player_id, str(entry["base_type"]))
     ]
+
+
+def _sustained_zone(combat: ActiveCombat, player_id: str, base_type: str) -> str:
+    """Strefa statku, który użył Sustain Damage: przestrzeń albo planeta (Eidolon Maximum na
+    planecie, także w walce naziemnej - F_naaz_rokha eidolon-maximum 2.3)."""
+    for entry in combat.sustained_ships:
+        if entry["player"] == player_id and entry["base_type"] == base_type:
+            return str(entry.get("zone") or "space")
+    return "space"
 
 
 _SC_SOURCE = "space_cannon"
@@ -928,7 +944,7 @@ def _direct_hit_condition(
             and window.ctx.get("base_type") in _trace_types(state, target, player_id)
         )
     combat = state.active_combat
-    if combat is None or combat.kind != "space" or not _participant(state, player_id):
+    if combat is None or not _participant(state, player_id):
         return False
     target = window.subject
     return (
@@ -974,11 +990,12 @@ def _register_direct_hit(card_id: str) -> None:
         if base_type not in _sustained_of(combat, state, target):
             raise ValueError("That ship did not use SUSTAIN DAMAGE.")
         system = state.systems[combat.position]
-        damaged_before = damage.damaged_count(system, "space", target, base_type)
+        zone = _sustained_zone(combat, target, base_type)
+        damaged_before = damage.damaged_count(system, zone, target, base_type)
         _consume_sustain(combat, target, base_type)
-        unit_ops.remove_units(state, system, "space", target, base_type, 1, UnitCause.DESTROYED)
+        unit_ops.remove_units(state, system, zone, target, base_type, 1, UnitCause.DESTROYED)
         # Niszczymy właśnie ten, uszkodzony egzemplarz - uszkodzeń ma być o jedno mniej.
-        damage.set_damaged(system, "space", target, base_type, damaged_before - 1)
+        damage.set_damaged(system, zone, target, base_type, damaged_before - 1)
 
     register_effect(f"action_cards:{card_id}")(effect)
 

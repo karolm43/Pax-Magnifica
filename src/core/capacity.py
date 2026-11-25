@@ -128,8 +128,8 @@ def capacity_report(
         if count <= 0:
             continue
         capacity, used, cost, name = _variant_value(registry, faction, techs, base_type)
-        if floating_structures.ground_moves_as_ship(state, player_id, base_type):
-            continue  # Eidolon Maximum: statek - liczy się do puli floty (RULES.md 62.15)
+        if floating_structures.ground_ship_in_fleet_pool(state, player_id, base_type):
+            continue  # Eidolon Maximum w puli floty (wybór gracza, RULES.md 62.15)
         if base_type in CARGO_TYPES:
             report.cargo[base_type] = count
             report.cost[base_type] = used

@@ -631,6 +631,11 @@ export function planMovements({
         : unit.states,
       delayMs: movementStart,
       parkRotationDeg: combatRotation,
+      gravityDrive:
+        options.liveMove?.kind === "move" &&
+        (options.liveMove.boosted?.includes(unit.unitId) ?? false)
+          ? true
+          : undefined,
       flightPath: options.liveMove
         ? liveLegs(current, options.liveMove, sourceLocated, {
             x: arrival.worldX,

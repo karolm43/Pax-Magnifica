@@ -146,6 +146,33 @@ def _free_players(context: dict[str, str | int]) -> set[str]:
     return {p for p in raw.split(",") if p}
 
 
+_WHEN_FIRED = "_when_fired"  # szkic: „when” karty już rozstrzygnięte przy starcie kroków
+
+
+def _begin_steps(
+    state: GameState, ctx: CardContext, owner_id: str, initiative: int, **resolution: Any
+) -> None:
+    """Otwiera kroki primary (MUTUJE ``state``); ``spec.on_begin`` działa przed pierwszym wyborem.
+
+    Karta z ``on_begin`` (Trade) rozstrzyga najpierw „when” i efekt startowy - okno reakcji po nim
+    (np. „after … replenishes”) musi zostać zamknięte, zanim właściciel poda wybór (kroki wołają
+    ``submit_primary_step``).
+    """
+    spec = _spec(initiative)
+    pending = StrategyResolution(
+        initiative=initiative, owner_id=owner_id, step=spec.primary_steps[0], **resolution
+    )
+    state.pending_strategy = pending
+    if spec.on_begin is None:
+        return
+    triggers.fire(
+        state, GameEvent.STRATEGIC_ACTION, Moment.WHEN, subject=owner_id,
+        ctx={"player": owner_id, "initiative": initiative, "ability": "primary"},
+    )
+    pending.draft[_WHEN_FIRED] = True
+    spec.on_begin(state, ctx, owner_id, pending.draft)
+
+
 def _finish_primary(
     state: GameState,
     ctx: CardContext,
@@ -165,7 +192,10 @@ def _finish_primary(
     """
     spec = _spec(initiative)
     action_ctx = {"player": owner_id, "initiative": initiative, "ability": "primary"}
-    triggers.fire(state, GameEvent.STRATEGIC_ACTION, Moment.WHEN, subject=owner_id, ctx=action_ctx)
+    if not draft.pop(_WHEN_FIRED, False):
+        triggers.fire(
+            state, GameEvent.STRATEGIC_ACTION, Moment.WHEN, subject=owner_id, ctx=action_ctx
+        )
     if spec.primary is not None:
         spec.primary(state, ctx, owner_id, draft)
     # Oferty „after primary” (Peace Accords) nie otwierają własnego okna: czekają w oknie
@@ -279,11 +309,7 @@ def play_strategy_card(
 
     spec = _spec(initiative)
     if spec.primary_steps:
-        new_state.pending_strategy = StrategyResolution(
-            initiative=initiative,
-            owner_id=player_id,
-            step=spec.primary_steps[0],
-        )
+        _begin_steps(new_state, CardContext(registry, grid), player_id, initiative)
         return new_state
     return _finish_primary(new_state, CardContext(registry, grid), player_id, initiative, {})
 
@@ -316,6 +342,8 @@ def submit_primary_step(
     spec = _spec(pending.initiative)
     if spec.on_step is None:
         raise ValueError("This card has no interactive primary steps.")
+    if spec.on_begin is not None and state.pending_window is not None:
+        raise ValueError("Resolve the open abilities of this primary first.")
 
     ctx = CardContext(registry, grid)
     new_state = state.clone()
@@ -359,10 +387,8 @@ def begin_hero_primary(
     """
     spec = _spec(initiative)
     if spec.primary_steps:
-        state.pending_strategy = StrategyResolution(
-            initiative=initiative,
-            owner_id=player_id,
-            step=spec.primary_steps[0],
+        _begin_steps(
+            state, CardContext(registry, grid), player_id, initiative,
             secondary_players=list(secondary_players),
         )
         return
@@ -406,11 +432,8 @@ def begin_overrule_primary(
     """
     spec = _spec(initiative)
     if spec.primary_steps:
-        state.pending_strategy = StrategyResolution(
-            initiative=initiative,
-            owner_id=player_id,
-            step=spec.primary_steps[0],
-            no_secondary=True,
+        _begin_steps(
+            state, CardContext(registry, grid), player_id, initiative, no_secondary=True
         )
         return
     _finish_primary(

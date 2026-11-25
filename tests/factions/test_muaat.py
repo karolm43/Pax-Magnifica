@@ -781,3 +781,21 @@ def test_nova_seed_nie_na_kaflu_fracture(registry: StaticDataRegistry) -> None:
     state.systems["frac1"].space_units = {"p1": {"warsun": 1}}
     ctx = {"player": "p1", "position": "frac1", "from": HOME, "ships": {"warsun": 1}}
     assert muaat.nova_seed_target(state, "p1", ctx) is None
+
+
+@ruling("F_muaat/adjudicator-baal-nova-seed/10")
+def test_nova_seed_przed_foresight_naalu(registry: StaticDataRegistry) -> None:
+    """Ruch wspólny dla obu zdolności (SHIPS_MOVED/AFTER): aktywny Muaat rozstrzyga Nova Seed
+    PRZED Foresight Naalu; zniszczone statki Naalu nie mogą już użyć Foresight."""
+    state = _hero_state()
+    state.players["p2"].faction = "naalu"
+    state.systems[RIVAL].space_units = {"p2": {"cruiser": 1}}
+    _arrive(state, RIVAL)
+    assert _offers(state, "p1", "Nova Seed") and _offers(state, "p2", "Foresight")
+    window = state.pending_window
+    assert window is not None and window.current_responder == "p1"  # active player first
+    after = _accept(state, "p1", "Nova Seed")
+    assert after.systems[RIVAL].system_id == muaat.NOVA_SEED_TILE
+    assert not after.systems[RIVAL].space_units.get("p2")
+    assert not _offers(after, "p2", "Foresight")  # ships destroyed - nothing left to move
+    assert after.pending_window is None  # nobody left to respond

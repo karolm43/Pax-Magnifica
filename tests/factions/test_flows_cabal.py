@@ -46,14 +46,14 @@ def test_stillness_of_stars_po_trade_rywala(registry: StaticDataRegistry) -> Non
     flow.player(lambda p: p.update(strategy_cards=[5]), pid=flow.other)
     flow.edit(active=flow.other)
     flow.post("/strategy/play", {"player_id": flow.other, "initiative": 5})
-    if _state(flow)["pending_strategy"] is not None:
-        flow.post("/strategy/primary-step", {
-            "player_id": flow.other, "payload": {"players": []},
-        })
+    # F_vuilraith the-stillness-of-stars/4: the offer comes right after the replenish,
+    # BEFORE the active player chooses the free-secondary players.
+    assert _state(flow)["pending_strategy"]["step"] == "choose_free_players"
     offer = flow.offer("The Stillness of Stars")
     units = [o["value"] for o in next(i for i in offer["inputs"] if i["key"] == "unit")["options"]]
     assert "fighter" in units and "pds" not in units
     flow.accept("The Stillness of Stars", {"unit": "carrier"})
+    flow.post("/strategy/primary-step", {"player_id": flow.other, "payload": {"players": []}})
     state = _state(flow)
     assert state["players"][flow.me]["captured_units"] == {flow.other: {"carrier": 1}}
     assert state["players"][flow.other]["commodities"] == 0

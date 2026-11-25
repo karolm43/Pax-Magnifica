@@ -26,6 +26,26 @@ export function liveMoveFromEntry(
   if (!activity.actor_id) return undefined;
   const faction = players[activity.actor_id]?.faction;
   if (!faction) return undefined;
+  if (activity.action === "spacecannon.fire") {
+    const shots = activity.facts.filter(
+      (f) => f.type === "cannon_shot" && f.route && f.route.length === 2 && f.value,
+    );
+    const targetFaction = players[shots[0]?.value ?? ""]?.faction;
+    const active = shots[0]?.route?.[1];
+    if (!targetFaction || !active) return undefined;
+    return {
+      kind: "cannon",
+      faction,
+      targetFaction,
+      active,
+      shots: shots.map((f) => ({
+        position: f.route![0],
+        zone: f.detail ?? "space",
+        dice: f.dice ?? f.delta ?? 0,
+        hits: f.delta ?? 0,
+      })),
+    };
+  }
   if (activity.action === "invasion.commit") {
     const planets = [
       ...new Set(
@@ -41,6 +61,9 @@ export function liveMoveFromEntry(
   const route = fact?.route;
   if (!route || route.length < 2) return undefined;
   const lost = riftLosses(activity.facts);
+  const boosted = activity.facts.flatMap((f) =>
+    f.type === "gravity_drive" && f.value ? [ASYNC_BY_BASE_TYPE[f.value] ?? f.value] : [],
+  );
   return {
     kind: "move",
     faction,
@@ -48,6 +71,7 @@ export function liveMoveFromEntry(
     hops: [...(fact.hops ?? [])],
     anomalies: { ...(fact.anomalies ?? {}) },
     ...(lost.length > 0 ? { lost } : {}),
+    ...(boosted.length > 0 ? { boosted } : {}),
   };
 }
 
@@ -67,6 +91,7 @@ function riftLosses(facts: ActivityEntry["activity"]["facts"]): RiftLoss[] {
 /** Systems to highlight while the action replays. */
 export function livePositions(move: LiveMove, data: GameData | undefined): string[] {
   if (move.kind === "move") return move.route;
+  if (move.kind === "cannon") return [...new Set([move.active, ...move.shots.map((s) => s.position)])];
   const position = data && landingPosition(data, move.planets);
   return position ? [position] : [];
 }
@@ -97,6 +122,7 @@ const anywhere = () => true;
  * refresh (e.g. an earlier move into the same active system).
  */
 export function moveLanded(before: GameData, after: GameData, move: LiveMove): boolean {
+  if (move.kind === "cannon") return true; // a volley moves nothing: any map pairs with it
   if (move.kind === "landing") {
     const position = landingPosition(after, move.planets);
     if (!position) return false;
@@ -137,6 +163,7 @@ export function replayBaseline(
 ): GameData | undefined {
   if (!live) return undefined;
   const { move, liveAtArrival, previousAtArrival } = pending;
+  if (move.kind === "cannon") return live;
   if (liveAtArrival && live !== liveAtArrival) {
     return moveLanded(liveAtArrival, live, move) ? liveAtArrival : undefined;
   }

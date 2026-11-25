@@ -752,6 +752,8 @@ def move_fleet(
         raise ValueError(
             "No active system - movement is only allowed during a tactical action (R1)."
         )
+    if not ships and from_pos == active:
+        return _load_in_active_system(state, registry, player_id, cargo_items)
 
     player = state.players.get(player_id)
     faction_id = player.faction if player is not None else None
@@ -781,6 +783,8 @@ def move_fleet(
         "imperator": state.imperator_used,
     }
     this_move = dict.fromkeys(wanted, False)
+    # Ship types that spent Gravity Drive in this move (shown by the flight replay).
+    boosted_types: list[str] = []
     # Gravleash Maneuvers: premia trafia na 1 statek, a reszta grupy (niemyśliwska) wyrównuje do
     # jego wartości (F_letnev) — premia zużyta w TYM ruchu działa więc na kolejne typy statków.
     group_matches = rules_hooks.permits(
@@ -828,6 +832,8 @@ def move_fleet(
             for name in chosen:
                 this_move[name] = True
                 spent[name] = True
+            if "boost" in chosen:
+                boosted_types.append(base_type)
         if count > 1 and single_ship_target(state, player_id, from_pos, base_type) > 0:
             # Captain Mendosa podnosi ruch tylko 1 statku: stos > 1 sztuki musi zdążyć bez tego.
             flags = {name: this_move[name] for name in this_move}
@@ -971,11 +977,67 @@ def move_fleet(
         grid, plan_route or [from_pos, active], player_id, dict(ships),
         [(c.base_type, c.count, c.from_zone, c.from_position or from_pos) for c in cargo_items],
         losses,
+        [bt for bt in boosted_types if ships.get(bt, 0) > 0],
     )
     ion_storm.note_move(new_state, grid, registry, from_pos, active, ion_storm_token)
     if ships:
         fire_ships_moved(
             new_state, player_id, active, from_pos, dict(ships), route=plan_route
+        )
+    return new_state
+
+
+def _load_in_active_system(
+    state: GameState, registry: StaticDataRegistry, player_id: str, cargo: list[CargoPickup]
+) -> GameState:
+    """Ground forces on planets of the active system board ships ALREADY in its space area.
+
+    C_promissory_notes/ceasefire/3: under Ceasefire the active player's ships cannot move, yet
+    ships with capacity already in the active system may transport ground forces from its planets
+    into its space area (they may then commit to invade). ⚠️ ASSUMPTION: only offered under
+    Ceasefire - without it ships in the active system do not move, so there is no transport.
+    """
+    from src.core import capacity, promissory_play  # lokalnie: unikamy cyklu importów
+
+    active = state.active_system
+    assert active is not None
+    if not promissory_play.ceasefire_blocks(state, player_id):
+        raise ValueError(
+            "Cargo (fighters / ground forces) needs a transporting ship moving with it."
+        )
+    system = state.systems.get(active)
+    wanted: dict[tuple[str, str], int] = {}
+    for item in cargo:
+        if item.base_type not in _CARGO_BASE_TYPES or item.base_type == "fighter":
+            raise ValueError("Only ground forces can be loaded from planets of the active system.")
+        if item.from_zone == "space" or item.from_position not in (None, active):
+            raise ValueError("Choose ground forces on planets of the active system.")
+        key = (item.from_zone, item.base_type)
+        wanted[key] = wanted.get(key, 0) + item.count
+    for (zone, base_type), count in wanted.items():
+        have = _available_in_zone(system, player_id, base_type, zone)
+        if have < count:
+            raise ValueError(
+                f"Not enough {base_type} to transport from planet {zone}: have {have}, "
+                f"requested {count}."
+            )
+    report = capacity.capacity_report(state, registry, active, player_id)
+    if report.general <= 0:
+        raise ValueError("Only ships with a capacity value can transport units.")
+    player = state.players[player_id]
+    loaded = dict(report.cargo)
+    for (_zone, base_type), count in wanted.items():
+        loaded[base_type] = loaded.get(base_type, 0) + count
+        report.cost.setdefault(
+            base_type, _capacity_used(registry, player.faction, player.technologies, base_type)
+        )
+    if report.excess_for(loaded) > 0:
+        raise ValueError("Capacity exceeded: the ships in the active system cannot carry that.")
+    new_state = state.clone()
+    dest = new_state.systems[active]
+    for (zone, base_type), count in wanted.items():
+        unit_ops.transfer_units(
+            new_state, dest, zone, dest, "space", player_id, base_type, count
         )
     return new_state
 

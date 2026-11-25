@@ -570,11 +570,17 @@ def _minister_war(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
     active_effects.add_effect(state, effect_key("minister_war", "action"), Duration.TURN, owner=pid)
 
 
-for _event, _moment in (
-    (GameEvent.TACTICAL_ACTION, Moment.END),
-    (GameEvent.COMPONENT_ACTION, Moment.AFTER),
+def _war_ready_primary(state: GameState, pid: str, ctx: Mapping[str, Any]) -> bool:
+    """Strategic action: only the primary ability is the owner's action (secondaries are not)."""
+    return ctx.get("ability") == "primary" and _war_ready(state, pid, ctx)
+
+
+for _event, _moment, _cond in (
+    (GameEvent.TACTICAL_ACTION, Moment.END, _war_ready),
+    (GameEvent.COMPONENT_ACTION, Moment.AFTER, _war_ready),
+    (GameEvent.STRATEGIC_ACTION, Moment.AFTER, _war_ready_primary),  # C_agendas/minister-of-war/1
 ):
-    on_event(_event, _moment, agenda_source("minister_war"), condition=_war_ready, optional=True,
+    on_event(_event, _moment, agenda_source("minister_war"), condition=_cond, optional=True,
              inputs=_war_inputs, covers=covers("minister_war"),
              label="Minister of War")(_minister_war)
 

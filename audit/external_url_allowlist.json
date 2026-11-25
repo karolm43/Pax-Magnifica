@@ -3,5 +3,6 @@
   {"prefix": "https://github.com/dangothemango/tirules", "note": "atrybucja zrzutu reguł"},
   {"prefix": "https://ti4battle.com", "note": "link nawigacyjny kalkulatora bitew"},
   {"prefix": "https://discord.com", "note": "tylko online, za flagą config.features.onlineLogin (D2)"},
-  {"prefix": "http://www.w3.org/2000/svg", "note": "identyfikator przestrzeni nazw SVG (xmlns) w osadzonych maskach data:image/svg+xml; nie jest pobierany po sieci"}
+  {"prefix": "http://www.w3.org/2000/svg", "note": "identyfikator przestrzeni nazw SVG (xmlns) w osadzonych maskach data:image/svg+xml; nie jest pobierany po sieci"},
+  {"prefix": "https://twilight-imperium.fandom.com/wiki", "note": "parsowanie linków ze zrzutu tirules2 do kart komponentów w grze (componentLinks.ts) oraz nieliczne nieodwzorowane linki otwierane zewnętrznie"}
 ]

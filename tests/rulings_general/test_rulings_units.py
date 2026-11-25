@@ -45,6 +45,18 @@ def _bound(registry: StaticDataRegistry) -> None:
 # ================================================================================== War Sun
 
 
+@ruling("C_units/war-sun/1")
+def test_war_sun_cannot_be_produced_without_the_war_sun_upgrade(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _state_with_dock_on_jord(trade_goods=20)
+    orders = [production.ProductionOrder("warsun", 1)]
+    with pytest.raises(ValueError, match="war sun unit upgrade"):
+        production.validate_production(state, prod_grid(), registry, "p1", orders)
+    state.players["p1"].technologies = ["ws"]  # War Sun unit upgrade
+    production.validate_production(state, prod_grid(), registry, "p1", orders)
+
+
 @ruling("C_units/war-sun/2.1")
 def test_war_sun_does_not_stop_magen_defense_grid_omega_omega(
     registry: StaticDataRegistry,

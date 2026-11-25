@@ -41,6 +41,8 @@ export type MapUnitTransition = {
    * `toX`/`toY`. Absent = the legacy single arc from the stack to `toX`/`toY`.
    */
   flightPath?: FlightLeg[];
+  /** The ship spent Gravity Drive on this move: it flies wrapped in a gravity field. */
+  gravityDrive?: boolean;
   /**
    * Cargo (fighters / ground forces) packed into a carrier: shrinks into it at
    * `board`, rides hidden for `rideMs`, unpacks from the carrier's landing point
@@ -77,6 +79,8 @@ export type LiveFleetMove = {
   anomalies: Record<string, string[]>;
   /** Ships / cargo a gravity rift removed on the way (Activity `rift_lost`). */
   lost?: RiftLoss[];
+  /** Map unit ids of ships that spent Gravity Drive on this move (Activity `gravity_drive`). */
+  boosted?: string[];
 };
 
 /** Units of a move swallowed by a gravity rift: map unit id, how many, the rift system. */
@@ -89,8 +93,29 @@ export type LiveLanding = {
   planets: string[];
 };
 
+/** One Space Cannon roll group of a volley: where it shot from, how many dice, how many hit. */
+export type CannonShot = {
+  /** System of the shooter (the active system, or an adjacent one for a PDS). */
+  position: string;
+  /** `space` or the planet id the shooter stands on. */
+  zone: string;
+  dice: number;
+  hits: number;
+};
+
+/** A Space Cannon Offense volley (Activity `spacecannon.fire` + `cannon_shot` facts). */
+export type LiveCannon = {
+  kind: "cannon";
+  /** Shooter's faction. */
+  faction: string;
+  targetFaction: string;
+  /** The active system the ships sit in. */
+  active: string;
+  shots: CannonShot[];
+};
+
 /** A live board action replayed on every client. */
-export type LiveMove = LiveFleetMove | LiveLanding;
+export type LiveMove = LiveFleetMove | LiveLanding | LiveCannon;
 
 export type MapCombatLaser = {
   fromX: number;
@@ -99,7 +124,7 @@ export type MapCombatLaser = {
   toY: number;
   delayMs: number;
   durationMs: number;
-  color: "attacker" | "defender";
+  color: "attacker" | "defender" | "cannon";
 };
 
 export type MapCommandTokenPlacement = {

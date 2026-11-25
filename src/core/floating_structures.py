@@ -42,6 +42,35 @@ def ground_moves_as_ship(state: GameState, player_id: str, base_type: str) -> bo
     )
 
 
+GROUND_SHIP_POOLS = ("fleet", "capacity")
+
+
+def ground_ship_in_fleet_pool(state: GameState, player_id: str, base_type: str) -> bool:
+    """Siła naziemna-statek liczy się do puli floty (a nie do pojemności) - wybór gracza
+    (F_naaz_rokha eidolon-maximum 3: „either capacity or fleet pool”; domyślnie pula floty)."""
+    return (
+        ground_moves_as_ship(state, player_id, base_type)
+        and state.players[player_id].ground_ship_pool != "capacity"
+    )
+
+
+def choose_ground_ship_pool(state: GameState, player_id: str, pool: str) -> GameState:
+    """Gracz wybiera, do czego liczy się jego siła naziemna-statek w przestrzeni: ``fleet``,
+    ``capacity`` albo ``auto`` (= pula floty). Nowy stan; nadwyżkę egzekwują zwykłe okna limitów.
+
+    Raises:
+        ValueError: Nieznany gracz albo wartość.
+    """
+    if player_id not in state.players:
+        raise ValueError(f"Unknown player {player_id}.")
+    choice = "fleet" if pool == "auto" else pool
+    if choice not in GROUND_SHIP_POOLS:
+        raise ValueError("Choose 'fleet', 'capacity' or 'auto'.")
+    new_state = state.clone()
+    new_state.players[player_id].ground_ship_pool = choice
+    return new_state
+
+
 def moves_as_ship(state: GameState, player_id: str, base_type: str) -> bool:
     """Statek, struktura pływająca albo siła naziemna-statek (ruch i odwrót „as if it were a
     ship”)."""
@@ -67,10 +96,20 @@ def has_ships(system: SystemState, player_id: str) -> bool:
 
 def is_blockaded(state: GameState, player_id: str, position: str) -> bool:
     """R_blockaded: w systemie nie ma statków gracza, a są statki innego gracza."""
+    from src.core import ship_roles  # lokalnie: ship_roles importuje ten moduł
+
     system = state.systems.get(position)
-    if system is None or has_ships(system, player_id):
+
+    if system is None:
         return False
-    return any(owner != player_id and has_ships(system, owner) for owner in system.space_units)
+
+    def _ships(owner: str) -> bool:  # Eidolon Maximum na planecie też jest statkiem
+        return has_ships(system, owner) or ship_roles.has_planet_ships(state, owner, position)
+
+    if _ships(player_id):
+        return False
+    return any(owner != player_id and _ships(owner) for owner in {*system.space_units,
+                                                                  *state.players})
 
 
 def floating_in(state: GameState, player_id: str, position: str) -> dict[str, int]:

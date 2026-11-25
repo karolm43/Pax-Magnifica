@@ -8,7 +8,7 @@ Każdy test oznacza ``@ruling(...)`` punkty, które sprawdza (strażnik
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -769,6 +769,32 @@ def test_assault_cannon_condition_checked_when_it_resolves() -> None:
     assert combat_hooks._assault_cannon_ready(state, "p1", ctx)
 
 
+@ruling("C_technology/assault-cannon/3.1")
+def test_assault_cannon_after_other_players_start_of_combat_abilities(
+    registry: StaticDataRegistry,
+) -> None:
+    """Assault Cannon waits for the other players' start-of-combat abilities (a window after the
+    ship-adding abilities) and only then resolves."""
+    from src.core.hooks.factions import mentak
+
+    state = _techs(battle_state({"p1": {"cruiser": 3}, "p2": {"dreadnought": 2}}), "p1", "asc")
+    state.players["p2"].faction = "mentak"
+    state.players["p2"].leader_states[mentak.HERO] = "unlocked"
+    started = battle.start_combat(state, battle_grid(), registry)
+    sleeper = next(o for o in started.pending_offers if "Sleeper Cell" in o.label)
+    # Assault Cannon has not resolved yet: p2 still has both dreadnoughts.
+    assert started.systems["000"].space_units["p2"] == {"dreadnought": 2}
+    assert started.active_combat is not None and started.active_combat.step.value == "TRIGGERS"
+    declined = triggers.decline_offer(started, "p2", sleeper.id)
+    declined = battle.resume_after_triggers(declined, battle_grid(), registry)
+    if declined.pending_offers:  # the victim picks the ship (one type here)
+        offer = declined.pending_offers[0]
+        declined = triggers.accept_offer(declined, offer.player_id, offer.id,
+                                         {"ship": "dreadnought"})
+        declined = battle.resume_after_triggers(declined, battle_grid(), registry)
+    assert declined.systems["000"].space_units["p2"] == {"dreadnought": 1}
+
+
 @ruling("C_technology/assault-cannon/4")
 def test_assault_cannon_sustain_damage_does_not_save_the_ship(
     registry: StaticDataRegistry,
@@ -965,8 +991,10 @@ def test_integrated_economy_uses_resources_including_explored_attachments(
     plain, planet = _ie_state(registry)
     assert plain.production_grant is not None
     base = plain.production_grant.max_cost
+    assert base is not None
     attached, _ = _ie_state(registry, [_card_id(registry, "Mining World")])
     assert attached.production_grant is not None
+    assert attached.production_grant.max_cost is not None
     assert attached.production_grant.max_cost > base  # attachment z eksploracji podnosi limit
 
 
@@ -1076,7 +1104,7 @@ def test_plasma_scoring_adds_a_die_to_experimental_battlestation(
         if plasma:
             params["plasma"] = plasma
         done, _ = action_cards.play_action_card(state, registry, "p2", "experimental", params)
-        return space_cannon.read_log(done)[0]["rolls"][0]
+        return cast("dict[str, Any]", space_cannon.read_log(done)[0]["rolls"][0])
 
     form = action_cards.card_inputs(
         _techs(_move_state(), "p2", "ps"), registry, "p2", "experimental"

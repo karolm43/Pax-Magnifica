@@ -43,7 +43,8 @@ def test_trade_play_waits_for_choice(registry: StaticDataRegistry) -> None:
     assert new.pending_strategy is not None
     assert new.pending_strategy.step == "choose_free_players"
     assert new.pending_window is None  # secondary dopiero po primary
-    assert new.players["p1"].trade_goods == 0  # efekt jeszcze nie zastosowany
+    # Trade: +3 TG i uzupełnienie od razu (przed wyborem graczy z darmowym secondary).
+    assert new.players["p1"].trade_goods == 3
 
 
 def test_end_turn_blocked_while_primary_pending(registry: StaticDataRegistry) -> None:

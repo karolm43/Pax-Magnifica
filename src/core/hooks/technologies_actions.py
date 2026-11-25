@@ -19,6 +19,7 @@ from src.core import (
     exploration_frontier,
     production,
     rules_hooks,
+    ship_roles,
     unit_ops,
 )
 from src.core import offer_inputs as oi
@@ -53,7 +54,6 @@ rules_hooks.declare_player_option("technologies:gls", "technologies:aida")
 
 # Opcja „nic" w slotach (id niepuste, bo puste id nie daje się wybrać w polu formularza).
 NONE = oi.option("", "- none -", option_id="none")
-_GROUND = ("infantry", "mech")
 _TD_SLOTS = 4  # „up to 4 of your ground forces"
 _UNLIMITED_UNITS = 99  # Integrated Economy: „any number of units" (ogranicza koszt)
 
@@ -393,13 +393,14 @@ def _td_stacks(
 ) -> list[tuple[str, str, str, int]]:
     """(system, strefa, typ, liczba) sił naziemnych gracza (na planetach i w kosmosie)."""
     result: list[tuple[str, str, str, int]] = []
+    movable = ship_roles.movable_ground_force_types(state, player_id)
     for pos, system in sorted(state.systems.items()):
         for base_type, count in sorted(system.space_units.get(player_id, {}).items()):
-            if count > 0 and base_type in _GROUND:
+            if count > 0 and base_type in movable:
                 result.append((pos, "space", base_type, count))
         for zone in sorted(system.planet_units):
             for base_type, count in sorted(system.planet_units[zone].get(player_id, {}).items()):
-                if count > 0 and base_type in _GROUND:
+                if count > 0 and base_type in movable:
                     result.append((pos, zone, base_type, count))
     return result
 

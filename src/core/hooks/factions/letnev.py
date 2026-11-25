@@ -183,16 +183,18 @@ def _munitions_window(
 
 @register_effect_inputs("abilities:munitions")
 def munitions_inputs(
-    state: GameState, _registry: StaticDataRegistry, player_id: str
+    state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
     options = _dice_options(state, player_id)
-    return [oi.multi("dice", "Dice to reroll", options, 1, max(1, len(options)))]
+    inputs = [oi.multi("dice", "Dice to reroll", options, 1, max(1, len(options)))]
+    return [*inputs, *_gravleash_reassign_inputs(state, registry, player_id)]
 
 
 @register_effect("abilities:munitions")
 def munitions_reroll(
-    state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
+    state: GameState, registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
 ) -> None:
+    reassign_gravleash(state, registry, player_id, str(params.get("gravleash_ship") or ""))
     battle_rerolls.reroll_combat_dice(
         state, player_id, _chosen(params.get("dice")), "munitions", "Munitions Reserves"
     )
@@ -544,6 +546,83 @@ def gravleash(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
         state, GRAVLEASH, Duration.COMBAT_ROUND, owner=player_id,
         data={"base_type": base_type, "position": str(ctx.get("position"))},
     )
+
+
+def _gravleash_effect(state: GameState, player_id: str) -> Any:
+    found = active_effects.effects_for(state, player_id, GRAVLEASH)
+    return found[0] if found else None
+
+
+def _gravleash_reassign_inputs(
+    state: GameState, registry: Any, player_id: str
+) -> list[dict[str, Any]]:
+    """Optional "move the Gravleash bonus" choice offered with a reroll (F_letnev gravleash 7)."""
+    effect = _gravleash_effect(state, player_id)
+    combat = state.active_combat
+    if effect is None or combat is None:
+        return []
+    current = str(effect.data.get("base_type") or "")
+    types = _ship_types(state, player_id, combat.position)
+    if current not in types:
+        return []
+    player = state.players[player_id]
+    ships = state.systems[combat.position].space_units.get(player_id, {})
+    options = [
+        oi.option(
+            bt, unit_name(state, registry, player_id, bt),
+            meta=oi.unit_meta(bt, player_id, player.faction, player.color, ships.get(bt, 0)),
+        )
+        for bt in [current, *[t for t in types if t != current]]
+    ]
+    return [oi.choice(
+        "gravleash_ship", "Ship that keeps the Gravleash Maneuvers bonus", options,
+        hint="Rerolling lets you assign the bonus to a different ship; the original ship loses it.",
+        auto=current,
+    )]
+
+
+def reassign_gravleash(
+    state: GameState, registry: Any, player_id: str, ship: str
+) -> None:
+    """Move the Gravleash Maneuvers combat bonus to ``ship`` (MUTUJE ``state``).
+
+    F_letnev gravleash-maneuvers 7: when the Letnev player rerolls their combat dice they may
+    assign the bonus to a different ship; the original ship loses the bonus. Call BEFORE the
+    reroll so ``reroll_combat_dice`` recounts hits with the moved bonus. Empty / same ship = keep.
+    """
+    from src.core.battle_units import combat_units
+
+    effect = _gravleash_effect(state, player_id)
+    combat = state.active_combat
+    if not ship or effect is None or combat is None:
+        return
+    old = str(effect.data.get("base_type") or "")
+    if ship == old:
+        return
+    if ship not in _ship_types(state, player_id, combat.position):
+        raise ValueError("Choose one of your ships in this combat for the Gravleash bonus.")
+    bonus_value = len(_ship_types(state, player_id, combat.position))
+    per = {
+        u.base_type: u.dice_per_unit
+        for u in combat_units(
+            state, None, registry, kind="space", position=combat.position, planet=None,
+            player_id=player_id, defender=player_id == combat.defender,
+        )
+    }
+    for entry in combat.rolls.get(player_id, []):
+        base_type = entry.get("baseType")
+        if base_type not in (old, ship):
+            continue
+        bonus = list(entry.get("bonus") or [0] * len(entry["dice"]))
+        span = per.get(str(base_type), 1)
+        sign = -1 if base_type == old else 1
+        for i in range(min(span, len(bonus))):
+            bonus[i] = max(0, bonus[i] + sign * bonus_value)
+        if any(bonus):
+            entry["bonus"] = bonus
+        else:
+            entry.pop("bonus", None)
+    effect.data = {**effect.data, "base_type": ship}
 
 
 @register(POINT_COMBAT_SINGLE_UNIT_BONUS, HookSource(SOURCE_EFFECT, GRAVLEASH), HookKind.MODIFY)

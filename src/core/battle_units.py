@@ -53,6 +53,9 @@ class CombatUnit:
     bonus_dice: int = 0
     # +X do wyników kości JEDNEGO egzemplarza (pierwszego w grupie) — Gravleash Maneuvers.
     single_bonus: int = 0
+    # Strefa jednostki, gdy różni się od strefy walki (Eidolon Maximum na planecie w walce
+    # kosmicznej); pusty = strefa walki.
+    zone: str = ""
 
     @property
     def total_dice(self) -> int:
@@ -108,7 +111,6 @@ def combat_units(
         and _NEBULA in grid.anomalies_at(position)
         else 0
     )
-    no_sustain = sustain_denied(state, player_id, position, zone)
     # Entropic Scar (RULES.md 1.5): w bliźnie żadna zdolność jednostek (tu AFB) nie działa.
     scar = entropic_scar.unit_abilities_blocked(state, position, registry)
     as_ships = (
@@ -121,9 +123,16 @@ def combat_units(
         else frozenset()
     )
     units: list[CombatUnit] = []
-    for base_type, count in sorted(_units_map(system, zone, player_id).items()):
-        if count <= 0:
-            continue
+    # {typ: (liczba, strefa)}; w walce kosmicznej także statek-siła naziemna stojący na planecie
+    # (Eidolon Maximum walczy w kosmosie, nawet gdy jest na planecie - F_naaz_rokha 2.1).
+    in_zone = {bt: (n, zone) for bt, n in _units_map(system, zone, player_id).items() if n > 0}
+    if kind == "space":
+        for bt, (planet_zone, n) in ship_roles.planet_ships(
+            state, registry, player_id, position
+        ).items():
+            in_zone.setdefault(bt, (n, planet_zone))
+    for base_type, (count, unit_zone) in sorted(in_zone.items()):
+        no_sustain = sustain_denied(state, player_id, position, unit_zone)
         if base_type in as_ships:
             unit = registry.units.get(as_ships[base_type])
         elif base_type not in as_ground and is_space_unit(base_type) != (kind == "space"):
@@ -158,7 +167,7 @@ def combat_units(
                 unit_id=unit.id,
                 name=unit.name,
                 count=count,
-                damaged=damaged_count(system, zone, player_id, base_type),
+                damaged=damaged_count(system, unit_zone, player_id, base_type),
                 hits_on=unit.combat_hits_on - modifier,
                 base_hits_on=unit.combat_hits_on,
                 modifier=modifier,
@@ -170,7 +179,7 @@ def combat_units(
                 afb_hits_on=unit.afb_hits_on if kind == "space" and not scar else None,
                 afb_dice=unit.afb_die_count or 1,
                 granted=(
-                    min(1, count - damaged_count(system, zone, player_id, base_type))
+                    min(1, count - damaged_count(system, unit_zone, player_id, base_type))
                     if kind == "space"
                     and not no_sustain
                     and base_type != _FIGHTER
@@ -182,6 +191,7 @@ def combat_units(
                 ),
                 bonus_dice=max(0, bonus_dice),
                 single_bonus=single_bonus,
+                zone=unit_zone if unit_zone != zone else "",
             )
         )
     return units

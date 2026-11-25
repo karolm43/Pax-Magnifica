@@ -587,6 +587,42 @@ def start_component_invasion(
 # ------------------------------------------------------------------------------ nawigacja
 
 
+def begin_forced_combat(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry
+) -> GameState:
+    """Walka naziemna, której nie zatrzyma koniec tury aktywnego gracza (F_ul coalescence 4).
+
+    Wołane po efekcie kończącym turę (Nullification Field): gdy aktywny gracz ma sporną planetę
+    (siły naziemne obok cudzych, np. po Awaken), akcja NIE kończy się od razu - otwiera się
+    inwazja tylko z Ground Combat i Establish Control (żadnych innych kroków akcji), a po jej
+    zamknięciu ``advance`` kończy akcję i turę. Zwraca ``state`` bez zmian, gdy nie ma walki.
+    """
+    active = state.active_system
+    attacker = state.active_player_id
+    if active is None or attacker is None:
+        return state.clone()
+    new_state = state.clone()
+    # ``_contested`` liczy struktury-siły naziemne (Hel-Titan) tylko przy trwającej inwazji.
+    new_state.invasion = InvasionState(position=active, attacker=attacker, forced_end=True)
+    if not _contested(new_state, registry, active, attacker):
+        return state.clone()
+    new_state.tactical_step = TacticalStep.INVASION
+    new_state.invasion_resolved = False
+    return _enter(new_state, grid, registry, InvasionPhase.GROUND_COMBAT)
+
+
+def _finish_forced_end(
+    state: GameState, registry: StaticDataRegistry, attacker: str
+) -> GameState:
+    """Po walce wymuszonej końcem tury: kończy akcję taktyczną i turę gracza (MUTUJE klon)."""
+    from src.core import tactical, turn_flow
+
+    ended = tactical.end_tactical_action(state)
+    if ended.pending_window is not None or ended.pending_offers:
+        return ended  # reakcje „po akcji taktycznej" rozstrzygają się przed końcem tury
+    return turn_flow.end_turn(ended, attacker, registry=registry, forced=True)
+
+
 def advance(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
     """Przechodzi do następnego podkroku inwazji; z ESTABLISH — zamyka inwazję.
 
@@ -630,6 +666,8 @@ def advance(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> Ga
     if state.exploration is not None:
         raise ValueError("Finish exploring the captured planets first.")
     closed = clear_invasion(state)
+    if inv.forced_end:
+        return _finish_forced_end(closed, registry, inv.attacker)
     if not inv.source:
         # Zwykła inwazja taktyczna zamknięta - krok INVASION tej akcji jest rozstrzygnięty.
         closed.invasion_resolved = True

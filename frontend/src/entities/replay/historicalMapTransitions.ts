@@ -1,3 +1,4 @@
+import { buildCannonVolley } from "@/entities/replay/cannonVolley";
 import type { GameData } from "@/entities/game/types";
 import type { Point } from "@/entities/data/types";
 import { getPlanetPositionsBySystemId } from "@/entities/lookup/planets";
@@ -128,7 +129,9 @@ function collectFlightEffects(transitions: MapUnitTransition[]): MapFlightEffect
   for (const transition of transitions) {
     if (!transition.flightPath) continue;
     const start = { x: transition.stack.x, y: transition.stack.y };
-    for (const { atMs, ...effect } of flightEffects(start, transition.flightPath)) {
+    for (const { atMs, ...effect } of flightEffects(start, transition.flightPath, {
+      gravityDrive: transition.gravityDrive,
+    })) {
       const delayMs = (transition.delayMs ?? 0) + atMs;
       const shared = effects.some(
         (other) =>
@@ -154,6 +157,7 @@ function finalizeReplayPlan({
   focusPosition,
   showTacticalActivation = false,
   changedPositions = new Set<string>(),
+  extraEffects = [],
 }: {
   transitions: MapUnitTransition[];
   lasers: MapCombatLaser[];
@@ -166,8 +170,10 @@ function finalizeReplayPlan({
   focusPosition?: string;
   showTacticalActivation?: boolean;
   changedPositions?: Set<string>;
+  /** Board effects that belong to no flight (a Space Cannon volley). */
+  extraEffects?: MapFlightEffect[];
 }): MapReplayPlan {
-  const effects = collectFlightEffects(transitions);
+  const effects = [...collectFlightEffects(transitions), ...extraEffects];
   const arrivalLocations = new Set<string>();
   for (const transition of transitions) {
     if (transition.kind !== "removed")
@@ -762,6 +768,16 @@ export function buildMapReplayPlan(
 ): MapReplayPlan {
   if (!previous || !current)
     return finalizeReplayPlan({ transitions: [], lasers: [] });
+  if (options.liveMove?.kind === "cannon") {
+    const volley = buildCannonVolley(current, options.liveMove);
+    return finalizeReplayPlan({
+      transitions: [],
+      lasers: volley.lasers,
+      extraEffects: volley.effects,
+      focusPosition: options.liveMove.active,
+      changedPositions: options.changedPositions,
+    });
+  }
   try {
     return buildAuthoritativeMapReplay(previous, current, options);
   } catch (error) {

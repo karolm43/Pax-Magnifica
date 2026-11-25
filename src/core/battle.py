@@ -19,8 +19,10 @@ from src.core import (
     coexistence,
     entropic_scar,
     extra_dice,
+    floating_structures,
     objective_events,
     rules_hooks,
+    ship_roles,
     timing,
     triggers,
     unit_ops,
@@ -124,18 +126,52 @@ def start_combat(
         kind=kind, position=active, planet=planet, attacker=attacker, defender=defender
     )
     new_state.active_combat = combat
+    # Assault Cannon dopiero PO pozostałych zdolnościach startu walki (osobny etap niżej).
     triggers.fire(
         new_state, GameEvent.COMBAT, Moment.START, subject=attacker,
-        ctx={"kind": kind, "position": active, "planet": planet or "",
-             "attacker": attacker, "defender": defender},
+        ctx=_start_ctx(combat), hook_filter=lambda h: h.covers != ASSAULT_CANNON_COVERS,
     )
-    # Decyzje graczy z hooków startu walki (np. Assault Cannon, Magen Defense Grid): walka czeka
+    # Decyzje graczy z hooków startu walki (np. Magen Defense Grid): walka czeka
     # w kroku TRIGGERS, aż wszyscy zdecydują (RULES.md 56); potem ``resume_after_triggers``.
     if new_state.pending_offers:
         combat.step = CombatStep.TRIGGERS
         combat.resume = "start"
         return new_state
-    return _after_start(new_state, grid, registry)
+    return _assault_cannon_stage(new_state, grid, registry)
+
+
+# Zdolność Assault Cannon (``hooks/technologies_combat``) - osobny etap startu walki.
+ASSAULT_CANNON_COVERS = "technologies:asc"
+_RESUME_ASSAULT = "start_assault"  # po decyzjach Assault Cannon: reszta startu walki
+
+
+def _start_ctx(combat: ActiveCombat) -> dict[str, Any]:
+    return {
+        "kind": combat.kind, "position": combat.position, "planet": combat.planet or "",
+        "attacker": combat.attacker, "defender": combat.defender,
+    }
+
+
+def _assault_cannon_stage(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry
+) -> GameState:
+    """Assault Cannon po wszystkich innych zdolnościach startu walki (C_technology
+    assault-cannon 3.1): statki dołożone przez zdolności startu walki liczą się do wymogu, a
+    każdy inny gracz miał okazję użyć swojej zdolności, zanim wlaściciel dostał Assault Cannon.
+
+    ⚠️ ZAŁOŻENIE: „jedna zdolność każdego innego gracza” = okno ofert startu walki całe przed
+    Assault Cannon (gracz może użyć kilku niezależnych zdolności).
+    """
+    combat = _combat(state)
+    triggers.fire(
+        state, GameEvent.COMBAT, Moment.START, subject=combat.attacker,
+        ctx=_start_ctx(combat), hook_filter=lambda h: h.covers == ASSAULT_CANNON_COVERS,
+    )
+    if state.pending_offers:
+        combat.step = CombatStep.TRIGGERS
+        combat.resume = _RESUME_ASSAULT
+        return state
+    return _after_start(state, grid, registry)
 
 
 def _after_start(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
@@ -351,6 +387,8 @@ def resume_after_triggers(
         combat.step = CombatStep.ASSIGN
         return _after_losses(new_state, grid, registry)
     combat.step = CombatStep.ROLL
+    if resume == "start":
+        return _assault_cannon_stage(new_state, grid, registry)
     return _after_start(new_state, grid, registry)
 
 
@@ -1083,10 +1121,11 @@ def apply_losses(
     """Stosuje plan strat w strefie ``zone`` systemu ``position`` (MUTUJE ``state`` — klon)."""
     system = state.systems[position]
     for base_type, (count, damaged) in plan.items():
+        unit_zone = units[base_type].zone or zone
         lost = units[base_type].count - count
         if lost:
-            remove_units_in_zone(state, position, zone, player_id, base_type, lost)
-        set_damaged(system, zone, player_id, base_type, damaged)
+            remove_units_in_zone(state, position, unit_zone, player_id, base_type, lost)
+        set_damaged(system, unit_zone, player_id, base_type, damaged)
 
 
 def losses_of(
@@ -1154,10 +1193,18 @@ def assign_combat_hits(
     for base_type, lost in losses_of(units, plan).items():
         note_destroyed(combat, player_id, base_type, lost, units[base_type].base_hits_on)
     for base_type, used in sustained_of(plan, sustain).items():
-        if used > 0 and combat.kind == "space":  # w walce kosmicznej walczą tylko statki
+        # W walce kosmicznej walczą tylko statki; w naziemnej - tylko siła naziemna-statek
+        # (Eidolon Maximum: Direct Hit działa też na niego, F_naaz_rokha eidolon-maximum 2.3).
+        if used > 0 and (
+            combat.kind == "space" or floating_structures.ground_moves_as_ship(
+                new_state, player_id, base_type
+            )
+        ):
+            where = units[base_type].zone or zone
             combat.sustained_ships = [
                 *combat.sustained_ships,
-                {"player": player_id, "base_type": base_type, "count": used},
+                {"player": player_id, "base_type": base_type, "count": used,
+                 **({"zone": where} if where != "space" else {})},
             ]
         if used > 0:
             triggers.fire(
@@ -1193,7 +1240,9 @@ def _hold_for_sustain(
     from src.core import reaction_pause  # lokalnie: reaction_pause -> reaction_cards -> hooki
 
     combat = _combat(state)
-    if combat.kind != "space" or not any(n > 0 for n in used.values()):
+    if not any(n > 0 for n in used.values()) or (
+        combat.kind != "space" and not combat.sustained_ships
+    ):
         return False
     combat.sustain_hold = True
     if reaction_pause.would_open(state, registry):
@@ -1626,6 +1675,11 @@ def space_combat_required(state: GameState) -> bool:
         pid
         for pid, by_type in system.space_units.items()
         if any(c > 0 and is_space_unit(bt) for bt, c in by_type.items())
+    ]
+    # Eidolon Maximum na planecie uczestniczy w walce kosmicznej (F_naaz_rokha 2.1).
+    owners += [
+        pid for pid in state.players
+        if pid not in owners and ship_roles.has_planet_ships(state, pid, str(active))
     ]
     return len(owners) >= 2
 

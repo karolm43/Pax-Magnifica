@@ -41,7 +41,7 @@ def _pool_unit(state: GameState, player_id: str, base_type: str) -> bool:
     """Statek niemyśliwski albo siła naziemna, która jest statkiem (Eidolon Maximum)."""
     from src.core import floating_structures  # lokalnie: unika cyklu importów
 
-    return counts_toward_pool(base_type) or floating_structures.ground_moves_as_ship(
+    return counts_toward_pool(base_type) or floating_structures.ground_ship_in_fleet_pool(
         state, player_id, base_type
     )
 

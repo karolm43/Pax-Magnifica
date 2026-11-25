@@ -139,6 +139,44 @@ def place_on_legendary_card(state: GameState, planet_id: str, card_id: str) -> N
     state.legendary_cards[planet_id] = [*state.legendary_cards.get(planet_id, []), card_id]
 
 
+SALVAGE_YARD_PLANET = "garbozia"
+
+
+def salvage_yard_cards(state: GameState, player_id: str) -> list[str]:
+    """Action cards the player may play from Dok 'N Pic's Salvage Yard (they control Garbozia).
+
+    C_legendary_planets: the card need not be readied (an exhausted card still works) and a new
+    controller of Garbozia may play the cards that stayed on it.
+    """
+    player = state.players.get(player_id)
+    if player is None or SALVAGE_YARD_PLANET not in player.controlled_planets:
+        return []
+    return list(state.legendary_cards.get(SALVAGE_YARD_PLANET, []))
+
+
+def borrow_salvage_yard_card(state: GameState, player_id: str, card_id: str) -> None:
+    """Moves ``card_id`` from the Salvage Yard into the hand so it is played "as if in hand".
+
+    The card is PURGED (not discarded) when it leaves the hand again
+    (``discard_specific_action_cards``). Callers work on a clone (mutates ``state``).
+
+    Raises:
+        ValueError: The player does not control the Salvage Yard or the card is not on it.
+    """
+    if card_id not in salvage_yard_cards(state, player_id):
+        raise ValueError(f"The action card {card_id} is not on your Dok 'N Pic's Salvage Yard.")
+    on_card = list(state.legendary_cards[SALVAGE_YARD_PLANET])
+    on_card.remove(card_id)
+    if on_card:
+        state.legendary_cards[SALVAGE_YARD_PLANET] = on_card
+    else:
+        del state.legendary_cards[SALVAGE_YARD_PLANET]
+    state.players[player_id].private.action_cards.append(card_id)
+    state.salvage_yard_borrowed[player_id] = [
+        *state.salvage_yard_borrowed.get(player_id, []), card_id
+    ]
+
+
 def transfer_action_card(state: GameState, from_id: str, to_id: str, card_id: str) -> None:
     """Przenosi WSKAZANĄ kartę akcji z ręki ``from_id`` do ręki ``to_id`` (mutuje).
 
@@ -166,8 +204,19 @@ def discard_specific_action_cards(
             raise ValueError(f"You do not have the action card {card_id}.")
         hand.remove(card_id)
     state.players[player_id].private.action_cards = hand
-    state.decks.action_card_discard.extend(card_ids)
-    _record_discards(state, player_id, list(card_ids))
+    borrowed = list(state.salvage_yard_borrowed.get(player_id, []))
+    discarded: list[str] = []
+    for card_id in card_ids:
+        if card_id in borrowed:  # played from the Salvage Yard: purged, not discarded
+            borrowed.remove(card_id)
+        else:
+            discarded.append(card_id)
+    if borrowed:
+        state.salvage_yard_borrowed[player_id] = borrowed
+    else:
+        state.salvage_yard_borrowed.pop(player_id, None)
+    state.decks.action_card_discard.extend(discarded)
+    _record_discards(state, player_id, discarded)
 
 
 def take_random_action_card(state: GameState, from_id: str, to_id: str) -> str:

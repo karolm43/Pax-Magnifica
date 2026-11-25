@@ -393,6 +393,40 @@ def test_produkcja_hel_titanow_sumuje_sie(registry: StaticDataRegistry) -> None:
     assert [(p.base_type, p.count, p.value) for p in found] == [("pds", 2, 2)]
 
 
+@ruling("F_ul/heltitan/2")
+def test_decoy_operation_i_transit_diodes_moga_uzyc_hel_titana(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core.hooks import reactions_tactical, technologies_actions
+    from src.core.reaction_cards import WINDOW_KEY
+
+    # Decoy Operation: Hel-Titan (structure + ground force) is removed and placed again.
+    state = _state()
+    _own(state, ARENA, WELLON, units={"pds": 1})
+    assert ("pds" in {bt for _p, _z, bt, _c in reactions_tactical._ground_force_options(
+        state, "p1")})
+    params = {
+        WINDOW_KEY: {"ctx": {"position": HOME}},
+        "planet": ELYSIUM,
+        "units": [{"planet": WELLON, "base_type": "pds"}],
+    }
+    reactions_tactical.decoy_operation(state, registry, "p1", params)
+    assert _units(state, ARENA, WELLON).get("pds", 0) == 0
+    assert _units(state, HOME, ELYSIUM)["pds"] == 1
+
+    # Transit Diodes: the same, from any system onto any planet the player controls.
+    state = _state()
+    state.players["p1"].technologies = ["td"]
+    _own(state, ARENA, WELLON, units={"pds": 1})
+    stacks = technologies_actions._td_stacks(state, registry, "p1")
+    assert (ARENA, WELLON, "pds", 1) in stacks
+    technologies_actions.transit_diodes(
+        state, "p1", {"params": {"unit1": f"{ARENA}|{WELLON}|pds", "to1": f"{HOME}|{ELYSIUM}"}}
+    )
+    assert _units(state, ARENA, WELLON).get("pds", 0) == 0
+    assert _units(state, HOME, ELYSIUM)["pds"] == 1
+
+
 @ruling("F_ul/heltitan/3")
 def test_ghost_squad_nie_przenosi_hel_titana(registry: StaticDataRegistry) -> None:
     state = _state()

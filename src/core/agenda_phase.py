@@ -38,6 +38,7 @@ from src.core import (
     timing,
     triggers,
     turn_flow,
+    wormhole_research,
 )
 from src.core.components import AgendaDef, ComponentCategory
 from src.core.game_events import Duration, GameEvent, Moment
@@ -831,7 +832,12 @@ def continue_agenda(state: GameState, registry: StaticDataRegistry, player_id: s
     agenda = _require_agenda(state, AgendaStep.RESOLVED)
     _require_speaker(state, player_id)
     turn_flow.require_no_open_decisions(state)
-    work = state.clone()
+    # Wormhole Research: ships are destroyed only after research / Anti-Intellectual Revolution /
+    # capacity choices are done (C_agendas). A capacity window may keep the speaker here.
+    work = wormhole_research.settle(state, registry)
+    if work.pending_window is not None:
+        return work
+    work = work.clone() if work is state else work
     assert work.agenda is not None
     revote = agenda.revote_law
     work.agenda.revote_law = None

@@ -103,8 +103,122 @@
   }
 }
 
+/* Antimass Deflectors: an energy bubble with a hex lattice and a bright rim; rock strikes
+   spark along the rim while the field is up. Faded by the flight animation ([data-shield]). */
+.shield,
+.drive {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.shield {
+  background: radial-gradient(
+    circle,
+    rgba(103, 232, 249, 0.02) 0%,
+    rgba(103, 232, 249, 0.1) 62%,
+    rgba(103, 232, 249, 0.34) 86%,
+    rgba(207, 250, 254, 0.85) 96%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 16px 3px rgba(34, 211, 238, 0.5),
+    inset 0 0 20px rgba(34, 211, 238, 0.4);
+}
+
+.shield::before {
+  content: "";
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  background:
+    repeating-linear-gradient(60deg, rgba(165, 243, 252, 0.4) 0 1px, transparent 1px 11px),
+    repeating-linear-gradient(-60deg, rgba(165, 243, 252, 0.4) 0 1px, transparent 1px 11px),
+    repeating-linear-gradient(0deg, rgba(165, 243, 252, 0.4) 0 1px, transparent 1px 11px);
+  -webkit-mask: radial-gradient(circle, #000 55%, transparent 76%);
+  mask: radial-gradient(circle, #000 55%, transparent 76%);
+  animation: shieldShimmer 0.9s ease-in-out infinite alternate;
+}
+
+/* Sparks where rocks strike the field, circling as the ship ploughs on. */
+.shield::after {
+  content: "";
+  position: absolute;
+  inset: -2%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 12% 40%, #fff 0 2px, transparent 3.5px),
+    radial-gradient(circle at 80% 22%, #fef3c7 0 1.6px, transparent 3px),
+    radial-gradient(circle at 66% 90%, #fff 0 2px, transparent 3.5px),
+    radial-gradient(circle at 30% 84%, #fde68a 0 1.5px, transparent 3px);
+  animation: shieldSparks 1.1s steps(6) infinite;
+}
+
+/* Gravity Drive: a violet well - a dark lensed core and rings collapsing onto the hull. */
+.drive {
+  background: radial-gradient(
+    circle,
+    rgba(10, 4, 30, 0.38) 0%,
+    rgba(88, 28, 135, 0.3) 38%,
+    rgba(167, 139, 250, 0.22) 62%,
+    transparent 74%
+  );
+  box-shadow: 0 0 22px 4px rgba(139, 92, 246, 0.4);
+}
+
+.drive::before,
+.drive::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(196, 181, 253, 0.85);
+  box-shadow:
+    0 0 10px rgba(167, 139, 250, 0.8),
+    inset 0 0 10px rgba(167, 139, 250, 0.5);
+  animation: driveRing 1.5s cubic-bezier(0.3, 0, 0.7, 1) infinite;
+}
+
+.drive::after {
+  animation-delay: -0.75s;
+}
+
+@keyframes shieldShimmer {
+  from {
+    opacity: 0.45;
+    transform: rotate(0deg);
+  }
+  to {
+    opacity: 0.95;
+    transform: rotate(14deg);
+  }
+}
+
+@keyframes shieldSparks {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes driveRing {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.32);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .engines {
+  .engines,
+  .shield,
+  .drive {
     display: none;
   }
 }

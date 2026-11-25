@@ -53,6 +53,7 @@ export function resolveLiveMovement(
   current: GameData,
   move: LiveMove,
 ): ResolvedMovement | undefined {
+  if (move.kind === "cannon") return undefined; // a volley moves nothing
   return move.kind === "landing"
     ? resolveLanding(previous, current, move)
     : resolveFleetMove(previous, current, move);
@@ -207,12 +208,13 @@ export function liveLegs(
   source: LocatedStack,
   arrival: Point,
 ): FlightLeg[] | undefined {
+  if (move.kind === "cannon") return undefined;
   return move.kind === "landing"
     ? [{ ...arrival, kind: "lane" }]
     : routeLegs(data, move, source, arrival);
 }
 
-function tileCenter(data: GameData, position: string): Point | undefined {
+export function tileCenter(data: GameData, position: string): Point | undefined {
   const tile = data.tiles[position];
   if (!tile) return undefined;
   return {

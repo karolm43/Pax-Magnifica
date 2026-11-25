@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import rules_hooks
+from src.core import rules_hooks, ship_roles
 from src.core.game_state import GameState, SystemState
 from src.core.unit_catalog import is_space_unit
 
@@ -83,11 +83,12 @@ def _space_docks(state: GameState, player_id: str) -> list[str]:
     return sorted(found)
 
 
-def _has_ships(system: SystemState, player_id: str) -> bool:
+def _has_ships(system: SystemState, player_id: str, state: GameState | None = None) -> bool:
+    """Statki gracza w systemie; z ``state`` także Eidolon Maximum na planecie (jest statkiem)."""
     return any(
         n > 0 and is_space_unit(bt) and bt not in STRUCTURES
         for bt, n in system.space_units.get(player_id, {}).items()
-    )
+    ) or (state is not None and ship_roles.has_planet_ships(state, player_id, system.position))
 
 
 def blockaders(state: GameState, player_id: str) -> set[str]:
@@ -96,10 +97,10 @@ def blockaders(state: GameState, player_id: str) -> set[str]:
     found: set[str] = set()
     for position in _space_docks(state, player_id):
         system = state.systems[position]
-        if _has_ships(system, player_id):
+        if _has_ships(system, player_id, state):
             continue
-        found |= {other for other in system.space_units if other != player_id
-                  and _has_ships(system, other)}
+        found |= {other for other in {*system.space_units, *state.players}
+                  if other != player_id and _has_ships(system, other, state)}
     return found
 
 

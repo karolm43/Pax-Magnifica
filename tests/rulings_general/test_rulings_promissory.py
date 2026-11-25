@@ -243,6 +243,38 @@ def test_ceasefire_keeps_units_already_in_the_system(registry: StaticDataRegistr
     assert played.systems["101"].space_units["p1"] == {"cruiser": 1}
 
 
+@ruling("C_promissory_notes/ceasefire/3")
+def test_ceasefire_ground_forces_board_ships_already_in_the_active_system(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import movement
+
+    state = pn_state()
+    state.systems["101"].space_units["p1"] = {"carrier": 1}
+    state.systems["101"].space_units["p2"] = {"cruiser": 1}
+    state.systems["101"].planet_owners["pl"] = "p1"
+    state.systems["101"].planet_units["pl"] = {"p1": {"infantry": 7}}
+    _activate(state, "101")
+    # Without Ceasefire nothing moves, so there is no transport either.
+    pickup = [movement.CargoPickup("infantry", 2, from_zone="pl")]
+    with pytest.raises(ValueError, match="transporting ship"):
+        movement.move_fleet(state, HexGrid(), registry, "101", {}, pickup, "p1")
+    played, _ = promissory_play.play(state, registry, "p2", "red_cf")
+    assert promissory_play.ceasefire_blocks(played, "p1")
+    done = movement.move_fleet(played, HexGrid(), registry, "101", {}, pickup, "p1")
+    assert done.systems["101"].space_units["p1"] == {"carrier": 1, "infantry": 2}
+    assert done.systems["101"].planet_units["pl"]["p1"] == {"infantry": 5}
+    # The carrier's capacity (6 for Sol) is the limit.
+    with pytest.raises(ValueError, match="Capacity exceeded"):
+        movement.move_fleet(
+            played, HexGrid(), registry, "101", {},
+            [movement.CargoPickup("infantry", 7, from_zone="pl")], "p1",
+        )
+    # Moving ships stays blocked.
+    with pytest.raises(ValueError, match="Ceasefire"):
+        movement.move_fleet(played, HexGrid(), registry, "102", {"cruiser": 1}, [], "p1")
+
+
 @ruling("C_promissory_notes/ceasefire/4")
 def test_ceasefire_playable_with_only_ground_forces_or_structures(
     registry: StaticDataRegistry,

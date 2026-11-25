@@ -68,7 +68,11 @@ class ActivityFact(BaseModel):
     # "move_route" (one per fleet move: route/hops/anomalies, so every client replays the flight),
     # "carried" (cargo of that move: value = unit type, delta = count, detail = source zone
     # "space" / planet id), "rift_lost" (a ship / its cargo removed by a gravity rift roll on
-    # that move: value = unit type, delta = count, detail = the rift system).
+    # that move: value = unit type, delta = count, detail = the rift system), "gravity_drive"
+    # (that move's ship type that spent the Gravity Drive bonus: value = unit type),
+    # "cannon_shot" (one Space Cannon Offense roll group, ``spacecannon.fire``: value = target
+    # player, detail = shooter zone "space" / planet id, delta = hits, dice = dice thrown,
+    # route = [shooter system, active system]).
     # "area" (TYLKO we wpisie z użyciem bohatera: value = pozycja systemu, detail = "gain" / "loss"
     # jednostek gracza albo "token_removed" jego żetonu dowodzenia — miejsce efektu na planszy,
     # RULES.md 64.4; feed go nie wypisuje).
@@ -88,6 +92,8 @@ class ActivityFact(BaseModel):
     route: list[str] | None = None
     hops: list[str] | None = None
     anomalies: dict[str, list[str]] | None = None
+    # Only "cannon_shot": how many dice the roll group threw (``delta`` = how many hit).
+    dice: int | None = None
 
 
 class Activity(BaseModel):
@@ -639,6 +645,10 @@ def _movement_facts(
                 )
                 for loss in record.lost
             )
+            facts.extend(
+                ActivityFact(type="gravity_drive", player_id=actor, value=base_type)
+                for base_type in record.boosted
+            )
         old = before.systems.get(subject)
         new = after.systems.get(subject)
         old_ships = old.space_units.get(actor, {}) if old else {}
@@ -667,7 +677,30 @@ def _movement_facts(
                                 detail=planet,
                             )
                         )
+    elif action == "spacecannon.fire":
+        facts.extend(_cannon_shot_facts(actor, after))
     return facts
+
+
+def _cannon_shot_facts(actor: str, after: GameState) -> list[ActivityFact]:
+    """One ``cannon_shot`` per Space Cannon Offense roll group of the shot just fired, so every
+    client can replay it on the board (presentation only)."""
+    from src.core import space_cannon  # late: space_cannon pulls in most of the engine
+
+    log = space_cannon.read_log(after)
+    entry = log[-1] if log else None
+    active = after.active_system
+    if entry is None or entry.get("roller") != actor or entry.get("passed") or active is None:
+        return []
+    return [
+        ActivityFact(
+            type="cannon_shot", player_id=actor, value=str(entry.get("target") or ""),
+            detail=str(roll.get("zone") or "space"), delta=int(roll.get("hits", 0)),
+            dice=len(roll.get("dice", [])),
+            route=[str(roll.get("position") or active), active],
+        )
+        for roll in entry.get("rolls", [])
+    ]
 
 
 def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:

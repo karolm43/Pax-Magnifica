@@ -6,7 +6,7 @@ Wspólna mechanika capture: ``tests/test_capture.py``.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 import pytest
@@ -235,7 +235,11 @@ def test_devour_infantry_ii_zeton_i_odrodzenie() -> None:
     assert state.table_roll is not None and state.table_roll["playerId"] == "p2"  # rzut odrodzenia
 
 
-def _seek(state: GameState, act: Any, ok: Any) -> GameState:
+def _seek(
+    state: GameState,
+    act: Callable[[GameState], GameState],
+    ok: Callable[[GameState], bool],
+) -> GameState:
     for seed in range(1, 300):
         candidate = state.clone()
         candidate.rng_seed = seed
@@ -567,6 +571,29 @@ def test_agent_pelna_commodity_value_i_koszt(registry: StaticDataRegistry) -> No
     after = _accept(state, "p1", "The Stillness of Stars", {"unit": "dreadnought"})
     assert after.players["p1"].captured_units == {"p2": {"dreadnought": 1}}
     assert after.players["p2"].trade_goods == 0
+
+
+@ruling("F_vuilraith/the-stillness-of-stars/4")
+def test_agent_trade_primary_przed_wyborem_graczy(registry: StaticDataRegistry) -> None:
+    """Trade primary: TG + uzupełnienie od razu, oferta agenta PRZED wyborem graczy z darmowym
+    secondary (kroku nie da się zatwierdzić, dopóki okno reakcji jest otwarte)."""
+    from src.core import strategic_action
+
+    state = _state()
+    state.players["p2"].strategy_cards = [5]
+    state.players["p2"].commodities = 0
+    state = strategic_action.play_strategy_card(state, registry, "p2", 5)
+    assert state.pending_strategy is not None
+    assert state.pending_strategy.step == "choose_free_players"  # not chosen yet
+    assert state.players["p2"].trade_goods == 3  # primary effect already applied
+    assert state.players["p2"].commodities == state.players["p2"].commodity_value  # replenished
+    assert _offers(state, "p1", "The Stillness of Stars")  # after the replenish
+    with pytest.raises(ValueError, match="Resolve the open abilities"):
+        strategic_action.submit_primary_step(state, registry, "p2", {"players": []})
+    after = _accept(state, "p1", "The Stillness of Stars", {"unit": "fighter"})
+    assert after.players["p2"].commodities == 0  # converted before players are chosen
+    done = strategic_action.submit_primary_step(after, registry, "p2", {"players": []})
+    assert done.pending_strategy is None  # primary done, secondary window follows
 
 
 def test_agent_nie_dla_siebie(registry: StaticDataRegistry) -> None:

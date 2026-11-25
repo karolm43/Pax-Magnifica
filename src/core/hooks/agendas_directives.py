@@ -33,6 +33,7 @@ from src.core import (
     strategy_phase,
     technology,
     unit_ops,
+    wormhole_research,
 )
 from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.game_events import Duration, GameEvent, Moment
@@ -60,7 +61,6 @@ from src.core.hooks.card_helpers import controlled, place_from_reinforcements, s
 from src.core.offer_inputs import multi
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import on_event
-from src.core.unit_catalog import is_space_unit
 from src.core.unit_ops import UnitCause
 
 # --- Stałe z tekstów kart ------------------------------------------------------------------
@@ -787,22 +787,9 @@ def _wr_research(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
 @on_outcome("wormhole_research", outcome="for", once=True, moment=Moment.AFTER,
             label="Wormhole Research")
 def _wr_destroy(state: GameState, _pid: str, _ctx: Mapping[str, Any]) -> None:
-    for position in _wormhole_systems(state, _ALPHA_BETA):
-        system = state.systems[position]
-        for player, units in list(system.space_units.items()):
-            for base_type, count in list(units.items()):
-                if count <= 0:
-                    continue
-                # Statki niszczone; siły naziemne na orbicie znikają bez „destroyed" (C_agendas).
-                # Struktury w przestrzeni (Floating Factory Saar) zostają - to nie statki
-                # (C_agendas: „Floating Factories will not be destroyed by Wormhole Research").
-                if is_space_unit(base_type):
-                    cause = UnitCause.DESTROYED
-                elif base_type in GROUND_FORCES:
-                    cause = UnitCause.REMOVED
-                else:
-                    continue
-                unit_ops.remove_units(state, system, "space", player, base_type, count, cause)
+    # Deferred: research + Anti-Intellectual Revolution + capacity resolve first (C_agendas);
+    # ``agenda_phase.continue_agenda`` -> ``wormhole_research.settle`` destroys the ships.
+    wormhole_research.schedule(state)
 
 
 @on_outcome("wormhole_research", outcome="against", decide=True, inputs=_sheet_inputs(1),

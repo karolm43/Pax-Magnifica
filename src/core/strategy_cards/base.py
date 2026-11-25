@@ -62,6 +62,7 @@ class CardSpec:
         secondary: Efekt secondary respondenta, który „follow".
         secondary_costs_token: Czy follow wydaje 1 żeton ze strategy pool.
         options: Dozwolone wybory dla UI (kroki primary i secondary).
+        on_begin: Efekt primary stosowany przy starcie kroków (przed pierwszym wyborem).
         next_step: Opcjonalny wybór KOLEJNEGO kroku po zapisaniu bieżącego (kroki
             warunkowe); zwraca nazwę kroku albo ``None`` (koniec primary). Brak = liniowo
             wg ``primary_steps``.
@@ -76,3 +77,7 @@ class CardSpec:
     # Pierwszy krok, gdy trzeba go wybrać dynamicznie (np. gdy część kroków jest
     # warunkowa). ``None`` = ``primary_steps[0]``.
     next_step: Callable[[str, Draft], str | None] | None = None
+    # Efekt stosowany OD RAZU przy starcie kroków primary (przed pierwszym wyborem gracza), np.
+    # Trade: TG i uzupełnienie commodities PRZED wskazaniem graczy z darmowym secondary, żeby
+    # zdolności „po uzupełnieniu” (The Stillness of Stars) rozstrzygnęły się przed wyborem.
+    on_begin: PrimaryFn | None = None

@@ -37,8 +37,17 @@ const EFFECT_CLASS = {
   nebulaDamp: classes.nebulaDamp,
   asteroidDust: classes.asteroidDust,
   supernovaFlare: classes.supernovaFlare,
+  gravityDrive: classes.gravityDrive,
+  cannonFlash: classes.cannonFlash,
+  cannonImpact: classes.cannonImpact,
   blackHole: classes.blackHole,
 } satisfies Record<FlightEffectKind, string>;
+
+const LASER_COLOR = {
+  attacker: "#67e8f9",
+  defender: "#fb7185",
+  cannon: "#fbbf24",
+} as const;
 
 function isTyping(target: EventTarget | null): boolean {
   return (
@@ -155,12 +164,13 @@ export function MapUnitTransitionLayer() {
                 "--laser-distance": `${distance}px`,
                 "--laser-delay": `${laser.delayMs}ms`,
                 "--laser-duration": `${laser.durationMs}ms`,
-                "--laser-color":
-                  laser.color === "attacker" ? "#67e8f9" : "#fb7185",
+                "--laser-color": LASER_COLOR[laser.color],
               } as CSSProperties
             }
           >
-            <span className={classes.laserBolt} />
+            <span
+              className={`${classes.laserBolt} ${laser.color === "cannon" ? classes.cannonBolt : ""}`}
+            />
           </span>
         );
       })}

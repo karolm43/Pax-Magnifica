@@ -215,6 +215,8 @@ class ActionCardPlayability(BaseModel):
     # Okno minęło ostatnim krokiem (Public Disgrace po wyborze rywala): zagranie = hold-rewind
     # do tej migawki (RULES.md 53.7). ``None`` = zwykłe zagranie w bieżącym stanie.
     hold_seq: int | None = None
+    # Karta leży na karcie zdolności tej planety (Dok 'N Pic's Salvage Yard) - zagranie ją czyści.
+    from_planet: str | None = None
 
 
 class ActionCardPlayabilityResponse(BaseModel):

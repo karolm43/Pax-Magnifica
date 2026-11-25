@@ -6,7 +6,7 @@ import {
   type FlightLeg,
 } from "@/entities/replay/flightPath";
 import type { CargoRide } from "@/entities/replay/types";
-import { THRUST_SELECTOR } from "./FlightEngines";
+import { DRIVE_SELECTOR, SHIELD_SELECTOR, THRUST_SELECTOR } from "./FlightEngines";
 
 type Options = {
   enabled: boolean;
@@ -21,6 +21,8 @@ type Options = {
   parkRotationDeg?: number;
   /** Multi-hop route relative to the start (live moves); replaces the single arc. */
   path?: FlightLeg[];
+  /** The ship spent Gravity Drive: its gravity field is animated along the flight. */
+  gravityDrive?: boolean;
   /** Cargo packed into a carrier (relative to the start); replaces the flight. */
   cargoRide?: CargoRide;
   continuation?: {
@@ -175,6 +177,7 @@ export function useMapFlightAnimation({
   holdRotationDeg,
   parkRotationDeg = 0,
   path,
+  gravityDrive = false,
   cargoRide,
   continuation,
 }: Options) {
@@ -198,6 +201,7 @@ export function useMapFlightAnimation({
             rotateToTrajectory,
             startRotationDeg,
             parkRotationDeg,
+            gravityDrive,
           })
         : undefined;
     const routed = ride
@@ -261,6 +265,22 @@ export function useMapFlightAnimation({
           }),
         )
       : [];
+    // Force fields on the hull: Antimass Deflectors in asteroid fields, the Gravity Drive well.
+    const fieldAnimations = flight
+      ? [
+          [SHIELD_SELECTOR, flight.shield],
+          [DRIVE_SELECTOR, flight.drive],
+        ].flatMap(([selector, frames]) =>
+          Array.from(element.querySelectorAll<HTMLElement>(selector as string), (node) =>
+            node.animate(frames as Keyframe[], {
+              duration: flight.durationMs,
+              delay: delayMs,
+              easing: "linear",
+              fill: "both",
+            }),
+          ),
+        )
+      : [];
     const continuationKeyframes = continuation
       ? buildFlightKeyframes({
           startX: deltaX,
@@ -315,6 +335,7 @@ export function useMapFlightAnimation({
       disposed = true;
       animation.cancel();
       for (const thrust of thrustAnimations) thrust.cancel();
+      for (const field of fieldAnimations) field.cancel();
       continuationAnimation?.cancel();
       holdAnimation?.cancel();
       if (hideTimer !== undefined) window.clearTimeout(hideTimer);
@@ -336,6 +357,7 @@ export function useMapFlightAnimation({
     holdRotationDeg,
     parkRotationDeg,
     pathKey,
+    gravityDrive,
     cargoKey,
     continuation?.deltaX,
     continuation?.deltaY,

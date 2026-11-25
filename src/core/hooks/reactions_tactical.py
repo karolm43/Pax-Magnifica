@@ -25,6 +25,7 @@ from src.core import (
     production,
     reaction_cards,
     rules_hooks,
+    ship_roles,
     unit_ops,
 )
 from src.core import offer_inputs as oi
@@ -526,7 +527,7 @@ def _ground_force_options(state: GameState, player_id: str) -> list[tuple[str, s
     found: list[tuple[str, str, str, int]] = []
     for system in state.systems.values():
         for planet, by_player in system.planet_units.items():
-            for base_type in _GROUND_FORCES:
+            for base_type in ship_roles.movable_ground_force_types(state, player_id):
                 count = by_player.get(player_id, {}).get(base_type, 0)
                 if count > 0:
                     found.append((system.position, planet, base_type, count))
@@ -547,11 +548,12 @@ def decoy_operation(
     units = params.get("units")
     if not isinstance(units, list) or not 1 <= len(units) <= _DECOY_MAX:
         raise ValueError("Choose 1 or 2 of your ground forces ('units').")
+    movable = ship_roles.movable_ground_force_types(state, player_id)
     chosen: list[tuple[str, str]] = []
     for item in units:
         source = item.get("planet") if isinstance(item, Mapping) else None
         base_type = item.get("base_type") if isinstance(item, Mapping) else None
-        if not isinstance(source, str) or base_type not in _GROUND_FORCES:
+        if not isinstance(source, str) or base_type not in movable:
             raise ValueError("Each unit needs 'planet' and a ground force 'base_type'.")
         chosen.append((source, str(base_type)))
     for source, base_type in set(chosen):

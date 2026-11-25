@@ -117,6 +117,66 @@ describe("liveMoveFromEntry", () => {
     });
   });
 
+  it("reads the ships that spent Gravity Drive, as map unit ids", () => {
+    const drive: ActivityFact = {
+      type: "gravity_drive",
+      player_id: "p1",
+      value: "cruiser",
+      delta: null,
+      detail: null,
+    };
+    expect(liveMoveFromEntry(entry([routeFact, drive]), players)).toMatchObject({
+      kind: "move",
+      boosted: ["ca"],
+    });
+    expect(liveMoveFromEntry(entry([routeFact]), players)).not.toHaveProperty("boosted");
+  });
+
+  it("reads a Space Cannon volley: shooters, dice, hits and the target fleet", () => {
+    const shot = (zone: string, from: string, dice: number, hits: number): ActivityFact => ({
+      type: "cannon_shot",
+      player_id: "p1",
+      value: "p2",
+      delta: hits,
+      detail: zone,
+      route: [from, "000"],
+      dice,
+    });
+    const twoPlayers = {
+      ...players,
+      p2: { faction: "hacan", color: "red", display_name: "P2", is_bot: false },
+    };
+    expect(
+      liveMoveFromEntry(
+        entry([shot("lodor", "000", 3, 2), shot("space", "101", 1, 0)], "spacecannon.fire"),
+        twoPlayers,
+      ),
+    ).toEqual({
+      kind: "cannon",
+      faction: "sol",
+      targetFaction: "hacan",
+      active: "000",
+      shots: [
+        { position: "000", zone: "lodor", dice: 3, hits: 2 },
+        { position: "101", zone: "space", dice: 1, hits: 0 },
+      ],
+    });
+    // A pass carries no shots: nothing to replay.
+    expect(liveMoveFromEntry(entry([], "spacecannon.fire"), twoPlayers)).toBeUndefined();
+  });
+
+  it("pairs a volley with the live map at once (it moves nothing)", () => {
+    const volley: LiveMove = {
+      kind: "cannon",
+      faction: "sol",
+      targetFaction: "hacan",
+      active: "000",
+      shots: [],
+    };
+    const live = data({ "000": 1 });
+    expect(replayBaseline({ move: volley, liveAtArrival: live, previousAtArrival: undefined }, live)).toBe(live);
+  });
+
   it("ignores entries without a route and other actions", () => {
     expect(liveMoveFromEntry(entry([]), players)).toBeUndefined();
     expect(

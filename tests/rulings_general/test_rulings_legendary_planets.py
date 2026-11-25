@@ -123,6 +123,49 @@ def test_salvage_yard_cards_stay_when_garbozia_changes_hands(
     assert state.legendary_cards["garbozia"] == ["sabotage"]  # stays on the ability card
 
 
+@ruling("C_legendary_planets/dok-n-pics-salvage-yard-garbozia/2")
+def test_salvage_yard_cards_are_played_from_the_card_without_readying_it(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import action_cards
+
+    state = _state(registry, owned=("garbozia",))
+    state.players["p1"].exhausted_legendaries = ["garbozia"]  # exhausted: still playable
+    state.decks.action_card_discard = ["industrial_initiative"]
+    card_draw.place_on_legendary_card(state, "garbozia", "industrial_initiative")
+    rows = {r["card_id"]: r for r in action_cards.playability(state, registry, "p1")}
+    assert rows["industrial_initiative"]["playable"]
+    assert rows["industrial_initiative"]["from_planet"] == "garbozia"
+    assert not state.players["p1"].private.action_cards  # never really in the hand
+    done, implemented = action_cards.play_action_card(
+        state, registry, "p1", "industrial_initiative"
+    )
+    assert implemented and done.players["p1"].took_action_this_turn
+    # Purged: it leaves the card and is NOT discarded; the exhausted card stays exhausted.
+    assert "garbozia" not in done.legendary_cards
+    assert done.decks.action_card_discard == [] and not done.salvage_yard_borrowed
+    assert done.players["p1"].exhausted_legendaries == ["garbozia"]
+    assert state.legendary_cards["garbozia"] == ["industrial_initiative"]  # pure function
+
+
+@ruling("C_legendary_planets/dok-n-pics-salvage-yard-garbozia/5")
+def test_new_controller_of_garbozia_plays_the_cards_that_stayed(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import action_cards
+
+    state = _state(registry, owned=("garbozia",))
+    state.decks.action_card_discard = ["industrial_initiative"]
+    card_draw.place_on_legendary_card(state, "garbozia", "industrial_initiative")
+    control.set_planet_control(state, "101", "garbozia", "p2", registry)
+    with pytest.raises(ValueError, match="do not have"):
+        action_cards.play_action_card(state, registry, "p1", "industrial_initiative")
+    assert not any(r["from_planet"] for r in action_cards.playability(state, registry, "p1"))
+    state.active_player_id = "p2"
+    done, _ = action_cards.play_action_card(state, registry, "p2", "industrial_initiative")
+    assert done.players["p2"].took_action_this_turn and "garbozia" not in done.legendary_cards
+
+
 # ========================================================================= Galactic Council
 
 

@@ -320,6 +320,26 @@ def test_classified_secret_becomes_public_for_good(registry: StaticDataRegistry)
         objectives.score_public(out, registry, HexGrid(), "p1", "dp")  # …i drugi raz nie
 
 
+@ruling("C_agendas/classified-document-leaks/7")
+def test_classified_elected_and_own_secret_objective_share_the_combat_limit() -> None:
+    """One objective per combat: the elected (public) objective and the player's own secret
+    objective cannot both be scored from the same combat."""
+    from src.core import objective_events
+    from src.core.game_state import CombatStep
+    from tests.test_objective_events import _combat, _scored
+    from tests.test_objective_events import _state as events_state
+
+    grid = HexGrid()
+    grid.place_system("000", "18", anomalies={"NEBULA"})
+    state = events_state("btv")
+    state.decks.agenda_laws = {"classified": "dyp"}
+    state.objectives.revealed = ["dyp"]  # the elected objective, now public
+    state.systems["000"].space_units["p1"] = {"cruiser": 3}
+    objective_events.on_combat_end(state, grid, _combat(step=CombatStep.DONE), "p1")
+    assert state.objectives.scored.get("dyp") == ["p1"]
+    assert _scored(state) == []  # the secret objective must wait for another combat
+
+
 @ruling("C_agendas/classified-document-leaks/6")
 def test_classified_discarded_objective_stays_but_is_not_scorable(
     registry: StaticDataRegistry,
@@ -460,6 +480,31 @@ def test_disarmament_destroys_titans_hel_titan_ground_force(registry: StaticData
     # the infantry (1) and p3's infantry (1); the space dock is a plain structure.
     assert out.systems["101"].planet_units[planet]["p1"] == {"spacedock": 1}
     assert out.players["p1"].trade_goods == state.players["p1"].trade_goods + 4
+
+
+@ruling("C_agendas/compensated-disarmament/5")
+def test_disarmament_coexisting_units_pay_the_planets_controller(
+    registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from src.core import coexistence
+
+    state, planet = _disarmament(registry)
+    state.systems["101"].planet_units[planet]["p3"] = {"infantry": 2, "mech": 1, "pds": 1}
+    assert coexistence.coexisting_players(state, "101", planet) == ["p3"]  # p1 controls it
+    gains: list[tuple[str, int]] = []
+    real = economy.gain_trade_goods
+
+    def spy(st: GameState, pid: str, amount: int, *, cause: str = "") -> None:
+        gains.append((pid, amount))
+        real(st, pid, amount, cause=cause)
+
+    monkeypatch.setattr(economy, "gain_trade_goods", spy)
+    out = _resolve(registry, state, planet)
+    # The controller gets ALL the goods, including those for the coexisting player's 2 infantry +
+    # mech (3) next to its own 2 infantry + mech (3); the coexisting player gains nothing.
+    assert gains == [("p1", 6)]
+    assert out.systems["101"].planet_units[planet]["p3"] == {"pds": 1}  # structure unaffected
+    assert out.players["p3"].trade_goods == state.players["p3"].trade_goods
 
 
 @ruling("C_agendas/compensated-disarmament/3")

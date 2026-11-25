@@ -21,6 +21,7 @@ from src.core import (
     exhaust,
     exploration,
     faction_components,
+    invasion,
     leaders,
     promissory_play,
     reaction_cards,
@@ -381,6 +382,11 @@ def nullification_field(state: GameState, player_id: str, ctx: Mapping[str, Any]
         state, player_id, source=_source(ctx.get("params", {}))
     )
     triggers.drop_offers(state, GameEvent.SYSTEM_ACTIVATED, Moment.AFTER)
+    # F_ul coalescence 4: walka naziemna Titanów i tak się odbywa (tylko ona, bez innych kroków).
+    forced = invasion.begin_forced_combat(state, grid_from_state(state, _registry()), _registry())
+    if forced.invasion is not None:
+        _adopt(state, forced)
+        return
     _adopt(state, tactical.end_tactical_action(state))
     if state.pending_window is None and not state.pending_offers:
         _adopt(state, turn_flow.end_turn(state, active, registry=_registry(), forced=True))

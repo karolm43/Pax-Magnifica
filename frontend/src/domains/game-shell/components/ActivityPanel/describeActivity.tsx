@@ -1050,6 +1050,19 @@ function describeFact(
           </>
         ),
       };
+    case "gravity_drive":
+      return {
+        key,
+        tone: "info",
+        text: (
+          <>
+            {prefix}used Gravity Drive on a {resolveUnitName(fact.value ?? "")}
+          </>
+        ),
+      };
+    case "cannon_shot":
+      // The volley replays on the map; the feed already names the shot (`spacecannon.fire`).
+      return null;
     case "rift_lost": {
       const rift = fact.detail ?? "";
       return {

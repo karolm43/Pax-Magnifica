@@ -217,21 +217,50 @@ describe("Fracture portal and hazards", () => {
     expect(kinds).toEqual(["portalIn", "portalOut"]);
   });
 
-  it("weaves through an asteroid field and still lands exactly", () => {
+  it("holds its line through an asteroid field behind a glowing deflector field", () => {
     const legs: FlightLeg[] = [
       { x: 300, y: 0, kind: "lane", anomaly: "asteroid" },
       { x: 600, y: 0, kind: "lane" },
     ];
-    const { keyframes } = buildPathKeyframes(options(legs));
-    const offRoute = Math.max(...keyframes.map((k) => Math.abs(translate(k).y)));
-    expect(offRoute).toBeGreaterThan(3);
-    expect(offRoute).toBeLessThan(12);
+    const { keyframes, shield, durationMs } = buildPathKeyframes(options(legs));
+    // No weaving: the ship never leaves its straight course.
+    expect(Math.max(...keyframes.map((k) => Math.abs(translate(k).y)))).toBeLessThan(0.01);
     expect(translate(keyframes.at(-1)!)).toEqual({ x: 600, y: 0 });
-    expect(keyframes.some((k) => String(k.filter).includes("214, 180, 140"))).toBe(true);
+    // The Antimass Deflector field is down at launch and landing, fully up at the field.
+    expect(shield[0].opacity).toBe(0);
+    expect(shield.at(-1)?.opacity).toBe(0);
+    expect(Math.max(...shield.map((k) => Number(k.opacity)))).toBe(1);
+    expect(shield).toHaveLength(keyframes.length);
+    expect(shield.at(-1)?.offset).toBe(1);
+    expect(durationMs).toBe(flightPathDuration(start, legs));
     // Slower than open space.
     expect(flightPathDuration(start, legs)).toBeGreaterThan(
       flightPathDuration(start, legs.map(({ anomaly: _drop, ...leg }) => leg)),
     );
+  });
+
+  it("keeps the deflector field up when the ship ends inside the asteroid field", () => {
+    const legs: FlightLeg[] = [{ x: 400, y: 0, kind: "lane", anomaly: "asteroid" }];
+    const { shield } = buildPathKeyframes(options(legs));
+    // Still fully up just before the settle frame powers it down.
+    expect(shield.at(-2)?.opacity).toBe(1);
+    expect(shield.at(-1)?.opacity).toBe(0);
+  });
+
+  it("wraps a Gravity Drive ship in a gravity field and a launch effect", () => {
+    const legs: FlightLeg[] = [{ x: 400, y: 0, kind: "lane" }];
+    const plain = buildPathKeyframes(options(legs));
+    expect(plain.drive.every((k) => k.opacity === 0)).toBe(true);
+    const boosted = buildPathKeyframes({ ...options(legs), gravityDrive: true });
+    expect(boosted.drive[0].opacity).toBe(0);
+    expect(boosted.drive.at(-1)?.opacity).toBe(0);
+    expect(Math.max(...boosted.drive.map((k) => Number(k.opacity)))).toBe(1);
+    expect(boosted.durationMs).toBe(plain.durationMs);
+    expect(flightEffects(start, legs).map((e) => e.kind)).toEqual([]);
+    expect(flightEffects(start, legs, { gravityDrive: true })[0]).toMatchObject({
+      kind: "gravityDrive",
+      atMs: 0,
+    });
   });
 
   it("glows hot and shakes passing a supernova", () => {
