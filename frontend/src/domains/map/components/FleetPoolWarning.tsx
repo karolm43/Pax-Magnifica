@@ -17,14 +17,24 @@ const MAX_CELLS = 24;
 export function FleetPoolWarning({
   extra = 0,
   extraFighters = 0,
+  extraCapacity = 0,
+  extraGround = 0,
 }: {
   extra?: number;
   /** Myśliwce, które gracz dopiero dodaje do przestrzeni (zamówienie w produkcji). */
   extraFighters?: number;
+  /** Capacity of ships the player is about to bring in (staged flight plan). */
+  extraCapacity?: number;
+  /** Ground forces (capacity used each) the player is about to bring into space. */
+  extraGround?: number;
 }) {
   const { data } = useFleetPool(true);
   if (!data?.known) return null;
-  const cap = data.capacity;
+  const cap = {
+    ...data.capacity,
+    general: data.capacity.general + extraCapacity,
+    otherLoad: data.capacity.otherLoad + extraGround,
+  };
   const fighters = cap.fighters + extraFighters;
   const fighterLoad = fighters * cap.fighterCost;
   // Fighter II: myśliwce ponad capacity nie są usuwane z capacity, tylko liczą się do puli floty.

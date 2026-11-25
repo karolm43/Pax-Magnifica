@@ -9,7 +9,7 @@ import type { GameData, Tile } from "@/entities/game/types";
 import classes from "@/shared/ui/map/MapUI.module.css";
 import type { MapLayout } from "../mapLayout";
 import { MapUnitTransitionLayer } from "../layers/MapUnitTransitionLayer";
-import { EffectMoveLayer, MoveRouteLayer } from "../layers/MoveRouteLayer";
+import { EffectMoveLayer, FlightPlanLayer, MoveRouteLayer } from "../layers/MoveRouteLayer";
 import { WormholeLinkLayer } from "../layers/WormholeLinkLayer";
 import { HeroBoardFxLayer } from "../layers/HeroBoardFxLayer";
 import { BoardEffectsZone, BoardLawsZone } from "@/domains/effects/BoardEffectsZone";
@@ -65,6 +65,7 @@ export function MapRenderLayer({
           onPlanetMouseLeave={onPlanetMouseLeave}
         />
         <WormholeLinkLayer tiles={tilesList} contentSize={contentSize} />
+        <FlightPlanLayer tiles={tilesList} contentSize={contentSize} />
         <MoveRouteLayer tiles={tilesList} contentSize={contentSize} />
         <EffectMoveLayer tiles={tilesList} contentSize={contentSize} />
         {replayAnimationsEnabled && <MapUnitTransitionLayer />}

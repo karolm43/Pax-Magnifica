@@ -33,6 +33,16 @@
   animation: routeFlow 1.2s linear infinite;
 }
 
+/* Staged flight-plan leg (FlightPlanLayer): solid, calmer than the leg being edited. */
+.staged {
+  fill: none;
+  stroke: rgb(var(--route-rgb, 252, 211, 77));
+  stroke-width: 12;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+
 .alt {
   fill: none;
   stroke: rgba(255, 255, 255, 0.4);

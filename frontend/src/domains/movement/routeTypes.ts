@@ -98,6 +98,8 @@ export type MoveDraft = {
   via: string[];
   picks: Record<string, DraftPick>;
   route: MoveRouteData | null;
+  /** Staged flight-plan leg this draft edits (re-staging replaces it). */
+  legId?: string;
 };
 
 export type PickTarget = Pick<DraftPick, "kind" | "position" | "zone" | "baseType" | "max">;

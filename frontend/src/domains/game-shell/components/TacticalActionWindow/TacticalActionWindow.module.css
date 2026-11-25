@@ -1,0 +1,522 @@
+/*
+ * Tactical Action Window - guided wizard of the tactical action on the map view.
+ * Layout: [window header = drag grip] + [panel: system header, stepper, prompt, scrolling step
+ * body, sticky footer]. Only the step body scrolls; the footer's primary action never moves.
+ */
+.window {
+  position: fixed;
+  left: 20px;
+  /* Above the chat icon (bottom-left corner, ChatPanel: bottom 16 + 40 px). */
+  bottom: 68px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  width: 420px;
+  height: clamp(360px, 70vh, 720px);
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 88px);
+  box-sizing: border-box;
+  padding: 10px 12px 12px;
+  background: color-mix(in oklab, var(--ds-ground) 94%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in oklab, var(--ds-accent) 45%, var(--ds-h14));
+  border-radius: var(--ds-radius-lg, 14px);
+  box-shadow: var(--ds-shadow-lg, 0 14px 44px rgba(0, 0, 0, 0.55));
+  animation: windowRise 0.42s var(--ds-ease) both;
+}
+
+/* HUD slot "bottom left" (hooks/useHudMetric.ts): ends BELOW the game state plate. */
+.window[data-slotted] {
+  max-height: calc(100vh - var(--hud-gsp-bottom, 0px) - 80px);
+}
+
+/* Minimized: a slim bar - the board is free to inspect, the panel stays mounted. */
+.window[data-minimized] {
+  height: auto;
+  width: auto;
+  min-width: 300px;
+  padding-bottom: 8px;
+}
+
+.window[data-dragging],
+.window[data-resizing] {
+  user-select: none;
+}
+
+.windowHead {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 2px 2px 8px;
+  border-bottom: 1px solid var(--ds-h10);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.window[data-minimized] .windowHead {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.window[data-dragging] .windowHead {
+  cursor: grabbing;
+}
+
+.windowHead > svg {
+  flex: none;
+  color: var(--ds-accent);
+}
+
+.grip {
+  display: inline-flex;
+  color: var(--ds-ink-lo);
+  opacity: 0.7;
+}
+
+.windowTitle {
+  font-family: var(--ds-label-font);
+  font-size: var(--text-micro, 10px);
+  letter-spacing: var(--ds-label-track);
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+.miniStep {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  white-space: nowrap;
+}
+
+.expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ds-ink-hi);
+  background: color-mix(in oklab, var(--ds-accent) 30%, transparent);
+  border: 1px solid var(--ds-accent);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.windowBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: 8px;
+}
+
+.windowBody[hidden] {
+  display: none;
+}
+
+/* Panel --------------------------------------------------------------- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 10px;
+}
+
+.head {
+  flex: none;
+  display: grid;
+  gap: 6px;
+}
+
+.system {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-accent);
+}
+
+.systemName {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: var(--weight-title, 700);
+  color: var(--ds-ink-hi);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tileId {
+  flex: none;
+  padding: 1px 7px;
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+  border: 1px solid var(--ds-h14);
+  border-radius: 999px;
+}
+
+.planets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.planet {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: var(--ds-ink);
+  background: var(--ds-h10);
+  border-radius: 999px;
+}
+
+.planet small {
+  font-family: var(--font-data);
+  color: var(--ds-ink-lo);
+}
+
+/* Stepper: 5 steps with status (Done / Active / Skipped / Upcoming). */
+.stepper {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 2px 5px;
+  border: 1px solid var(--ds-h10);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--ds-ink-lo);
+  text-align: center;
+}
+
+.stepDot {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--ds-socket);
+  box-shadow: inset 0 0 0 1px var(--ds-h14);
+}
+
+.stepLabel {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.stepStatus {
+  font-size: 9px;
+  opacity: 0.85;
+}
+
+.step[data-status="active"] {
+  color: var(--ds-ink-hi);
+  border-color: var(--ds-accent);
+  background: color-mix(in oklab, var(--ds-accent) 16%, transparent);
+}
+
+.step[data-status="active"] .stepDot {
+  color: var(--ds-ground);
+  background: var(--ds-accent);
+  box-shadow: none;
+}
+
+.step[data-status="done"] .stepDot {
+  color: var(--ds-ink-hi);
+  background: rgb(var(--ds-sig-ok, 74 222 128) / 0.45);
+}
+
+.step[data-status="skipped"] {
+  opacity: 0.55;
+}
+
+.step[data-status="skipped"] .stepLabel {
+  text-decoration: line-through;
+}
+
+.prompt {
+  flex: none;
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ds-ink-hi);
+  background: color-mix(in oklab, var(--ds-accent) 9%, transparent);
+  border-left: 3px solid var(--ds-accent);
+  border-radius: 6px;
+}
+
+/* The only scrolling part of the window. */
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+}
+
+.stepBody {
+  display: grid;
+  gap: 6px;
+}
+
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--ds-h14);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--ds-accent);
+}
+
+.secondary:disabled {
+  color: var(--ds-ink-lo);
+  cursor: default;
+}
+
+/* Sticky footer -------------------------------------------------------- */
+.foot {
+  flex: none;
+  display: grid;
+  gap: 7px;
+  padding-top: 9px;
+  border-top: 1px solid var(--ds-h10);
+}
+
+.lock {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 6px 9px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--ds-ink);
+  background: rgb(var(--ds-sig-warn) / 0.12);
+  border: 1px solid rgb(var(--ds-sig-warn) / 0.4);
+  border-radius: 7px;
+}
+
+.lock svg {
+  flex: none;
+  color: rgb(var(--ds-sig-warn));
+}
+
+.footRow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.footLeft {
+  display: flex;
+  gap: 6px;
+}
+
+.ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  min-height: 44px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ds-ink);
+  background: transparent;
+  border: 1px solid var(--ds-h14);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.ghost:hover:not(:disabled) {
+  color: var(--ds-ink-hi);
+  border-color: var(--ds-h22);
+}
+
+.ghost:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* THE primary action: one, unmistakable, on the right. */
+.primary {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--ds-ground);
+  background: var(--ds-accent);
+  border: 1px solid var(--ds-accent);
+  border-radius: 10px;
+  cursor: pointer;
+  animation: primaryPulse 1.8s ease-in-out infinite;
+}
+
+.primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* Locked = neutral grey, no pulse (the lock callout above says why). */
+.primary:disabled {
+  cursor: not-allowed;
+  animation: none;
+  color: var(--ds-ink-lo);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--ds-h14);
+}
+
+.endAction {
+  justify-self: end;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.endAction:hover:not(:disabled) {
+  color: rgb(var(--ds-sig-danger, 248 113 113));
+}
+
+.endAction:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* "Activate system" starter (no active system - Action phase panel). */
+.bigAction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 11px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ds-ink-hi);
+  background: color-mix(in oklab, var(--ds-accent) 20%, transparent);
+  border: 1px solid color-mix(in oklab, var(--ds-accent) 55%, transparent);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.bigActionOn {
+  background: color-mix(in oklab, var(--ds-accent) 34%, transparent);
+  border-color: color-mix(in oklab, var(--ds-accent) 85%, transparent);
+}
+
+.resizeHandle {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  touch-action: none;
+  background: linear-gradient(
+    135deg,
+    transparent 0 50%,
+    color-mix(in oklab, var(--ds-accent) 55%, transparent) 50% 60%,
+    transparent 60% 72%,
+    color-mix(in oklab, var(--ds-accent) 55%, transparent) 72% 82%,
+    transparent 82%
+  );
+  border-bottom-right-radius: var(--ds-radius-lg, 14px);
+  opacity: 0.6;
+}
+
+.resizeHandle:hover {
+  opacity: 1;
+}
+
+@keyframes windowRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes primaryPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--ds-accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--ds-accent) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .window,
+  .primary {
+    animation: none;
+  }
+}
+
+/* Phone: the window drops lower and spans the screen width. */
+:global(.mobile) .window {
+  left: 10px;
+  bottom: 10px;
+  width: calc(100vw - 20px);
+  height: 52vh;
+}

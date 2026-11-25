@@ -1,73 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import {
-  IconArrowBackUp,
-  IconPackage,
-  IconShip,
-} from "@tabler/icons-react";
+import { IconClick, IconRoute } from "@tabler/icons-react";
 import { Switch } from "@/ds";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
-import { useBoardEditor, useMoveRange } from "@/api/useBoardEditor";
+import { useMoveRange } from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
 import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
-import { lookupUnit } from "@/entities/lookup/units";
 import { FleetPoolWarning } from "@/domains/map/components/FleetPoolWarning";
 import { MoveRouteBox } from "@/domains/movement/MoveRouteBox";
+import { FlightPlanList } from "@/domains/movement/FlightPlanList";
+import { useFlightPlan } from "@/domains/movement/useFlightPlan";
 import { usePlayerLook } from "@/domains/invasion/invasionUi";
-import type { PlayerData } from "@/entities/data/types";
-import type { Tile } from "@/entities/game/types";
-import {
-  CARGO_ASYNC,
-  isStructureUnit,
-} from "@/domains/map/components/UnitStack/cargo";
 import styles from "./GameStatePanel.module.css";
 
-type Stack = { asyncId: string; count: number };
-
-/** Statki + ładunek gracza w przestrzeni danego kafelka (z web-data). */
-function playerSpaceStacks(tile: Tile | undefined, faction: string): Stack[] {
-  if (!tile) return [];
-  const entities = tile.unitsByFaction?.[faction] ?? [];
-  return entities
-    .filter((e) => e.entityType === "unit" && e.count > 0)
-    .map((e) => ({ asyncId: e.entityId, count: e.count }));
-}
-
-type Capacity = { total: number; used: number };
-
 /**
- * Pojemność floty gracza w przestrzeni systemu (RULES.md 32.3/R_capacity): suma
- * ``capacityValue`` statków (bez doków) vs liczba przewożonych myśliwców/sił
- * naziemnych (ładunek). Liczone dla KONKRETNEGO gracza (nie max frakcji), z
- * wariantu jednostki (``lookupUnit``). Dane z UnitDef, nie z pamięci.
- */
-function fleetCapacity(stacks: Stack[], faction: string, player?: PlayerData): Capacity {
-  let total = 0;
-  let used = 0;
-  for (const s of stacks) {
-    const unit = lookupUnit(s.asyncId, faction, player);
-    // Struktury (dok/PDS) nie dają pojemności transportu, mimo capacity w danych.
-    if (unit?.capacityValue && !isStructureUnit(s.asyncId)) {
-      total += unit.capacityValue * s.count;
-    }
-    // Myśliwce i siły naziemne zajmują pojemność jako ładunek.
-    if (CARGO_ASYNC.has(s.asyncId)) {
-      used += (unit?.capacityUsed ?? 1) * s.count;
-    }
-  }
-  return { total, used };
-}
-
-/**
- * Krok MOVEMENT akcji taktycznej — MONITOR floty + premie ruchu + okno trasy.
+ * MOVEMENT step of the tactical action - the flight plan (RULES.md 32.4: the active player
+ * declares every moving ship first, then they arrive together).
  *
- * Ruch ma JEDNO okno: ``MoveRouteBox`` (trasa rysowana na mapie). Otwiera je przeciągnięcie
- * jednostek na aktywny system, Ctrl+klik/Ctrl+drag grupy albo klik w świecący system źródłowy.
- * Monitor pokazuje flotę i pojemność w aktywnym systemie; „Undo last move" cofa ostatni ruch,
- * a gdy nic się jeszcze nie ruszyło — samą aktywację systemu („Undo activation").
- * Zasięg/capacity egzekwuje backend (422 z powodem).
+ * Clicking a glowing system on the map (or dragging / Ctrl+clicking units) opens that system's
+ * leg in the editor right here; "Add to flight plan" stages it and the next glowing system can
+ * be picked. Every staged route stays on the map. Below, the combined result (fleet pool and
+ * capacity in the active system once EVERYTHING arrives). The window's primary button flies
+ * the whole plan with one request (all legs or nothing); Undo then reverts it in one click.
+ * One-ship move bonuses stay separate switches (the player's consent); the plan shows which
+ * leg spends each of them. Range, blockades and capacity are enforced by the backend.
  */
 export function MovementStepPanel({
   activeSystem,
@@ -78,30 +36,28 @@ export function MovementStepPanel({
 }) {
   const gameData = useGameData();
   const look = usePlayerLook();
-  const { undoMove } = useBoardEditor();
   const setMoveRangeSources = useAppStore((s) => s.setMoveRangeSources);
   const gravityDrive = useAppStore((s) => s.gravityDrive);
   const setGravityDrive = useAppStore((s) => s.setGravityDrive);
+  const draftOpen = useAppStore((s) => s.moveDraft !== null);
+  const movePlan = useAppStore((s) => s.movePlan);
+  const clearMovePlan = useAppStore((s) => s.clearMovePlan);
   const routeParams = useParams<{ mapid: string }>();
   const { data: gameState } = useGameState(routeParams.mapid ?? DEFAULT_GAME_ID);
-  const [busy, setBusy] = useState(false);
-  // Bez ruchu w tej akcji przycisk cofa samą aktywację systemu (backend: /tactical/undo-move).
-  const moved = gameState?.tacticalMoved === true;
+  const flight = useFlightPlan();
 
   const player = gameData?.playerData?.find((p) => p.color === activePlayerColor);
   const faction = player?.faction ?? null;
 
-  // Podgląd zasięgu ruchu (legalne systemy źródłowe) — podświetla heksy na mapie.
-  // Gravity Drive (RULES.md 55.6): przełącznik tylko dla właściciela technologii, dopóki w tej
-  // akcji nie zużyto premii - to GRACZ decyduje, silnik nie włącza jej sam.
+  // Gravity Drive (RULES.md 55.6): a switch only for the owner, while the bonus is unused this
+  // action - the PLAYER decides, the engine never turns it on by itself.
   const gravityDriveReady =
     (player?.techs ?? []).includes("gd") && gameState?.gravityDriveUsed !== true;
   const useGd = gravityDrive && gravityDriveReady;
   useEffect(() => {
     if (!gravityDriveReady && gravityDrive) setGravityDrive(false);
   }, [gravityDriveReady, gravityDrive, setGravityDrive]);
-  // Ionian Fuel Refinery (Tempesta, RULES.md 60): osobny przełącznik, dostępny po wyczerpaniu
-  // karty po aktywacji systemu (`extraMoveBoostActive`), dopóki premia nie została zużyta.
+  // Ionian Fuel Refinery (Tempesta, RULES.md 60): its own switch after exhausting the card.
   const tempesta = useAppStore((s) => s.tempesta);
   const setTempesta = useAppStore((s) => s.setTempesta);
   const tempestaReady =
@@ -110,8 +66,7 @@ export function MovementStepPanel({
   useEffect(() => {
     if (!tempestaReady && tempesta) setTempesta(false);
   }, [tempestaReady, tempesta, setTempesta]);
-  // Imperator (Winnu, RULES.md 62.7): osobna premia „+1 dla jednego statku” po aktywacji systemu
-  // z planetą legendarną — może trafić na inny statek niż Gravity Drive.
+  // Imperator (Winnu, RULES.md 62.7): a separate "+1 for one ship" - may go to another ship.
   const imperator = useAppStore((s) => s.imperator);
   const setImperator = useAppStore((s) => s.setImperator);
   const imperatorReady =
@@ -132,22 +87,8 @@ export function MovementStepPanel({
     return () => setMoveRangeSources(new Set());
   }, [moveRange, setMoveRangeSources]);
 
-  // Flota AKTYWNEGO systemu (monitor) + jej pojemność.
-  const activeTile = gameData?.tiles?.[activeSystem];
-  const fleet = faction ? playerSpaceStacks(activeTile, faction) : [];
-  const capacity = faction ? fleetCapacity(fleet, faction, player) : { total: 0, used: 0 };
-  const free = Math.max(capacity.total - capacity.used, 0);
-  const over = capacity.used > capacity.total;
-
-  const run = async (fn: () => Promise<void>) => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await fn();
-    } finally {
-      setBusy(false);
-    }
-  };
+  // Leaving the step (or another activation) drops a plan that was never flown.
+  useEffect(() => () => clearMovePlan(), [activeSystem, clearMovePlan]);
 
   if (!faction) {
     return (
@@ -157,32 +98,17 @@ export function MovementStepPanel({
     );
   }
 
+  const sources = Object.keys(moveRange?.sources ?? {});
+  const { incoming } = flight;
   return (
     <div className={styles.movement}>
-      {/* MONITOR floty aktywnego systemu. */}
-      <div className={styles.moveMonitorHead}>
-        <span className={styles.prodZoneLabel}>
-          <IconShip size={11} aria-hidden="true" /> Fleet here
-        </span>
-        <span
-          className={styles.capBadge}
-          data-over={over || undefined}
-          title="Cargo used / total capacity (fighters + ground forces)"
-        >
-          <IconPackage size={11} aria-hidden="true" />
-          {capacity.used}/{capacity.total}
-          {!over && free > 0 ? ` · ${free} free` : ""}
-          {over ? " · over!" : ""}
-        </span>
-      </div>
-
-      {/* Technologie wpływające na ruch (Antimass, Light/Wave, Gravity Drive...) - także stałe. */}
+      {/* Technologies that affect movement (Antimass, Light/Wave, Gravity Drive...). */}
       <ActiveTechs context="movement" color={activePlayerColor} />
 
       {gravityDriveReady && (
         <Switch
           label="Use Gravity Drive"
-          description="+1 move for ONE ship this action (the ship that needs it)."
+          description="+1 move for ONE ship this action - the flight plan shows which leg uses it."
           checked={gravityDrive}
           onChange={(event) => setGravityDrive(event.currentTarget.checked)}
         />
@@ -190,7 +116,7 @@ export function MovementStepPanel({
       {tempestaReady && (
         <Switch
           label="Use Ionian Fuel Refinery"
-          description="+1 move for ONE ship this action (the ship that needs it)."
+          description="+1 move for ONE ship this action - the flight plan shows which leg uses it."
           checked={tempesta}
           onChange={(event) => setTempesta(event.currentTarget.checked)}
         />
@@ -213,37 +139,48 @@ export function MovementStepPanel({
         <span className={styles.prodZoneLabel}>Gravity Drive used this action</span>
       )}
 
-      {/* Fleet pool (RULES.md 42): ruch ponad pulę jest dozwolony, ale nadwyżka zostanie usunięta. */}
-      <FleetPoolWarning />
-      {/* Ruch z trasą: klik w świecący system na mapie otwiera box, trasa rysuje się na mapie. */}
+      {/* The leg being picked: opened by clicking a glowing system on the map. */}
       <MoveRouteBox
         faction={faction}
         player={player}
-        sources={Object.keys(moveRange?.sources ?? {})}
+        sources={sources}
         hue={`rgb(${look(faction).rgb})`}
         gravityDrive={useGd}
         tempesta={useTempesta}
         imperator={useImperator}
+        embedded
       />
-      <span className={styles.prodNote}>
-        Drag units onto the active system, or click a glowing system (Ctrl+click picks units
-        first) - the route window opens with the path drawn on the map.
-      </span>
+      {!draftOpen && (
+        <p className={styles.moveHint}>
+          <IconClick size={14} aria-hidden="true" />
+          <span>
+            {sources.length === 0
+              ? "No ships can reach this system - continue with the next step."
+              : movePlan.length === 0
+                ? "Click a glowing system on the map to pick ships flying from it (or drag units onto this system)."
+                : "Click another glowing system to add ships from it, or fly the plan."}
+          </span>
+        </p>
+      )}
 
-      <button
-        type="button"
-        className={styles.subAction}
-        disabled={busy}
-        onClick={() => void run(undoMove)}
-        title={
-          moved
-            ? "Undo your last ship move"
-            : "Nothing moved yet - take the command token back and cancel the activation"
-        }
-      >
-        <IconArrowBackUp size={13} aria-hidden="true" />{" "}
-        {moved ? "Undo last move" : "Undo activation"}
-      </button>
+      {movePlan.length > 0 && (
+        <section className={styles.planSection} aria-label="Staged legs">
+          <span className={styles.prodZoneLabel}>
+            <IconRoute size={11} aria-hidden="true" /> Flight plan · {movePlan.length} leg
+            {movePlan.length === 1 ? "" : "s"}
+          </span>
+          <FlightPlanList legs={movePlan} />
+        </section>
+      )}
+
+      {/* Combined result once the WHOLE plan arrives (RULES.md 42: the pool may be exceeded,
+          but the excess is removed right after). */}
+      <FleetPoolWarning
+        extra={incoming.nonFighterShips}
+        extraFighters={incoming.fighters}
+        extraCapacity={incoming.capacity}
+        extraGround={incoming.groundForces}
+      />
     </div>
   );
 }

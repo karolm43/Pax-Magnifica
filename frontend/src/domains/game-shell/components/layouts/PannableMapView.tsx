@@ -26,7 +26,7 @@ import { TryUnitDecalsSidebar } from "../TryUnitDecalsSidebar/TryUnitDecalsSideb
 import { BottomHandDock } from "@/domains/game-shell/components/BottomHandDock";
 import { TurnControls } from "@/domains/game-shell/components/TurnControls";
 import { StatusPhasePanel } from "@/domains/game-shell/components/StatusPhasePanel";
-import { TacticalActionDock } from "@/domains/game-shell/components/TacticalActionDock";
+import { TacticalActionWindow } from "@/domains/game-shell/components/TacticalActionWindow";
 import { BoardHud } from "./BoardHud";
 import { ChessClockPanel } from "@/domains/clock/ChessClockPanel";
 
@@ -276,10 +276,9 @@ export function PannableMapView({ gameId }: { gameId: string }) {
           żetonów dowodzenia. Sam gatuje widoczność po fazie i stanie statusu. */}
       <StatusPhasePanel />
 
-      {/* Dok akcji taktycznej (lewy dół) — panel-przewodnik po krokach akcji
-          (ruch → cannon → walka → inwazja → produkcja). Pokazuje się TYLKO, gdy
-          trwa akcja taktyczna; brakował go na samej mapie (plate = tylko info). */}
-      <TacticalActionDock />
+      {/* Tactical Action Window (bottom left) - guided wizard through the action's steps
+          (move -> cannon -> combat -> invasion -> production); only during a tactical action. */}
+      <TacticalActionWindow />
     </Box>
   );
 }

@@ -779,3 +779,24 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
 - Tests: `tests/test_move_batch.py`; flow harness `start_space_combat()` tolerates the auto-start.
 - QA: full pytest (only failures: frontend locality URL in `componentLinks.ts`, from another commit), ruff, mypy
   (errors only in other sessions' files). Backend restart needed (new routes).
+
+## Tactical window redesign, phases 2-4: guided Tactical Action Window, flight plan UI, step polish
+- `TacticalActionWindow` (replaces `TacticalActionDock`; panel moved out of `GameStatePanel`): active system +
+  planets, 5-step bar with Done / Active / Skipped / Upcoming (`tacticalSteps.ts`, pure + tested), one-line
+  prompt, sticky footer with ONE context-aware primary action (Fly plan / Next step / No movement - next step /
+  Return to battle / Start space combat / Finish action), Undo + "Map" (minimize keeps the panel mounted),
+  rule locks phrased as what to do. Wider (420 px), resizable.
+- Flight plan (RULES.md 32.4): `movePlan` in `appStore`; `MoveRouteBox` is now the leg editor embedded in the
+  window ("Add to flight plan" / "Update leg"; units staged in other legs are not offered again); staged
+  routes drawn by `FlightPlanLayer`; `FlightPlanList` shows legs with the one-ship bonus each spends; combined
+  fleet pool / capacity preview (`FleetPoolWarning` `extraCapacity` / `extraGround`); `useFlightPlan.fly` =
+  one `/tactical/move-batch`. No system list in the window (planets/systems only on the map - user rule).
+- Step entry: battle / production windows open with their step; invasion "Skip invasion (land nothing)".
+- Space Cannon: whose-turn banner (network: other seats wait), "Fire Space Cannon (N dice · hits on X+)" with
+  the hold hint visible, range lens on by itself while firing, results log folded, "Auto" hit assignment
+  (`autoAssignHits`, RULES.md 38.4 ⚠️ ASSUMPTION).
+- Not done: the live flight replay still animates only the newest leg of a batch (`useLiveMoveReplay` pairs one
+  move per refresh; that code is being reworked in another session). No firing lines for Space Cannon beyond
+  the range lens (cannon volley animation is in progress elsewhere).
+- QA: tsc, eslint (changed files), vitest (new + movement/invasion/map/state folders; `StrategyCardTable.test.tsx`
+  runs out of memory also on clean HEAD), `npm run build`, `npm run e2e` (8 passed). Backend unchanged here.

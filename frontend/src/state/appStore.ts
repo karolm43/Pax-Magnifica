@@ -18,6 +18,7 @@ import {
   type MoveRouteData,
   type PickTarget,
 } from "@/domains/movement/routeTypes";
+import type { StagedLeg } from "@/domains/movement/flightPlan";
 
 const STORAGE_KEY = "ti4_settings";
 const THEME_STORAGE_KEY = "ti4_theme";
@@ -372,6 +373,16 @@ type AppStore = {
   clearDraftPicks: () => void;
   routePick: { targets: string[]; selected: string[]; hue?: string; onPick: (position: string) => void } | null;
   setRoutePick: (pick: AppStore["routePick"]) => void;
+  /**
+   * Flight plan of the Move Ships step (RULES.md 32.4): staged legs flown together with one
+   * ``/tactical/move-batch``. ``stageMoveDraft`` adds the edited leg (or replaces the one it
+   * edits) and closes the route box; ``editStagedLeg`` reopens a staged leg in the box.
+   */
+  movePlan: StagedLeg[];
+  stageMoveDraft: (leg: StagedLeg) => void;
+  editStagedLeg: (id: string) => void;
+  removeStagedLeg: (id: string) => void;
+  clearMovePlan: () => void;
 
   /*
    * Ruch z EFEKTU (bohater, przełom, karta - ``UnitMovesField``): okno decyzji wystawia, które
@@ -624,6 +635,37 @@ export const useAppStore = create<AppStore>((set) => {
       set((s) => (s.moveDraft ? { moveDraft: { ...s.moveDraft, picks: {} } } : {})),
     routePick: null,
     setRoutePick: (pick) => set({ routePick: pick }),
+    movePlan: [],
+    stageMoveDraft: (leg) =>
+      set((s) => {
+        const index = s.movePlan.findIndex((l) => l.id === leg.id);
+        const movePlan =
+          index >= 0
+            ? s.movePlan.map((l) => (l.id === leg.id ? leg : l))
+            : [...s.movePlan, leg];
+        return { movePlan, moveDraft: null };
+      }),
+    editStagedLeg: (id) =>
+      set((s) => {
+        const leg = s.movePlan.find((l) => l.id === id);
+        if (!leg) return {};
+        return {
+          moveDraft: {
+            from: leg.from,
+            faction: leg.faction,
+            via: leg.via,
+            picks: leg.picks,
+            route: null,
+            legId: leg.id,
+          },
+        };
+      }),
+    removeStagedLeg: (id) =>
+      set((s) => ({
+        movePlan: s.movePlan.filter((l) => l.id !== id),
+        moveDraft: s.moveDraft?.legId === id ? null : s.moveDraft,
+      })),
+    clearMovePlan: () => set({ movePlan: [] }),
     effectMove: null,
     setEffectMove: (move) => set({ effectMove: move }),
     effectMoveDrag: null,

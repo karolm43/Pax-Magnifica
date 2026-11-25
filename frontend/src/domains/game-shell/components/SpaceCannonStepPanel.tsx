@@ -14,6 +14,7 @@ import {
   IconEye,
   IconEyeOff,
   IconHandStop,
+  IconHourglass,
 } from "@tabler/icons-react";
 import {
   useBoardEditor,
@@ -21,6 +22,8 @@ import {
   type SpaceCannonSide,
 } from "@/api/useBoardEditor";
 import { useSettingsStore } from "@/state/appStore";
+import { useNetworkMe } from "@/domains/network/useNetworkMe";
+import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import { useGameData } from "@/state/useGameContext";
 import { Switch } from "@/ds";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
@@ -104,6 +107,11 @@ function TurnCard({
 
   const shooterTechs = hasTechs(gameData, side.faction);
   const totalRolled = side.totalDice + plasmaDice;
+  const thresholds = [...new Set(side.shooters.map((s) => s.hitsOn))].sort((a, b) => a - b);
+  const hitsOn =
+    thresholds.length === 1
+      ? `hits on ${thresholds[0]}+`
+      : `hits on ${thresholds[0]}-${thresholds[thresholds.length - 1]}+`;
 
   return (
     <section className={styles.turn} aria-label={`${me.name} may fire`}>
@@ -214,7 +222,9 @@ function TurnCard({
               <span className={styles.targetHead}>
                 <CircularFactionIcon faction={key} size={18} />
                 <b>{lookup(key).name}</b>
-                {side.targets.length === 1 && <small>active player</small>}
+                {side.targets.length === 1 && (
+                  <small>only target - the ships that moved in</small>
+                )}
               </span>
               <ActiveTechs
                 context="spaceCannon"
@@ -232,14 +242,14 @@ function TurnCard({
           disabled={busy || target === null}
           onFire={() => target !== null && onFire(target, extraSources.length ? picks : null)}
           onHold={soloHold(side.totalDice + plasmaDice, me.rgb)}
-          hint={false}
           title={
             target === null
               ? "Pick a target first"
               : "Roll Space Cannon dice (hold to shake the dice, release to throw)"
           }
         >
-          <IconBolt size={15} aria-hidden="true" /> Fire
+          <IconBolt size={15} aria-hidden="true" /> Fire Space Cannon ({totalRolled} dice ·{" "}
+          {hitsOn})
         </HoldRollButton>
         <button
           type="button"
@@ -274,6 +284,33 @@ export function SpaceCannonStepPanel() {
   const [busy, setBusy] = useState(false);
   const look = usePlayerLook();
   const throwDice = useDiceStage((s) => s.throwDice);
+  const { data: me } = useNetworkMe();
+  const desk = useDeskPlayer();
+
+  // Map first: while shooters are firing, the Space Cannon range lens is on by itself (and
+  // turned off again only if this panel turned it on).
+  const firing = panel?.isOpen === true;
+  const lensByPanel = useRef(false);
+  useEffect(() => {
+    if (firing && !useSettingsStore.getState().settings.showPDSLayer) {
+      useSettingsStore.getState().handlers.togglePdsMode();
+      lensByPanel.current = true;
+    }
+    if (!firing && lensByPanel.current) {
+      lensByPanel.current = false;
+      if (useSettingsStore.getState().settings.showPDSLayer) {
+        useSettingsStore.getState().handlers.togglePdsMode();
+      }
+    }
+  }, [firing]);
+  useEffect(
+    () => () => {
+      if (lensByPanel.current && useSettingsStore.getState().settings.showPDSLayer) {
+        useSettingsStore.getState().handlers.togglePdsMode();
+      }
+    },
+    [],
+  );
 
   // Nowy rzut: fizyczne kości na wspólnej scenie, a wynik w panelu odsłania się, gdy leżą.
   const pendingNow = panel?.pending ?? null;
@@ -336,6 +373,8 @@ export function SpaceCannonStepPanel() {
     );
   };
   const current = panel.sides.find((s) => s.faction === panel.current);
+  // Network game: only the shooter's own seat fires; locally the operator plays every seat.
+  const mine = current !== undefined && (!me?.network || desk?.faction === current.faction);
   const shooter = gameData?.playerData?.find(
     (p) => p.faction === current?.faction,
   );
@@ -396,6 +435,22 @@ export function SpaceCannonStepPanel() {
         </ol>
       )}
 
+      {panel.isOpen && current && !pending && (
+        <p className={styles.banner} data-mine={mine || undefined} role="status">
+          {mine ? (
+            <>
+              <IconBolt size={15} aria-hidden="true" /> Your Space Cannon —{" "}
+              {factionTag(current.faction, nameOf(current.faction))}
+            </>
+          ) : (
+            <>
+              <IconHourglass size={15} aria-hidden="true" /> Waiting for{" "}
+              {factionTag(current.faction, nameOf(current.faction))} to fire or pass
+            </>
+          )}
+        </p>
+      )}
+
       {pending ? (
         <div style={{ visibility: rolling ? "hidden" : "visible" }}>
           <header className={styles.shotHead}>
@@ -429,7 +484,8 @@ export function SpaceCannonStepPanel() {
           />
         </div>
       ) : (
-        current && (
+        current &&
+        mine && (
           <>
             {glsReady && (
               <Switch
@@ -462,7 +518,12 @@ export function SpaceCannonStepPanel() {
         )
       )}
 
-      <SpaceCannonLog log={history} nameOf={nameOf} />
+      {history.length > 0 && (
+        <details className={styles.logBox}>
+          <summary>Results so far ({history.length})</summary>
+          <SpaceCannonLog log={history} nameOf={nameOf} />
+        </details>
+      )}
     </div>
   );
 }

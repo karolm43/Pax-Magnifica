@@ -317,6 +317,12 @@ export function useInvasionActions() {
     refresh();
   }, [refresh]);
 
+  /** "Skip invasion" (RULES.md 19.1): bombard nothing, land nothing - closes the invasion. */
+  const skip = useCallback(async () => {
+    await post("/tactical/invasion/skip", {});
+    refresh();
+  }, [refresh]);
+
   return {
     begin,
     bombard,
@@ -327,5 +333,6 @@ export function useInvasionActions() {
     defensePass,
     assignDefense,
     next,
+    skip,
   };
 }

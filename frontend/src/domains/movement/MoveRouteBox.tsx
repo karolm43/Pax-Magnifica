@@ -3,12 +3,12 @@ import { createPortal } from "react-dom";
 import {
   IconArrowRight,
   IconPackage,
+  IconPlaylistAdd,
   IconRoute,
-  IconSend,
   IconX,
 } from "@tabler/icons-react";
 import { getPortalRoot } from "@/ds";
-import { useBoardEditor, useMoveRoute } from "@/api/useBoardEditor";
+import { useMoveRoute } from "@/api/useBoardEditor";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { useAppStore } from "@/state/appStore";
 import { useGameData } from "@/state/useGameContext";
@@ -18,6 +18,13 @@ import { getTileById } from "@/entities/lookup/systems";
 import { lookupUnit } from "@/entities/lookup/units";
 import type { PlayerData } from "@/entities/data/types";
 import { RouteUnitChip } from "./RouteUnitChip";
+import {
+  BOOST_NAMES,
+  draftAsLeg,
+  neededBoosts,
+  newLegId,
+  stagedElsewhere,
+} from "./flightPlan";
 import {
   asyncOfBase,
   draftCapacity,
@@ -73,14 +80,18 @@ type Props = {
   gravityDrive: boolean;
   tempesta: boolean;
   imperator?: boolean;
+  /** Rendered inside the tactical window (no floating, draggable portal). */
+  embedded?: boolean;
 };
 
 /**
- * Ruch z trasą w kroku MOVEMENT. Klik w system źródłowy na mapie otwiera ten mały, przeciągalny
- * box: lista statków stamtąd i ładunku leżącego NA TRASIE (lewy przycisk +1, prawy −1, Shift =
- * wszystkie), pasek capacity, alternatywne trasy. Sama trasa i ładunek po drodze są też
- * rysowane na mapie (``MoveRouteLayer``); klik w świecący system na mapie przerzuca trasę
- * przez niego (jak waypoint w nawigacji). Zasięg, blokady i capacity egzekwuje backend.
+ * One LEG of the flight plan (Move Ships step, RULES.md 32.4). Clicking a source system on the
+ * map opens this picker: ships from there and cargo lying ON THE ROUTE (left click +1, right
+ * -1, Shift = all), capacity bar, alternative routes. The route and cargo along it are also
+ * drawn on the map (``MoveRouteLayer``); clicking a glowing system reroutes through it (like a
+ * waypoint in navigation). "Add to flight plan" stages the leg - nothing moves until the
+ * tactical window's "Fly" sends the whole plan. Units staged in other legs are not offered
+ * again. ``embedded`` renders it inside the tactical window instead of a floating box.
  */
 export function MoveRouteBox({
   faction,
@@ -90,6 +101,7 @@ export function MoveRouteBox({
   gravityDrive,
   tempesta,
   imperator = false,
+  embedded = false,
 }: Props) {
   const gameData = useGameData();
   const draft = useAppStore((s) => s.moveDraft);
@@ -100,9 +112,10 @@ export function MoveRouteBox({
   const bumpDraftPick = useAppStore((s) => s.bumpDraftPick);
   const clearDraftPicks = useAppStore((s) => s.clearDraftPicks);
   const setRoutePick = useAppStore((s) => s.setRoutePick);
-  const { moveShips } = useBoardEditor();
+  const movePlan = useAppStore((s) => s.movePlan);
+  const stageMoveDraft = useAppStore((s) => s.stageMoveDraft);
+  const editStagedLeg = useAppStore((s) => s.editStagedLeg);
   const drag = useDraggablePanel("moveRouteBox.pos.v1");
-  const [busy, setBusy] = useState(false);
   // Ion Storm w systemie z własnym wormholem tego typu: którego wormholu używają statki
   // (C_exploration_cards; żeton obraca się tylko przy jego użyciu). Wybór per źródło ruchu.
   const [stormPick, setStormPick] = useState<{ from: string; token: boolean } | null>(null);
@@ -152,7 +165,13 @@ export function MoveRouteBox({
   onPickRef.current = (position: string) => {
     const current = useAppStore.getState().moveDraft;
     if (sources.includes(position)) {
-      if (current?.from === position) closeMoveDraft();
+      if (current?.from === position) {
+        closeMoveDraft();
+        return;
+      }
+      // A system with a staged leg reopens that leg for editing (one leg per source system).
+      const staged = useAppStore.getState().movePlan.find((l) => l.from === position);
+      if (staged) editStagedLeg(staged.id);
       else openMoveDraft(position, faction);
       return;
     }
@@ -167,8 +186,10 @@ export function MoveRouteBox({
     );
     setMoveDraftVia(alt ? alt.slice(1, -1) : [...current.via, position]);
   };
+  // Sources with a staged leg stay highlighted as "selected" (their route is on the map too).
+  const stagedFroms = movePlan.map((l) => l.from).filter((f) => f !== draft?.from);
   const targetsKey = targets.join("|");
-  const selectedKey = selected.join("|");
+  const selectedKey = [...selected, ...stagedFroms].join("|");
   useEffect(() => {
     if (targetsKey === "") {
       setRoutePick(null);
@@ -202,7 +223,7 @@ export function MoveRouteBox({
   }, [draft, closeMoveDraft]);
 
   const portalRoot = getPortalRoot();
-  if (!draft || !portalRoot) return null;
+  if (!draft || (!embedded && !portalRoot)) return null;
 
   const tiles = gameData?.tiles ?? {};
   const systemName = (position: string): string => {
@@ -237,11 +258,18 @@ export function MoveRouteBox({
     const via = combo.map(bonusName).join(" + ") || "+1 move";
     return s.bonusMax > 1 ? `needs ${via}` : `needs ${via}, 1 ship`;
   };
-  const problems = draftProblems(
-    draft,
-    (bt) => unitName(asyncOfBase(bt)),
-    gravityDrive || tempesta || imperator,
-  );
+  const enabledBoosts = { gravity_drive: gravityDrive, tempesta, imperator };
+  const legBoosts = route ? neededBoosts(route, draft.picks) : [];
+  const problems = [
+    ...draftProblems(
+      draft,
+      (bt) => unitName(asyncOfBase(bt)),
+      gravityDrive || tempesta || imperator,
+    ),
+    ...legBoosts
+      .filter((b) => !enabledBoosts[b])
+      .map((b) => `This leg needs ${BOOST_NAMES[b]} - turn it on in the movement step.`),
+  ];
   const cap = draftCapacity(draft);
   const over = cap.used > cap.total;
   const picks = Object.values(draft.picks);
@@ -249,37 +277,21 @@ export function MoveRouteBox({
   const cargoCount = picks.filter((p) => p.kind === "cargo").reduce((n, p) => n + p.count, 0);
   const jumps = route?.route ? route.route.length - 1 : null;
 
-  const bump = (target: PickTarget, delta: number) => bumpDraftPick(target, delta);
+  // Units staged in OTHER legs of the plan cannot be picked again here.
+  const withoutStaged = (target: PickTarget): PickTarget => ({
+    ...target,
+    max: target.max - stagedElsewhere(movePlan, draft.legId, target),
+  });
+  const bump = (target: PickTarget, delta: number) =>
+    bumpDraftPick(withoutStaged(target), delta);
+  const roomFor = (target: PickTarget) =>
+    withoutStaged(target).max - otherRoleCount(draft.picks, draft.from, target);
   const stormToken = stormPick?.from === draft.from ? stormPick.token : undefined;
   const stormMissing = Boolean(route?.ionStormChoice) && stormToken === undefined;
 
-  const submit = async () => {
-    if (busy || shipCount + cargoCount === 0) return;
-    setBusy(true);
-    try {
-      await moveShips({
-        fromPosition: draft.from,
-        faction,
-        ships: picks
-          .filter((p) => p.kind === "ship")
-          .map((p) => ({ baseType: p.baseType, count: p.count })),
-        cargo: picks
-          .filter((p) => p.kind === "cargo")
-          .map((p) => ({
-            baseType: p.baseType,
-            count: p.count,
-            fromZone: p.zone,
-            fromPosition: p.position,
-          })),
-        route: route?.route ?? undefined,
-        ionStormToken: route?.ionStormChoice ? stormToken : undefined,
-      });
-      closeMoveDraft();
-    } catch {
-      // Powód (422) trafia do panelu komunikatów; box zostaje, żeby poprawić wybór.
-    } finally {
-      setBusy(false);
-    }
+  const stage = () => {
+    const leg = draftAsLeg(draft, draft.legId ?? newLegId(), stormToken);
+    if (leg) stageMoveDraft(leg);
   };
 
   const reachableShips = route?.ships.filter((s) => s.reachable) ?? [];
@@ -291,21 +303,23 @@ export function MoveRouteBox({
     }))
     .filter((n) => n.entries.length > 0);
 
-  return createPortal(
+  const box = (
     <section
-      ref={boxRef}
-      className={styles.box}
+      ref={embedded ? undefined : boxRef}
+      className={embedded ? styles.embedded : styles.box}
       role="group"
       aria-label={`Move from ${systemName(draft.from)}`}
-      data-draggable-panel
-      data-dragging={drag.isDragging || undefined}
-      style={{ ...(savedSize ?? {}), ...drag.style, ...maxSizeFor(drag.style) }}
+      data-draggable-panel={embedded ? undefined : true}
+      data-dragging={(!embedded && drag.isDragging) || undefined}
+      style={
+        embedded ? undefined : { ...(savedSize ?? {}), ...drag.style, ...maxSizeFor(drag.style) }
+      }
     >
       <header
         className={styles.head}
-        onPointerDown={drag.onHandlePointerDown}
-        onDoubleClick={drag.reset}
-        title="Drag to move (double-click resets)"
+        onPointerDown={embedded ? undefined : drag.onHandlePointerDown}
+        onDoubleClick={embedded ? undefined : drag.reset}
+        title={embedded ? undefined : "Drag to move (double-click resets)"}
       >
         <IconRoute size={16} aria-hidden="true" />
         <span className={styles.title}>
@@ -317,7 +331,7 @@ export function MoveRouteBox({
           type="button"
           className={styles.iconBtn}
           data-no-drag
-          aria-label="Close move box"
+          aria-label="Close leg editor"
           onClick={closeMoveDraft}
         >
           <IconX size={14} />
@@ -465,7 +479,7 @@ export function MoveRouteBox({
                 name={unitName(asyncId)}
                 caption={shipCaption(s)}
                 picked={draft.picks[pickKey(target)]?.count ?? 0}
-                max={target.max - otherRoleCount(draft.picks, draft.from, target)}
+                max={roomFor(target)}
                 disabled={!s.reachable}
                 title={s.reachable ? undefined : s.reason}
                 onChange={(delta) => bump(target, delta)}
@@ -513,7 +527,7 @@ export function MoveRouteBox({
                     name={unitName(asyncId)}
                     caption={zoneLabel(c.zone)}
                     picked={draft.picks[pickKey(target)]?.count ?? 0}
-                    max={c.count - otherRoleCount(draft.picks, draft.from, target)}
+                    max={roomFor(target)}
                     onChange={(delta) => bump(target, delta)}
                   />
                 );
@@ -533,7 +547,7 @@ export function MoveRouteBox({
         <button
           type="button"
           className={styles.ghost}
-          disabled={busy || picks.length === 0}
+          disabled={picks.length === 0}
           onClick={clearDraftPicks}
         >
           Clear
@@ -542,20 +556,22 @@ export function MoveRouteBox({
           type="button"
           className={styles.primary}
           disabled={
-            busy ||
             shipCount + cargoCount === 0 ||
             route?.route == null ||
             problems.length > 0 ||
             stormMissing
           }
-          onClick={() => void submit()}
+          onClick={stage}
+          title="Stage this leg - nothing moves until you fly the whole plan"
         >
-          <IconSend size={14} aria-hidden="true" />
-          Move {shipCount} ship{shipCount === 1 ? "" : "s"}
-          {cargoCount > 0 ? ` + ${cargoCount} cargo` : ""}
+          <IconPlaylistAdd size={14} aria-hidden="true" />
+          {draft.legId ? "Update leg" : "Add to flight plan"} ({shipCount} ship
+          {shipCount === 1 ? "" : "s"}
+          {cargoCount > 0 ? ` + ${cargoCount} cargo` : ""})
         </button>
       </footer>
-    </section>,
-    portalRoot,
+    </section>
   );
+  if (embedded) return box;
+  return portalRoot ? createPortal(box, portalRoot) : null;
 }

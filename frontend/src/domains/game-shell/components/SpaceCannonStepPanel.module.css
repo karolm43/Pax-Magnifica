@@ -699,3 +699,62 @@
     animation: none;
   }
 }
+
+/* Turn ownership banner: whose Space Cannon it is now. */
+.banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 9px 11px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ds-ink-hi);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--ds-h14);
+  border-radius: 9px;
+}
+
+.banner[data-mine] {
+  background: color-mix(in oklab, var(--ds-accent) 18%, transparent);
+  border-color: var(--ds-accent);
+}
+
+.banner svg {
+  flex: none;
+  color: var(--ds-accent);
+}
+
+/* "Auto" helper next to the hit counter. */
+.autoBtn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ds-ink-hi);
+  background: transparent;
+  border: 1px solid var(--ds-accent);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.autoBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Results log folded away so it never crowds the active controls. */
+.logBox summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-ink-lo);
+}
+
+.logBox[open] summary {
+  margin-bottom: 6px;
+}

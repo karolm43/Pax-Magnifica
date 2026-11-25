@@ -32,11 +32,12 @@ const OUTCOME: Record<string, string> = {
 };
 
 /**
- * Krok INVASION w panelu pomocy (RULES.md 40). Inwazja startuje PRZYCISKIEM, raz na akcję
- * (po zamknięciu panel pokazuje tylko notkę, bez ponownego startu). Gdy nie ma
- * wrogich sił, struktur z Space Cannon ani celu bombardowania (kroki 1, 3, 4 odpadają), całe
- * lądowanie to prosty wybór „ile piechoty / mechów gdzie"; w przeciwnym razie otwiera się
- * pełne okno inwazji (`InvasionOverlay`).
+ * INVASION step in the tactical window (RULES.md 40). The invasion opens by itself when the step
+ * starts (RULES.md 19.1); "Start invasion" stays only as a fallback (e.g. an open window held
+ * it). Once per action (after closing only a note). Without enemy forces, Space Cannon
+ * structures or bombardment targets (steps 1, 3, 4 drop out) landing is a simple "how many
+ * infantry / mechs where"; otherwise the full invasion window (`InvasionOverlay`) is open, and
+ * the player can still skip the invasion before committing anything.
  */
 export function InvasionStepPanel() {
   const params = useParams<{ mapid: string }>();
@@ -125,11 +126,25 @@ export function InvasionStepPanel() {
   }
 
   if (!view.simple) {
+    const canSkip = view.phase === "BOMBARDMENT" || view.phase === "COMMIT";
     return (
-      <span className={styles.note}>
-        Invasion window is open (step {view.phase?.toLowerCase()}). Use
-        &quot;Hide&quot; there to look at the map.
-      </span>
+      <div className={styles.box}>
+        <span className={styles.note}>
+          Invasion window is open (step {view.phase?.toLowerCase()}). Use
+          &quot;Hide&quot; there to look at the map.
+        </span>
+        {canSkip && (
+          <button
+            type="button"
+            className={styles.ghost}
+            disabled={busy}
+            onClick={() => void run(actions.skip)}
+            title="Bombard nothing and land nothing - the invasion step ends"
+          >
+            Skip invasion (land nothing)
+          </button>
+        )}
+      </div>
     );
   }
 

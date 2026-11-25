@@ -12,6 +12,7 @@ import {
   type PickTarget,
 } from "@/domains/movement/routeTypes";
 import type { Tile } from "@/entities/game/types";
+import { legCargoCount, legShipCount } from "@/domains/movement/flightPlan";
 import { TILE_HEIGHT, TILE_WIDTH } from "@/entities/geometry/tilePositioning";
 import classes from "./MoveRouteLayer.module.css";
 
@@ -216,6 +217,82 @@ export function EffectMoveLayer({
               <circle className={classes.node} data-kind="end" cx={b.x} cy={b.y} r={34} />
               <text className={classes.count} x={b.x} y={b.y}>
                 {count}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+/**
+ * Staged legs of the flight plan (Move Ships step, RULES.md 32.4): every leg's route stays on
+ * the map while the next one is picked - calmer line than the leg being edited, with the
+ * number of ships (+ cargo) flying from each source. The leg open in the editor is drawn by
+ * ``MoveRouteLayer`` instead.
+ */
+export function FlightPlanLayer({
+  tiles,
+  contentSize,
+}: {
+  tiles: Tile[];
+  contentSize: { width: number; height: number };
+}) {
+  const plan = useAppStore((s) => s.movePlan);
+  const editing = useAppStore((s) => s.moveDraft?.legId);
+  const look = usePlayerLook();
+  const legs = plan.filter((leg) => leg.id !== editing && (leg.route.route?.length ?? 0) > 1);
+  if (legs.length === 0) return null;
+  const centers = new Map<string, Point>(
+    tiles.map((t) => [
+      t.position,
+      { x: t.properties.x + TILE_WIDTH / 2, y: t.properties.y + TILE_HEIGHT / 2 },
+    ]),
+  );
+  const rgb = look(legs[0].faction).rgb.split(" ").join(",");
+  return (
+    <div
+      className={classes.layer}
+      style={
+        { "--route-rgb": rgb, width: contentSize.width, height: contentSize.height } as CSSProperties
+      }
+    >
+      <svg
+        className={classes.svg}
+        width={contentSize.width}
+        height={contentSize.height}
+        aria-hidden="true"
+      >
+        {legs.map((leg) => {
+          const pts = (leg.route.route ?? []).flatMap((p) => {
+            const c = centers.get(p);
+            return c ? [c] : [];
+          });
+          if (pts.length < 2) return null;
+          const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+          const ships = legShipCount(leg.picks);
+          const cargo = legCargoCount(leg.picks);
+          const start = pts[0];
+          return (
+            <g key={leg.id}>
+              <path d={d} className={classes.shadow} />
+              <path d={d} className={classes.staged} />
+              {pts.slice(0, -1).map((a, i) => {
+                const b = pts[i + 1];
+                const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+                return (
+                  <polygon
+                    key={`arrow-${i}`}
+                    className={classes.arrow}
+                    points="-26,-22 26,0 -26,22"
+                    transform={`translate(${(a.x + b.x) / 2} ${(a.y + b.y) / 2}) rotate(${angle})`}
+                  />
+                );
+              })}
+              <circle className={classes.node} data-kind="start" cx={start.x} cy={start.y} r={34} />
+              <text className={classes.count} x={start.x} y={start.y}>
+                {cargo > 0 ? `${ships}+${cargo}` : ships}
               </text>
             </g>
           );

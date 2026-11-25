@@ -11,7 +11,7 @@ import { useEffect } from "react";
  *
  * Mapa slotów (domyślnie):
  *   lewa góra   — GameStatePanel            → ``--hud-gsp-bottom``
- *   lewy dół    — TacticalActionDock        → ``--hud-left-w`` (prawa krawędź doku)
+ *   lewy dół    — TacticalActionWindow      → ``--hud-left-w`` (prawa krawędź doku)
  *   prawa góra  — centrum decyzji (AbilityPrompts, stała szerokość 420 px)
  *   prawy dół   — panel akcji tury + karta strategii obok → ``--hud-right-w``
  *                 (odległość lewej krawędzi karty od prawej krawędzi okna) oraz górne

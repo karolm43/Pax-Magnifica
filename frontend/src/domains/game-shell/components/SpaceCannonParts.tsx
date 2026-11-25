@@ -1,7 +1,8 @@
 import { useState, type CSSProperties } from "react";
-import { IconMinus, IconPlus, IconSkull } from "@tabler/icons-react";
+import { IconMinus, IconPlus, IconSkull, IconWand } from "@tabler/icons-react";
 import { useGameData } from "@/state/useGameContext";
 import { getColorAlias } from "@/entities/lookup/colors";
+import { lookupUnit } from "@/entities/lookup/units";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { Unit } from "@/shared/ui/Unit";
 import type {
@@ -124,6 +125,38 @@ export function spaceCannonPlan(
   return plan;
 }
 
+/**
+ * "Auto" hit assignment (RULES.md 38.4 ⚠️ ASSUMPTION): first every available Sustain Damage
+ * (on the most expensive ships - each cancels ``cancels`` hits), then destroy the CHEAPEST
+ * ships for the hits left. The player can still change it before confirming.
+ */
+export function autoAssignHits(
+  ships: SpaceCannonShip[],
+  required: number,
+  cancels: number,
+  costOf: (ship: SpaceCannonShip) => number,
+): { sustain: Record<string, number>; destroyed: Record<string, number> } {
+  const sustain: Record<string, number> = {};
+  const destroyed: Record<string, number> = {};
+  let left = required;
+  const byCost = [...ships].sort((a, b) => costOf(b) - costOf(a));
+  for (const ship of byCost) {
+    const free = ship.sustain ? ship.count - (ship.damaged ?? 0) : 0;
+    const use = Math.min(free, Math.ceil(Math.max(left, 0) / Math.max(cancels, 1)));
+    if (use > 0) {
+      sustain[ship.baseType] = use;
+      left -= use * cancels;
+    }
+  }
+  for (const ship of byCost.reverse()) {
+    if (left <= 0) break;
+    const kill = Math.min(ship.count, left);
+    destroyed[ship.baseType] = kill;
+    left -= kill;
+  }
+  return { sustain, destroyed };
+}
+
 /** Stepper −/+ jednej decyzji (Sustain Damage albo zniszczenie) dla typu statku. */
 function StepPair({
   verb,
@@ -209,6 +242,13 @@ export function AssignHits({
   const full = chosen >= pending.required;
   const anySustain = ships.some((s) => s.sustain);
   const left = pending.required - chosen;
+  const auto = () => {
+    const plan = autoAssignHits(ships, pending.required, cancels, (ship) => {
+      return lookupUnit(ship.asyncId, faction)?.cost ?? 0;
+    });
+    setSustain(plan.sustain);
+    setDestroyed(plan.destroyed);
+  };
 
   const bump = (
     set: typeof setSustain,
@@ -241,6 +281,15 @@ export function AssignHits({
         <span className={styles.counter} data-ready={ready || undefined}>
           {chosen}/{pending.required}
         </span>
+        <button
+          type="button"
+          className={styles.autoBtn}
+          disabled={busy}
+          onClick={auto}
+          title="Sustain Damage first, then destroy the cheapest ships - you can still change it"
+        >
+          <IconWand size={13} aria-hidden="true" /> Auto
+        </button>
       </header>
       <div className={styles.ships}>
         {ships.map((ship) => {

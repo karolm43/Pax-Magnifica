@@ -4,6 +4,7 @@ import { parseErrorDetail } from "@/api/apiError";
 import type { ObjectivePaymentBody } from "@/entities/data/types";
 import { useAppStore } from "@/state/appStore";
 import type { BattleAssignPlan } from "@/api/boardQueries";
+import type { MoveLegRequest } from "@/domains/movement/flightPlan";
 
 export * from "@/api/boardQueries";
 
@@ -696,6 +697,15 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  /** Whole flight plan of the Move Ships step at once (RULES.md 32.4): all legs or nothing. */
+  const moveBatch = useCallback(
+    async (faction: string, legs: MoveLegRequest[]) => {
+      await post("/tactical/move-batch", { faction, legs });
+      await refresh();
+    },
+    [refresh],
+  );
+
   // Produkcja WALIDOWANA (RULES.md 33.2-33.3) — limit/blokada/strefy/rezerwa/koszt; 422 gdy
   // nielegalna. `spend` = planety do wyczerpania + TG (bez niego silnik płaci sam).
   const produce = useCallback(
@@ -1165,6 +1175,7 @@ export function useBoardEditor() {
     sendChat,
     activateSystem,
     moveShips,
+    moveBatch,
     produce,
     spaceCannonFire,
     spaceCannonPass,
