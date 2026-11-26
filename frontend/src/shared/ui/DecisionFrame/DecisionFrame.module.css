@@ -189,9 +189,16 @@
 }
 
 .never:disabled,
-.skip:disabled,
+.skip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Inactive primary: muted fill, readable label - never a faded-out blue block. */
 .use:disabled {
-  opacity: 0.45;
+  color: var(--ds-ink);
+  border-color: var(--ds-h22);
+  background: color-mix(in oklab, var(--ds-accent, #2563eb) 18%, var(--ds-field));
   cursor: not-allowed;
 }
 

@@ -95,6 +95,8 @@ export type ModalProps = {
   hiddenFrom?: string;
   /** Decision row (cancel / confirm). Rendered only when there is a decision to make. */
   footer?: ReactNode;
+  /** Window controls shown at the top-right, just before the close button (e.g. minimize). */
+  headerActions?: ReactNode;
   /**
    * Okno pływające (decyzje w grze): bez tła i blokady planszy, przeciągane za nagłówek,
    * klik poza oknem go nie zamyka. Pozycja zapamiętana pod ``floatingKey`` (domyślnie tytuł).
@@ -130,13 +132,21 @@ function useFloatingDrag(key: string) {
   const onPointerDown = useCallback(
     (event: PointerEvent) => {
       if (event.button !== 0) return;
-      if ((event.target as HTMLElement).closest("button, input, select, textarea, a")) return;
+      if (
+        (event.target as HTMLElement).closest(
+          "button, input, select, textarea, a, label, [role='button'], [data-no-drag]",
+        )
+      )
+        return;
       event.preventDefault();
       const start = { x: event.clientX, y: event.clientY };
       const base = offset;
       let last = base;
       // Okno zostaje CAŁE na ekranie (nie da się go wyciągnąć poza widok).
-      const box = (event.currentTarget as HTMLElement).parentElement?.getBoundingClientRect();
+      // Uchwyt to nagłówek (rodzic = okno) albo - bez nagłówka - treść okna.
+      const handle = event.currentTarget as HTMLElement;
+      const popup = handle.closest<HTMLElement>("[data-floating]") ?? handle.parentElement;
+      const box = popup?.getBoundingClientRect();
       const move = (e: globalThis.PointerEvent) => {
         const raw = { dx: e.clientX - start.x, dy: e.clientY - start.y };
         const d = box ? clampDragDelta(box, raw.dx, raw.dy) : raw;
@@ -195,6 +205,7 @@ export function Modal({
   keepMounted,
   hiddenFrom,
   footer,
+  headerActions,
   floating = false,
   floatingKey,
 }: ModalProps) {
@@ -215,7 +226,10 @@ export function Modal({
       observer?.disconnect();
     };
   }, [floating, opened, refit]);
-  const width = fullScreen ? "100%" : typeof size === "number" ? size : MODAL_SIZE[size as SizeKey] ?? size;
+  // Bez tytułu nie ma paska nagłówka: przyciski okna stoją w prawym górnym rogu.
+  const cornerControls = title === undefined && Boolean(withCloseButton || headerActions);
+  const bodyDrag = floating && cornerControls;
+    const width = fullScreen ? "100%" : typeof size === "number" ? size : MODAL_SIZE[size as SizeKey] ?? size;
   return (
     <Dialog.Root
       open={opened}
@@ -254,7 +268,15 @@ export function Modal({
               ...styles.content,
             }}
           >
-            {title !== undefined || withCloseButton ? (
+            {cornerControls ? (
+              <div className={classes.modalCorner}>
+                {headerActions}
+                {withCloseButton ? (
+                  <Dialog.Close render={<CloseButton className={classNames.close} style={styles.close} />} />
+                ) : null}
+              </div>
+            ) : null}
+            {title !== undefined ? (
               <div
                 className={cx(classes.modalHeader, floating && classes.modalHeaderDrag, classNames.header)}
                 style={{ padding: `var(--ds-space-sm) ${spacing(padding)}`, ...styles.header }}
@@ -262,19 +284,30 @@ export function Modal({
                 onDoubleClick={floating ? drag.reset : undefined}
                 title={floating ? "Drag to move · double-click to reset" : undefined}
               >
-                {title !== undefined ? (
-                  <Dialog.Title render={<div />} className={cx(classes.modalTitle, classNames.title)} style={styles.title}>
-                    {title}
-                  </Dialog.Title>
-                ) : (
-                  <span />
-                )}
-                {withCloseButton ? (
-                  <Dialog.Close render={<CloseButton className={classNames.close} style={styles.close} />} />
+                <Dialog.Title render={<div />} className={cx(classes.modalTitle, classNames.title)} style={styles.title}>
+                  {title}
+                </Dialog.Title>
+                {headerActions || withCloseButton ? (
+                  <span className={classes.modalHeaderActions}>
+                    {headerActions}
+                    {withCloseButton ? (
+                      <Dialog.Close render={<CloseButton className={classNames.close} style={styles.close} />} />
+                    ) : null}
+                  </span>
                 ) : null}
               </div>
             ) : null}
-            <div className={cx(classes.modalBody, classNames.body)} style={{ padding: spacing(padding), ...styles.body }}>
+            <div
+              className={cx(classes.modalBody, bodyDrag && classes.modalBodyDrag, classNames.body)}
+              style={{
+                padding: spacing(padding),
+                // Pas po prawej na przyciski w rogu, żeby nie zasłaniały treści.
+                ...(cornerControls ? { paddingRight: `calc(${spacing(padding)} + ${headerActions ? 58 : 24}px)` } : {}),
+                ...styles.body,
+              }}
+              // Zwinięty nagłówek był uchwytem - okno przeciąga się wtedy za treść (poza przyciskami i polami).
+              onPointerDown={bodyDrag ? drag.onPointerDown : undefined}
+            >
               {children}
             </div>
             {footer ? (

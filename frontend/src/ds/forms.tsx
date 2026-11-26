@@ -352,10 +352,13 @@ export type NumberInputProps = FieldChrome & {
 };
 
 export function NumberInput({ value, defaultValue, onChange, min, max, step = 1, disabled, placeholder, size = "sm", ...chrome }: NumberInputProps) {
+  // Bez `value` a z `defaultValue` pole jest niekontrolowane - inaczej `null` nadpisałby
+  // wartość początkową i strzałki +/− nie miałyby czego zmieniać.
+  const uncontrolled = value === undefined && defaultValue !== undefined;
   return (
     <FieldFrame {...chrome} size={size}>
       <NumberField.Root
-        value={typeof value === "number" ? value : value === "" || value === undefined ? null : Number(value)}
+        value={uncontrolled ? undefined : typeof value === "number" ? value : value === "" || value === undefined ? null : Number(value)}
         defaultValue={defaultValue}
         onValueChange={(v) => onChange?.(v ?? "")}
         min={min}

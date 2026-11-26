@@ -10,3 +10,10 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* Zero, które nie udaje litery „O": krój danych, przekreślone zero. */
+.numeral {
+  font-family: var(--ds-font-data);
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-feature-settings: "zero" 1, "tnum" 1;
+}

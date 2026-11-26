@@ -926,3 +926,18 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   squeeze, burst, debris ring, ash) with sounds; token veiled until the flash; caption instead of a portrait scene.
 - Tests: `test_rulings_relics.py` (3 new), `keyMoments.test.ts` (2), `StellarConverterMark.test.ts` (4),
   `positioning/destroyedPlanet.test.ts` (1).
+
+## /dev/ui audit: design-system and gallery fixes (frontend only)
+
+- ds `color()` maps semantic words (`info`/`warning`/`error`/`danger`/`success`) to palette hues: `Alert` with these
+  colours was unstyled (invalid `--ds-alert-c`). Alert gets a stronger tint + 3px accent bar.
+- New token `--ds-sig-tech`; `NumberInput` with only `defaultValue` is uncontrolled (was forced to `null`, steppers dead).
+- ds `Modal`: `headerActions` slot beside ×; no title => no header strip, controls float top-right (body keeps a gutter;
+  floating window drags by its body only in that case). `AppModal` minimize moved next to × (ActionIcon); pill uses
+  `--z-minimized-pill` (3490), below every modal and backdrop.
+- Readable disabled states (ds Button / ActionIcon, DecisionFrame primary); bigger select caret; stronger loader track.
+- Status headings render digits in the data font with a slashed zero (Naalu "0" no longer reads as "O").
+- `Surface` falls back to ds tokens when no theme class is set; stronger grid/circle patterns.
+- `/dev/ui`: applies the theme class, one-line sticky header + `scroll-margin-top`, real token names (hairlines were
+  `h08/h36/h56` = undefined), framed swatches, working phase stepper / notice dismiss + reset, Drawer/Tooltip/Popover
+  demos, footer-pinned Close in long modals, ds Buttons instead of raw buttons in the Transaction mock.

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { IconArrowsMaximize, IconMinus } from "@tabler/icons-react";
-import { Modal, type ModalProps } from "@/ds";
+import { ActionIcon, Modal, type ModalProps } from "@/ds";
 import cx from "clsx";
 import { DraggablePill } from "./DraggablePill";
 import styles from "./AppModal.module.css";
@@ -39,22 +39,18 @@ export function AppModal({
   const label: ReactNode =
     typeof minimizable === "string" ? minimizable : (title ?? "Window");
 
-  const header: ReactNode = canMinimize ? (
-    <span className={styles.titleRow}>
-      <span className={styles.titleText}>{title}</span>
-      <button
-        type="button"
-        className={styles.minimize}
-        onClick={() => setMinimized(true)}
-        aria-label="Minimize to see the board"
-        title="Minimize to see the board"
-      >
-        <IconMinus size={16} aria-hidden="true" />
-      </button>
-    </span>
-  ) : (
-    title
-  );
+  // Minimalizacja stoi w prawym górnym rogu, tuż obok zamknięcia (×).
+  const minimizeButton: ReactNode = canMinimize ? (
+    <ActionIcon
+      variant="subtle"
+      className={styles.minimize}
+      onClick={() => setMinimized(true)}
+      aria-label="Minimize to see the board"
+      title="Minimize to see the board"
+    >
+      <IconMinus size={16} aria-hidden="true" />
+    </ActionIcon>
+  ) : null;
 
   return (
     <>
@@ -62,7 +58,8 @@ export function AppModal({
         opened={opened && !(canMinimize && minimized)}
         centered={centered}
         zIndex={zIndex}
-        title={header}
+        title={title}
+        headerActions={minimizeButton}
         classNames={{ ...classNames, header: cx("overlay-modal-header", classNames.header) }}
         styles={{ ...slotStyles, header: { padding: "14px 16px 12px", ...slotStyles.header } }}
         {...props}

@@ -30,6 +30,24 @@ export const STATUS_INFO = {
 export type StatusKey = keyof typeof STATUS_INFO;
 
 /**
+ * Cyfry w nagłówku w kroju danych z przekreślonym zerem: w kroju display „0" wygląda jak „O"
+ * (token „0" Naalu).
+ */
+function withClearNumerals(name: string): ReactNode {
+  const parts = name.split(/(\d+)/);
+  if (parts.length === 1) return name;
+  return parts.map((part, i) =>
+    /^\d+$/.test(part) ? (
+      <span key={i} className={styles.numeral}>
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+}
+
+/**
  * Status gracza (Passed, Speaker, token „0” Naalu…): bez podpowiedzi po najechaniu -
  * klik otwiera kartę z nazwą statusu i wyjaśnieniem, co on oznacza (decyzja użytkownika).
  */
@@ -63,7 +81,7 @@ export function StatusInfo({ status, children }: { status: StatusKey; children: 
       </SmoothPopover.Target>
       <SmoothPopover.Dropdown p={0}>
         <DetailsCard width={300}>
-          <DetailsCard.Title title={info.name} type="Status" />
+          <DetailsCard.Title title={withClearNumerals(info.name)} type="Status" />
           <DetailsCard.Section title="What it means" content={info.text} />
         </DetailsCard>
       </SmoothPopover.Dropdown>

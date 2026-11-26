@@ -130,9 +130,21 @@ const HUES = new Set([
   "cyan", "violet", "grape", "pink", "indigo",
 ]);
 
+/** Semantic colour words and the palette hue each one reads as. */
+const SEMANTIC_HUES: Record<string, string> = {
+  // "purple" is the app's word for the law/agenda hue; it is violet.
+  purple: "violet",
+  info: "blue",
+  warning: "yellow",
+  error: "red",
+  danger: "red",
+  success: "green",
+};
+
 /**
  * A colour keyword as a CSS colour. Accepts `hue.shade` ("gray.5"), a bare hue
- * (its shade 6), "white", "black", "dimmed", "bright", or any raw CSS colour.
+ * (its shade 6), a semantic word ("info", "warning", "error", "success"),
+ * "white", "black", "dimmed", "bright", or any raw CSS colour.
  */
 export function color(value: string | undefined) {
   if (!value) return undefined;
@@ -141,8 +153,7 @@ export function color(value: string | undefined) {
   if (value === "white") return "var(--ds-white)";
   if (value === "black") return "var(--ds-black)";
   const [name, shade] = value.split(".");
-  // "purple" is the app's word for the law/agenda hue; it is violet.
-  const hue = name === "purple" ? "violet" : name;
+  const hue = SEMANTIC_HUES[name] ?? name;
   if (!HUES.has(hue)) return value;
   return `var(--ds-${hue}-${shade ?? "6"})`;
 }

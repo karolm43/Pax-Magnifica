@@ -53,6 +53,8 @@
 
   /* MODALS - Settings, shortcuts and popovers (3000-3999) */
   --z-header-menu: 3300;
+  /* Pill of a minimized AppModal: above the board and hand dock, below every open modal. */
+  --z-minimized-pill: 3490;
   --z-app-modal: 3500;
   --z-smooth-popover: 3500;
 

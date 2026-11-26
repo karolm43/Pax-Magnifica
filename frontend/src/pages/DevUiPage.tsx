@@ -20,6 +20,8 @@ import {
   Alert,
   Divider,
   Modal,
+  Drawer,
+  Popover,
   Tooltip,
   Select,
   TextInput,
@@ -32,6 +34,8 @@ import { AppModal } from "@/shared/ui/AppModal";
 import { DecisionFrame } from "@/shared/ui/DecisionFrame";
 import { Surface } from "@/shared/ui/Surface";
 import { StatusInfo } from "@/shared/ui/StatusInfo/StatusInfo";
+import { usePageThemeClass } from "@/hooks/usePageThemeClass";
+import cx from "clsx";
 import {
   IconAlertTriangle,
   IconInfoCircle,
@@ -51,6 +55,11 @@ import {
   IconChevronsRight,
   IconHandStop,
   IconStar,
+  IconCircleCheck,
+  IconAlertOctagon,
+  IconRefresh,
+  IconLayoutSidebarRight,
+  IconMessageCircle,
 } from "@tabler/icons-react";
 import styles from "./DevUiPage.module.css";
 
@@ -162,10 +171,12 @@ function NoticeBanner({
   kind,
   title,
   body,
+  onDismiss,
 }: {
   kind: "error" | "info";
   title: string;
   body: string;
+  onDismiss: () => void;
 }) {
   const isError = kind === "error";
   const accent = isError ? "239, 83, 80" : "100, 181, 246";
@@ -217,9 +228,126 @@ function NoticeBanner({
           cursor: "pointer",
         }}
         aria-label="Dismiss"
+        onClick={onDismiss}
       >
         <IconX size={18} />
       </button>
+    </div>
+  );
+}
+
+// ─── Notices with working dismiss + reset ───────────────────────────────
+const NOTICES = [
+  {
+    id: "error",
+    kind: "error",
+    title: "Action not allowed",
+    body: "You cannot pass before playing your strategy card this action phase.",
+  },
+  {
+    id: "info",
+    kind: "info",
+    title: "Notice",
+    body: "All players must resolve secondary before the active player can proceed.",
+  },
+] as const;
+
+function NoticeDemo() {
+  const [dismissed, setDismissed] = useState<string[]>([]);
+  const visible = NOTICES.filter((n) => !dismissed.includes(n.id));
+  return (
+    <div className={styles.noticePreview}>
+      {visible.map((n) => (
+        <NoticeBanner
+          key={n.id}
+          kind={n.kind}
+          title={n.title}
+          body={n.body}
+          onDismiss={() => setDismissed((d) => [...d, n.id])}
+        />
+      ))}
+      {visible.length === 0 && (
+        <Text size="sm" c="dimmed">
+          All notices dismissed.
+        </Text>
+      )}
+      <Group>
+        <Button
+          variant="default"
+          size="xs"
+          leftSection={<IconRefresh size={12} />}
+          disabled={dismissed.length === 0}
+          onClick={() => setDismissed([])}
+        >
+          Reset notices
+        </Button>
+      </Group>
+    </div>
+  );
+}
+
+// ─── Phase stepper with a moving active step ────────────────────────────
+const PHASES = ["Strategy", "Action", "Status", "Agenda"] as const;
+
+function PhaseStepperDemo() {
+  const [active, setActive] = useState<(typeof PHASES)[number]>("Action");
+  return (
+    <div className={styles.stepper} role="group" aria-label="Phase">
+      {PHASES.map((phase) => (
+        <button
+          key={phase}
+          type="button"
+          className={styles.step}
+          data-active={phase === active || undefined}
+          aria-pressed={phase === active}
+          onClick={() => setActive(phase)}
+        >
+          {phase}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Popover demo (controlled, like every Popover in the app) ───────────
+function PopoverDemo() {
+  const [opened, setOpened] = useState(false);
+  return (
+    <Popover opened={opened} onChange={setOpened} position="bottom-start" width={260} withArrow>
+      <Popover.Target>
+        <Button
+          variant="default"
+          size="sm"
+          leftSection={<IconMessageCircle size={14} />}
+          aria-expanded={opened}
+          onClick={() => setOpened((o) => !o)}
+          style={{ minWidth: 160 }}
+        >
+          Popover
+        </Button>
+      </Popover.Target>
+      <Popover.Dropdown p="sm">
+        <Stack gap="xs">
+          <Text size="sm" fw={600} c="bright">
+            Popover
+          </Text>
+          <Text size="sm">
+            Anchored panel for small settings. Click outside or press Escape to close.
+          </Text>
+        </Stack>
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
+// ─── Swatch for a colour token ──────────────────────────────────────────
+function Swatch({ fill, label }: { fill: string; label: string }) {
+  return (
+    <div className={styles.swatchRow}>
+      <span className={styles.swatch} style={{ background: fill }} />
+      <Text size="xs" c="dimmed" ff="monospace">
+        {label}
+      </Text>
     </div>
   );
 }
@@ -240,8 +368,10 @@ const SECTIONS = [
 ];
 
 export function DevUiPage() {
+  // Same theme as in the game: theme tokens (--surface-*, player accent) must exist here.
+  const themeClass = usePageThemeClass();
   return (
-    <div className={styles.root}>
+    <div className={cx(styles.root, themeClass)}>
       {/* ── Sticky header ── */}
       <header className={styles.header}>
         <span className={styles.logo}>Custodian Engine</span>
@@ -300,92 +430,46 @@ export function DevUiPage() {
             </Tile>
 
             <Tile label="Surfaces">
-              {(
-                [
-                  ["var(--ds-page)", "--ds-page"],
-                  ["var(--ds-deck)", "--ds-deck"],
-                  ["var(--ds-field)", "--ds-field"],
-                  ["var(--ds-socket)", "--ds-socket"],
-                ] as const
-              ).map(([c, l]) => (
-                <div
-                  key={l}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 6,
-                  }}
-                >
-                  <span
-                    style={{
-                      display: "inline-block",
-                      width: 32,
-                      height: 20,
-                      borderRadius: 4,
-                      background: c,
-                      border: "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  />
-                  <Text size="xs" c="dimmed">
-                    {l}
-                  </Text>
-                </div>
-              ))}
+              <div className={styles.swatchPanel}>
+                {(
+                  [
+                    ["var(--ds-page)", "--ds-page"],
+                    ["var(--ds-deck)", "--ds-deck"],
+                    ["var(--ds-ground)", "--ds-ground"],
+                    ["var(--ds-field)", "--ds-field"],
+                    ["var(--ds-socket)", "--ds-socket"],
+                  ] as const
+                ).map(([c, l]) => (
+                  <Swatch key={l} fill={c} label={l} />
+                ))}
+              </div>
             </Tile>
 
             <Tile label="Signal colours">
-              {(
-                [
-                  ["rgb(var(--ds-sig-danger))", "danger"],
-                  ["rgb(var(--ds-sig-warn))", "warn"],
-                  ["rgb(var(--ds-sig-ok))", "ok"],
-                  ["rgb(var(--ds-sig-prop))", "prop"],
-                  ["rgb(var(--ds-sig-tech))", "tech"],
-                ] as const
-              ).map(([c, l]) => (
-                <div
-                  key={l}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 6,
-                  }}
-                >
-                  <span
-                    style={{
-                      display: "inline-block",
-                      width: 32,
-                      height: 20,
-                      borderRadius: 4,
-                      background: c,
-                    }}
-                  />
-                  <Text size="xs" c="dimmed">
-                    {l}
-                  </Text>
-                </div>
-              ))}
+              <div className={styles.swatchPanel}>
+                {(
+                  [
+                    ["rgb(var(--ds-sig-danger))", "danger"],
+                    ["rgb(var(--ds-sig-warn))", "warn"],
+                    ["rgb(var(--ds-sig-ok))", "ok"],
+                    ["rgb(var(--ds-sig-prop))", "prop"],
+                    ["rgb(var(--ds-sig-tech))", "tech"],
+                  ] as const
+                ).map(([c, l]) => (
+                  <Swatch key={l} fill={c} label={l} />
+                ))}
+              </div>
             </Tile>
 
             <Tile label="Radius ladder">
-              <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+              <div className={cx(styles.swatchPanel, styles.swatchPanelRow)}>
                 {(["xs", "sm", "md", "lg", "xl"] as const).map((r) => (
-                  <div
-                    key={r}
-                    style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
-                  >
+                  <div key={r} className={styles.ladderItem}>
                     <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        background: "var(--ds-field)",
-                        border: "1px solid var(--ds-h22)",
-                        borderRadius: `var(--ds-radius-${r})`,
-                      }}
+                      className={styles.radiusBox}
+                      style={{ borderRadius: `var(--ds-radius-${r})` }}
                     />
-                    <Text size="xs" c="dimmed">
+                    <Text size="xs" c="dimmed" ff="monospace">
                       {r}
                     </Text>
                   </div>
@@ -394,22 +478,15 @@ export function DevUiPage() {
             </Tile>
 
             <Tile label="Hairline alpha ladder">
-              <div style={{ display: "flex", gap: 8 }}>
-                {(["h08", "h14", "h22", "h36", "h56"] as const).map((h) => (
-                  <div
-                    key={h}
-                    style={{
-                      width: 36,
-                      height: 36,
-                      background: `var(--ds-${h})`,
-                      border: "1px solid rgba(255,255,255,0.3)",
-                      borderRadius: 4,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text size="xs" c="dimmed" style={{ fontSize: 9 }}>
+              <div className={cx(styles.swatchPanel, styles.swatchPanelRow)}>
+                {(["h10", "h14", "h22", "h28", "h35"] as const).map((h) => (
+                  <div key={h} className={styles.ladderItem}>
+                    <span
+                      className={styles.hairlineFill}
+                      style={{ backgroundImage: `linear-gradient(var(--ds-${h}), var(--ds-${h}))` }}
+                    />
+                    <span className={styles.hairlineRule} style={{ background: `var(--ds-${h})` }} />
+                    <Text size="xs" c="dimmed" ff="monospace">
                       {h}
                     </Text>
                   </div>
@@ -479,18 +556,33 @@ export function DevUiPage() {
             <Tile label="Action icons">
               <Group gap="sm">
                 <Tooltip label="Settings">
-                  <ActionIcon variant="subtle" aria-label="Settings">
-                    <IconSettings size={18} />
+                  <ActionIcon variant="default" aria-label="Settings">
+                    <IconSettings size={16} />
                   </ActionIcon>
                 </Tooltip>
                 <Tooltip label="Info">
                   <ActionIcon variant="light" aria-label="Info">
-                    <IconInfoCircle size={18} />
+                    <IconInfoCircle size={16} />
                   </ActionIcon>
                 </Tooltip>
                 <Tooltip label="Delete">
-                  <ActionIcon variant="filled" color="red" aria-label="Delete">
-                    <IconX size={18} />
+                  <ActionIcon variant="light" color="red" aria-label="Delete">
+                    <IconX size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
+            </Tile>
+
+            <Tile label="Action icons — one filled primary">
+              <Group gap="sm">
+                <Tooltip label="Close">
+                  <ActionIcon variant="default" aria-label="Close">
+                    <IconX size={16} />
+                  </ActionIcon>
+                </Tooltip>
+                <Tooltip label="Delete permanently">
+                  <ActionIcon variant="filled" color="red" aria-label="Delete permanently">
+                    <IconX size={16} />
                   </ActionIcon>
                 </Tooltip>
               </Group>
@@ -506,7 +598,7 @@ export function DevUiPage() {
             <Tile label="TextInput">
               <Stack gap="xs" style={{ width: 240 }}>
                 <TextInput label="Player name" placeholder="e.g. Sarween Tools" />
-                <TextInput label="With error" error="This field is required" placeholder="…" />
+                <TextInput label="With error" error="This field is required" placeholder="Enter value" />
                 <TextInput label="Disabled" disabled defaultValue="Locked value" />
               </Stack>
             </Tile>
@@ -665,14 +757,14 @@ export function DevUiPage() {
                   opened={opened}
                   onClose={onClose}
                   title="Minimizable window"
-                  minimizable="Demo window"
+                  minimizable
                   floating
                   size={480}
                 >
                   <Stack gap="sm">
                     <Text size="sm">
-                      Click the minus icon (top-right of the title bar) to minimise. A pill
-                      appears at the bottom; click to restore.
+                      Click the minus icon (top-right, next to ×) to minimise. A pill appears
+                      at the bottom; click to restore.
                     </Text>
                     <Group justify="flex-end">
                       <Button variant="default" onClick={onClose}>
@@ -692,22 +784,50 @@ export function DevUiPage() {
                   title="Scrollable body"
                   floating
                   size={440}
+                  footer={
+                    <Button variant="default" onClick={onClose}>
+                      Close
+                    </Button>
+                  }
                 >
-                  <Stack gap="xs" style={{ padding: "0 0 8px" }}>
+                  <Stack gap="xs">
                     {Array.from({ length: 30 }, (_, i) => (
                       <Text key={i} size="sm">
                         Line {i + 1}: Lorem ipsum dolor sit amet, consectetur adipiscing elit.
                       </Text>
                     ))}
-                    <Group justify="flex-end" mt="sm">
-                      <Button variant="default" onClick={onClose}>
-                        Close
-                      </Button>
-                    </Group>
                   </Stack>
                 </AppModal>
               )}
             </ModalLauncher>
+
+            <ModalLauncher label="Drawer — right" icon={<IconLayoutSidebarRight size={14} />}>
+              {(opened, onClose) => (
+                <Drawer opened={opened} onClose={onClose} title="Drawer" size="sm">
+                  <Stack gap="sm">
+                    <Text size="sm">
+                      Slides in from the right edge. Used for side panels and long lists.
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                      Click the backdrop, press Escape or × to close.
+                    </Text>
+                  </Stack>
+                </Drawer>
+              )}
+            </ModalLauncher>
+
+            <Tooltip label="Tooltip — a short hint on hover or focus" withArrow>
+              <Button
+                variant="default"
+                size="sm"
+                leftSection={<IconInfoCircle size={14} />}
+                style={{ minWidth: 160 }}
+              >
+                Tooltip (hover)
+              </Button>
+            </Tooltip>
+
+            <PopoverDemo />
           </div>
         </Section>
 
@@ -842,18 +962,7 @@ export function DevUiPage() {
           note="PhaseNoticePanel styles, ds Alert variants"
         >
           <Stack gap="md">
-            <div className={styles.noticePreview}>
-              <NoticeBanner
-                kind="error"
-                title="Action not allowed"
-                body="You cannot pass before playing your strategy card this action phase."
-              />
-              <NoticeBanner
-                kind="info"
-                title="Notice"
-                body="All players must resolve secondary before the active player can proceed."
-              />
-            </div>
+            <NoticeDemo />
 
             <Divider />
             <Text size="sm" fw={500} c="dimmed" mt={-6} mb={4}>ds Alert</Text>
@@ -861,13 +970,13 @@ export function DevUiPage() {
             <div className={styles.grid}>
               {(
                 [
-                  ["info", "Info alert — neutral notification"],
-                  ["warning", "Warning — important caution"],
-                  ["error", "Error — invalid state or failed action"],
-                  ["success", "Success — action resolved correctly"],
+                  ["info", "Info", <IconInfoCircle key="i" size={18} />, "Neutral notification"],
+                  ["warning", "Warning", <IconAlertTriangle key="w" size={18} />, "Important caution"],
+                  ["error", "Error", <IconAlertOctagon key="e" size={18} />, "Invalid state or failed action"],
+                  ["success", "Success", <IconCircleCheck key="s" size={18} />, "Action resolved correctly"],
                 ] as const
-              ).map(([color, msg]) => (
-                <Alert key={color} color={color} title={color} style={{ maxWidth: 320 }}>
+              ).map(([color, title, icon, msg]) => (
+                <Alert key={color} color={color} title={title} icon={icon} style={{ width: 320 }}>
                   {msg}
                 </Alert>
               ))}
@@ -922,7 +1031,9 @@ export function DevUiPage() {
 
             <Tile label="Naalu 0-token (clickable)">
               <StatusInfo status="initiativeZero">
-                <Chip color="violet">0</Chip>
+                <Chip color="violet">
+                  <span className={styles.numeral}>0</span>
+                </Chip>
               </StatusInfo>
             </Tile>
           </div>
@@ -1064,6 +1175,11 @@ export function DevUiPage() {
                   floating
                   minimizable
                   size={1080}
+                  footer={
+                    <Button variant="default" onClick={onClose}>
+                      Close
+                    </Button>
+                  }
                 >
                   <Stack gap="md">
                     <Text size="sm" c="dimmed">
@@ -1079,21 +1195,9 @@ export function DevUiPage() {
                       }}
                     >
                       {["Sol", "Hacan", "Letnev", "Saar"].map((name) => (
-                        <button
-                          key={name}
-                          type="button"
-                          style={{
-                            padding: "8px 16px",
-                            border: "1px solid var(--ds-h22)",
-                            borderRadius: 6,
-                            background: "var(--ds-field)",
-                            color: "var(--ds-ink)",
-                            cursor: "pointer",
-                            fontSize: 13,
-                          }}
-                        >
+                        <Button key={name} variant="default">
                           {name}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                     <Paper withBorder p="md">
@@ -1101,11 +1205,6 @@ export function DevUiPage() {
                         [Trading table will appear here when a partner is selected]
                       </Text>
                     </Paper>
-                    <Group justify="flex-end">
-                      <Button variant="default" onClick={onClose}>
-                        Close
-                      </Button>
-                    </Group>
                   </Stack>
                 </AppModal>
               )}
@@ -1256,36 +1355,8 @@ export function DevUiPage() {
               </Tabs>
             </Tile>
 
-            <Tile label="Phase stepper">
-              <div
-                style={{
-                  display: "flex",
-                  gap: 0,
-                  borderRadius: 8,
-                  overflow: "hidden",
-                  border: "1px solid var(--ds-h22)",
-                  width: "fit-content",
-                }}
-              >
-                {["Strategy", "Action", "Status", "Agenda"].map((phase, i, arr) => (
-                  <button
-                    key={phase}
-                    type="button"
-                    style={{
-                      padding: "8px 18px",
-                      background: phase === "Action" ? "var(--ds-field)" : "var(--ds-deck)",
-                      border: "none",
-                      borderRight: i < arr.length - 1 ? "1px solid var(--ds-h14)" : "none",
-                      color: phase === "Action" ? "var(--ds-ink-hi)" : "var(--ds-ink-lo)",
-                      fontSize: 13,
-                      fontWeight: phase === "Action" ? 600 : 400,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {phase}
-                  </button>
-                ))}
-              </div>
+            <Tile label="Phase stepper (click a phase)">
+              <PhaseStepperDemo />
             </Tile>
           </div>
         </Section>

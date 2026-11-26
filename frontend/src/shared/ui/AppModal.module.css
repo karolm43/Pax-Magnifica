@@ -1,33 +1,8 @@
-/* Minimalizacja okien gry (AppModal minimizable): przycisk w nagłówku + pastylka powrotu. */
+/* Minimalizacja okien gry (AppModal minimizable): przycisk obok zamknięcia + pastylka powrotu. */
 
-.titleRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-}
-
-.titleText {
-  flex: 1;
-  min-width: 0;
-}
-
+/* Ten sam przycisk co zamknięcie (ds CloseButton) - para kontrolek okna. */
 .minimize {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-left: auto;
-  border-radius: 6px;
-  border: 1px solid var(--ds-h22);
-  background: var(--ds-ground-2);
-  color: var(--ds-ink-hi);
-  cursor: pointer;
-}
-
-.minimize:hover {
-  border-color: var(--ds-edge-accent);
-  background: var(--ds-ground);
+  color: var(--ds-ink);
 }
 
 .pill {
@@ -36,7 +11,8 @@
   /* Nad paskiem ręki - wysokość doku mierzy BottomHandDock (--hand-dock-clear). */
   bottom: calc(var(--hand-dock-clear, 54px) + 12px);
   transform: translateX(-50%);
-  z-index: var(--z-app-modal, 3500);
+  /* Pod oknami i ich tłem: pastylka nigdy nie zasłania innego otwartego okna. */
+  z-index: var(--z-minimized-pill, 3490);
   display: inline-flex;
   align-items: center;
   gap: 8px;
