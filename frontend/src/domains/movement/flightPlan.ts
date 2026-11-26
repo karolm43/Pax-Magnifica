@@ -1,6 +1,7 @@
 import {
   asyncOfBase,
   pickKey,
+  shipMax,
   type DraftPick,
   type MoveDraft,
   type MoveRouteData,
@@ -182,6 +183,33 @@ export function flightBatches(legs: StagedLeg[], order: SeparateOrder): StagedLe
   const separate = legs.filter(movesSeparately);
   const rest = legs.filter((leg) => !movesSeparately(leg));
   return order === "before" ? [separate, rest] : [[...rest, ...separate]];
+}
+
+/**
+ * A leg re-planned after an earlier flight of the same plan (Hil Colish "before": its delta
+ * wormhole is now in its NEW system). `fresh` = the route preview of the leg's source and
+ * waypoints on the current board. Returns the leg with the new route, or why it cannot fly.
+ */
+export function replannedLeg(
+  leg: StagedLeg,
+  fresh: MoveRouteData,
+  nameOf: (baseType: string) => string = (bt) => bt,
+): StagedLeg | string {
+  const where = `Ships from ${leg.from}`;
+  if (!fresh.route) return `${where} can no longer reach the active system: ${fresh.reason || "no legal route"}.`;
+  const route = fresh.route;
+  for (const p of Object.values(leg.picks)) {
+    if (p.count <= 0) continue;
+    if (p.kind === "ship") {
+      const ship = fresh.ships.find((s) => s.baseType === p.baseType);
+      if (!ship || shipMax(ship) < p.count) {
+        return `${where}: ${nameOf(p.baseType)} can no longer reach the active system${ship?.reason ? ` (${ship.reason})` : ""}.`;
+      }
+    } else if (p.position !== leg.from && !route.includes(p.position)) {
+      return `${where}: the new route no longer passes ${p.position} to pick up ${nameOf(p.baseType)}.`;
+    }
+  }
+  return { ...leg, route: fresh, ionStormToken: fresh.ionStormChoice ? leg.ionStormToken : undefined };
 }
 
 export type IncomingFleet = {

@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { fetchJson } from "@/api/fetchJson";
 import { useBoardEditor } from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
 import {
@@ -11,10 +12,20 @@ import {
   legShipCount,
   needsSeparateOrder,
   planIncoming,
+  replannedLeg,
   type IncomingFleet,
   type SeparateOrder,
   type StagedLeg,
 } from "./flightPlan";
+import type { MoveRouteData } from "./routeTypes";
+
+/** Fresh route preview of a leg (its source + waypoints) on the board as it is NOW. */
+async function freshRoute(leg: StagedLeg): Promise<MoveRouteData> {
+  return fetchJson<MoveRouteData>(
+    `/bot/tactical/move-route?faction=${encodeURIComponent(leg.faction)}&from_position=${encodeURIComponent(leg.from)}&via=${encodeURIComponent(leg.via.join(","))}`,
+    "moveRoute",
+  );
+}
 
 export type FlightPlanState = {
   /** Legs that "Fly" sends: staged legs + the leg open in the editor (when complete). */
@@ -46,6 +57,7 @@ export function useFlightPlan(): FlightPlanState {
   const separateOrder = useAppStore((s) => s.separateMoveOrder);
   const setSeparateOrder = useAppStore((s) => s.setSeparateMoveOrder);
   const removeStagedLeg = useAppStore((s) => s.removeStagedLeg);
+  const setNotice = useAppStore((s) => s.setNotice);
   const { moveBatch } = useBoardEditor();
 
   // The open leg joins the plan when it is complete; Ion Storm needs the explicit choice made
@@ -72,7 +84,22 @@ export function useFlightPlan(): FlightPlanState {
     if (!faction || legs.length === 0 || blocker) return;
     try {
       // Hil Colish before / after the other ships: one or two flights in that order.
-      for (const batch of flightBatches(legs, separateOrder)) {
+      const batches = flightBatches(legs, separateOrder);
+      for (const [index, planned] of batches.entries()) {
+        // A later flight re-plans its legs on the board the earlier one left (the routes were
+        // previewed with Hil Colish where it started); the player's waypoints are kept.
+        let batch = planned;
+        if (index > 0) {
+          const replanned = await Promise.all(
+            planned.map(async (leg) => replannedLeg(leg, await freshRoute(leg))),
+          );
+          const problem = replanned.find((r): r is string => typeof r === "string");
+          if (problem) {
+            setNotice(problem, "error");
+            return;
+          }
+          batch = replanned as StagedLeg[];
+        }
         await moveBatch(faction, batch.map(legRequest));
         // Flown legs leave the plan, so a failing later flight keeps only what is left.
         batch.forEach((leg) => removeStagedLeg(leg.id));
@@ -83,7 +110,7 @@ export function useFlightPlan(): FlightPlanState {
     } catch {
       // The reason (422, naming the leg) is shown by the notice panel; the plan stays to fix.
     }
-  }, [faction, legs, openLeg, blocker, separateOrder, moveBatch, removeStagedLeg, clearMovePlan, closeMoveDraft]);
+  }, [faction, legs, openLeg, blocker, separateOrder, moveBatch, removeStagedLeg, setNotice, clearMovePlan, closeMoveDraft]);
 
   const discard = useCallback(() => {
     clearMovePlan();

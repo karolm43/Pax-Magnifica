@@ -205,3 +205,39 @@ def test_creuss_iff_na_poczatku_tury_rywala(registry: StaticDataRegistry) -> Non
     assert _tokens(flow) == {ALPHA: flow.other_home}
     assert note in state["players"][flow.me]["private"]["promissory_notes"]  # back to Creuss
     assert note not in state["players"][flow.other]["private"]["promissory_notes"]
+
+
+def _batch(flow: Flow, legs: list[tuple[str, list[str], dict[str, int]]]) -> None:
+    """One ``/tactical/move-batch`` flight (what the flight plan's "Fly" sends)."""
+    flow.post("/tactical/move-batch", {"faction": "ghost", "legs": [
+        {"faction": "ghost", "fromPosition": route[0], "route": route, "cargo": [],
+         "ships": [{"baseType": bt, "count": n} for bt, n in ships.items()]}
+        for _src, route, ships in legs
+    ]})
+
+
+@ruling("F_creuss/hil-colish/1")
+def test_hil_colish_przed_innymi_dwa_loty_w_jednym_kroku(registry: StaticDataRegistry) -> None:
+    """Flight plan "Hil Colish before the others": the flagship flies first, then the rest - in
+    the SAME Movement step - with a route through its delta in the active system."""
+    flow = Flow(registry, "ghost")
+    home, gate = _real_home(flow), _gate(flow)
+    grid = _api_grid(flow)
+    # Active system 2+ hops from the gate (no other way in from the Creuss home).
+    target, side = next(
+        (a, b) for a, b in [flow.plain_pair()]
+        if gate not in grid.neighbors(a) and a != gate
+    )
+    flow.clear_space(home)
+    flow.space(side, flow.me, {"flagship": 1})
+    flow.space(home, flow.me, {"destroyer": 1})
+    flow.activate(target)
+    early = flow.post("/tactical/move-batch", {"faction": "ghost", "legs": [
+        {"faction": "ghost", "fromPosition": home, "route": [home, target], "cargo": [],
+         "ships": [{"baseType": "destroyer", "count": 1}]}]}, ok=False)
+    assert early.status_code == 422  # no delta in the active system yet
+    _batch(flow, [(side, [side, target], {"flagship": 1})])
+    assert flow.state()["tactical_step"] == "MOVEMENT"
+    _batch(flow, [(home, [home, target], {"destroyer": 1})])  # delta -> delta
+    arrived = flow.state()["systems"][target]["space_units"][flow.me]
+    assert arrived == {"flagship": 1, "destroyer": 1}

@@ -5,6 +5,7 @@ import {
   legRequest,
   movesSeparately,
   needsSeparateOrder,
+  replannedLeg,
   neededBoosts,
   planIncoming,
   stagedElsewhere,
@@ -181,3 +182,28 @@ describe("Hil Colish: may move before or after your other ships (RULES.md 62.19)
     expect(flightBatches([], "auto")).toEqual([]);
   });
 });
+
+describe("re-planning a leg after Hil Colish flew first", () => {
+  const carrier = leg("cv", "101", [pick({}), pick({ kind: "cargo", baseType: "infantry", count: 2 })], [ship({})]);
+  const fresh = (over: Partial<MoveRouteData>): MoveRouteData => ({ ...route("101", [ship({})]), ...over });
+
+  it("takes the route on the CURRENT board (e.g. through the delta in the flagship's new system)", () => {
+    const now = fresh({ route: ["101", "103", "000"] });
+    const result = replannedLeg(carrier, now);
+    expect(typeof result).not.toBe("string");
+    expect((result as StagedLeg).route.route).toEqual(["101", "103", "000"]);
+    expect(legRequest(result as StagedLeg).route).toEqual(["101", "103", "000"]);
+  });
+
+  it("says why it cannot fly any more: no route, ship out of range, cargo off the route", () => {
+    expect(replannedLeg(carrier, fresh({ route: null, reason: "Range too short" }))).toMatch(
+      /can no longer reach the active system: Range too short/,
+    );
+    expect(
+      replannedLeg(carrier, fresh({ ships: [ship({ reachable: false, reason: "too far" })] })),
+    ).toMatch(/carrier can no longer reach.*too far/);
+    const away = leg("cv", "101", [pick({}), pick({ kind: "cargo", position: "105", baseType: "infantry" })], [ship({})]);
+    expect(replannedLeg(away, fresh({ route: ["101", "000"] }))).toMatch(/no longer passes 105/);
+  });
+});
+

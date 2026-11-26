@@ -417,3 +417,11 @@ Older, completed blocks (Phase 1 → early flight-replay blocks of 2026-11-25) a
 - Tests: `test_ghost.py` (marker, links only for Creuss), `wormholeLinks.playerLinks.test.ts`. New web-data fields
   - restart the backend.
 
+## Fix: Hil Colish "Before the others" - later legs re-planned (2026-11-26)
+
+- "Before" flew the other legs with routes previewed while the flagship (and its delta) was still at its start:
+  the backend rejected them (422). `useFlightPlan` now re-plans every leg of a later flight on the current board
+  (`move-route` with the leg's source + waypoints, `replannedLeg`); a leg that can no longer fly (no route, ship
+  out of range, cargo off the new route) stops with a clear notice, the flown legs stay flown.
+- Tests: `flightPlan.test.ts` (re-plan), `test_flows_ghost.py` (two flights in one Movement step via API).
+
