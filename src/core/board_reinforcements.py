@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import unit_ops
+from src.core import offer_inputs, unit_ops
 from src.core.game_state import GameState, SystemState
 from src.core.unit_ops import UnitCause
 
@@ -125,3 +125,24 @@ def source_options(
         (s, f"Take from {source_label(state, registry, s)}")
         for s in board_sources(state, player_id, base_type, exclude=exclude)
     ]
+
+
+def map_source_options(
+    state: GameState, registry: Any, player_id: str, base_type: str, *,
+    exclude: str | None = None,
+) -> list[dict[str, Any]]:
+    """Board sources as form options picked ON THE MAP (``offer_inputs.unit_at`` meta).
+
+    One shared shape for every "take it from the board" choice (CLAUDE.md: a place is chosen
+    by clicking the map, never from a list): the UI groups the options by planet / system
+    (``GroupedMapField``). Value = ``"<position>|<zone>"`` as in ``board_sources``.
+    """
+    options: list[dict[str, Any]] = []
+    for source, label in source_options(state, registry, player_id, base_type, exclude=exclude):
+        position, _, zone = source.partition("|")
+        meta = offer_inputs.unit_at(
+            state, player_id, base_type, position=position,
+            planet=None if zone == "space" else zone,
+        )
+        options.append(offer_inputs.option(source, label, meta=meta))
+    return options

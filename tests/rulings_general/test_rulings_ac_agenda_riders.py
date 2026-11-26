@@ -243,6 +243,10 @@ def test_construction_rider_takes_a_dock_from_the_board(registry: StaticDataRegi
     assert inputs is not None
     form = {f["key"]: f for f in inputs(state, registry, "p1")}
     assert source in [o["value"] for o in form["source"]["options"]]
+    # Source clicked on the map; "Auto" = "Do not place" (RULES.md 53 assumption).
+    assert form["source"]["auto"] == "none"
+    pick = next(o for o in form["source"]["options"] if o["value"] == source)
+    assert pick["meta"]["unit"] == "spacedock" and pick["meta"]["position"] == "102"
 
     # A system with the player's command token is not a legal source.
     tokened = state.clone()
@@ -267,6 +271,12 @@ def test_construction_rider_takes_a_dock_from_the_board(registry: StaticDataRegi
     )
     assert kept.systems["102"].planet_units[source.split("|")[1]]["p1"]["spacedock"] == 3
     assert planet not in kept.systems["101"].planet_units
+    # Skipped field (Auto) behaves the same: nothing leaves the board, no error.
+    skipped = _resolve_for(
+        _play(state, registry, "p1", "const_rider", outcome="for", planet=planet), registry
+    )
+    assert skipped.systems["102"].planet_units[source.split("|")[1]]["p1"]["spacedock"] == 3
+    assert planet not in skipped.systems["101"].planet_units
 
 
 @ruling("C_action_cards/construction-rider/4")
@@ -858,6 +868,36 @@ def test_stability_keeps_both_cards_and_skips_the_picks(registry: StaticDataRegi
         state.players[picker].strategy_cards.append(initiative)
     assert picks == ["p2", "p3", "p2", "p3"]
     assert strategy_phase.next_strategy_picker(state) is None
+
+
+@ruling("C_action_cards/political-stability/1", "C_agendas/checks-and-balances/2")
+def test_stability_holder_does_not_choose_under_checks_and_balances(
+    registry: StaticDataRegistry,
+) -> None:
+    """Checks and Balances counts choices, not held cards - the kept hand still skips the picks
+    ("You do not choose strategy cards during the next strategy phase")."""
+    state = _play(_status(), registry, "p1", "stability")
+    state = strategy_phase.close_round_cards(state, registry)
+    state.phase, state.agenda = Phase.STRATEGY, None
+    state.decks.agenda_laws = {"checks": "for"}
+    assert strategy_phase.gives_chosen_cards(state)
+    assert state.strategy_kept == ["p1"]
+    plan = [("p2", 1, "p3"), ("p3", 2, "p2"), ("p2", 3, "p3"), ("p3", 4, "p2")]
+    for chooser, initiative, recipient in plan:
+        assert strategy_phase.next_strategy_picker(state) == chooser
+        assert "p1" not in strategy_phase.card_recipients(state, chooser)  # full kept hand
+        state = strategy_phase.pick_strategy_card(
+            state, registry, chooser, initiative, recipient=recipient
+        )
+    assert strategy_phase.next_strategy_picker(state) is None
+    assert state.players["p1"].strategy_cards == [7, 8]
+    strategy_phase.ensure_strategy_complete(state)
+    # Next round (the ROUND-long effect has expired): the reset forgets the marker.
+    from src.core import active_effects
+
+    active_effects.remove_by_key(state, strategy_phase.STABILITY_KEY, owner="p1")
+    state = strategy_phase.reset_strategy_cards(state)
+    assert state.strategy_kept == []
 
 
 @ruling("C_action_cards/political-stability/2")

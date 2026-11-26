@@ -141,17 +141,17 @@ def refit_troops(
         if have < planets.count(planet):
             raise ValueError(f"You do not have that many infantry on {planet}.")
     # C_action_cards: gdy mechów w rezerwie brak, zdejmuje się mecha z systemu bez własnego
-    # żetonu i stawia go (nieuszkodzonego) w miejsce piechoty.
+    # żetonu i stawia go (nieuszkodzonego) w miejsce piechoty. R_component_limitations: zdolność
+    # nie może do tego zmusić - bez wskazanego źródła („Auto” = „Do not place”, ⚠️ ZAŁOŻENIE
+    # RULES.md 53) zastępowane jest tylko tyle piechoty, ile mechów jest w rezerwie.
     short = refit_shortfall(state, player_id, len(planets))
     sources = params.get("sources") or []
-    if not isinstance(sources, list) or len(sources) < short:
-        raise ValueError(
-            f"Not enough mechs in reinforcements - choose {short} of your mechs on the board "
-            "in systems without your command token ('sources')."
-        )
-    for source in sources[:short]:
+    if not isinstance(sources, list) or len(sources) > short:
+        raise ValueError(f"Choose at most {short} of your mechs on the board ('sources').")
+    for source in sources:
         board_reinforcements.take_from_board(state, player_id, "mech", str(source))
-    for planet in planets:
+    replaced = len(planets) - short + len(sources)
+    for planet in planets[:replaced]:
         system = system_of_planet(state, planet)
         unit_ops.take_units(state, system, planet, player_id, "infantry", 1, UnitCause.REMOVED)
         place_from_reinforcements(state, system, planet, player_id, "mech", 1)

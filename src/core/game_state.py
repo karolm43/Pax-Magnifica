@@ -1415,6 +1415,10 @@ class GameState(BaseModel):
     # Ile kart strategii WYBRAŁ każdy gracz w tej fazie strategii (Checks and Balances: wybrana
     # karta trafia do innego gracza, więc wybory ≠ posiadane karty - RULES.md 51.6).
     strategy_choices: dict[str, int] = Field(default_factory=dict)
+    # Gracze, którzy w tej fazie strategii NIE wybierają, bo zachowali karty przez Political
+    # Stability (ustawiane w ``strategy_phase.reset_strategy_cards``; także przy Checks and
+    # Balances, gdzie liczą się wybory, a nie posiadane karty - C_action_cards).
+    strategy_kept: list[str] = Field(default_factory=list)
     # Żetony długu (debt) (nieformalna zasada stołu, NIE reguła TI4 — RULES.md 47.3): małe żetony
     # kontroli gracza-wystawcy oddane innemu graczowi jako „dług"/obietnica (np. 3 TG do
     # zapłaty = 3 żetony). Niewiążące dla silnika, tylko pamięć stołu. Format:

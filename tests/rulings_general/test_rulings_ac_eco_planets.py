@@ -306,6 +306,26 @@ def test_impersonation_fourth_secret_then_returns_an_unscored_one(
     assert new.decks.secret_objective_deck == ["a"]
 
 
+def test_impersonation_return_options_use_full_objective_names(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import objectives
+    from src.core.components import ComponentCategory
+
+    secrets = sorted(registry.catalog.all(ComponentCategory.SECRET_OBJECTIVE))[:3]
+    state = eco._state(["impersonation"], trade_goods=3)
+    state.players["p1"].private.secret_objectives = list(secrets)
+    state.decks.secret_objective_deck = ["d"]
+    field = next(i for i in eco._inputs(state, registry, "impersonation") if i["key"] == "return")
+    named = [o for o in field["options"] if o["value"] in secrets]
+    assert len(named) == 3
+    for option in named:
+        definition = objectives.objective_def(registry, option["value"])
+        assert definition is not None and definition.name
+        assert option["label"] == f"Return {definition.name}"  # never the raw id
+        assert option["meta"]["ref"] == {"kind": "objective", "id": option["value"]}
+
+
 @ruling(f"{_CARDS}/impersonation/2.1")
 def test_impersonation_with_three_scored_secrets_shuffles_the_draw_back(
     registry: StaticDataRegistry,
@@ -403,6 +423,31 @@ def test_mercenary_returned_planet_loses_its_owner_and_is_explored_again(
     _land(new, registry, "wellon", "201")
     assert new.systems["201"].planet_owners["wellon"] == "p1"
     assert new.exploration is not None
+
+
+@ruling("R_elimination/notes/2", "R_elimination/notes/2.1")
+@pytest.mark.parametrize("recorded", [True, False])
+def test_mercenary_spares_an_eliminated_players_home_planet(
+    registry: StaticDataRegistry, recorded: bool
+) -> None:
+    """Same home-system rule as Reactor Meltdown / Uprising, with or without ``home_position``."""
+    from src.core import board_graph
+    from src.core.hooks.action_cards_board import mercenary_targets
+    from src.core.hooks.card_targets_economy import home_planet_ids
+
+    home = registry.factions["hacan"]
+    planet = home.home_planets[0]
+    state = eco._state(["mercenarycontract"], trade_goods=2)
+    state.systems["301"] = SystemState(position="301", system_id=str(home.home_system))
+    state.eliminated_players = [EliminatedPlayer(
+        player_id="p3", faction="hacan", color="green", round_number=1,
+        home_position="301" if recorded else None,
+    )]
+    assert planet in home_planet_ids(state, registry)  # Meltdown / Uprising view
+    assert "301" not in board_graph.non_home_systems(state, registry)  # Mercenary view
+    assert all(p != planet for _pos, p in mercenary_targets(state, registry, "p1"))
+    with pytest.raises(ValueError, match="non-home"):
+        _play_mercenary(registry, state, planet, "301")
 
 
 @ruling(f"{_CARDS}/mercenary-contract/3.1")
@@ -617,9 +662,17 @@ def test_refit_takes_mechs_from_the_board_when_reinforcements_are_empty(
     assert _playable(state, registry, "refit")
     inputs = eco._inputs(state, registry, "refit")
     assert eco._option_values(inputs, "sources") == ["101|space"]
+    source = next(i for i in inputs if i["key"] == "sources")["options"][0]
+    assert source["meta"]["unit"] == "mech" and source["meta"]["position"] == "101"  # map pick
     params: dict[str, Any] = {"planets": ["wellon"]}
+    # Auto (no source picked) = "Do not place": no mech leaves the board, infantry stays.
+    kept = eco._play(state, registry, "refit", params)
+    assert kept.systems["000"].planet_units["wellon"]["p1"] == {"infantry": 2}
+    assert kept.systems["101"].space_units["p1"] == {"mech": 4}
     with pytest.raises(ValueError, match="sources"):
-        action_cards.play_action_card(state, registry, "p1", "refit", params)
+        action_cards.play_action_card(
+            state, registry, "p1", "refit", {**params, "sources": ["101|space", "101|space"]}
+        )
     new = eco._play(state, registry, "refit", {**params, "sources": ["101|space"]})
     assert new.systems["101"].space_units["p1"] == {"mech": 3}
     assert new.systems["000"].planet_units["wellon"]["p1"] == {"infantry": 1, "mech": 1}

@@ -86,15 +86,17 @@ def place_one_or_from_board(
 
     R_component_limitations (C_action_cards war-effort/1, ghost-ship/3): with no unit of that
     type in reinforcements the player MAY remove one from a system without their command token
-    and place it (undamaged). ``source`` = ``"<position>|<zone>"`` or ``BOARD_SOURCE_AUTO``.
-    ⚠ ASSUMPTION: Auto takes the first legal source (``board_reinforcements.board_sources``).
+    and place it (undamaged). ``source`` = ``"<position>|<zone>"``, ``BOARD_SOURCE_AUTO`` or
+    missing (= Auto, as for every skipped choice with an "Auto" option).
+    ⚠️ ASSUMPTION (RULES.md 53): Auto takes the first legal source (``board_sources``).
 
     Raises:
         ValueError: No unit left and no legal board source chosen.
     """
     if board_reinforcements.needs_board_source(state, player_id, base_type):
         sources = board_reinforcements.board_sources(state, player_id, base_type)
-        pick = sources[0] if source == BOARD_SOURCE_AUTO and sources else source
+        auto = source in (None, "", BOARD_SOURCE_AUTO)
+        pick = sources[0] if auto and sources else source
         if not isinstance(pick, str) or pick not in sources:
             raise ValueError(
                 f"No {base_type} left in your reinforcements - choose one on the board in a "

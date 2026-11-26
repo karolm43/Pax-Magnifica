@@ -71,14 +71,19 @@ def adjacent_positions(position: str) -> set[str]:
 
 
 def home_system_ids(state: GameState, registry: StaticDataRegistry) -> set[str]:
-    """Id kafelków będących systemami domowymi graczy przy stole.
+    """Id kafelków będących systemami domowymi graczy (także wyeliminowanych).
 
     Creuss i Crimson mają dom POZA planszą (RULES.md 17): bramę (``home_system`` frakcji)
     NIE liczymy jako domu - prawdziwy dom to wpis z ``OFF_BOARD_HOME``.
+    R_elimination: dom wyeliminowanego gracza nadal jest domem dla efektów gry - tak samo jak
+    ``card_targets_economy.home_planet_ids`` (Reactor Meltdown, Uprising), także gdy rekord
+    eliminacji nie ma ``home_position`` (Mercenary Contract, Ghost Ship, Signal Jamming).
     """
     ids: set[str] = set()
-    for player in state.players.values():
-        faction = registry.factions.get(player.faction or "")
+    factions = [p.faction for p in state.players.values()]
+    factions += [e.faction for e in state.eliminated_players]
+    for faction_id in factions:
+        faction = registry.factions.get(faction_id or "")
         if faction is None:
             continue
         if faction.id in OFF_BOARD_HOME:

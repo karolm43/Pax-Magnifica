@@ -132,14 +132,7 @@ def _source_options(
     state: GameState, registry: Any, player_id: str, base_type: str
 ) -> list[dict[str, Any]]:
     """Własne struktury na planszy w systemach bez żetonu gracza (wybór na mapie)."""
-    options: list[dict[str, Any]] = []
-    for source, label in board_reinforcements.source_options(state, registry, player_id,
-                                                             base_type):
-        position, _, zone = source.partition("|")
-        meta = oi.unit_at(state, player_id, base_type, position=position,
-                          planet=None if zone == _SPACE else zone)
-        options.append(oi.option(source, label, meta=meta))
-    return options
+    return board_reinforcements.map_source_options(state, registry, player_id, base_type)
 
 
 @register(POINT_CONTROL_STRUCTURES_REPLACED, HookSource(SOURCE_FACTION, FACTION),

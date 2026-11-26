@@ -385,3 +385,14 @@ Older, completed blocks (Phase 1 → blocks up to 2026-11-24) are in `PROGRESS_A
 - Docs: archived 2026-11-22..24 blocks to `PROGRESS_ARCHIWUM.md` (`PROGRESS.md` ~33 KB), updated Engine Stage Status, `PLAN_FRAKCJE.md` §6, `README.md`, and regenerated `POKRYCIE_HOOKOW.md` / `OKNA_CZASOWE.md`.
 - Exploration tracking (`assets/config/effects_status.json`): marked all 80 exploration cards (`77 implemented`, `3 manual` for Entropic Field variants) to match `core/exploration*.py`.
 - N4 per-game lock (`api/context.py` `AppContext.game_lock`, `api/app.py` `_game_lock` middleware): serializes mutating HTTP requests (`POST`/`PUT`/`PATCH`/`DELETE`), including middleware mutations, without blocking `GET` or WebSocket. Tests: `tests/test_game_lock.py` (2).
+
+## Action cards: map-picked board sources + "Auto", 4 edge cases (2026-11-26)
+- Empty reinforcements → unit taken from the board is clicked ON THE MAP (`board_reinforcements.map_source_options`,
+  `unit_at` meta → `GroupedMapField`): Construction/Warfare Rider, Refit Troops, Rearmament Agreement ("Auto" = "Do not
+  place"), War Effort / Ghost Ship ("Auto" = first legal source). L1Z1X/Saar reuse the helper. `optionKinds.located`:
+  space-area sources next to planets no longer fall back to loose tiles.
+- Skilled Retreat token pool: real "Auto" field (tactic → fleet → strategy). Impersonation: full objective names + ⓘ.
+- Fixes: Political Stability holder is not asked to pick under Checks and Balances (`GameState.strategy_kept`);
+  eliminated players' home tiles stay home systems in `board_graph.home_system_ids` (Mercenary Contract etc.).
+- Verified + tested: R_action_cards 6.2 audit guard (every duplicated reaction card blocks its second copy),
+  Public Disgrace vs Imperial Arbiter. Assumptions in `rules/R53.md` §53.11. New `GameState` field: restart the backend.

@@ -123,6 +123,9 @@ function located(
   for (const option of options) {
     const target = pick(option);
     if (!target) {
+      // Space area of a system next to planets (Yin Spinner, a board source „pozycja|space”):
+      // still a map target - ``GroupedMapField.targetsOf`` maps it to the hex, never a tile.
+      if (systemOf(option, look)) continue;
       if (!isLoose(option, look)) return null;
       loose += 1;
       continue;

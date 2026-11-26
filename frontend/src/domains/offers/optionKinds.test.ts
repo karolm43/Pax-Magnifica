@@ -8,6 +8,7 @@ import {
   withStackCount,
   type OptionLookups,
 } from "./optionKinds";
+import { targetsOf } from "./GroupedMapField";
 
 const look: OptionLookups = {
   isTech: (id) => ["nm", "gd"].includes(id),
@@ -94,6 +95,26 @@ describe("classifyOptions", () => {
       look,
     );
     expect(merc?.kind).toBe("planet");
+  });
+
+  it("jednostka z planszy na planecie ALBO w przestrzeni = wybór na mapie (pusta rezerwa)", () => {
+    // ``board_reinforcements.map_source_options``: „pozycja|strefa” + ``unit_at`` meta.
+    const src = (position: string, zone: string) => ({
+      id: `${position}|${zone}`,
+      value: `${position}|${zone}`,
+      label: `Take from ${zone}`,
+      meta: { unit: "mech", player: "p1", position, ...(zone === "space" ? {} : { planet: zone }) },
+    });
+    // Two units in space + a planet: no space source falls back to a loose tile (MAX_LOOSE).
+    const options = [opt("none"), src("101", "jord"), src("000", "space"), src("101", "space")];
+    const sources = classifyOptions(options, look);
+    expect(sources?.kind).toBe("planet");
+    expect(sources?.targets.has("none")).toBe(false);
+    const where = targetsOf(options, sources!, look);
+    expect(where.get("101|jord")).toEqual({ kind: "planet", id: "jord" });
+    expect(where.get("000|space")).toEqual({ kind: "system", id: "000" });
+    expect(where.get("101|space")).toEqual({ kind: "system", id: "101" });
+    expect(where.has("none")).toBe(false);
   });
 });
 

@@ -18,14 +18,22 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import board_reinforcements, economy, payment, planet_stats, secret_objectives
+from src.core import (
+    board_reinforcements,
+    economy,
+    objectives,
+    payment,
+    planet_stats,
+    secret_objectives,
+)
 from src.core.components import ComponentCategory
 from src.core.fleet_pool import unit_name
 from src.core.game_state import GameState, SystemState
 from src.core.hooks import card_labels
 from src.core.hooks.action_cards_units import refit_shortfall
-from src.core.hooks.card_helpers import BOARD_SOURCE_AUTO, controlled
+from src.core.hooks.card_helpers import controlled
 from src.core.offer_inputs import as_payment, unit_at
+from src.core.offer_inputs import choice as as_choice
 from src.core.offer_inputs import option as as_option
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import register_effect_inputs
@@ -168,18 +176,25 @@ def unexpected_inputs(
 def board_source_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str, base_type: str
 ) -> list[Input]:
-    """Choice of where to take the unit from when reinforcements are empty (else no field).
+    """Where to take the unit from when reinforcements are empty (else no field).
 
+    The source is clicked ON THE MAP (``board_reinforcements.map_source_options``); "Auto" =
+    the first legal source (⚠️ ASSUMPTION, RULES.md 53 - War Effort / Ghost Ship).
     No legal source = empty options, so the card is not playable (``_has_legal_choices``).
     """
     if not board_reinforcements.needs_board_source(state, player_id, base_type):
         return []
-    sources = board_reinforcements.source_options(state, registry, player_id, base_type)
-    options = [_option(value, label) for value, label in sources]
-    if options:
-        options.insert(0, _option(BOARD_SOURCE_AUTO, "Auto (first one on the board)"))
+    options = board_reinforcements.map_source_options(state, registry, player_id, base_type)
     name = unit_name(state, registry, player_id, base_type)
-    return [_choice("source", f"No {name} in reinforcements - take one from the board", options)]
+    return [
+        as_choice(
+            "source",
+            f"No {name} in reinforcements - take one from the board",
+            options,
+            "Click your unit on the map (systems without your command token).",
+            auto=options[0]["value"] if options else None,
+        )
+    ]
 
 
 @register_effect_inputs("action_cards:war_effort")
@@ -295,7 +310,11 @@ def impersonation_inputs(
     if secret_objectives.over_limit_after_draw(state, player_id):
         hand = state.players[player_id].private.secret_objectives
         options = [_option(secret_objectives.DRAWN, "The card you just drew")]
-        options += [_option(card, card) for card in hand]
+        # Full names from static data + ⓘ card text (CLAUDE.md: never raw ids).
+        for card in hand:
+            definition = objectives.objective_def(registry, card)
+            name = definition.name if definition is not None and definition.name else card
+            options.append(_option(card, f"Return {name}", ref=("objective", card)))
         inputs.append(
             _choice("return", "Return an unscored secret objective (over the limit)", options)
         )
@@ -384,7 +403,8 @@ def refit_inputs(state: GameState, registry: StaticDataRegistry, player_id: str)
     # własnego żetonu); bez żadnego dostępnego mecha karta nie jest zagrywalna.
     short = refit_shortfall(state, player_id, _MAX_PICKS)
     sources = (
-        board_reinforcements.source_options(state, registry, player_id, "mech") if short else []
+        board_reinforcements.map_source_options(state, registry, player_id, "mech")
+        if short else []
     )
     most = _MAX_PICKS - short + min(short, len(sources))
     inputs = [
@@ -402,9 +422,13 @@ def refit_inputs(state: GameState, registry: StaticDataRegistry, player_id: str)
             _multi(
                 "sources",
                 "Mechs short in reinforcements - take them from the board",
-                [_option(value, label) for value, label in sources],
+                sources,
                 0,
                 min(short, len(sources)),
+                # ⚠️ ASSUMPTION (RULES.md 53): Auto = nothing picked = "Do not place".
+                "Click your mechs on the map (systems without your command token). Auto (none "
+                "picked): no mech leaves the board - only as many infantry as you have mechs "
+                "in reinforcements are replaced.",
             )
         )
     return inputs

@@ -446,6 +446,50 @@ def test_disgrace_only_during_the_regular_pick(registry: StaticDataRegistry) -> 
         )
 
 
+@ruling("C_action_cards/public-disgrace/2")
+def test_disgrace_and_the_imperial_arbiter_swap(registry: StaticDataRegistry) -> None:
+    """Disgrace may undo the LAST regular pick (Arbiter then follows the re-pick), but never the
+    Imperial Arbiter swap itself (it is not a strategy card choice)."""
+    from src.core import triggers
+
+    def arbiter_offer(state: GameState) -> str:
+        found = [o for o in triggers.offers_for(state, "p2") if o.label == "Imperial Arbiter"]
+        assert len(found) == 1
+        return found[0].id
+
+    state = rewind._strategy_state(["disgrace"])
+    state.players["p1"].private.action_cards = ["disgrace"]
+    state.speaker_id = state.active_player_id = "p2"  # picks: p2, p1, p2, p1 (last)
+    state.decks.agenda_laws = {"arbiter": "p2"}
+    for picker, initiative in (("p2", 1), ("p1", 2), ("p2", 5)):
+        state = strategy_phase.pick_strategy_card(state, registry, picker, initiative)
+    before = state
+    after = strategy_phase.pick_strategy_card(before, registry, "p1", 3)
+    assert strategy_phase.next_strategy_picker(after) is None
+    arbiter_offer(after)  # end of the strategy phase: the owner may swap
+
+    # Disgrace on the last regular pick: rewound, the Arbiter offer waits for the re-pick.
+    undone, implemented = hold_rewind.play_at(
+        rewind._chain(before, after), registry, "p2", "disgrace", 1
+    )
+    assert implemented
+    assert not [o for o in triggers.offers_for(undone, "p2") if o.label == "Imperial Arbiter"]
+    with pytest.raises(ValueError, match="different strategy card"):
+        strategy_phase.pick_strategy_card(undone, registry, "p1", 3)
+    picked = strategy_phase.pick_strategy_card(undone, registry, "p1", 4)
+    assert picked.players["p1"].strategy_cards == [2, 4]
+
+    # The swap is not a regular choice: no Disgrace window, no hold-rewind step to target.
+    swapped = triggers.accept_offer(picked, "p2", arbiter_offer(picked), {"swap": "5|p1|4"})
+    assert swapped.players["p2"].strategy_cards == [1, 4]
+    assert swapped.players["p1"].strategy_cards == [2, 5]
+    assert not any(
+        w.event is GameEvent.STRATEGY_CARD_CHOSEN for w in reaction_cards.open_windows(swapped)
+    )
+    steps, _limit = hold_rewind.candidates(rewind._chain(picked, swapped), registry, "p1")
+    assert not any(c["card_id"] == "disgrace" for step in steps for c in step["cards"])
+
+
 # ======================================================================= Puppets on a String
 
 
@@ -772,6 +816,64 @@ def test_a_canceled_copy_does_not_count_as_played(registry: StaticDataRegistry) 
     state = hold._state(["fs1", "fs2"], ["sabo1"], tactical=True)
     done = _sabotage(_held(state, registry, "p1", "fs1"), registry)
     assert _row(done, registry, "p1", "fs2")
+
+
+# Audit of R_action_cards 6.2 ("multiple action cards with the same name cannot be played during
+# a single timing window to affect the same units or game effect"): there is no general guard -
+# every card name with several copies in the deck blocks the second copy itself (its condition /
+# effect), and the test named here proves it. A new duplicated reaction card must be added here.
+_SAME_NAME_GUARDS = {
+    "Diplomatic Pressure": "test_one_diplomatic_pressure_per_target_and_agenda",
+    "Direct Hit": "test_direct_hit_once_per_sustained_ship (the SUSTAIN DAMAGE is used up)",
+    "Flank Speed": "test_a_second_flank_speed_waits_for_a_new_window",
+    "Maneuvering Jets": "test_rulings_ac_combat_move: maneuvering-jets/3",
+    "Morale Boost": "test_second_morale_boost_cannot_be_played",
+    "Sabotage": "test_a_second_sabotage_has_nothing_left_to_cancel",
+    "Shields Holding": "test_reactions_combat: shields-holding/3",
+    "Skilled Retreat": "the first copy ends the combat (no window left)",
+    "Veto": "test_a_second_veto_may_hit_the_replacement (a new agenda = a new window)",
+    "War Machine": "test_a_second_war_machine_does_not_stack_on_the_same_production",
+}
+
+
+@ruling("R_action_cards/rules-reference/6.2")
+def test_every_duplicated_reaction_card_guards_its_second_copy(
+    registry: StaticDataRegistry,
+) -> None:
+    from collections import defaultdict
+
+    copies: dict[str, list[str]] = defaultdict(list)
+    for card_id, card in registry.catalog.all(ComponentCategory.ACTION_CARD).items():
+        copies[str(card.name)].append(card_id)
+    duplicated = {
+        name for name, ids in copies.items()
+        if len(ids) > 1 and reaction_cards.spec_for(registry, ids[0]) is not None
+    }
+    # ACTION cards (Pirate Contract, Strategize) take a whole component action each.
+    assert duplicated <= set(_SAME_NAME_GUARDS), sorted(duplicated - set(_SAME_NAME_GUARDS))
+
+
+@ruling("R_action_cards/rules-reference/6.2")
+def test_a_second_sabotage_has_nothing_left_to_cancel(registry: StaticDataRegistry) -> None:
+    card, planets = hold._industrial(registry)
+    state = hold._state([card], ["sabo1", "sabo2"])
+    hold._own(state, planets)
+    held = _held(state, registry, "p1", card)
+    assert _row(held, registry, "p2", "sabo2")
+    done = _sabotage(held, registry)
+    assert not _row(done, registry, "p2", "sabo2")  # the same card cannot be canceled twice
+
+
+@ruling("R_action_cards/rules-reference/6.2")
+def test_a_second_war_machine_does_not_stack_on_the_same_production(
+    registry: StaticDataRegistry,
+) -> None:
+    from tests import test_reactions_tactical as tactical
+
+    state, _grid = tactical._production_state(registry)
+    assert tactical._playable(state, registry, "p1", "war_machine2")
+    once = tactical._play(state, registry, "p1", "war_machine1")
+    assert not tactical._playable(once, registry, "p1", "war_machine2")
 
 
 @ruling("R_action_cards/notes/7")

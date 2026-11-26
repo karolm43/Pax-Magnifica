@@ -122,7 +122,9 @@ def test_direct_hit_once_per_sustained_ship(grid: HexGrid, registry: StaticDataR
 
 
 @ruling("C_action_cards/direct-hit/3")
-def test_second_sustain_decided_after_direct_hit(grid: HexGrid, registry: StaticDataRegistry) -> None:
+def test_second_sustain_decided_after_direct_hit(
+    grid: HexGrid, registry: StaticDataRegistry
+) -> None:
     from src.core import reaction_pause
 
     state = _two_hits(grid, registry, ["dh1", "dh2"])
@@ -506,10 +508,23 @@ def test_skilled_retreat_takes_a_token_from_a_pool_when_reinforcements_are_empty
     pools = (player.tactical_cc, player.fleet_cc, player.strategic_cc)
     assert sum(pools) > 0
     assert _can(state, registry, "p1", "s_retreat1")
+    # Manual pool choice + "Auto" (RULES.md 53 assumption: tactic -> fleet -> strategy).
+    inputs_fn = rules_hooks.inputs_for("action_cards:s_retreat1")
+    assert inputs_fn is not None
+    field = next(f for f in inputs_fn(state, registry, "p1") if f["key"] == "token_pool")
+    assert field["auto"] == "auto"
+    assert {o["value"] for o in field["options"]} >= {"auto", "fleet"}
     new = _play_combat(state, registry, "p1", "s_retreat1", {"destination": "101"})
     assert "p1" in new.systems["101"].command_tokens
     after = new.players["p1"]
     assert sum((after.tactical_cc, after.fleet_cc, after.strategic_cc)) == sum(pools) - 1
+    if player.tactical_cc > 0:  # skipped field = Auto: tactic pool first
+        assert after.tactical_cc == player.tactical_cc - 1
+    manual = _play_combat(
+        state, registry, "p1", "s_retreat1", {"destination": "101", "token_pool": "fleet"}
+    )
+    assert manual.players["p1"].fleet_cc == player.fleet_cc - 1
+    assert manual.players["p1"].tactical_cc == player.tactical_cc
 
 
 # =========================================================================================== Waylay
@@ -1560,10 +1575,17 @@ def test_war_effort_takes_a_cruiser_from_the_board(registry: StaticDataRegistry)
     with _demo(registry):
         inputs = tb._inputs(registry, state, "war_effort")
         source = next(i for i in inputs if i["key"] == "source")
-        assert [o["value"] for o in source["options"]] == ["auto", "104|space"]
-        with pytest.raises(ValueError, match="reinforcements"):
-            tb._play(registry, state, "war_effort", {"position": "101"})
+        # Picked on the map (unit-at-place meta); "Auto" = the first legal source (RULES.md 53).
+        assert [o["value"] for o in source["options"]] == ["104|space"]
+        assert source["options"][0]["meta"]["position"] == "104"
+        assert source["auto"] == "104|space"
+        auto = tb._play(registry, state, "war_effort", {"position": "101"})  # skipped = Auto
+        assert auto.systems["101"].space_units["p1"]["cruiser"] == 1
         new = tb._play(registry, state, "war_effort", {"position": "101", "source": "104|space"})
+        state.systems["104"].command_tokens = ["p1"]  # the only cruisers sit under a token
+        with pytest.raises(ValueError, match="reinforcements"):
+            tb._play(registry, state, "war_effort", {"position": "101", "source": "104|space"})
+        state.systems["104"].command_tokens = []
     assert new.systems["101"].space_units["p1"] == {"destroyer": 1, "cruiser": 1}
     assert new.systems["104"].space_units["p1"]["cruiser"] == (
         state.systems["104"].space_units["p1"]["cruiser"] - 1
@@ -1623,7 +1645,8 @@ def test_ghost_ship_takes_a_destroyer_from_the_board(registry: StaticDataRegistr
     with _demo(registry):
         assert tb._playable(registry, state, "ghost_ship")
         inputs = tb._inputs(registry, state, "ghost_ship")
-        assert [o["value"] for o in inputs[1]["options"]] == ["auto", "104|space"]
+        assert [o["value"] for o in inputs[1]["options"]] == ["104|space"]
+        assert inputs[1]["auto"] == "104|space"  # Auto = first legal board source
         new = tb._play(registry, state, "ghost_ship", {"position": "101", "source": "auto"})
         assert new.systems["101"].space_units["p1"] == {"destroyer": 1}
         state.systems["104"].command_tokens = ["p1"]  # the only destroyers sit under a token

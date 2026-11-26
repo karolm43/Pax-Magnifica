@@ -670,11 +670,7 @@ def _mech_source_inputs(state: GameState, registry: Any, player_id: str
                         ) -> list[dict[str, Any]]:
     if not board_reinforcements.needs_board_source(state, player_id, "mech"):
         return []
-    options: list[dict[str, Any]] = []
-    for source, label in board_reinforcements.source_options(state, registry, player_id, "mech"):
-        position, _, zone = source.partition("|")
-        options.append(oi.option(source, label, meta=oi.unit_at(
-            state, player_id, "mech", position=position, planet=None if zone == _SPACE else zone)))
+    options = board_reinforcements.map_source_options(state, registry, player_id, "mech")
     return [oi.choice("source", "No mech left in reinforcements - take one from the board",
                       options)]
 

@@ -137,7 +137,11 @@ def next_strategy_picker(state: GameState) -> str | None:
     # w speaker order, który ma jeszcze TYLE kart (nie wybierał w tej rundzie) i wciąż
     # < Pick_Count. Gdy wszyscy osiągnęli Pick_Count → None (faza gotowa do akcji).
     # Checks and Balances: liczą się WYBORY gracza, nie karty, które dostał od innych.
+    # Political Stability: gracz z zachowanymi kartami nie wybiera wcale („You do not choose
+    # strategy cards during the next strategy phase”) - także przy Checks and Balances.
     def count(pid: str) -> int:
+        if pid in state.strategy_kept:
+            return needed
         if gives_chosen_cards(state):
             return state.strategy_choices.get(pid, 0)
         return len(state.players[pid].strategy_cards)
@@ -432,10 +436,14 @@ def reset_strategy_cards(state: GameState) -> GameState:
     """
     new_state = state.clone()
     new_state.strategy_choices = {}
+    new_state.strategy_kept = []
     for player_id, player in new_state.players.items():
         # Political Stability (RULES.md 53.7): karty zostają u gracza (jest "gotowy"), a w
-        # następnej fazie strategii nie wybiera - ``next_strategy_picker`` pomija go samo.
-        if not retains_strategy_cards(new_state, player_id):
+        # następnej fazie strategii nie wybiera - ``next_strategy_picker`` go pomija.
+        if retains_strategy_cards(new_state, player_id):
+            if player.strategy_cards:
+                new_state.strategy_kept.append(player_id)
+        else:
             player.strategy_cards = []
         exhaust.ready_all_strategy_cards(new_state, player_id)
     # Nowa faza strategii zaczyna wybierać mówca (speaker) — RULES.md 24.

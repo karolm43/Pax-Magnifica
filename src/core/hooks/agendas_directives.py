@@ -35,6 +35,7 @@ from src.core import (
     unit_ops,
     wormhole_research,
 )
+from src.core import offer_inputs as oi
 from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, TimingWindow, WindowType
@@ -597,12 +598,14 @@ def _rearm_inputs(
     options = [_option(p, _planet_label(state, registry, p)) for p in planets]
     inputs = [_choice("planet", "Home planet for the mech", options)]
     if planets and board_reinforcements.needs_board_source(state, player_id, "mech"):
-        sources = board_reinforcements.source_options(state, registry, player_id, "mech")
+        sources = board_reinforcements.map_source_options(state, registry, player_id, "mech")
         if sources:
-            inputs.append(_choice(
+            # Mech clicked on the map; Auto = "Do not place" (ability cannot force the removal).
+            inputs.append(oi.choice(
                 "source", "No mech in your reinforcements - take one from the board?",
-                [_option(_NO_SOURCE, "Do not place a mech")]
-                + [_option(value, label) for value, label in sources],
+                [_option(_NO_SOURCE, "Do not place a mech"), *sources],
+                "Click your mech on the map (systems without your command token).",
+                auto=_NO_SOURCE,
             ))
     return inputs
 

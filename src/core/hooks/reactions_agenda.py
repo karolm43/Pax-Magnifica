@@ -41,6 +41,7 @@ from src.core import (
     technology,
     triggers,
 )
+from src.core import offer_inputs as oi
 from src.core.components import ComponentCategory
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import (
@@ -285,19 +286,22 @@ def _no_validation(
 
 
 # Empty reinforcements: the unit may be taken from the board instead (C_action_cards).
+# The source is clicked on the map; "Auto" = "Do not place" (⚠️ ASSUMPTION, RULES.md 53:
+# nothing leaves the board without the player's manual choice - R_component_limitations).
 def _source_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str, base_type: str
 ) -> list[Input]:
     if not board_reinforcements.needs_board_source(state, player_id, base_type):
         return []
-    sources = board_reinforcements.source_options(state, registry, player_id, base_type)
+    sources = board_reinforcements.map_source_options(state, registry, player_id, base_type)
     if not sources:
         return []
     name = "space dock" if base_type == targets.SPACE_DOCK else base_type
-    return [_choice(
+    return [oi.choice(
         "source", f"No {name} in your reinforcements - take one from the board?",
-        [_option(_NO_SOURCE, f"Do not place a {name}")]
-        + [_option(value, label) for value, label in sources],
+        [_option(_NO_SOURCE, f"Do not place a {name}"), *sources],
+        "Click your unit on the map (systems without your command token).",
+        auto=_NO_SOURCE,
     )]
 
 
@@ -319,6 +323,8 @@ def _place_reward_unit(
     data: Mapping[str, Any],
 ) -> None:
     source = data.get("source")
+    if not source and board_reinforcements.needs_board_source(state, player_id, base_type):
+        return  # "Do not place" (Auto): reinforcements empty and no unit taken from the board
     board_reinforcements.place_unit(
         state, system, zone, player_id, base_type, source=str(source) if source else None
     )

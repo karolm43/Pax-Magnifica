@@ -501,7 +501,7 @@ def _register_skilled_retreat(card_id: str) -> None:
     To nie odwrót (nie da się go anulować Intercept). Rulingi C_action_cards: jadą WSZYSTKIE
     statki i ładunek z przestrzeni, także ponad pojemność (8), a nadwyżkę usuwa sprawdzenie
     pojemności w systemie docelowym (5). Bez żetonu w rezerwie gracz bierze go z puli arkusza
-    (7): ``token_pool`` albo Auto (⚠ ZAŁOŻENIE: kolejność tactic → fleet → strategy).
+    (7): ``token_pool`` albo Auto (⚠️ ZAŁOŻENIE RULES.md 53: tactic → fleet → strategy).
     """
 
     def effect(
@@ -556,11 +556,14 @@ def _register_skilled_retreat(card_id: str) -> None:
                 if command_tokens.pool_count(state, player_id, sheet) > 0
             ]
             if pools:
+                # Manual pool choice + "Auto" (⚠️ ASSUMPTION, RULES.md 53: tactic -> fleet ->
+                # strategy; skipped field = Auto).
                 out.append(
-                    _choice(
+                    oi.choice(
                         "token_pool",
                         "No command token in reinforcements - take it from a pool",
                         [_option(_AUTO, "Auto (tactic, then fleet, then strategy)"), *pools],
+                        auto=_AUTO,
                     )
                 )
         return out
