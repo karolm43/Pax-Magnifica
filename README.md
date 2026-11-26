@@ -60,22 +60,24 @@ Details (multiplayer, saves) are in `JAK_GRAC.txt` inside the package. Build the
 | Stage | Scope | State |
 |---|---|---|
 | 1 | Digital board + God-Mode | ✅ done |
-| 2 | Rule-enforcing gameplay engine | 🔧 in progress — details below; 15 factions with hooks (Arborec, Argent, Hacan, Jol-Nar, L1Z1X, Letnev, Mentak, Muaat, Naaz-Rokha, Saar, Sardakk, Sol, Winnu, Xxcha, Yin) |
+| 2 | Rule-enforcing gameplay engine | 🔧 in progress — details below; **18/30 factions** with hooks (Arborec, Argent, Cabal, Hacan, Jol-Nar, L1Z1X, Letnev, Mentak, Muaat, Naalu, Naaz-Rokha, Saar, Sardakk, Sol, Titans of Ul, Winnu, Xxcha, Yin) |
 | 3 | AI Bot (strategic → operational → tactical) | 🔧 early steps: bot executes tactical actions, researches technologies, bot game fuzzer exists |
 
-Component hook coverage (from generated report [`docs/POKRYCIE_HOOKOW.md`](docs/POKRYCIE_HOOKOW.md)):
+Component hook coverage (from generated report [`docs/POKRYCIE_HOOKOW.md`](docs/POKRYCIE_HOOKOW.md) — **454 hooks**):
 
 | Components | With effect | |
 |---|---:|---|
 | Action cards | 143 / 143 | ✅ |
-| Relics | 23 / 24 | ✅ |
+| Relics | 23 / 24 | ✅ (all active relics) |
 | Agendas | 50 / 63 | ✅ entire official deck (50/50); ⬜ fan variants (Absol) |
-| Technologies | 66 / 102 | 🔧 all general; faction techs in progress |
-| Promissory notes | 20 / 40 | 🔧 |
-| Leaders | 45 / 102 | 🔧 |
-| Faction abilities | 30 / 73 | 🔧 |
-| Breakthroughs | 15 / 31 | 🔧 |
+| Technologies | 72 / 102 | 🔧 all 33 general; faction techs in progress |
+| Promissory notes | 23 / 40 | 🔧 |
+| Leaders | 54 / 102 | 🔧 |
+| Faction abilities | 38 / 73 | 🔧 |
+| Breakthroughs | 18 / 31 | 🔧 |
+| Units (with abilities) | 46 / 90 | 🔧 |
 | Exploration | 4 / 80 | ⬜ |
+| Galactic events | 0 / 20 | ⬜ |
 
 **Next steps:** remaining factions (abilities, leaders, promissory notes, breakthroughs) → remaining timing windows → exploration → bot expansion.
 Current work log: [`docs/PROGRESS.md`](docs/PROGRESS.md).

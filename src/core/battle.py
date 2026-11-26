@@ -1270,8 +1270,8 @@ def sustain_one(
     sustain with another ship (again this function) or assign the rest (``assign_combat_hits``,
     which also confirms when nothing is left to cover).
 
-    ⚠️ ASSUMPTION (RULES.md 39): with an effect that directs hits to particular units
-    (``hit_targets``) the hits are assigned in one go.
+    User decision (RULES.md 53.10): with an effect that directs hits to particular units
+    (``hit_targets``) the hits are assigned in one go - no step-by-step Sustain Damage.
 
     Raises:
         ValueError: Not this player's assignment, no hits left, the ship cannot sustain, or the

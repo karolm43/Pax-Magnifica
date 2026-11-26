@@ -33,6 +33,7 @@ import {
   coveredCount,
   isCovered,
   planFromMarks,
+  sustainNowType,
   toggleMark,
   type Mark,
   type ShipEntity,
@@ -115,6 +116,7 @@ function Battlefield({
     battleAfbExtraDice,
     battleRoll,
     battleAssign,
+    battleSustain,
     battleClose,
     battleAnnounceRetreat,
     battleRetreat,
@@ -296,6 +298,9 @@ function Battlefield({
   const marks = marksState.key === assignKey ? marksState.marks : presetMarks;
   const covered = coveredCount(marks, required, cancels);
   const ready = view.assigning !== null && isCovered(marks, required, cancels);
+  const sustainNow = view.assigning
+    ? sustainNowType(assigningShips, marks, hitTarget)
+    : null;
 
   const setMarks = (next: Record<string, Mark>) =>
     setMarksState({ key: assignKey, marks: next });
@@ -576,6 +581,11 @@ function Battlefield({
           onAuto={() => setMarks(autoMarks(allowedShips, required, cancels))}
           targetNote={targetNote}
           onClearMarks={() => setMarks({})}
+          canSustainNow={sustainNow !== null}
+          onSustainNow={() => {
+            if (!view.assigning || !sustainNow) return;
+            void run(() => battleSustain(view.assigning!, sustainNow));
+          }}
           onConfirmAssign={() => {
             if (!view.assigning) return;
             const ids = (...kinds: Mark[]) =>

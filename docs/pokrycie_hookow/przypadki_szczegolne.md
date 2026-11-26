@@ -12,8 +12,8 @@ Te komponenty nie trafiły w żadne słowo kluczowe — wymagają ręcznego prze
 | abilities | `creuss_gate` | Creuss Gate | base | — | When you create the game board, place the Creuss Gate (tile 17) where your home system would normally be placed. The Creuss Gate system is … |
 | abilities | `guild_ships` | Guild Ships | base | — | You can negotiate transactions with players who are not your neighbor. |
 | abilities | `nocturne` | Nocturne | thunders_edge | — | This faction cannot be chosen during setup. |
-| abilities | `phoenixstandard` | Phoenix Standard | thunders_edge | at_end | you may galvanize 1 of your units that participated. |
-| abilities | `sorrow` | Sorrow | thunders_edge | — | When you create the game board, place the Sorrow (tile 94) where your home system would normally be placed, then place a inactive breach th… |
+| abilities | `phoenixstandard` | Phoenix Standard | thunders_edge | at_end | You may galvanize 1 of your units that participated. |
+| abilities | `sorrow` | The Sorrow | thunders_edge | — | When you create the game board, place The Sorrow (tile 94) where your home system would be placed, and place an inactive breach in it. The … |
 | abilities | `the_company` | The Company | pok | — | During setup, take the 2 additional Nomad faction agents and place them next to your faction sheet; you have 3 agents |
 | action_cards | `confounding` | Confounding Legal Text | pok | when | You are the elected player instead. |
 | action_cards | `confusing` | Confusing Legal Text | base | when | Choose 1 player. That player is the elected player instead. |
@@ -22,7 +22,7 @@ Te komponenty nie trafiły w żadne słowo kluczowe — wymagają ręcznego prze
 | action_cards | `master_plan` | Master Plan | codex1 | after | Perform an additional action. |
 | action_cards | `parley` | Parley | base | after | Return the committed units to the space area. |
 | action_cards | `puppetsonastring` | Puppets on a String | thunders_edge | at_end | Perform 1 action. |
-| action_cards | `refit` | Refit Troops | pok | action | Choose 1 or 2 of your infantry on the game board. Replace each of those infantry with mechs. |
+| action_cards | `refit` | Refit Troops | pok | action | Choose 1 or 2 of your infantry on the game board; replace each of those infantry with mechs. |
 | action_cards | `scramble` | Scramble Frequency | codex1 | after | That player rerolls all of their dice. |
 | agendas | `covert` | Covert Legislation | pok | — |  |
 | breakthroughs | `yssarilbt` | Deepgloom Executable | thunders_edge | — | You can allow other players to use your STALL TACTICS or SCHEMING faction abilities; when you do, you may resolve a transaction with that p… |

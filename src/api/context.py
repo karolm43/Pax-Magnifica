@@ -13,6 +13,7 @@ jest zawsze spójna ze stanem, także po Undo/Redo.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -60,6 +61,12 @@ class AppContext:
         self._restore_grid = restore_grid
         self.save_name: str | None = None
         self.manager = manager
+        # N4 — per-game lock: serializuje wszystkie mutacje stanu (replace_state, undo, redo…).
+        # Zapobiega wyścigowi człowiek ↔ bot (lost update), gdy dwa żądania POST trafiają
+        # jednocześnie: drugie czeka na zwolnienie locka, widzi nowy seq i liczy ruch od nowa.
+        # Lock tworzony tutaj, bo StateService nie jest async. Middleware ``_game_lock``
+        # w app.py trzyma go na czas całego mutującego żądania HTTP (POST/PUT/PATCH/DELETE).
+        self.game_lock: asyncio.Lock = asyncio.Lock()
         # Rejestr danych bez modułów wariantów + rejestry dla zestawów modułów (budowane
         # leniwie, raz na zestaw). ``registry`` zwraca rejestr BIEŻĄCEJ gry.
         self._base_registry = registry

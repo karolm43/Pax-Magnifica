@@ -33,14 +33,14 @@ def in_bonus_action(state: GameState, player_id: str) -> bool:
 
 def outside_turn(state: GameState, player_id: str) -> bool:
     """Whether ``player_id`` acts although it is not their turn: the extra action of a passed
-    player (Puppets on a String - ``BonusTurn.restore_passed``).
+    player (Puppets on a String only - ``BonusTurn.not_a_turn``; not Jupiter Brain).
 
     C_action_cards/puppets-on-a-string/2: "It is not considered the turn of the player who played
     Puppets On A String for game effects" - no transactions (/3), nothing ends the turn (/4), no
     Fleet Logistics (/6).
     """
     bonus = state.bonus_turn
-    return bonus is not None and bonus.player == player_id and bonus.restore_passed
+    return bonus is not None and bonus.player == player_id and bonus.not_a_turn
 
 
 def blocked_by_pass(state: GameState, player_id: str) -> bool:

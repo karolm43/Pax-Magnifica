@@ -1153,9 +1153,11 @@ class BonusTurn(BaseModel):
     player: str
     resume_player: str | None = None
     resume_window: TurnEndWindow | None = None
-    # Czy po bonusowej akcji gracz wraca do stanu „spasował" (Puppets on a String) - dla gracza,
-    # który NIE spasował (Jupiter Brain), flaga ``passed`` zostaje fałszywa.
-    restore_passed: bool = True
+    # Puppets on a String only: the action "is not considered the turn" of the player
+    # (C_action_cards/puppets-on-a-string/2) - no transactions, Minister of Peace cannot end it.
+    # Jupiter Brain's extra action is a normal part of the player's turn (user decision
+    # 2026-11-26, RULES.md 53.10).
+    not_a_turn: bool = False
 
 
 class EliminatedPlayer(BaseModel):

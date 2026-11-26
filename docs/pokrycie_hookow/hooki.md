@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **451**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **454**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -264,6 +264,7 @@ Razem: **451**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:production.units_produced:after` | TRIGGER | technology:yso | technologies:yso | Yin Spinner Ω: After you produce units, place up to 2 infantry from your reinforcements on |
 | `event:production.used:after` | TRIGGER | agenda:prophecy | agendas:prophecy | — |
 | `event:production.used:after` | TRIGGER | technology:sar | technologies:sar | Self-Assembly Routines: po PRODUCTION wyczerp kartę, by postawić 1 mecha z rezerwy |
+| `event:strategy.action:after` | TRIGGER | agenda:minister_war | agendas:minister_war | — |
 | `event:strategy.action:after` | TRIGGER | faction:xxcha | abilities:peace_accords | Peace Accords: After you resolve the primary or secondary ability of the "Diplomacy" |
 | `event:strategy.card_chosen:after` | TRIGGER | agenda:arbiter | agendas:arbiter | — |
 | `event:strategy.imperial_victory_point:after` | TRIGGER | planet:custodiavigilia | planets:custodiavigilia | Custodian's Favour: Gain 2 command tokens when another player scores a victory point with |
@@ -367,6 +368,7 @@ Razem: **451**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.alpha_beta_adjacent` | PERMIT | agenda:wormhole_recon | agendas:wormhole_recon | — |
 | `movement.enter_asteroids` | PERMIT | technology:amd | technologies:amd | Antimass Deflectors: statki mogą wchodzić do pól asteroid i przez nie przechodzić. |
 | `movement.enter_asteroids` | PERMIT | relic:circletofthevoid | — | Circlet of the Void: ruch przez/do pól asteroid (ignorowanie efektów anomalii). |
+| `movement.extra_adjacent` | FORBID | effect:action_cards:lost_star | — | Systems with alpha / beta wormholes are adjacent to each other during this action. |
 | `movement.extra_adjacent` | FORBID | technology:lgf | technologies:lgf | Lazax Gate Folding: During your tactical actions, if you do not control Mecatol Rex, treat |
 | `movement.extra_adjacent` | FORBID | effect:technologies:scc | — | Aktywny system sąsiaduje ze wszystkimi systemami z jednostkami gracza (i odwrotnie). |
 | `movement.ignore_anomalies` | PERMIT | effect:action_cards:nav_suite | — | — |
@@ -423,6 +425,7 @@ Razem: **451**. Opis = pierwsza linia docstringu funkcji hooka.
 | `space_cannon.offense_immune` | PERMIT | unit:argent_flagship | units:argent_flagship | Quetzecoatl: Other players cannot use space cannon against your ships in this system. |
 | `space_cannon.pds_disabled` | PERMIT | effect:action_cards:disable | — | — |
 | `space_cannon.roll_modifier` | MODIFY | technology:amd | technologies:amd | Antimass Deflectors: -1 do wyniku kości Space Cannon rzucanych przeciw jego jednostkom. |
+| `status.action_cards` | MODIFY | rule:breakthroughs:titansbt:coexistence | breakthroughs:titansbt | Slumberstate Computing: During the status phase, for each player you are coexisting with, |
 | `status.action_cards` | MODIFY | technology:nm | technologies:nm | Neural Motivator: w fazie statusu gracz dobiera 2 karty akcji zamiast 1. |
 | `status.command_tokens` | MODIFY | technology:hm | technologies:hm | Hyper Metabolism: w fazie statusu gracz zdobywa 3 żetony dowodzenia zamiast 2. |
 | `status.command_tokens` | MODIFY | faction:sol | abilities:versatile | Versatile: When you gain command tokens during the status phase: Gain 1 additional command |

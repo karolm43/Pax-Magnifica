@@ -336,6 +336,23 @@ def create_app(
             current_author.reset(reset_author)
             current_identity.reset(reset)
 
+    # N4 — per-game lock: serializuje mutujące żądania HTTP (POST/PUT/PATCH/DELETE), także
+    # mutacje w middleware (``_seat_identity``, ``_expire_reaction_pause``, held-play).
+    # Zapobiega wyścigowi człowiek ↔ bot (lost update): drugie żądanie czeka na lock,
+    # widzi nowy ``state_seq`` i odrzuca wynik (``BotRunner.step`` → ``current_seq() != seq``).
+    # GET i WebSocket nie mutują stanu → nie blokowane.
+    _mutating_methods = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+    @app.middleware("http")
+    async def _game_lock(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        if request.method in _mutating_methods:
+            ctx = request.app.state.ctx
+            async with ctx.game_lock:
+                return await call_next(request)
+        return await call_next(request)
+
     # CORS: dev-serwer Vite (5173) łączy się z backendem (8000).
     app.add_middleware(
         CORSMiddleware,

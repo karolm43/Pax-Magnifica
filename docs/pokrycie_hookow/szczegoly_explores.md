@@ -8,7 +8,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `aw2` | Abandoned Warehouses | — | — | PERMIT (pozwolenie) | ekonomia i płatności | — | You may gain 2 commodities, or you may convert up to 2 of your commodities to trade goods. |
 | `aw3` | Abandoned Warehouses | — | — | PERMIT (pozwolenie) | ekonomia i płatności | — | You may gain 2 commodities, or you may convert up to 2 of your commodities to trade goods. |
 | `aw4` | Abandoned Warehouses | — | — | PERMIT (pozwolenie) | ekonomia i płatności | — | You may gain 2 commodities, or you may convert up to 2 of your commodities to trade goods. |
-| `biotic` | Biotic Research Facility | — | — | REPLACE (instead of) | ekonomia i płatności, technologie, planety i eksploracja | — | This planet has a green technology specialty. If this planet already has a technology specialty, this planet's resource and influence value… |
+| `biotic` | Biotic Research Facility | — | — | REPLACE (instead of) | ekonomia i płatności, technologie, planety i eksploracja | — | This planet has a green technology specialty; if this planet already has a technology specialty, this planet's resource and influence value… |
 | `cm1` | Core Mine | — | — | — | ekonomia i płatności, planety i eksploracja | — | If you have at least 1 mech on this planet, or if you remove 1 infantry from this planet, gain 1 trade good. |
 | `cm2` | Core Mine | — | — | — | ekonomia i płatności, planety i eksploracja | — | If you have at least 1 mech on this planet, or if you remove 1 infantry from this planet, gain 1 trade good. |
 | `cm3` | Core Mine | — | — | — | ekonomia i płatności, planety i eksploracja | — | If you have at least 1 mech on this planet, or if you remove 1 infantry from this planet, gain 1 trade good. |
@@ -21,7 +21,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `crf7` | Cultural Relic Fragment | — | — | — | planety i eksploracja | — | ACTION: Purge 3 of your cultural relic fragments to gain 1 relic. |
 | `crf8` | Cultural Relic Fragment | — | — | — | planety i eksploracja | — | ACTION: Purge 3 of your cultural relic fragments to gain 1 relic. |
 | `crf9` | Cultural Relic Fragment | — | — | — | planety i eksploracja | — | ACTION: Purge 3 of your cultural relic fragments to gain 1 relic. |
-| `cybernetic` | Cybernetic Research Facility | — | — | REPLACE (instead of) | ekonomia i płatności, technologie, planety i eksploracja | — | This planet has a yellow technology specialty. If this planet already has a technology specialty, this planet's resource and influence valu… |
+| `cybernetic` | Cybernetic Research Facility | — | — | REPLACE (instead of) | ekonomia i płatności, technologie, planety i eksploracja | — | This planet has a yellow technology specialty; if this planet already has a technology specialty, this planet's resource and influence valu… |
 | `dmz` | Demilitarized Zone | — | — | FORBID (zakaz) | produkcja, planety i eksploracja, agenda i głosowanie | ✔ | Return all structures on this planet to your reinforcements. Then, return all ground forces on this planet to the space area. Attach: Units… |
 | `ds` | Dyson Sphere | — | — | — | ekonomia i płatności, planety i eksploracja | — | This planet's resource value is increased by 2 and its influence value is increased by 1. |
 | `dv1` | Derelict Vessel | — | — | — | karty, planety i eksploracja, cele i punkty | — | Draw 1 secret objective. |
@@ -37,9 +37,9 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `fb2` | Functioning Base | — | — | PERMIT (pozwolenie) | ekonomia i płatności, karty | — | You may gain 1 commodity, or you may spend 1 trade good or 1 commodity to draw 1 action card. |
 | `fb3` | Functioning Base | — | — | PERMIT (pozwolenie) | ekonomia i płatności, karty | — | You may gain 1 commodity, or you may spend 1 trade good or 1 commodity to draw 1 action card. |
 | `fb4` | Functioning Base | — | — | PERMIT (pozwolenie) | ekonomia i płatności, karty | — | You may gain 1 commodity, or you may spend 1 trade good or 1 commodity to draw 1 action card. |
-| `frln1` | Freelancers | — | — | PERMIT (pozwolenie) | produkcja, ekonomia i płatności | — | You may produce 1 unit in this system. You may spend influence as if it were resources to produce this unit. |
-| `frln2` | Freelancers | — | — | PERMIT (pozwolenie) | produkcja, ekonomia i płatności | — | You may produce 1 unit in this system. You may spend influence as if it were resources to produce this unit. |
-| `frln3` | Freelancers | — | — | PERMIT (pozwolenie) | produkcja, ekonomia i płatności | — | You may produce 1 unit in this system. You may spend influence as if it were resources to produce this unit. |
+| `frln1` | Freelancers | — | — | PERMIT (pozwolenie) | produkcja, ekonomia i płatności | — | You may produce 1 unit in this system; you may spend influence as if it were resources to produce this unit. |
+| `frln2` | Freelancers | — | — | PERMIT (pozwolenie) | produkcja, ekonomia i płatności | — | You may produce 1 unit in this system; you may spend influence as if it were resources to produce this unit. |
+| `frln3` | Freelancers | — | — | PERMIT (pozwolenie) | produkcja, ekonomia i płatności | — | You may produce 1 unit in this system; you may spend influence as if it were resources to produce this unit. |
 | `gamma` | Gamma Relay | — | — | — | ruch | — | Place a gamma wormhole token in this system. Then, purge this card. |
 | `gw` | Gamma Wormhole | — | — | — | ruch | — | Place a gamma wormhole token in this system. Then, purge this card. |
 | `hrf1` | Hazardous Relic Fragment | — | — | — | planety i eksploracja | — | ACTION: Purge 3 of your hazardous relic fragments to gain 1 relic. |
@@ -73,7 +73,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `ms1` | Merchant Station | — | — | PERMIT (pozwolenie) | ekonomia i płatności | — | You may replenish your commodities, or you may convert your commodities to trade goods. |
 | `ms2` | Merchant Station | — | — | PERMIT (pozwolenie) | ekonomia i płatności | — | You may replenish your commodities, or you may convert your commodities to trade goods. |
 | `mw` | Mining World | — | — | — | ekonomia i płatności, planety i eksploracja | — | This planet's resource value is increased by 2. |
-| `propulsion` | Propulsion Research Facility | — | — | REPLACE (instead of) | ekonomia i płatności, technologie, planety i eksploracja | — | This planet has a blue technology specialty. If this planet already has a technology specialty, this planet's resource and influence values… |
+| `propulsion` | Propulsion Research Facility | — | — | REPLACE (instead of) | ekonomia i płatności, technologie, planety i eksploracja | — | This planet has a blue technology specialty; if this planet already has a technology specialty, this planet's resource and influence values… |
 | `pw` | Paradise World | — | — | — | ekonomia i płatności, planety i eksploracja | — | This planet's influence value is increased by 2. |
 | `rw` | Rich World | — | — | — | ekonomia i płatności, planety i eksploracja | — | This planet's resource value is increased by 1. |
 | `toe` | Tomb of Emphidia | — | — | PERMIT (pozwolenie) | ekonomia i płatności, planety i eksploracja | — | This planet's influence value is increased by 1. If the player who has the "Crown of Emphidia" relic has control of this planet, they can u… |
@@ -83,4 +83,4 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `vfs1` | Volatile Fuel Source | — | — | — | żetony dowodzenia, planety i eksploracja | — | If you have at least 1 mech on this planet, or if you remove 1 infantry from this planet, gain 1 command token. |
 | `vfs2` | Volatile Fuel Source | — | — | — | żetony dowodzenia, planety i eksploracja | — | If you have at least 1 mech on this planet, or if you remove 1 infantry from this planet, gain 1 command token. |
 | `vfs3` | Volatile Fuel Source | — | — | — | żetony dowodzenia, planety i eksploracja | — | If you have at least 1 mech on this planet, or if you remove 1 infantry from this planet, gain 1 command token. |
-| `warfare` | Warfare Research Facility | — | — | REPLACE (instead of) | ekonomia i płatności, technologie, planety i eksploracja | — | This planet has a red technology specialty. If this planet already has a technology specialty, this planet's resource and influence values … |
+| `warfare` | Warfare Research Facility | — | — | REPLACE (instead of) | ekonomia i płatności, technologie, planety i eksploracja | — | This planet has a red technology specialty; if this planet already has a technology specialty, this planet's resource and influence values … |

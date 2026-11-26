@@ -227,3 +227,21 @@ export function assignableShips(
   // Wskazany jeden statek: wystarczy jeden egzemplarz (wszystkie tego stanu są równoważne).
   return target.chooser && damaged !== null ? hit.slice(0, target.count) : hit;
 }
+
+/**
+ * "Sustain now" (C_action_cards/direct-hit/3): exactly one ship marked with a shield alone and
+ * nothing else marked -> its base type, sent to ``POST /tactical/battle/sustain``; the other hits
+ * wait until the opponent has used or declined Direct Hit. Hits directed at particular units
+ * (``hitTarget``) are assigned in one go (RULES.md 53, user decision) -> ``null``.
+ */
+export function sustainNowType(
+  ships: ShipEntity[],
+  marks: Record<string, Mark>,
+  hitTarget: HitTarget | undefined,
+): string | null {
+  if (hitTarget) return null;
+  const marked = Object.entries(marks);
+  if (marked.length !== 1 || marked[0][1] !== "sustain") return null;
+  const ship = ships.find((s) => s.id === marked[0][0]);
+  return ship && ship.canSustain ? ship.baseType : null;
+}

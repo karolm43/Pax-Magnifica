@@ -298,7 +298,7 @@ def deferred_dock_shooters(
 ) -> list[SpaceCannonShooter]:
     """Space docks ``player_id`` chose with Experimental Battlestation that are still there.
 
-    ⚠️ ASSUMPTION (RULES.md 53.10): a dock destroyed or removed before the Space Cannon Offense
+    User decision (RULES.md 53.10): a dock destroyed or removed before the Space Cannon Offense
     step does not fire; a dock now in an Entropic Scar does not fire either (RULES.md 1.5).
     """
     found: list[SpaceCannonShooter] = []

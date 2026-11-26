@@ -856,6 +856,15 @@ export function useBoardEditor() {
     [refresh],
   );
 
+  // Step-by-step Sustain Damage (C_action_cards/direct-hit/3): one ship now, the rest later.
+  const battleSustain = useCallback(
+    async (faction: string, baseType: string) => {
+      await post("/tactical/battle/sustain", { faction, baseType });
+      await refresh();
+    },
+    [refresh],
+  );
+
   const battleClose = useCallback(async () => {
     await post("/tactical/battle/close", {});
     await refresh();
@@ -1185,6 +1194,7 @@ export function useBoardEditor() {
     battleAfbExtraDice,
     battleRoll,
     battleAssign,
+    battleSustain,
     battleRelicReroll,
     battleRelicAdjust,
     battleClose,

@@ -3,7 +3,7 @@
 Wygenerowano: `uv run python -m src.audit.hook_coverage --write`. Zasady: `RULES.md` 43.
 Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych (priorytetyzacja, nie decyzja).
 
-Zarejestrowanych hooków: **451** (lista: `pokrycie_hookow/hooki.md`).
+Zarejestrowanych hooków: **454** (lista: `pokrycie_hookow/hooki.md`).
 
 ## 2. Pokrycie per kategoria
 
@@ -43,7 +43,7 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 |---|---:|---:|
 | planety i eksploracja (control, exploration) | 252 | 122 |
 | walka (combat.*, space_cannon, bombardment) | 236 | 68 |
-| produkcja (production.*) | 177 | 42 |
+| produkcja (production.*) | 178 | 43 |
 | ekonomia i płatności (economy, payment) | 159 | 78 |
 | status i odświeżanie (status_phase) | 148 | 57 |
 | ruch (movement.*) | 142 | 56 |
@@ -52,7 +52,7 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 | technologie (technology) | 68 | 34 |
 | agenda i głosowanie (agenda_phase) | 49 | 13 |
 | cele i punkty (objectives) | 36 | 12 |
-| karty strategii i inicjatywa | 28 | 1 |
+| karty strategii i inicjatywa | 27 | 1 |
 
 Szacowany typ hooka (RULES.md 43.1 pkt 4):
 

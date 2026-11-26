@@ -839,7 +839,7 @@ def rescue_inputs(
         (position, ship) for position, ship in found
         if _rescue_capacity(state, registry, player_id, ship) > 0
     ]
-    # Auto (ASSUMPTION, RULES.md 53.4): fill the capacity when only one ship can carry anything;
+    # Auto (ASSUMPTION, RULES.md 53.10): fill the capacity when only one ship can carry anything;
     # otherwise the form cannot know which ship is chosen, so Auto carries nothing.
     auto: dict[str, int] = {}
     if len(carriers) == 1:

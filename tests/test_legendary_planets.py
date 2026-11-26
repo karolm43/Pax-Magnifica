@@ -390,8 +390,29 @@ def test_jupiter_brain_gives_an_extra_action_after_the_turn(registry: StaticData
     offer = state.pending_offers[0]
     done = triggers.accept_offer(state, "p1", offer.id, {})
     assert done.active_player_id == "p1"
-    assert done.bonus_turn is not None and done.bonus_turn.restore_passed is False
+    assert done.bonus_turn is not None and done.bonus_turn.not_a_turn is False
     assert "thundersedge" in done.players["p1"].exhausted_legendaries
+
+
+def test_jupiter_brain_after_passing_is_still_the_players_turn(
+    registry: StaticDataRegistry,
+) -> None:
+    """User decision 2026-11-26 (RULES.md 53.10): the "not considered your turn" rules of Puppets
+    on a String (no transactions, Minister of Peace) do not apply to Jupiter Brain."""
+    from src.core import action_budget
+    from src.core.game_state import TurnEndWindow
+
+    state = _state(registry, owned=("thundersedge",))
+    state.players["p1"].took_action_this_turn = True
+    state.players["p1"].passed = True
+    state.speaker_id = "p1"
+    state.turn_end_window = TurnEndWindow(ended_player="p1", ended_passed=True, next_player="p2")
+    state.active_player_id = "p2"
+    triggers.fire(state, GameEvent.TURN, Moment.END, subject="p1", ctx={"player": "p1"})
+    done = triggers.accept_offer(state, "p1", state.pending_offers[0].id, {})
+    assert done.bonus_turn is not None and done.bonus_turn.not_a_turn is False
+    assert done.players["p1"].passed is True
+    assert not action_budget.outside_turn(done, "p1")
 
 
 # ------------------------------------------------------------------------------ Fracture -> relikt

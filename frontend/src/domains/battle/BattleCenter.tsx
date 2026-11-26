@@ -250,6 +250,8 @@ export function BattleCenter({
   rollEditable = () => true,
   onAuto,
   onClearMarks,
+  canSustainNow = false,
+  onSustainNow,
   onConfirmAssign,
   onClose,
   onAnnounce,
@@ -293,6 +295,9 @@ export function BattleCenter({
   rollEditable?: (side: string) => boolean;
   onAuto: () => void;
   onClearMarks: () => void;
+  /** Exactly one shield marked, hits not directed: that ship sustains now (Direct Hit window). */
+  canSustainNow?: boolean;
+  onSustainNow?: () => void;
   onConfirmAssign: () => void;
   onClose: () => void;
   onAnnounce: (announce: boolean) => void;
@@ -587,6 +592,17 @@ export function BattleCenter({
             >
               Clear
             </button>
+            {onSustainNow && !targetNote && (
+              <button
+                type="button"
+                className={styles.ghost}
+                disabled={busy || !canSustainNow}
+                onClick={onSustainNow}
+                title="Use this ship's Sustain Damage now - the other hits are assigned after reactions (Direct Hit)"
+              >
+                <IconShield size={16} aria-hidden="true" /> Sustain now
+              </button>
+            )}
             <button
               type="button"
               className={styles.primary}

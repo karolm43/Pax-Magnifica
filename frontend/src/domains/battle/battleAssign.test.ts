@@ -16,6 +16,7 @@ import {
   isCovered,
   nextMark,
   planFromMarks,
+  sustainNowType,
   toggleMark,
 } from "./battleAssign";
 
@@ -182,5 +183,37 @@ describe("Non-Euclidean Shielding (Sustain anuluje 2 trafienia)", () => {
     expect(marks).toEqual({ "dreadnought-0": "sustain" });
     expect(isCovered(marks, 1, 2)).toBe(true);
     expect(coveredCount(marks, 1, 2)).toBe(1);
+  });
+});
+
+describe("sustainNowType (Direct Hit: Sustain Damage one ship at a time)", () => {
+  const fresh = unit({
+    baseType: "dreadnought",
+    asyncId: "dn",
+    name: "Dreadnought",
+    count: 2,
+    sustain: true,
+    sustainable: 2,
+  });
+
+  it("one shield alone -> that ship's base type", () => {
+    const ships = expandShips(side([fresh]));
+    expect(sustainNowType(ships, { [ships[0].id]: "sustain" }, undefined)).toBe("dreadnought");
+  });
+
+  it("two shields, a destroy mark or no marks -> not available", () => {
+    const ships = expandShips(side([fresh]));
+    expect(sustainNowType(ships, {}, undefined)).toBeNull();
+    expect(
+      sustainNowType(ships, { [ships[0].id]: "sustain", [ships[1].id]: "sustain" }, undefined),
+    ).toBeNull();
+    expect(sustainNowType(ships, { [ships[0].id]: "both" }, undefined)).toBeNull();
+    expect(sustainNowType(ships, { [ships[0].id]: "destroy" }, undefined)).toBeNull();
+  });
+
+  it("hits directed at particular units -> assigned in one go", () => {
+    const ships = expandShips(side([fresh]));
+    const target = { types: ["dreadnought"], count: 1, label: "Devotion", damaged: null, chooser: "" };
+    expect(sustainNowType(ships, { [ships[0].id]: "sustain" }, target)).toBeNull();
   });
 });

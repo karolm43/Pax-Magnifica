@@ -360,7 +360,6 @@ def begin_bonus_action(state: GameState, player_id: str) -> None:
         player=player_id,
         resume_player=window.next_player,
         resume_window=window.model_copy(),
-        restore_passed=player.passed,
     )
     action_budget.reset_turn(state, player_id)  # zeruje też ślad pauzy (zapisany w bonus_turn)
     player.transacted_with = []

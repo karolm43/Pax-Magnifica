@@ -410,6 +410,7 @@ def puppets_effect(
         player=player_id,
         resume_player=window.next_player,
         resume_window=window.model_copy(),
+        not_a_turn=True,
     )
     action_budget.reset_turn(state, player_id)  # zeruje też ślad pauzy (zapisany w bonus_turn)
     player.transacted_with = []
