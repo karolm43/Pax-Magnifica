@@ -212,10 +212,53 @@ def non_home_systems(state: GameState, registry: StaticDataRegistry) -> list[str
 
 
 def wormholes_at(state: GameState, registry: StaticDataRegistry, position: str) -> set[str]:
-    """Typy wormholi w systemie: wydrukowane na kafelku + żetony położone w grze."""
+    """Typy wormholi w systemie: wydrukowane na kafelku + żetony położone w grze + wormhole
+    jednostek (Hil Colish - ``unit_wormholes``)."""
+    return set(wormhole_list(state, registry, position))
+
+
+def wormhole_list(state: GameState, registry: StaticDataRegistry, position: str) -> list[str]:
+    """Every wormhole in the system, one entry each (also two of the same type): printed on the
+    tile, tokens in play, carried by units. Particle Synthesis counts "each wormhole" (62.19)."""
     definition = registry.systems.get(system_id_at(state, position))
-    found = {wh.upper() for wh in (definition.wormholes if definition else [])}
+    found = [wh.upper() for wh in (definition.wormholes if definition else [])]
     system = state.systems.get(position)
     if system is not None:
-        found |= {wh.upper() for wh in system.token_wormholes()}
+        found += [wh.upper() for wh in system.token_wormholes()]
+    found += unit_wormholes(state).get(position, [])
+    found += sorted(action_wormholes(state, position))
     return found
+
+
+def action_wormholes(state: GameState, position: str) -> frozenset[str]:
+    """Wormholes the ACTIVE player treats the system as having during their tactical action
+    (hook FORBID ``system.action_wormholes`` - Lazax Gate Folding at Mecatol Rex)."""
+    active = state.active_player_id
+    if state.tactical_step is None or active is None or active not in state.players:
+        return frozenset()
+    return frozenset(t.upper() for t in rules_hooks.forbidden(
+        rules_hooks.POINT_SYSTEM_ACTION_WORMHOLES, state, active, {"position": position}
+    ))
+
+
+def unit_wormholes(state: GameState) -> dict[str, list[str]]:
+    """``{position: [TYPE]}`` wormholes carried by units (hook FORBID ``board.unit_wormholes``,
+    entries ``"<position>|<TYPE>"``) - Hil Colish's delta wormhole (RULES.md 62.19)."""
+    found: dict[str, list[str]] = {}
+    for player_id in sorted(state.players):
+        for entry in sorted(rules_hooks.forbidden(
+            rules_hooks.POINT_BOARD_UNIT_WORMHOLES, state, player_id
+        )):
+            position, _, kind = str(entry).partition("|")
+            if position and kind:
+                found.setdefault(position, []).append(kind.upper())
+    return found
+
+
+def placed_wormholes(state: GameState) -> dict[str, list[str]]:
+    """``{position: [TYPE]}`` of every wormhole put into play on top of the tiles: tokens, the
+    Ion Storm side and unit wormholes - the ONE input of ``HexGrid.sync_token_wormholes``."""
+    result = {pos: s.token_wormholes() for pos, s in state.systems.items() if s.token_wormholes()}
+    for position, types in unit_wormholes(state).items():
+        result[position] = [*result.get(position, []), *types]
+    return result

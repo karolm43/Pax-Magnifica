@@ -4,6 +4,7 @@
  * (momenty) i `PhaseSweep` (przejścia faz / „Your turn”).
  */
 import type { ActivityEntry } from "@/api/useBoardEditor";
+import { isCreussWormholeToken } from "@/entities/lookup/wormholeTokens";
 
 export type KeyMoment =
   /** Bohater frakcji użyty (purge po rozpatrzeniu — R_leaders). */
@@ -28,7 +29,19 @@ export type KeyMoment =
    * Stellar Converter: the player's BOMBARDMENT ships fire at a planet in an adjacent system and
    * destroy it (fact `planet_destroyed` in the entry that purged the relic).
    */
-  | { kind: "converter"; seq: number; player: string | null; planet: string; position: string };
+  | { kind: "converter"; seq: number; player: string | null; planet: string; position: string }
+  /**
+   * A Creuss wormhole token opened in a system (Wormhole Generator, Creuss IFF, Icarus Drive —
+   * RULES.md 62.19); `from` = the system it left when it was moved.
+   */
+  | {
+      kind: "wormhole";
+      seq: number;
+      player: string | null;
+      token: string;
+      position: string;
+      from: string | null;
+    };
 
 /** Relic whose purge + `planet_destroyed` fact is the Stellar Converter moment. */
 export const STELLAR_CONVERTER = "stellarconverter";
@@ -106,6 +119,25 @@ export function momentsForEntry(entry: ActivityEntry, isHero: IsHero): KeyMoment
       if (f.type === "planet_destroyed" && f.value) {
         out.push({ kind: "converter", seq, player: a.actor_id, planet: f.value, position: f.detail ?? "" });
       }
+    }
+  }
+  // Creuss wormhole token placed / moved — but not when a hero swap carried it with its tile
+  // (the tokens "move" there only because the systems traded places).
+  const swapped = a.facts.some((f) => f.type === "tile_replaced");
+  if (!godmode && !swapped) {
+    for (const f of a.facts) {
+      if (f.type !== "faction_token" || !isCreussWormholeToken(f.value) || !f.position) continue;
+      const left = a.facts.find(
+        (x) => x.type === "faction_token_removed" && x.value === f.value && x.position,
+      );
+      out.push({
+        kind: "wormhole",
+        seq,
+        player: a.actor_id,
+        token: f.value ?? "",
+        position: f.position,
+        from: left?.position ?? null,
+      });
     }
   }
   // Fracture otwiera scenę: jeśli w jednym wpisie jest kilka momentów (przełom -> rzut 1/10),

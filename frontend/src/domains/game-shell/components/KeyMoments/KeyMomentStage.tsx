@@ -16,12 +16,14 @@ import { STELLAR_CONVERTER, momentsForEntry, type KeyMoment } from "./keyMoments
 import {
   HERO_BOARD_FX,
   RELIC_BOARD_FX,
+  TOKEN_BOARD_FX,
   coversForQueue,
   useHeroFx,
   veiledPlanetsForQueue,
 } from "./heroBoardFx";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getRelicData } from "@/entities/lookup/relics";
+import { wormholeTokenImage, wormholeTokenName } from "@/entities/lookup/wormholeTokens";
 import styles from "./KeyMomentStage.module.css";
 
 /** Czas sceny (ms) bez wygaszania. */
@@ -31,6 +33,7 @@ const DURATION: Record<KeyMoment["kind"], number> = {
   breakthrough: 4000,
   custodians: 4200,
   converter: 0, // bez sceny portretu: od razu efekt na planszy
+  wormhole: 0, // Creuss wormhole token: board effect only
 };
 /** Wygaszanie sceny (zgodne z CSS `.leaving`). */
 const LEAVE_MS = 450;
@@ -199,6 +202,30 @@ function ConverterCaption({ moment, player }: { moment: Extract<KeyMoment, { kin
 }
 
 /**
+ * Creuss wormhole token (RULES.md 62.19): no portrait scene — the vortex opens on the board and
+ * a small caption names the token (image from the token data) and who placed or moved it.
+ */
+function WormholeCaption({ moment, player }: { moment: Extract<KeyMoment, { kind: "wormhole" }>; player: ActivityPlayer | undefined }) {
+  const image = wormholeTokenImage(moment.token);
+  return (
+    <div
+      className={styles.boardCaption}
+      style={player?.color ? seatColorStyle(player.color) : undefined}
+      role="status"
+      aria-live="polite"
+    >
+      <span className={styles.eyebrow}>Creuss wormhole</span>
+      <h2 className={styles.captionTitle}>
+        {image && <img src={assetUrl(image)} alt="" width={28} height={28} style={{ verticalAlign: "middle", marginRight: 8 }} />}
+        {wormholeTokenName(moment.token)}
+      </h2>
+      <span className={styles.subline}>{moment.from ? "Moved to a new system" : "Opened in a system"}</span>
+      <Who player={player} id={moment.player} />
+    </div>
+  );
+}
+
+/**
  * Kluczowe momenty gry (RULES.md 64): użycie bohatera, wejście The Fracture, zdobyty przełom,
  * zdjęcie żetonu Custodians. Każdy NOWY wpis feedu Activity z takim faktem odtwarza krótką
  * scenę u WSZYSTKICH graczy (także u sprawcy). Sceny idą w kolejce; „Skip” / Esc ją pomija.
@@ -266,7 +293,7 @@ export function KeyMomentStage() {
       } else if (busy > 0 && waited < DICE_MAX_WAIT_MS) {
         timer = window.setTimeout(tryStart, Math.min(busy, 400));
       } else {
-        setShown(current.kind === "converter" ? "board" : "on");
+        setShown(current.kind === "converter" || current.kind === "wormhole" ? "board" : "on");
       }
     };
     tryStart();
@@ -279,7 +306,9 @@ export function KeyMomentStage() {
       ? HERO_BOARD_FX[current.leaderId]
       : current?.kind === "converter"
         ? RELIC_BOARD_FX[STELLAR_CONVERTER]
-        : undefined;
+        : current?.kind === "wormhole"
+          ? TOKEN_BOARD_FX[current.token]
+          : undefined;
   const owner = current?.player ? feed?.players[current.player] : undefined;
 
   useEffect(() => {
@@ -314,6 +343,17 @@ export function KeyMomentStage() {
         color: owner?.color ?? null,
         planets: [current.planet],
       });
+    } else if (current.kind === "wormhole") {
+      playFx({
+        heroId: current.token,
+        recipe,
+        faction: owner?.faction ?? null,
+        color: owner?.color ?? null,
+        areas: [
+          { position: current.position, self: true, kind: "gain" },
+          ...(current.from ? [{ position: current.from, self: true, kind: "loss" as const }] : []),
+        ],
+      });
     } else return;
     return () => stopFx();
     // Zależności celowo tylko [shown, current]: jeden start na wejście w „board”.
@@ -344,6 +384,7 @@ export function KeyMomentStage() {
         {current.kind === "converter" && (
           <ConverterCaption moment={current} player={player} />
         )}
+        {current.kind === "wormhole" && <WormholeCaption moment={current} player={player} />}
         <button type="button" className={styles.skip} data-board onClick={skip}>
           Skip <IconPlayerTrackNext size={14} />
         </button>
@@ -365,6 +406,7 @@ export function KeyMomentStage() {
       scene = <CustodiansScene moment={current} player={player} />;
       break;
     case "converter":
+    case "wormhole":
       return null; // od razu plansza (`board`)
   }
   return (

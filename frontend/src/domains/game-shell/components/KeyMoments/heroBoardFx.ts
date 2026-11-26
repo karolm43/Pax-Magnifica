@@ -21,7 +21,9 @@ export type FxTarget =
   | "nova" // kafel supernowej Muaat (Nova Seed) — po wymianie kafla
   | "docks" // systemy z dokami bohatera (Dimensional Tear Cabal, przekaźnik Saar)
   | "planet" // system planety, do której bohater dołączył kartę (Geoform -> Elysium)
-  | "destroyed"; // system planety zniszczonej przez Stellar Converter (`tile.destroyedPlanets`)
+  | "destroyed" // system planety zniszczonej przez Stellar Converter (`tile.destroyedPlanets`)
+  | "swapped" // both systems whose tiles swapped places (Singularity Reactor, `run.replaced`)
+  | "token"; // system where a Creuss wormhole token opened (`area` "gain" of the moment)
 
 /** Wygląd efektu w systemie docelowym (każdy bohater ma własny, pasujący do frakcji). */
 export type FxMark =
@@ -43,7 +45,9 @@ export type FxMark =
   | "psi" // Naalu: fale psioniczne i oko
   | "maw" // Cabal: wir Event Horizon wciągający sąsiednie systemy
   | "awaken" // Titans: przebudzenie Elysium
-  | "converter"; // Stellar Converter: okręty z BOMBARDMENT rozbijają planetę
+  | "converter" // Stellar Converter: okręty z BOMBARDMENT rozbijają planetę
+  | "rift" // Creuss: two wormhole vortices joined by a tether, the tiles fly to trade places
+  | "portal"; // Creuss wormhole token: a vortex opens (and the old one collapses when moved)
 
 export type HeroFxRecipe = {
   /** Przyciemnienie całej planszy (0–1). */
@@ -323,6 +327,33 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
       { at: 3600, name: "assaultCannon", gain: 0.5, rate: 1.2 },
     ],
   },
+  // Singularity Reactor: the board darkens, both systems tear open into counter-rotating
+  // wormhole vortices joined by an azure tether; the old tiles lift, fold and fly along the arc
+  // to trade places; under the flash the swapped board is revealed, the vortices collapse in
+  // ripples. Sound: a low wormhole hum, a reversed rush (space folding), the snap, settling.
+  ghosthero: {
+    dim: 0.62,
+    target: "swapped",
+    mark: "rift",
+    tone: "110 190 255",
+    ms: 7600,
+    flashAt: 4200,
+    revealAt: 4250,
+    quake: [
+      { at: 1300, px: 2, ms: 1400 },
+      { at: 4200, px: 7, ms: 900 },
+    ],
+    sounds: [
+      { at: 0, name: "warSunEnter", gain: 0.6, rate: 0.5 },
+      { at: 900, name: "laser", gain: 0.35, rate: 0.45 },
+      { at: 1500, name: "explosionHeavy", gain: 0.7, rate: 0.7, reverse: true, endIn: 2600 },
+      { at: 2400, name: "fleetEnter", gain: 0.45, rate: 0.6 },
+      { at: 4200, name: "explosionHeavy", gain: 0.95, rate: 0.55 },
+      { at: 4260, name: "sunfire", gain: 0.55, rate: 0.6 },
+      { at: 4900, name: "arriveHeavy", gain: 0.7, rate: 0.7 },
+      { at: 5600, name: "warSunEnter", gain: 0.3, rate: 0.7 },
+    ],
+  },
   // Nova Seed: gwiazda systemu puchnie, korona zapada się w punkt, wybuch supernowej (błysk,
   // promienie dyfrakcyjne, rozszerzająca się powłoka gazu, ejekta), potem pulsująca mgławica.
   // Stary kafel znika pod błyskiem (revealAt); dźwięk niski: pomruk, wsysanie, głuchy huk.
@@ -381,6 +412,30 @@ export const RELIC_BOARD_FX: Record<string, HeroFxRecipe> = {
   },
 };
 
+/**
+ * Creuss wormhole token placed or moved (Wormhole Generator, Creuss IFF, Icarus Drive) — a short
+ * board effect for everybody, no portrait: a vortex in the token's colour opens in the new
+ * system (and, when moved, the old one collapses). Key = token id (`assets/data/tokens`).
+ */
+const portal = (tone: string): HeroFxRecipe => ({
+  dim: 0.18,
+  target: "token",
+  mark: "portal",
+  tone,
+  ms: 2800,
+  area: { self: true, kinds: ["gain"] },
+  sounds: [
+    { at: 0, name: "warSunEnter", gain: 0.45, rate: 0.85 },
+    { at: 650, name: "laser", gain: 0.25, rate: 0.5 },
+    { at: 1150, name: "arrive", gain: 0.4, rate: 0.8 },
+  ],
+});
+export const TOKEN_BOARD_FX: Record<string, HeroFxRecipe> = {
+  creussalpha: portal("255 150 70"),
+  creussbeta: portal("80 185 255"),
+  creussgamma: portal("200 120 255"),
+};
+
 const GROUND = new Set(["gf", "mf"]);
 const DEFENSE = new Set(["pd", "mf"]);
 const DOCK = "sd";
@@ -405,6 +460,8 @@ export type FxOwner = {
   color: string | null;
   planets?: string[];
   areas?: HeroArea[];
+  /** Tiles the moment swapped (target "swapped"). */
+  replaced?: ReplacedTile[];
 };
 
 /** Pozycje systemów, w których dzieje się efekt. */
@@ -434,6 +491,16 @@ export function fxTargets(
     case "planet": {
       const planets = new Set(owner.planets ?? []);
       return pick((t) => Object.keys(t.planets).some((p) => planets.has(p)));
+    }
+    case "swapped": {
+      const swapped = new Set((owner.replaced ?? []).map((r) => r.position));
+      return pick((t) => swapped.has(t.position));
+    }
+    case "token": {
+      const opened = new Set(
+        (owner.areas ?? []).filter((a) => a.kind === "gain").map((a) => a.position),
+      );
+      return pick((t) => opened.has(t.position));
     }
     case "destroyed": {
       const planets = new Set(owner.planets ?? []);

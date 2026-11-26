@@ -1,0 +1,318 @@
+/*
+ * Ghosts of Creuss board effects (RULES.md 62.19, 64.4). Tone from --tone (layer).
+ * Singularity Reactor (HERO_BOARD_FX.ghosthero, 7.6 s): rims crackle 0–1.2 s, vortices open
+ * 1.0–2.2 s, tether 1.7–4.2 s, the old tiles lift 2.4 s and fly along the arc 2.7–4.15 s, flash +
+ * reveal 4.2 s (layer), vortices collapse into ripples and sparks until the end.
+ * Wormhole token portal (TOKEN_BOARD_FX, 2.8 s): vortex opens 0–0.7 s, the token drops in at
+ * 0.8 s, everything fades by 2.8 s; `data-closing` = the system the token left collapses.
+ */
+.rift circle,
+.rift path,
+.portal circle,
+.portal path,
+.portal image {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* ------------------------------------------------------------------ Singularity Reactor */
+
+.riftVoid {
+  opacity: 0;
+  animation: riftVoid 2100ms ease-in-out 2350ms both;
+}
+
+.riftRim {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 6;
+  filter: drop-shadow(0 0 10px rgb(var(--tone))) drop-shadow(0 0 22px rgb(120 80 255 / 0.7));
+  opacity: 0;
+  animation:
+    riftRim 5200ms ease-out calc(var(--i) * 160ms) both,
+    riftCrackle 110ms steps(2) 300ms 22 alternate;
+}
+
+.riftHalo {
+  opacity: 0;
+  mix-blend-mode: screen;
+  animation: riftHalo 4600ms ease-out 500ms both;
+}
+
+.riftVortex {
+  transform: scale(0);
+  animation: riftOpen 3200ms cubic-bezier(0.2, 0.9, 0.3, 1) 1000ms both;
+}
+
+.riftSpin {
+  animation: riftSpin 1500ms linear infinite;
+}
+
+.riftArm {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 8;
+  stroke-linecap: round;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  animation: riftArmPulse 700ms ease-in-out calc(var(--k) * 140ms) infinite alternate;
+}
+
+.riftCore {
+  filter: drop-shadow(0 0 18px rgb(var(--tone)));
+}
+
+.riftEdge {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+}
+
+.riftRipple {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 5;
+  opacity: 0;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  animation: riftRipple 1500ms ease-out calc(4200ms + var(--k) * 230ms) both;
+}
+
+.riftSpark {
+  fill: #fff;
+  opacity: 0;
+  filter: drop-shadow(0 0 5px rgb(var(--tone)));
+  animation: riftSpark 1000ms ease-out calc(4200ms + var(--lag)) both;
+}
+
+.riftTetherGlow,
+.riftTether {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+}
+
+.riftTetherGlow {
+  stroke: rgb(var(--tone) / 0.5);
+  stroke-width: 40;
+  filter: blur(10px);
+  animation: riftTether 2800ms ease-out 1700ms both;
+}
+
+.riftTether {
+  stroke: url(#fxRiftTether);
+  stroke-width: 7;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  animation:
+    riftTether 2800ms ease-out 1700ms both,
+    riftCrackle 80ms steps(2) 2000ms 24 alternate;
+}
+
+.riftStream {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 1.5 7;
+  opacity: 0;
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+  animation:
+    riftStreamShow 2300ms ease-out 2000ms both,
+    riftStream 900ms linear 2000ms infinite;
+}
+
+.riftStream[data-back] {
+  stroke: rgb(var(--tone));
+}
+
+.riftFlight {
+  opacity: 0;
+  filter: drop-shadow(0 18px 24px rgb(0 0 0 / 0.75)) drop-shadow(0 0 16px rgb(var(--tone) / 0.8));
+  animation: riftFlight 1950ms cubic-bezier(0.45, 0, 0.3, 1) 2400ms both;
+}
+
+.riftGhostHex {
+  fill: rgb(var(--tone) / 0.25);
+}
+
+.riftGhostRim {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 5;
+}
+
+@keyframes riftVoid {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  86% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes riftRim {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  78% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes riftCrackle {
+  from { stroke-opacity: 1; }
+  to { stroke-opacity: 0.45; }
+}
+
+@keyframes riftHalo {
+  0% { opacity: 0; transform: scale(0.4); }
+  25% { opacity: 0.9; transform: scale(1); }
+  70% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+
+@keyframes riftOpen {
+  0% { transform: scale(0) rotate(0deg); }
+  37% { transform: scale(1) rotate(calc(var(--dir) * 90deg)); }
+  88% { transform: scale(1.12) rotate(calc(var(--dir) * 200deg)); }
+  100% { transform: scale(0) rotate(calc(var(--dir) * 320deg)); }
+}
+
+@keyframes riftSpin {
+  to { rotate: calc(var(--dir) * 360deg); }
+}
+
+@keyframes riftArmPulse {
+  from { stroke-width: 6; opacity: 0.6; }
+  to { stroke-width: 10; opacity: 1; }
+}
+
+@keyframes riftRipple {
+  0% { opacity: 0.9; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(2.8); }
+}
+
+@keyframes riftSpark {
+  0% { opacity: 1; translate: 0 0; }
+  100% { opacity: 0; translate: 0 var(--dist); }
+}
+
+@keyframes riftTether {
+  0% { opacity: 0; stroke-dashoffset: 1; }
+  25% { opacity: 1; stroke-dashoffset: 0; }
+  88% { opacity: 1; stroke-dashoffset: 0; }
+  100% { opacity: 0; stroke-dashoffset: 0; }
+}
+
+@keyframes riftStreamShow {
+  0% { opacity: 0; }
+  20% { opacity: 0.95; }
+  90% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+@keyframes riftStream {
+  to { stroke-dashoffset: -100; }
+}
+
+/* The old tile lifts out of its slot, folds into the vortex flight and lands in the other slot. */
+@keyframes riftFlight {
+  0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+  16% { opacity: 1; transform: translate(0, -14px) scale(1.06) rotate(0deg); }
+  55% {
+    opacity: 1;
+    transform: translate(var(--mx), var(--my)) scale(0.5, 0.32) rotate(calc(var(--dir) * 180deg));
+  }
+  92% { opacity: 1; transform: translate(var(--tx), var(--ty)) scale(1) rotate(calc(var(--dir) * 360deg)); }
+  100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(1) rotate(calc(var(--dir) * 360deg)); }
+}
+
+/* ------------------------------------------------------------------- wormhole token portal */
+
+.portalHalo {
+  opacity: 0;
+  mix-blend-mode: screen;
+  animation: portalHalo 2800ms ease-out both;
+}
+
+.portalVortex {
+  transform: scale(0);
+  animation: portalOpen 2800ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.portalArm {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+}
+
+.portalCore {
+  filter: drop-shadow(0 0 12px rgb(var(--tone)));
+}
+
+.portalRing {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 4;
+  opacity: 0;
+  animation: riftRipple 1300ms ease-out calc(500ms + var(--k) * 320ms) both;
+}
+
+.portalToken {
+  opacity: 0;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+  animation: portalToken 2000ms cubic-bezier(0.3, 1.5, 0.5, 1) 800ms both;
+}
+
+.portal[data-closing] .portalVortex {
+  animation: portalClose 1100ms cubic-bezier(0.6, 0, 0.9, 0.4) both;
+}
+
+.portal[data-closing] .portalHalo {
+  animation-duration: 1200ms;
+}
+
+.portal[data-closing] .portalRing {
+  animation-delay: calc(900ms + var(--k) * 200ms);
+}
+
+@keyframes portalHalo {
+  0% { opacity: 0; transform: scale(0.4); }
+  25% { opacity: 0.85; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+
+@keyframes portalOpen {
+  0% { transform: scale(0) rotate(0deg); }
+  25% { transform: scale(1) rotate(120deg); }
+  75% { transform: scale(1.05) rotate(300deg); opacity: 1; }
+  100% { transform: scale(0.6) rotate(420deg); opacity: 0; }
+}
+
+@keyframes portalClose {
+  0% { transform: scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: scale(0) rotate(-300deg); opacity: 0.2; }
+}
+
+@keyframes portalToken {
+  0% { opacity: 0; transform: scale(0) rotate(-120deg); }
+  25% { opacity: 1; transform: scale(1.15) rotate(0deg); }
+  35% { transform: scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .riftSpin,
+  .riftArm,
+  .riftStream,
+  .riftRim,
+  .riftTether {
+    animation-iteration-count: 1;
+  }
+
+  .riftFlight {
+    display: none;
+  }
+}

@@ -93,12 +93,6 @@
     ],
     "reason": "Commander Nekro (Alliance u Jol-Nar) nie dobiera kart akcji przy Genetic Memory - Genetic Memory nie wywołuje badania (grant_technology), test po wdrożeniu Nekro."
   },
-  "F_mentak/pillage/2": {
-    "requires": [
-      "faction:creuss"
-    ],
-    "reason": "Sąsiedztwo przez Quantum Entanglement (Creuss: alfa = beta) - frakcja niezaimplementowana; Pillage liczy sąsiedztwo z neighbors_of, które wtedy je uwzględni."
-  },
   "F_mentak/pillage/6.1": {
     "na": "Umowy między graczami są niewiążące i poza silnikiem (R_trade, RULES.md 47); Pillage jest ofertą po rozstrzygnięciu transakcji (TRANSACTION AFTER) - silnik nie przyjmuje deklaracji wcześniej."
   },
@@ -129,12 +123,6 @@
     ],
     "reason": "Siły naziemne Nekro w walce w przestrzeni przez flagowiec The Alastor - frakcja niezaimplementowana; Salai Sai Corian liczy dziś statki bez myśliwców w przestrzeni."
   },
-  "F_winnu/lazax-gate-folding/2.4": {
-    "requires": [
-      "faction:creuss"
-    ],
-    "reason": "Dimensional Splicer Creuss w Mecatol Rex w akcji Winnu - frakcja niezaimplementowana; sąsiedztwo z akcji liczy action_adjacency, z którego skorzysta."
-  },
   "C_relics/book-of-latvinia/3": {
     "requires": [
       "faction:nekro"
@@ -158,12 +146,6 @@
       "faction:nekro"
     ],
     "reason": "Nekro dobiera kartę akcji z Prophet's Tears, gdy badałby technologię."
-  },
-  "C_exploration_cards/ion-storm/2.1": {
-    "requires": [
-      "faction:creuss"
-    ],
-    "reason": "Hil Colish (flagowiec Creuss) rusza się przed/po innych statkach i może użyć obu stron Ion Storm."
   },
   "R_adjacency/rules-reference/4": {
     "gap": "Hyperlane tiles are not modelled as line connections: HexGrid places them as plain hexes with shared-edge adjacency only (RULES.md 61.7)."
@@ -201,12 +183,6 @@
       "faction:nekro"
     ],
     "reason": "Alastor (Nekro): siły naziemne walczące jak statki blokują dok - po implementacji Nekro (blokada liczy dziś statki w przestrzeni)."
-  },
-  "F_saar/chaos-mapping/7": {
-    "requires": [
-      "faction:creuss"
-    ],
-    "reason": "Creuss wormhole token placement is not implemented; the 'cannot activate' half is covered by technologies:cm#1 (test_chaos_mapping_blokuje_aktywacje_pola_asteroid)."
   },
   "F_muaat/umbat/4": {
     "na": "Ruling o produkcyjnych commanderach Naalu/Yin (PoK). W assetach grają M'aban z Codexu (podgląd notek sąsiadów i talii agend, RULES.md 62.16) i Brother Omar Ω (zielony prerekwizyt) - żaden nie zmienia produkcji; limit 2 sztuk grantu Umbat ma test test_umbat_wybrany_gracz_produkuje_2_tanie_jednostki."
@@ -275,18 +251,6 @@
       "faction:nekro"
     ],
     "reason": "Nekro kopiujący Cruiser II (Mentak nadal posiada Cruiser II pod Corsair) - frakcja Nekro niezaimplementowana."
-  },
-  "R_entropic_scars/notes/4.2": {
-    "requires": [
-      "faction:creuss"
-    ],
-    "reason": "Wormhole Generator (Creuss) placing or moving a wormhole token into an entropic scar: the token is discarded. No Creuss implementation exists in src/."
-  },
-  "R_entropic_scars/notes/4.3": {
-    "requires": [
-      "faction:creuss"
-    ],
-    "reason": "The Hil Colish delta wormhole is not affected by an entropic scar, because the flagship is a ship and not a wormhole token. It needs the Creuss flagship."
   },
   "R_frontier_tokens/notes/2": {
     "na": "No tile in the active assets has a space station without planets. The only SPACESTATION planet, 'loststation', is in no system tile. game_setup.place_frontier_tokens skips any system with a non-empty planets list, so it would also skip a station-only tile if one were added."
@@ -360,18 +324,6 @@
     ],
     "reason": "Mahact's Edict adds a fifth fleet token under Fleet Regulations and returns one. Mahact is not implemented."
   },
-  "C_agendas/ixthian-artifact/4": {
-    "requires": [
-      "faction:creuss"
-    ],
-    "reason": "Creuss' Quantum Entanglement makes no extra systems adjacent to Mecatol Rex for Ixthian Artifact. Creuss is not implemented."
-  },
-  "C_agendas/ixthian-artifact/5": {
-    "requires": [
-      "faction:creuss"
-    ],
-    "reason": "Hil Colish in Mecatol Rex makes the Creuss home and Creuss Gate systems adjacent to it for Ixthian Artifact. Creuss is not implemented."
-  },
   "C_agendas/ixthian-artifact/6": {
     "na": "Flavor ruling (voting against or riding on Ixthian Artifact \"is to commit heresy\"); it has no mechanical effect."
   },
@@ -440,5 +392,23 @@
       "faction:mahact"
     ],
     "reason": "Space combat started by the Mahact hero Benediction; Mahact is not implemented."
+  },
+  "F_creuss/creuss-iff/2": {
+    "gap": "Binding deals are not modelled in the engine (core/transaction.py has no deal/agreement item) - a promise about where a wormhole token goes is table talk, never enforced (RULES.md 62.19)."
+  },
+  "F_creuss/wormhole-generator-replaced-by-omega/1": {
+    "na": "The active assets hold only the Wormhole Generator Ω text (ACTION, exhaust) - technologies:wg; the replaced version is not in play (RULES.md 62.19)."
+  },
+  "F_creuss/wormhole-generator-replaced-by-omega/2": {
+    "na": "Mandatory status-phase placement belongs to the replaced (non-Ω) Wormhole Generator, not in the active assets; Ω is an ACTION (RULES.md 62.19)."
+  },
+  "F_creuss/hil-colish/6": {
+    "na": "A retreat moves all retreating ships of the player together to one chosen system (core/retreat.py) - the only outcome the ruling allows (the flagship cannot leave the others unable to reach the same system)."
+  },
+  "F_creuss/sai-seravus/2.2": {
+    "requires": [
+      "faction:mahact"
+    ],
+    "reason": "Mahact Benediction (hero) moving the Creuss ships - Mahact is not implemented; Sai Seravus already answers every SHIPS_MOVED of Creuss (any kind of move)."
   }
 }

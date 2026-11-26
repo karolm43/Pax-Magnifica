@@ -140,6 +140,10 @@ def wormhole_link_blocked(
     """
     if grid.link_kind(a, b) != "wormhole":
         return False
+    # Creuss Quantum Entanglement: "Game effects cannot prevent you from using this ability"
+    # (F_creuss: Enforced Travel Ban / Nexus Sovereignty do not affect Creuss) - RULES.md 62.19.
+    if rules_hooks.permits(rules_hooks.POINT_MOVEMENT_WORMHOLE_LAWS_IMMUNE, state, player_id):
+        return False
     blocked = rules_hooks.forbidden(
         rules_hooks.POINT_MOVEMENT_WORMHOLES_BLOCKED, state, player_id,
         {"position": a, "neighbor": b},

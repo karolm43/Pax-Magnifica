@@ -4,9 +4,9 @@ This file tracks work status between sessions. Updated at the end of every block
 Older, completed blocks (Phase 1 → blocks up to 2026-11-24) are in `PROGRESS_ARCHIWUM.md` (read selectively).
 
 > **Current stage:** E8 (REFEREE engine) + hooks: action cards (143/143), relics (23/23 active), general technologies (33/33),
-> objectives (80/80), strategy cards (8/8), official agendas (50/50) ✅; **18/30 factions** done (Waves 1–2 ✅, Wave 3: I1 Capture + Cabal + Titans + I2 tokens 🔧, Wave 4: I4 Coexistence ✅);
+> objectives (80/80), strategy cards (8/8), official agendas (50/50) ✅; **19/30 factions** done (Waves 1–2 ✅, Wave 3: I1 Capture + Cabal + Titans + I2 tokens 🔧 + I3 adjacency + Creuss, Wave 4: I4 Coexistence ✅);
 > **bot:** B0–B1, B3 ✅, B2 core, next B4 (arena) / B5 (`docs/bot/PLAN.md`).
-> Coverage status: `POKRYCIE_HOOKOW.md` (generated, **454 hooks**). Rules: `RULES.md` 29, 43, 53, 65.
+> Coverage status: `POKRYCIE_HOOKOW.md` (generated, **467 hooks**). Rules: `RULES.md` 29, 43, 53, 65.
 
 ## Engine Stage Status
 
@@ -37,43 +37,6 @@ Older, completed blocks (Phase 1 → blocks up to 2026-11-24) are in `PROGRESS_A
 
 > Full history of completed blocks with details: `PROGRESS_ARCHIWUM.md`.
 
-
-## Physical Ship Movement Replay, Phase 1: Live Post-Move Flight (2026-11-24)
-- Backend: `GameState.last_move` (`MoveRecord`: ordered route, hop kinds `lane`/`wormhole`/`portal`/`jump`,
-  route anomalies, ships, cargo) set by `movement.move_fleet` / single-stack move via
-  `movement_paths.build_move_record`; cleared on activation and at the end of the tactical action. Presentation
-  only, rules never read it. Activity `tactical.move` gains facts `move_route` (route/hops/anomalies) and
-  `carried` (cargo; feed: "carried 2 Infantry", "via … / through a wormhole").
-- Frontend: every client pairs a new `move_route` entry with the live map before/after the move
-  (`state/useLiveMoveReplay.ts`, pure helpers in `state/liveMoveReplay.ts`) and replays it through the existing
-  `buildMapReplayPlan` (`liveMove` option; planner now works on a resolved movement, `liveMovement.ts`).
-- Flight (`entities/replay/flightPath.ts`): one smooth Catmull-Rom path through every route system, easing only
-  at launch/landing, slow and heavy (~1.4 s per system; user: first pace "way too fast"); history replays keep the
-  legacy arc. Wormhole/ingress-egress hop = fly to the wormhole printed on the tile or the wormhole/ingress token
-  (`entities/geometry/wormholePoints.ts`, moved out of `WormholeBlockedLayer`/`wormholeLinks`), shrink-and-spin
-  into a swirl, emerge at the linked gate; gravity rift = faster leg + violet warp ring/trail; nebula = damped,
-  dimmed entry + mist. Engine flames on flying ships (`UnitStack/FlightEngines.tsx`, nozzle table shared with
-  the battle overlay in `shared/ui/Unit/engines.ts`), lit only for the flight. Ground forces ride hidden inside
-  the carrier (mini badges on the hull, `UnitStack/CarriedCargo.tsx`). Ships still park in the native
-  north-west heading after landing (unchanged).
-- Skippable: "Skip" pill, Esc/Space (outside inputs/buttons) end any map replay; admin fast mode = no replay
-  (`replayRunDuration`).
-- QA: backend full suite (failures only pre-existing `test_locality_guard`, `test_ruling_coverage` x2, and
-  `test_bot_runner` under xdist load - passes alone); ruff; mypy (changed); frontend tsc (app), eslint (changed),
-  vitest (`entities`, `state`, `domains/map`, `domains/battle`, ActivityPanel), build, e2e. Backend restart
-  needed (new state field / facts).
-
-## Flight Replay: Cargo Packs Into Carriers, Invasion Landings, Slower Pace (2026-11-24)
-- User feedback: fighters/infantry flying as numbered badges looked like a blob. Fighters and ground forces now
-  pack into a moving ship with capacity (slide in and shrink, `PACK_MS`), the fleet launches once they are aboard,
-  the carrier shows a few small icons without counts in flight, and the units unpack from its landing point to
-  their slots (`UNPACK_MS`). `liveMovement.packRidingCargo`, `flightPath.buildCargoKeyframes`,
-  `MapUnitTransition.cargoRide` (replaces `hiddenInFlight`).
-- Invasion: a new `invasion.commit` entry (`landed` facts) replays on every client as ground forces flying from
-  space down to their planets (`LiveLanding`, `resolveLanding`; per-unit `toHolder` in `ResolvedMovement`).
-- Slower overall (user: "a little bit slower"): ~1.75 s per system, wormhole jump 1.8 s.
-- QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
-  ActivityPanel), build, e2e. Skipped: backend (no change).
 
 ## Flight Replay: Armada Weight, Plain Cargo Sprites (2026-11-24)
 - User feedback: cargo showed the round-rect token background and the fleet still felt too fast ("I want to see
@@ -408,3 +371,31 @@ Older, completed blocks (Phase 1 → blocks up to 2026-11-24) are in `PROGRESS_A
 - Tests `tests/test_player_adjacency.py` (16, with/without a temporary QE-like hook). `R_adjacency` audited and
   removed from `rulings_debt.json` (`GENERAL_DEBT_LIMIT` 101; hyperlanes = `gap` status); R_wormholes rr/2, rr/3, notes/3 tested.
 - No real hook yet — Creuss Quantum Entanglement arrives in B15; Crimson breaches in B24.
+
+## B15 · The Ghosts of Creuss (2026-11-26)
+- `core/hooks/factions/ghost.py` (RULES.md 62.19): all 12 components hooked (`missing_components == []`), rulings contract
+  `F_creuss` 88/88 (tests or statuses). Texts from `faction_bundle("ghost")`; `tests.rulings` maps `ghost -> F_creuss`.
+- Creuss wormhole tokens = faction tokens (`faction_tokens.CREUSS_WORMHOLES`, kinds from `assets/data/tokens` +
+  `TokenDef.wormholes`) feeding `SystemState.token_wormholes()` -> real map wormhole edges. One placement function
+  (`place_or_move_token`) for Wormhole Generator (tech ACTION), Creuss IFF (turn-start note, once per window) and Icarus
+  Drive (offer after ANY activation); entropic scar discards the token; Fracture allowed; neutral ships block.
+- New central points: `board.unit_wormholes` (Hil Colish delta, read via `board_graph.unit_wormholes` /
+  `placed_wormholes` -> API map sync, `wormholes_at`, objective progress), `movement.wormhole_laws_immune` (replaces the
+  old `if faction == creuss` in `agendas_laws`), `movement.moves_separately` (Ion Storm flips right after the Hil Colish
+  moves), `system.action_wormholes` (Lazax Gate Folding: Mecatol "has" alpha+beta during the Winnu action -> Splicer),
+  `core/system_swap.swap_systems` (hero: SystemStates trade positions, tiles via `replaced_tiles`, homes follow).
+- Quantum Entanglement = the first real layer-3 hook (`adjacency.extra_for_player`, I3). Slipstream = move value +1
+  from home 51 / alpha-beta systems. Taivra = global `TACTICAL_ACTION` effect (source of `movement.extra_adjacent`).
+  Sai Seravus: fighters after a wormhole hop (number field, Auto = max). Particle Synthesis: PRODUCTION per wormhole +
+  cost cut per wormhole in the production system. Creuss Gate setup was already engine (declared core rule).
+- Activity: `faction_token` facts carry `position`; feed lines "placed / moved ... from X to Y / returned"
+  (`describeActivity`, `entities/lookup/wormholeTokens.ts`).
+- Frontend FX: `ghosthero` recipe + `CreussFxMarks.SingularityRiftMark` (vortices, tether, old tiles fly along the arc
+  and trade places, reveal under the flash; target `swapped`), KeyMoment `wormhole` + `TOKEN_BOARD_FX` portal (token
+  colour, origin collapses), caption with the token image (RULES.md 64.4).
+- Tests: `tests/factions/test_ghost.py` (44), `test_flows_ghost.py` (9, API: setup, WG, Splicer + Shields Holding /
+  Direct Hit, Taivra, Icarus, Sai Seravus, hero, IFF), `test_activity.py`; vitest heroBoardFx / keyMoments /
+  CreussFxMarks / describeActivity.creuss. 8 cross-faction `requires: faction:creuss` statuses resolved by tests.
+- ⚠️ ASSUMPTIONS (RULES.md 62.19): "Auto" defaults (token, system, Splicer target, mech, hero pair, fighters);
+  Hil Colish order = order of submitted fleet moves; "moved through a wormhole" = hop between two wormhole systems that
+  do not share an edge. New `GameState`/API fields (`TokenDef.wormholes`, `ActivityFact.position`): restart the backend.

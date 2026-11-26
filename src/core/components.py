@@ -159,6 +159,8 @@ class TokenDef(ComponentBase):
     space_or_planet: str | None = Field(default=None, alias="spaceOrPlanet")
     attachment_id: str | None = Field(default=None, alias="attachmentID")
     alias_list: list[str] = Field(default_factory=list, alias="aliasList")
+    # Wormhole types the token creates (Creuss alpha/beta/gamma, Gamma Wormhole) - AsyncTI4 data.
+    wormholes: list[str] = Field(default_factory=list)
 
 
 class BorderAnomalyDef(ComponentBase):

@@ -384,6 +384,7 @@ def move_ships(
         grid, [from_pos, active], player_id, {base_type: count}, []
     )
     ion_storm.note_move(new_state, grid, registry, from_pos, active, ion_storm_token)
+    _flip_after_separate_move(new_state, player_id, {base_type: count})
     fire_ships_moved(new_state, player_id, active, from_pos, {base_type: count})
     return new_state
 
@@ -984,6 +985,7 @@ def move_fleet(
         [bt for bt in boosted_types if ships.get(bt, 0) > 0],
     )
     ion_storm.note_move(new_state, grid, registry, from_pos, active, ion_storm_token)
+    _flip_after_separate_move(new_state, player_id, ships)
     if ships:
         fire_ships_moved(
             new_state, player_id, active, from_pos, dict(ships), route=plan_route
@@ -1044,6 +1046,21 @@ def _load_in_active_system(
             new_state, dest, zone, dest, "space", player_id, base_type, count
         )
     return new_state
+
+
+def _flip_after_separate_move(
+    state: GameState, player_id: str, ships: Mapping[str, int]
+) -> None:
+    """A ship that moves before / after the other ships (Hil Colish, PERMIT
+    ``movement.moves_separately``): an Ion Storm it used flips right after its move - "the token
+    flips after the flagship moves" (C_exploration_cards ion-storm 2.1, RULES.md 62.19)."""
+    if any(
+        rules_hooks.permits(
+            rules_hooks.POINT_MOVEMENT_MOVES_SEPARATELY, state, player_id, {"base_type": bt}
+        )
+        for bt, n in ships.items() if n > 0
+    ):
+        ion_storm.flip_used(state)
 
 
 def ships_arrived(state: GameState) -> bool:

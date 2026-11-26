@@ -18,7 +18,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `coalescence` | Coalescence | titans | — | — | walka, planety i eksploracja | ✔ | If your flagship or your AWAKEN faction ability places your units into the same space area or onto the same planet as another player's unit… |
 | `council_patronage` | Council Patronage | keleres | at_start | — | ekonomia i płatności | — | Replenish your commodities, then gain 1 trade good. |
 | `crafty` | Crafty | yssaril | — | FORBID (zakaz) | karty | — | You can have any number of action cards in your hand. Game effects cannot prevent you from using this ability. |
-| `creuss_gate` | Creuss Gate | ghost | — | — | — | — | When you create the game board, place the Creuss Gate (tile 17) where your home system would normally be placed. The Creuss Gate system is … |
+| `creuss_gate` | Creuss Gate | ghost | — | — | — | ✔ | When you create the game board, place the Creuss Gate (tile 17) where your home system would normally be placed. The Creuss Gate system is … |
 | `dark_whispers` | Dark Whispers | empyrean | — | MODIFY (liczba/rzut) | karty | — | During setup, take the additional Empyrean faction promissory note; you have 2 faction promissory notes |
 | `devotion` | Devotion | yin | after | TRIGGER (okno reakcji) | walka, produkcja | ✔ | You may destroy 1 of your cruisers or destroyers in the active system to produce 1 hit and assign it to 1 of your opponent's ships in that … |
 | `devour` | Devour | cabal | — | — | walka | ✔ | Capture your opponent's non-structure units that are destroyed during combat. |
@@ -54,7 +54,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `plotsplots` | Plots Within Plots | firmament | when | TRIGGER (okno reakcji) | planety i eksploracja, cele i punkty | — | You can score secret objectives already scored by other players if you fulfill their requirements; this does not count against your secret … |
 | `propagation` | Propagation | nekro | when | TRIGGER (okno reakcji) | żetony dowodzenia, technologie | — | You cannot research technology Gain 3 command tokens instead. |
 | `puppetsoftheblade` | Puppets of the Blade | firmament | unclassified | — | karty, planety i eksploracja | — | ACTION: Purge The Firmament's faction sheet, leaders, planet cards, and promissory note. Then, gain all of the faction components for The O… |
-| `quantum_entanglement` | Quantum Entanglement | ghost | — | FORBID (zakaz) | ruch | — | You treat all systems that contain either an alpha or beta wormhole as adjacent to each other. Game effects cannot prevent you from using t… |
+| `quantum_entanglement` | Quantum Entanglement | ghost | — | FORBID (zakaz) | ruch | ✔ | You treat all systems that contain either an alpha or beta wormhole as adjacent to each other. Game effects cannot prevent you from using t… |
 | `quash` | Quash | xxcha | when | TRIGGER (okno reakcji) | ekonomia i płatności, żetony dowodzenia, karty, agenda i głosowanie | ✔ | You may spend 1 token from your strategy pool to discard that agenda and reveal 1 agenda from the top of the deck. Players vote on this age… |
 | `raid_formation` | Raid Formation | argent | when | TRIGGER (okno reakcji) | walka, produkcja | ✔ | for each hit produced in excess of your opponent's fighters, choose 1 of your opponent's ships that has SUSTAIN DAMAGE to become damaged. |
 | `reclamation` | Reclamation | winnu | after | TRIGGER (okno reakcji) | produkcja | ✔ | You may place 1 PDS and 1 space dock from your reinforcements on Mecatol Rex. |
@@ -62,7 +62,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `riftmeld` | Riftmeld | cabal | when | TRIGGER (okno reakcji) | technologie | ✔ | You may return 1 captured unit of that type to ignore all of that technology's prerequisites. |
 | `scavenge` | Scavenge | saar | after | TRIGGER (okno reakcji) | ekonomia i płatności | ✔ | Gain 1 trade good. |
 | `scheming` | Scheming | yssaril | when | TRIGGER (okno reakcji) | karty | — | Draw 1 additional action card. Then, choose and discard 1 action card from your hand. |
-| `slipstream` | Slipstream | ghost | during | MODIFY (liczba/rzut) | ruch | — | Apply +1 to the move value of each of your ships that starts its movement in your home system or in a system that contains either an alpha … |
+| `slipstream` | Slipstream | ghost | during | MODIFY (liczba/rzut) | ruch | ✔ | Apply +1 to the move value of each of your ships that starts its movement in your home system or in a system that contains either an alpha … |
 | `sorrow` | The Sorrow | crimson | — | — | — | — | When you create the game board, place The Sorrow (tile 94) where your home system would be placed, and place an inactive breach in it. The … |
 | `stall_tactics` | Stall Tactics | yssaril | action | — | karty | — | Discard 1 action card from your hand. |
 | `star_forge` | Star Forge | muaat | action | MODIFY (liczba/rzut) | walka, produkcja, ekonomia i płatności, żetony dowodzenia | ✔ | Spend 1 token from your strategy pool to place either 2 fighters or 1 destroyer from your reinforcements in a system that contains 1 or mor… |

@@ -676,10 +676,14 @@ class SystemState(BaseModel):
     coexisting: dict[str, list[str]] = Field(default_factory=dict)
 
     def token_wormholes(self) -> list[str]:
-        """Typy wormhole z żetonów w systemie: Gamma itd. + aktywna strona Ion Storm."""
+        """Typy wormhole z żetonów w systemie: Gamma itd. + aktywna strona Ion Storm + żetony
+        wormhole frakcji w przestrzeni (Creuss, RULES.md 62.19)."""
+        from src.core.faction_tokens import wormhole_types  # lokalnie: faction_tokens -> tu
+
         found = list(self.wormhole_tokens)
         if self.ion_storm and self.ion_storm not in found:
             found.append(self.ion_storm)
+        found += wormhole_types(self.faction_tokens.get("space", {}))
         return found
 
 

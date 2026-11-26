@@ -105,13 +105,13 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 
 | Okno | ✅ | ⛔ | Brakujące (⛔) |
 |---|---:|---:|---|
-| `tactical.system_activated` · after | 25 | 5 | Aetherpassage, Aetherstream, Emissary Taivra, So Ata, Survival Instinct |
+| `tactical.system_activated` · after | 26 | 4 | Aetherpassage, Aetherstream, So Ata, Survival Instinct |
 | `agenda.revealed` · after | 16 | 1 | Odlynn Myrr |
 | `combat.round` · start | 14 | 2 | Kuuasi Aun Jalatai, Proxima Targeting VI |
-| `combat` · start | 12 | 1 | Dimensional Splicer |
+| `combat` · start | 13 | 0 |  |
 | `turn` · start | 8 | 4 | Crimson Legionnaire II, Law's Order, Neural Parasite (Obsidian), Thunder's Paradox |
 | `production.units_produced` · when | 6 | 5 | "A Tall Stranger", Agency Supply Network, Homesick Phantom, Navarch Feng, The Icon |
-| `tactical.ships_moved` · after | 6 | 5 | Acamar, Call of the Void, Sai Seravus, Voidwatch, Xuange |
+| `tactical.ships_moved` · after | 7 | 4 | Acamar, Call of the Void, Voidwatch, Xuange |
 | `agenda.revealed` · when | 10 | 0 |  |
 | `component.gained` · when | 8 | 2 | I.I.H.Q. Modernization, Planesplitter (Firmament) |
 | `production.used` · when | 9 | 0 |  |
@@ -149,7 +149,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `combat.roll` · before | 2 | 0 |  |
 | `component.action` · after | 1 | 1 | Suffi An |
 | `economy.commodities_replenished` · when | 1 | 1 | Age of Commerce |
-| `game.setup` · when | 0 | 2 | Creuss Gate, The Sorrow |
+| `game.setup` · when | 1 | 1 | The Sorrow |
 | `objective.scored` · when | 1 | 1 | Plots Within Plots |
 | `phase` · end [phase=status] | 2 | 0 |  |
 | `phase` · start [phase=agenda] | 2 | 0 |  |
@@ -157,7 +157,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `status.step` · when [step=gain_command_tokens] | 2 | 0 |  |
 | `strategy.action` · when [would] | 2 | 0 |  |
 | `strategy.token_spent` · when [would] | 1 | 1 | Jae Mir Kan |
-| `tactical.action` · during | 0 | 2 | Il Na Viroset, Slipstream |
+| `tactical.action` · during | 1 | 1 | Il Na Viroset |
 | `transaction` · when | 2 | 0 |  |
 | `turn` · during | 1 | 1 | Transparasteel Plating |
 | `unit.ability_used` · after [ability=roll] | 2 | 0 |  |

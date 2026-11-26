@@ -142,8 +142,12 @@ class View:
     def wormholes(self, position: str) -> set[str]:
         system = self.state.systems.get(position)
         definition = self.registry.systems.get(system.system_id) if system else None
+        from src.core import board_graph  # lokalnie: lekki moduł, unikamy cyklu
+
         found = {w.upper() for w in definition.wormholes} if definition else set()
-        # Żetony wormhole z kart (np. Gamma Wormhole z eksploracji) liczą się jak wbudowane.
+        # Żetony wormhole z kart (np. Gamma Wormhole z eksploracji) liczą się jak wbudowane; tak
+        # samo wormhole jednostek (Hil Colish, RULES.md 62.19).
+        found |= set(board_graph.unit_wormholes(self.state).get(position, []))
         return found | {w.upper() for w in system.token_wormholes()} if system else found
 
     def is_anomaly(self, position: str) -> bool:

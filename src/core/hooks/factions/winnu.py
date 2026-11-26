@@ -39,6 +39,7 @@ from src.core.rules_hooks import (
     POINT_MOVEMENT_MOVE_VALUE,
     POINT_PLANET_SWAP_VALUES,
     POINT_PRODUCTION_COST,
+    POINT_SYSTEM_ACTION_WORMHOLES,
     SOURCE_BREAKTHROUGH,
     SOURCE_EFFECT,
     SOURCE_FACTION,
@@ -310,6 +311,19 @@ def lazax_gate_folding(state: GameState, player_id: str, ctx: Mapping[str, Any])
     if position == mecatol:
         return {p for p in gates if p != mecatol}
     return {mecatol} if position in gates else set()
+
+
+@register(
+    POINT_SYSTEM_ACTION_WORMHOLES, HookSource(SOURCE_TECHNOLOGY, LGF), HookKind.FORBID,
+    covers=f"technologies:{LGF}",
+)
+def lazax_gate_wormholes(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> set[str]:
+    """"treat its system as if it has both an α and β wormhole" - the system counts as containing
+    those wormholes during the Winnu tactical action (F_winnu 2.4: Dimensional Splicer there)."""
+    found = _mecatol(state)
+    if found is None or ctx.get("position") != found[0] or _controls_mecatol(state, player_id):
+        return set()
+    return {"ALPHA", "BETA"}
 
 
 @register_effect(f"technologies:{LGF}")

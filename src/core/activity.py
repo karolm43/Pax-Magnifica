@@ -66,7 +66,8 @@ class ActivityFact(BaseModel):
     # "tile_replaced" (value = pozycja, detail = "<stary kafel>><nowy kafel>"; Nova Seed),
     # "planet_destroyed" (value = planet id, detail = system position; Stellar Converter,
     # The Silver Flame - the destroyed planet token lies there now),
-    # "faction_token" / "faction_token_removed" (value = rodzaj żetonu, detail = planeta / space),
+    # "faction_token" / "faction_token_removed" (value = rodzaj żetonu, detail = planeta / space,
+    # position = system; Creuss wormhole token moved = removed + placed in one entry),
     # "moved" (ruch floty: player_id, value = typ jednostki, delta = liczba, detail = pozycja celu —
     # ruch sam się znosi w sumach, więc dopisujemy go osobno), "landed" (desant: value = typ,
     # delta = liczba, detail = id planety).
@@ -99,6 +100,9 @@ class ActivityFact(BaseModel):
     anomalies: dict[str, list[str]] | None = None
     # Only "cannon_shot": how many dice the roll group threw (``delta`` = how many hit).
     dice: int | None = None
+    # Only "faction_token" / "faction_token_removed": the system position of the token (the map
+    # animates Creuss wormhole tokens there, RULES.md 62.19).
+    position: str | None = None
 
 
 class Activity(BaseModel):
@@ -813,11 +817,13 @@ def _faction_token_facts(before: GameState, after: GameState) -> list[ActivityFa
 
     old, new = tokens(before), tokens(after)
     facts = [
-        ActivityFact(type="faction_token", player_id=owner, value=key[2], detail=key[1])
+        ActivityFact(type="faction_token", player_id=owner, value=key[2], detail=key[1],
+                     position=key[0])
         for key, owner in sorted(new.items()) if old.get(key) != owner
     ]
     facts += [
-        ActivityFact(type="faction_token_removed", player_id=owner, value=key[2], detail=key[1])
+        ActivityFact(type="faction_token_removed", player_id=owner, value=key[2], detail=key[1],
+                     position=key[0])
         for key, owner in sorted(old.items()) if key not in new
     ]
     return facts

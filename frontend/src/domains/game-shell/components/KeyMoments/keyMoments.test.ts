@@ -135,6 +135,43 @@ describe("momentsForEntry (RULES.md 64)", () => {
     ]);
   });
 
+  it("Creuss wormhole token placed / moved = wormhole moment (position, origin)", () => {
+    const placed = entry([fact({ type: "faction_token", player_id: "p1", value: "creussalpha", detail: "space", position: "205" })]);
+    expect(momentsForEntry(placed, isHero)).toEqual([
+      { kind: "wormhole", seq: 7, player: "p1", token: "creussalpha", position: "205", from: null },
+    ]);
+    const moved = entry([
+      fact({ type: "faction_token", player_id: "p1", value: "creussbeta", detail: "space", position: "301" }),
+      fact({ type: "faction_token_removed", player_id: "p1", value: "creussbeta", detail: "space", position: "205" }),
+    ]);
+    expect(momentsForEntry(moved, isHero)).toEqual([
+      { kind: "wormhole", seq: 7, player: "p1", token: "creussbeta", position: "301", from: "205" },
+    ]);
+    // Sleeper tokens (Titans) are not wormholes.
+    const sleeper = entry([fact({ type: "faction_token", player_id: "p1", value: "sleeper", detail: "wellon", position: "205" })]);
+    expect(momentsForEntry(sleeper, isHero)).toEqual([]);
+  });
+
+  it("Singularity Reactor: hero moment with BOTH swapped tiles, no wormhole moment", () => {
+    const e = entry([
+      fact({ type: "leader", player_id: "p1", value: "ghosthero", detail: "purged" }),
+      fact({ type: "tile_replaced", value: "102", detail: "26>01" }),
+      fact({ type: "tile_replaced", value: "105", detail: "01>26" }),
+      fact({ type: "faction_token", player_id: "p1", value: "creussgamma", detail: "space", position: "105" }),
+      fact({ type: "faction_token_removed", player_id: "p1", value: "creussgamma", detail: "space", position: "102" }),
+    ]);
+    const moments = momentsForEntry(e, isHero);
+    expect(moments).toHaveLength(1);
+    expect(moments[0]).toMatchObject({
+      kind: "hero",
+      leaderId: "ghosthero",
+      replaced: [
+        { position: "102", from: "26" },
+        { position: "105", from: "01" },
+      ],
+    });
+  });
+
   it("The Silver Flame destroying a home system is not the converter moment", () => {
     const e = entry([
       fact({ type: "relic", player_id: "p1", value: "thesilverflame", detail: "lost" }),

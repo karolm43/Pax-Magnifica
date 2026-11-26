@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Tile } from "@/entities/game/types";
-import { HERO_BOARD_FX, coversForQueue, fxTargets, neighborTiles, useHeroFx } from "./heroBoardFx";
+import {
+  HERO_BOARD_FX,
+  TOKEN_BOARD_FX,
+  coversForQueue,
+  fxTargets,
+  neighborTiles,
+  useHeroFx,
+} from "./heroBoardFx";
 
 function tile(
   position: string,
@@ -114,8 +121,43 @@ describe("fxTargets (RULES.md 64.4)", () => {
     expect(HERO_BOARD_FX.muaathero.revealAt).toBeLessThan(HERO_BOARD_FX.muaathero.ms);
   });
 
+  it("Singularity Reactor: both swapped systems, own rift mark, reveal under the flash", () => {
+    const board = [tile("801", "26", {}), tile("802", "25", { ghost: ["dd"] }), tile("803", "19", { ghost: ["cv"] })];
+    const owner = {
+      faction: "ghost",
+      color: "blue",
+      replaced: [
+        { position: "801", from: "25" },
+        { position: "802", from: "26" },
+      ],
+    };
+    const recipe = HERO_BOARD_FX.ghosthero;
+    expect(recipe.mark).toBe("rift");
+    expect(fxTargets(recipe, board, owner, null)).toEqual(["801", "802"]);
+    expect(recipe.flashAt).toBeDefined();
+    expect(recipe.revealAt).toBeGreaterThanOrEqual(recipe.flashAt ?? 0);
+    expect(recipe.revealAt).toBeLessThan(recipe.ms);
+    expect(recipe.sounds?.length).toBeGreaterThan(3);
+  });
+
+  it("Creuss wormhole token: the opened system, one recipe per token in its colour", () => {
+    const board = [tile("901", "19", {}), tile("902", "20", {})];
+    const owner = {
+      faction: "ghost",
+      color: "blue",
+      areas: [
+        { position: "902", self: true, kind: "gain" as const },
+        { position: "901", self: true, kind: "loss" as const },
+      ],
+    };
+    expect(Object.keys(TOKEN_BOARD_FX).sort()).toEqual(["creussalpha", "creussbeta", "creussgamma"]);
+    expect(fxTargets(TOKEN_BOARD_FX.creussbeta, board, owner, null)).toEqual(["902"]);
+    expect(new Set(Object.values(TOKEN_BOARD_FX).map((r) => r.tone)).size).toBe(3);
+    expect(TOKEN_BOARD_FX.creussalpha.mark).toBe("portal");
+  });
+
   it("każdy bohater z silnika ma przepis", () => {
-    const engineHeroes = ["arborechero", "argenthero", "cabalhero", "hacanhero", "jolnarhero", "l1z1xhero", "letnevhero", "mentakhero", "muaathero", "naaluhero", "naazhero", "saarhero", "sardakkhero", "solhero", "titanshero", "winnuhero", "xxchahero-te", "yinhero"];
+    const engineHeroes = ["arborechero", "argenthero", "cabalhero", "ghosthero", "hacanhero", "jolnarhero", "l1z1xhero", "letnevhero", "mentakhero", "muaathero", "naaluhero", "naazhero", "saarhero", "sardakkhero", "solhero", "titanshero", "winnuhero", "xxchahero-te", "yinhero"];
     expect(Object.keys(HERO_BOARD_FX).sort()).toEqual(engineHeroes);
   });
 });

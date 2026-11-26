@@ -4,12 +4,13 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **454**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **467**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
 | `action_cards.canceller` | PERMIT | technology:it | technologies:it | Jawne: gotowa technologia i żeton w strategy pool - okno anulowania się otwiera. |
 | `action_cards.forbidden` | FORBID | agenda:censure | agendas:censure | — |
+| `adjacency.extra_for_player` | FORBID | faction:ghost | abilities:quantum_entanglement | Quantum Entanglement: You treat all systems that contain either an alpha or beta wormhole as |
 | `agenda.planets_ready_limit` | FORBID | effect:agendas:checks:against | agendas:checks | — |
 | `agenda.single_vote` | PERMIT | agenda:rep_govt | agendas:rep_govt | — |
 | `agenda.vote_first` | PERMIT | faction:argent | abilities:zeal | Zeal: You always vote first during the agenda phase (także jako mówca - F_argent). |
@@ -17,6 +18,7 @@ Razem: **454**. Opis = pierwsza linia docstringu funkcji hooka.
 | `agenda.vote_modifier` | MODIFY | effect:leaders:hacancommander:votes | — | F_hacan: przy 0 zwykłych głosów (wstrzymanie się) dodatkowych głosów nie ma. |
 | `agenda.vote_unblockable` | PERMIT | leader:xxchacommander | leaders:xxchacommander | Elder Qanoj: Game effects cannot prevent you from voting on an agenda (F_xxcha: Political |
 | `agenda.votes_per_planet` | MODIFY | leader:xxchacommander | leaders:xxchacommander | Elder Qanoj: Each planet you exhaust to cast votes provides 1 additional vote (także planeta |
+| `board.unit_wormholes` | FORBID | unit:ghost_flagship | units:ghost_flagship | Hil Colish: This ship's system contains a delta wormhole. (Not a token - an entropic scar |
 | `bombardment.empty_planets` | PERMIT | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: wolno bombardować planetę bez sił naziemnych (C_technology). |
 | `bombardment.extra_dice` | MODIFY | leader:argentcommander | leaders:argentcommander | — |
 | `bombardment.extra_dice` | MODIFY | effect:promissory_notes:ambuscade:die | — | — |
@@ -162,6 +164,7 @@ Razem: **454**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat:end` | TRIGGER | unit:saar_spacedock2 | — | If this unit is blockaded, it is destroyed. |
 | `event:combat:end` | TRIGGER | technology:so | technologies:so | Salvage Operations: After you win or lose a space combat, gain 1 trade good (remis = nic, |
 | `event:combat:start` | TRIGGER | technology:asc | technologies:asc | Assault Cannon: na początku walki kosmicznej przeciwnik niszczy 1 swój statek niemyśliwski. |
+| `event:combat:start` | TRIGGER | technology:ds | technologies:ds | Dimensional Splicer: At the start of space combat in a system that contains a wormhole and 1 |
 | `event:combat:start` | TRIGGER | technology:ic | technologies:ic | Impulse Core: At the start of a space combat, you may destroy 1 of your cruisers or |
 | `event:combat:start` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: na początku walki naziemnej na planecie z Twoją strukturą |
 | `event:combat:start` | TRIGGER | faction:mentak | abilities:ambush | Ambush: At the start of a space combat: You may roll 1 die for each of up to 2 of your |
@@ -276,6 +279,7 @@ Razem: **454**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.action:end` | TRIGGER | leader:sardakkagent | leaders:sardakkagent | T'ro: At the end of a player's tactical action: You may exhaust this card: if you do, that |
 | `event:tactical.action:end` | TRIGGER | faction:winnu | abilities:reclamation | Reclamation: After you resolve a tactical action during which you gained control of Mecatol |
 | `event:tactical.action:end` | TRIGGER | unit:winnu_mech | units:winnu_mech | Reclaimer: After you resolve a tactical action where you gained control of this planet, you |
+| `event:tactical.ships_moved:after` | TRIGGER | leader:ghostcommander | leaders:ghostcommander | Sai Seravus: After your ships move: For each ship that has a capacity value and moved through |
 | `event:tactical.ships_moved:after` | TRIGGER | effect:leaders:saaragent | — | Wybrany statek ruszył - premia dotyczy tylko jego (1 statek). |
 | `event:tactical.ships_moved:after` | TRIGGER | breakthrough:muaatbt | breakthroughs:muaatbt | After you move one of your war suns out of or through Avernus's system and into a non-home |
 | `event:tactical.ships_moved:after` | TRIGGER | leader:muaathero | leaders:muaathero | Adjudicator Ba'al — Nova Seed: After you move a war sun into a non-home system other than |
@@ -290,6 +294,8 @@ Razem: **454**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.system_activated:after` | TRIGGER | promissory:convoys | promissory_notes:convoys | If you activate a system that contains 1 or more of the Hacan player's units, return this |
 | `event:tactical.system_activated:after` | TRIGGER | relic:dominusorb | relics:dominusorb | Dominus Orb: Before you move units during a tactical action, you may purge this card to |
 | `event:tactical.system_activated:after` | TRIGGER | technology:ers | technologies:ers | E-Res Siphons: After another player activates a system that contains 1 or more of your |
+| `event:tactical.system_activated:after` | TRIGGER | unit:ghost_mech | units:ghost_mech | Icarus Drive: After any player activates a system, you may remove this unit from the game |
+| `event:tactical.system_activated:after` | TRIGGER | leader:ghostagent | leaders:ghostagent | Emissary Taivra: After a player activates a system that contains a non-delta wormhole: You |
 | `event:tactical.system_activated:after` | TRIGGER | leader:l1z1xagent | leaders:l1z1xagent | I48S: After a player activates a system: You may exhaust this card to allow that player to |
 | `event:tactical.system_activated:after` | TRIGGER | agenda:minister_peace | agendas:minister_peace | — |
 | `event:tactical.system_activated:after` | TRIGGER | technology:nf | technologies:nf | Nullification Field: After another player activates a system that contains 1 or more of your |
@@ -369,6 +375,7 @@ Razem: **454**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.enter_asteroids` | PERMIT | technology:amd | technologies:amd | Antimass Deflectors: statki mogą wchodzić do pól asteroid i przez nie przechodzić. |
 | `movement.enter_asteroids` | PERMIT | relic:circletofthevoid | — | Circlet of the Void: ruch przez/do pól asteroid (ignorowanie efektów anomalii). |
 | `movement.extra_adjacent` | FORBID | effect:action_cards:lost_star | — | Systems with alpha / beta wormholes are adjacent to each other during this action. |
+| `movement.extra_adjacent` | FORBID | effect:leaders:ghostagent:link | — | The linked system is adjacent to every other system with ANY wormhole (delta, epsilon, |
 | `movement.extra_adjacent` | FORBID | technology:lgf | technologies:lgf | Lazax Gate Folding: During your tactical actions, if you do not control Mecatol Rex, treat |
 | `movement.extra_adjacent` | FORBID | effect:technologies:scc | — | Aktywny system sąsiaduje ze wszystkimi systemami z jednostkami gracza (i odwrotnie). |
 | `movement.ignore_anomalies` | PERMIT | effect:action_cards:nav_suite | — | — |
@@ -382,8 +389,10 @@ Razem: **454**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.move_value` | MODIFY | effect:action_cards:fs4 | — | — |
 | `movement.move_value` | MODIFY | breakthrough:cabalbt | breakthroughs:cabalbt | Apply +1 to the MOVE value of each of your ships that start their movement in The |
 | `movement.move_value` | MODIFY | technology:gd | technologies:gd | Gravity Drive: po aktywacji +1 do wartości ruchu JEDNEGO statku w tej akcji. |
+| `movement.move_value` | MODIFY | faction:ghost | abilities:slipstream | Slipstream: During your tactical actions: Apply +1 to the move value of each of your ships |
 | `movement.move_value` | MODIFY | effect:planets:tempesta | planets:tempesta | Ionian Fuel Refinery: +1 do wartości ruchu JEDNEGO statku w tej akcji taktycznej. |
 | `movement.move_value` | MODIFY | breakthrough:winnubt | — | After you activate a system that contains a legendary planet, apply +1 to the move value of 1 |
+| `movement.moves_separately` | PERMIT | unit:ghost_flagship | units:ghost_flagship | During movement, this ship may move before or after your other ships (separate fleet move; |
 | `movement.pass_foreign_ships` | PERMIT | effect:action_cards:silence_space | — | Przelot przez obce statki dotyczy tylko statków startujących z wybranego systemu. |
 | `movement.pass_foreign_ships` | PERMIT | technology:lwd | technologies:lwd | Light/Wave Deflector: statki mogą przechodzić przez systemy z cudzymi statkami. |
 | `movement.pass_foreign_ships` | PERMIT | unit:mentak_cruiser3 | units:mentak_cruiser3 | Corsair: If the active system contains another player's non-fighter ships, this unit can |
@@ -394,6 +403,7 @@ Razem: **454**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.single_ship_value` | MODIFY | effect:leaders:saaragent | — | Wartość ruchu wybranego statku (punkt ``movement.single_ship_value``). |
 | `movement.through_nebula` | PERMIT | agenda:shared_research | agendas:shared_research | — |
 | `movement.through_supernova` | PERMIT | faction:muaat | abilities:gashlai_physiology | Gashlai Physiology: Your ships can move through supernovas (węzeł pośredni trasy). |
+| `movement.wormhole_laws_immune` | PERMIT | faction:ghost | abilities:quantum_entanglement | Game effects cannot prevent you from using this ability (Enforced Travel Ban, Nexus |
 | `movement.wormholes_blocked` | FORBID | agenda:nexus | agendas:nexus | — |
 | `movement.wormholes_blocked` | FORBID | agenda:travel_ban | agendas:travel_ban | — |
 | `objectives.ignore_home_control` | PERMIT | faction:saar | abilities:nomadic | Nomadic: You can score objectives even if you do not control the planets in your home |
@@ -403,6 +413,7 @@ Razem: **454**. Opis = pierwsza linia docstringu funkcji hooka.
 | `planet.swap_values` | FORBID | effect:technologies:htp:swap | — | — |
 | `production.captured_free` | PERMIT | faction:cabal | abilities:amalgamation | Amalgamation: When you produce a unit: You may return 1 captured unit of that type to |
 | `production.cost` | MODIFY | effect:action_cards:war_machine | — | — |
+| `production.cost` | MODIFY | breakthrough:ghostbt | breakthroughs:ghostbt | Reduce the combined cost of units you produce in systems that contain wormholes by 1 for each |
 | `production.cost` | MODIFY | effect:leaders:winnuagent:cut | — | — |
 | `production.cost` | MODIFY | technology:st | technologies:st | Sarween Tools: gdy jednostki używają PRODUCTION, łączny koszt jest niższy o 1. |
 | `production.forbids` | FORBID | faction:arborec | — | Mitosis: Your space docks cannot produce infantry (R_production). |
@@ -412,6 +423,7 @@ Razem: **454**. Opis = pierwsza linia docstringu funkcji hooka.
 | `production.free_small_units` | MODIFY | leader:cabalcommander | leaders:cabalcommander | That Which Molds Flesh: When you produce fighter or infantry units: Up to 2 of those units |
 | `production.gain_trade_good` | PERMIT | leader:titanscommander | leaders:titanscommander | Tungstantus: When 1 or more of your units use PRODUCTION: You may gain 1 trade good. |
 | `production.planet_value` | MODIFY | technology:ah | technologies:ah | Aerie Hololattice: Each planet that contains 1 or more of your structures gains the |
+| `production.system_value` | MODIFY | breakthrough:ghostbt | breakthroughs:ghostbt | Each wormhole in a system that contains your ships gains PRODUCTION 1 as if it were a unit |
 | `production.system_value` | MODIFY | technology:mr | technologies:mr | Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability as if |
 | `production.total_value` | MODIFY | effect:action_cards:war_machine | — | — |
 | `production.units_per_cost` | MODIFY | agenda:conscription | agendas:conscription | — |
@@ -433,6 +445,7 @@ Razem: **454**. Opis = pierwsza linia docstringu funkcji hooka.
 | `strategy.secondary_as_primary` | PERMIT | faction:jolnar | abilities:brilliant | Brilliant: When you spend a command token to resolve the secondary ability of the |
 | `strategy.secondary_free` | PERMIT | faction:hacan | abilities:master_of_trade | Masters of Trade: You do not have to spend a command token to resolve the secondary |
 | `structures.pds_as_mech` | PERMIT | unit:titans_mech | units:titans_mech | Hecatoncheires: DEPLOY: When you would place a PDS on a planet, you may place 1 mech and |
+| `system.action_wormholes` | FORBID | technology:lgf | technologies:lgf | "treat its system as if it has both an α and β wormhole" - the system counts as containing |
 | `tactical.activation_blocked` | PERMIT | technology:cm | technologies:cm | Other players cannot activate asteroid fields that contain 1 or more of your ships. |
 | `technology.captured_skip` | PERMIT | faction:cabal | abilities:riftmeld | Riftmeld: When you research a unit upgrade technology: You may return 1 captured unit of |
 | `technology.free_prerequisite_ignores` | MODIFY | faction:jolnar | abilities:analytical | Analytical: When you research a technology that is not a unit upgrade technology: You may |
@@ -474,6 +487,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `agenda.vote_first`
 - `agenda.vote_modifier`
 - `agenda.vote_unblockable`
+- `board.unit_wormholes`
 - `bombardment.extra_dice`
 - `bombardment.forbidden_traits`
 - `bombardment.granted_hits_on`
@@ -528,6 +542,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `movement.ignore_own_command_token`
 - `movement.into_supernova`
 - `movement.match_highest`
+- `movement.moves_separately`
 - `movement.move_value`
 - `movement.passage_blocked`
 - `movement.pass_foreign_ships`
@@ -537,6 +552,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `movement.through_nebula`
 - `movement.through_supernova`
 - `movement.wormholes_blocked`
+- `movement.wormhole_laws_immune`
 - `objectives.ignore_home_control`
 - `payment.commodities_as_trade_goods`
 - `payment.flex_spend`
@@ -572,6 +588,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `command_tokens.strategy_from_reinforcements`
 - `invasion.strips_planetary_shield`
 - `structures.pds_as_mech`
+- `system.action_wormholes`
 - `tactical.activation_blocked`
 - `technology.captured_skip`
 - `technology.free_prerequisite_ignores`

@@ -6439,3 +6439,40 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
 - QA: full backend suite before test updates (only expected nebula tests + pre-existing guards failed), then the 6
   updated tests, ruff, mypy. Pre-existing red: `test_ruling_coverage` (new-rulings debt), `test_locality_guard`
   (fandom URLs in `frontend/src/domains/rules/componentLinks.ts` — parallel session). Skipped: frontend (no change).
+
+## Physical Ship Movement Replay, Phase 1: Live Post-Move Flight (2026-11-24)
+- Backend: `GameState.last_move` (`MoveRecord`: ordered route, hop kinds `lane`/`wormhole`/`portal`/`jump`,
+  route anomalies, ships, cargo) set by `movement.move_fleet` / single-stack move via
+  `movement_paths.build_move_record`; cleared on activation and at the end of the tactical action. Presentation
+  only, rules never read it. Activity `tactical.move` gains facts `move_route` (route/hops/anomalies) and
+  `carried` (cargo; feed: "carried 2 Infantry", "via … / through a wormhole").
+- Frontend: every client pairs a new `move_route` entry with the live map before/after the move
+  (`state/useLiveMoveReplay.ts`, pure helpers in `state/liveMoveReplay.ts`) and replays it through the existing
+  `buildMapReplayPlan` (`liveMove` option; planner now works on a resolved movement, `liveMovement.ts`).
+- Flight (`entities/replay/flightPath.ts`): one smooth Catmull-Rom path through every route system, easing only
+  at launch/landing, slow and heavy (~1.4 s per system; user: first pace "way too fast"); history replays keep the
+  legacy arc. Wormhole/ingress-egress hop = fly to the wormhole printed on the tile or the wormhole/ingress token
+  (`entities/geometry/wormholePoints.ts`, moved out of `WormholeBlockedLayer`/`wormholeLinks`), shrink-and-spin
+  into a swirl, emerge at the linked gate; gravity rift = faster leg + violet warp ring/trail; nebula = damped,
+  dimmed entry + mist. Engine flames on flying ships (`UnitStack/FlightEngines.tsx`, nozzle table shared with
+  the battle overlay in `shared/ui/Unit/engines.ts`), lit only for the flight. Ground forces ride hidden inside
+  the carrier (mini badges on the hull, `UnitStack/CarriedCargo.tsx`). Ships still park in the native
+  north-west heading after landing (unchanged).
+- Skippable: "Skip" pill, Esc/Space (outside inputs/buttons) end any map replay; admin fast mode = no replay
+  (`replayRunDuration`).
+- QA: backend full suite (failures only pre-existing `test_locality_guard`, `test_ruling_coverage` x2, and
+  `test_bot_runner` under xdist load - passes alone); ruff; mypy (changed); frontend tsc (app), eslint (changed),
+  vitest (`entities`, `state`, `domains/map`, `domains/battle`, ActivityPanel), build, e2e. Backend restart
+  needed (new state field / facts).
+
+## Flight Replay: Cargo Packs Into Carriers, Invasion Landings, Slower Pace (2026-11-24)
+- User feedback: fighters/infantry flying as numbered badges looked like a blob. Fighters and ground forces now
+  pack into a moving ship with capacity (slide in and shrink, `PACK_MS`), the fleet launches once they are aboard,
+  the carrier shows a few small icons without counts in flight, and the units unpack from its landing point to
+  their slots (`UNPACK_MS`). `liveMovement.packRidingCargo`, `flightPath.buildCargoKeyframes`,
+  `MapUnitTransition.cargoRide` (replaces `hiddenInFlight`).
+- Invasion: a new `invasion.commit` entry (`landed` facts) replays on every client as ground forces flying from
+  space down to their planets (`LiveLanding`, `resolveLanding`; per-unit `toHolder` in `ResolvedMovement`).
+- Slower overall (user: "a little bit slower"): ~1.75 s per system, wormhole jump 1.8 s.
+- QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
+  ActivityPanel), build, e2e. Skipped: backend (no change).

@@ -617,6 +617,8 @@ export type ActivityFact = {
   /** Only `cannon_shot` (`delta` = hits): dice the roll group threw; `value` = target player,
    *  `detail` = shooter zone (`space` / planet id), `route` = [shooter system, active system]. */
   dice?: number | null;
+  /** Only `faction_token` / `faction_token_removed`: the token's system (Creuss wormholes). */
+  position?: string | null;
 };
 
 export type ActivityKind =

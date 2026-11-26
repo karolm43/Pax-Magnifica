@@ -202,6 +202,21 @@ POINT_MOVEMENT_EXTRA_ADJACENT = "movement.extra_adjacent"
 # persistently (ctx: position, grid: HexGrid | None); map graph untouched. Read solely via
 # ``board_graph.extra_adjacent_for_player`` (RULES.md 61.7, e.g. Quantum Entanglement).
 POINT_ADJACENCY_EXTRA_FOR_PLAYER = "adjacency.extra_for_player"
+# FORBID -> ``"<position>|<TYPE>"`` wormholes carried by the player's units (Hil Colish: "This
+# ship's system contains a delta wormhole"); read ONLY via ``board_graph.unit_wormholes``
+# (map sync + ``wormholes_at``), RULES.md 62.19.
+POINT_BOARD_UNIT_WORMHOLES = "board.unit_wormholes"
+# PERMIT -> game effects (laws: Enforced Travel Ban, Nexus Sovereignty) cannot block this
+# player's wormhole movement (Creuss Quantum Entanglement); read in
+# ``movement_paths.wormhole_link_blocked`` (RULES.md 62.19).
+POINT_MOVEMENT_WORMHOLE_LAWS_IMMUNE = "movement.wormhole_laws_immune"
+# PERMIT -> the player's ship ``ctx["base_type"]`` moves before or after the other ships (Hil
+# Colish): the Ion Storm it used flips right after its move (C_exploration_cards ion-storm 2.1).
+POINT_MOVEMENT_MOVES_SEPARATELY = "movement.moves_separately"
+# FORBID -> wormhole types the ACTIVE player treats ``ctx["position"]`` as having during their
+# tactical action (Lazax Gate Folding: Mecatol Rex "as if it has both an alpha and beta wormhole");
+# read only via ``board_graph.wormhole_list`` (F_winnu 2.4: Dimensional Splicer there).
+POINT_SYSTEM_ACTION_WORMHOLES = "system.action_wormholes"
 # PERMIT -> myśliwce i siły naziemne do łącznej capacity produkowanych statków nie liczą się do
 # limitu PRODUCTION; Bellum Gloriosum (RULES.md 62.4).
 POINT_PRODUCTION_FREE_CARGO = "production.free_cargo"

@@ -44,6 +44,7 @@ import {
 import { getLeaderById } from "@/entities/lookup/leaders";
 import { promissoryNotes } from "@/entities/data/promissoryNotes";
 import { Named } from "./Named";
+import { isCreussWormholeToken, wormholeTokenName } from "@/entities/lookup/wormholeTokens";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import { getStrategyCardByInitiative } from "@/entities/lookup/strategyCards";
 
@@ -968,6 +969,37 @@ function describeFact(
     }
     case "faction_token":
     case "faction_token_removed": {
+      // Creuss wormhole tokens (RULES.md 62.19): placed / moved / returned, in a system.
+      if (isCreussWormholeToken(fact.value) && fact.position) {
+        const name = wormholeTokenName(fact.value);
+        const system = (position: string) => (
+          <Named kind="system" id={position} name={ctx.systemName(position)} systemText={ctx.systemHint(position)} />
+        );
+        const pair = a.facts.find(
+          (x) =>
+            x.value === fact.value &&
+            x.position &&
+            x.type === (fact.type === "faction_token" ? "faction_token_removed" : "faction_token"),
+        );
+        if (fact.type === "faction_token_removed") {
+          // A move is described once, by its "placed" half.
+          if (pair) return null;
+          return { key, tone: "bad", text: <>{name} returned to reinforcements from {system(fact.position)}</> };
+        }
+        return {
+          key,
+          tone: "info",
+          text: pair?.position ? (
+            <>
+              {prefix}moved the {name} from {system(pair.position)} to {system(fact.position)}
+            </>
+          ) : (
+            <>
+              {prefix}placed the {name} in {system(fact.position)}
+            </>
+          ),
+        };
+      }
       // Żetony frakcji na mapie (sleeper Titans, RULES.md 61.6): detail = planeta albo "space".
       const where = fact.detail ?? "";
       const kind = prettifyId(fact.value ?? "token");

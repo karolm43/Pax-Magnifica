@@ -457,7 +457,8 @@ export function MarkDefs() {
   );
 }
 
-const DRAW: Record<Exclude<FxMark, "nova" | "maw" | "converter">, () => ReactNode> = {
+// Own components in the layer: Nova Seed, Stellar Converter, Creuss (`CreussFxMarks`).
+const DRAW: Record<Exclude<FxMark, "nova" | "maw" | "converter" | "rift" | "portal">, () => ReactNode> = {
   bloom: Bloom,
   beam: Beam,
   coins: Coins,
@@ -483,7 +484,7 @@ export function Mark({
   index,
   neighbors = [],
 }: {
-  mark: Exclude<FxMark, "nova" | "converter">;
+  mark: Exclude<FxMark, "nova" | "converter" | "rift" | "portal">;
   tile: Tile;
   index: number;
   /** Sąsiednie kafle (Cabal: macki sięgają do nich). */

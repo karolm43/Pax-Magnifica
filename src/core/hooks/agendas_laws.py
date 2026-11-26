@@ -51,7 +51,6 @@ FLEET_REGULATIONS_CAP = 4  # Fleet Regulations: „cannot have more than 4 token
 _SANCTIONS_HAND = 3  # Executive Sanctions: „maximum of 3 action cards"
 _PROPHECY_FIGHTERS = 2  # Prophecy of Ixth: „unless they produce 2 or more fighters"
 _CRAFTY = "crafty"  # Yssaril: bez limitu kart - Executive Sanctions go nie dotyczy (C_agendas)
-_CREUSS = "ghost"  # Creuss: wormhole działają mimo Enforced Travel Ban / Nexus Sovereignty
 _NEXUS_NAME = "wormhole nexus"
 _ALPHA_BETA = frozenset({"ALPHA", "BETA"})
 
@@ -270,8 +269,9 @@ def _arbiter(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
 # =========================================================================================
 
 
-def _is_creuss(state: GameState, pid: str) -> bool:
-    return _faction(state, pid) == _CREUSS
+def _wormhole_law_immune(state: GameState, pid: str) -> bool:
+    """Creuss are not affected by Enforced Travel Ban / Nexus Sovereignty (RULES.md 62.19)."""
+    return rules_hooks.permits(rules_hooks.POINT_MOVEMENT_WORMHOLE_LAWS_IMMUNE, state, pid)
 
 
 def _nexus_positions(state: GameState) -> set[str]:
@@ -290,7 +290,7 @@ def _nexus_positions(state: GameState) -> set[str]:
 @register(rules_hooks.POINT_MOVEMENT_WORMHOLES_BLOCKED, agenda_source("travel_ban"),
           HookKind.FORBID, covers=covers("travel_ban"))
 def _travel_ban(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> frozenset[str]:
-    if not _law_for(state, "travel_ban") or _is_creuss(state, pid):
+    if not _law_for(state, "travel_ban") or _wormhole_law_immune(state, pid):
         return frozenset()
     if _law_for(state, "wormhole_recon"):
         return frozenset()  # C_agendas: przy Wormhole Reconstruction zakaz nie działa
@@ -301,7 +301,7 @@ def _travel_ban(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> frozense
 @register(rules_hooks.POINT_MOVEMENT_WORMHOLES_BLOCKED, agenda_source("nexus"), HookKind.FORBID,
           covers=covers("nexus"))
 def _nexus(state: GameState, pid: str, ctx: Mapping[str, Any]) -> frozenset[str]:
-    if not _law_for(state, "nexus") or _is_creuss(state, pid):
+    if not _law_for(state, "nexus") or _wormhole_law_immune(state, pid):
         return frozenset()
     nexus = _nexus_positions(state)
     if ctx.get("position") in nexus or ctx.get("neighbor") in nexus:

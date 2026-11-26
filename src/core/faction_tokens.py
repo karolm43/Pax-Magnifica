@@ -13,8 +13,18 @@ from src.core.game_state import GameState
 
 SLEEPER = "sleeper"
 SPACE = "space"
+# Creuss wormhole tokens (RULES.md 62.19): kind = AsyncTI4 token id, value = the wormhole type it
+# creates (``assets/data/tokens`` ``wormholes`` field - a test compares them). One of each.
+CREUSS_WORMHOLES: dict[str, str] = {
+    "creussalpha": "ALPHA", "creussbeta": "BETA", "creussgamma": "GAMMA",
+}
 # Liczba żetonów frakcji (AsyncTI4 WebPlayerArea / PlayerAreaGenerator: Sleepers 5).
-SUPPLY: dict[str, int] = {SLEEPER: 5}
+SUPPLY: dict[str, int] = {SLEEPER: 5, **dict.fromkeys(CREUSS_WORMHOLES, 1)}
+
+
+def wormhole_types(kinds: dict[str, str]) -> list[str]:
+    """Wormhole types created by the faction tokens of one space zone (Creuss tokens)."""
+    return [CREUSS_WORMHOLES[kind] for kind in sorted(kinds) if kind in CREUSS_WORMHOLES]
 
 
 def owner_at(state: GameState, position: str, zone: str, kind: str) -> str | None:

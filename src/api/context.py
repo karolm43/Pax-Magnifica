@@ -108,9 +108,8 @@ class AppContext:
     def current_grid(self) -> HexGrid:
         """Bieżąca mapa, zsynchronizowana z żetonami wormhole ze stanu gry."""
         state = self.service.current_state()
-        self._grid.sync_token_wormholes(
-            {pos: s.token_wormholes() for pos, s in state.systems.items() if s.token_wormholes()}
-        )
+        # Tokens, Ion Storm and unit wormholes (Hil Colish delta, RULES.md 62.19).
+        self._grid.sync_token_wormholes(board_graph.placed_wormholes(state))
         # The Fracture (kafle frac1..7) i portale ingress/egress - też ze stanu (Undo/Redo).
         fracture.sync_grid(self._grid, state, self.registry)
         # Wormhole Nexus: strona kafelka (82a nieaktywna / 82b aktywna) wg stanu.

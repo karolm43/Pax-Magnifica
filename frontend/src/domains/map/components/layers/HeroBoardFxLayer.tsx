@@ -15,6 +15,7 @@ import {
 } from "@/domains/game-shell/components/KeyMoments/heroBoardFx";
 import { Mark, MarkDefs } from "./HeroFxMarks";
 import { StellarConverterDefs, StellarConverterMark } from "./StellarConverterMark";
+import { CreussFxDefs, SingularityRiftMark, WormholePortalMark } from "./CreussFxMarks";
 import classes from "./HeroBoardFxLayer.module.css";
 
 /**
@@ -272,6 +273,14 @@ export function HeroBoardFxLayer({
   const targets = fxTargets(recipe, tiles, run, gameState?.activeSystem ?? null)
     .map((p) => byPosition.get(p))
     .filter((t): t is Tile => !!t);
+  // Creuss wormhole token moved: the system it left collapses (area "loss" of the moment).
+  const closing =
+    recipe.mark === "portal"
+      ? (run.areas ?? [])
+          .filter((a) => a.kind === "loss")
+          .map((a) => byPosition.get(a.position))
+          .filter((t): t is Tile => !!t)
+      : [];
 
   return (
     <div
@@ -311,11 +320,19 @@ export function HeroBoardFxLayer({
           <NovaDefs />
         ) : recipe.mark === "converter" ? (
           <StellarConverterDefs />
+        ) : recipe.mark === "rift" || recipe.mark === "portal" ? (
+          <CreussFxDefs />
         ) : (
           <MarkDefs />
         )}
+        {recipe.mark === "rift" && <SingularityRiftMark targets={targets} replaced={run.replaced ?? []} />}
+        {closing.map((tile) => (
+          <WormholePortalMark key={`closing-${tile.position}`} tile={tile} token={run.heroId} closing />
+        ))}
         {targets.map((tile, index) =>
-          recipe.mark === "nova" ? (
+          recipe.mark === "rift" ? null : recipe.mark === "portal" ? (
+            <WormholePortalMark key={tile.position} tile={tile} token={run.heroId} />
+          ) : recipe.mark === "nova" ? (
             <NovaMark key={tile.position} tile={tile} />
           ) : recipe.mark === "converter" ? (
             <StellarConverterMark

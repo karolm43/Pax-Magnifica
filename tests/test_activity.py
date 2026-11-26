@@ -608,3 +608,25 @@ def test_strzal_space_cannon_niesie_grupy_rzutow_do_odtworzenia() -> None:
     passed = derive_activity("space-cannon:fire:p1", before, after)
     assert passed is not None
     assert not [f for f in passed.facts if f.type == "cannon_shot"]
+
+
+def test_creuss_wormhole_token_facts_carry_the_system() -> None:
+    """Creuss wormhole token placed / moved (RULES.md 62.19): facts name the system position, so
+    the feed and the board effect (KeyMoment ``wormhole``) know where it opened and left."""
+    before = _state()
+    before.systems = {
+        "101": SystemState(position="101", system_id="19",
+                           faction_tokens={"space": {"creussalpha": "p1"}}),
+        "102": SystemState(position="102", system_id="20"),
+    }
+    after = before.model_copy(deep=True)
+    after.systems["101"].faction_tokens = {}
+    after.systems["102"].faction_tokens = {"space": {"creussalpha": "p1"}}
+    entry = derive_activity("component:wg", before, after)
+    assert entry is not None
+    found = {(f.type, f.value, f.detail, f.position) for f in entry.facts
+             if f.type.startswith("faction_token")}
+    assert found == {
+        ("faction_token", "creussalpha", "space", "102"),
+        ("faction_token_removed", "creussalpha", "space", "101"),
+    }
