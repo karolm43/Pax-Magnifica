@@ -27,6 +27,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.core import board_graph
 from src.core.game_state import ActiveCombat, GameState, Phase, SystemState
 
 # Kategorie wpisów (do filtrów w UI).
@@ -79,6 +80,9 @@ class ActivityFact(BaseModel):
     # "cannon_shot" (one Space Cannon Offense roll group, ``spacecannon.fire``: value = target
     # player, detail = shooter zone "space" / planet id, delta = hits, dice = dice thrown,
     # route = [shooter system, active system]).
+    # "unit_wormhole" / "unit_wormhole_removed" (a wormhole carried by a unit - Hil Colish's
+    # delta, RULES.md 62.19 - appeared in / left a system: player_id = owner, value = wormhole
+    # type in lower case, position = system; the ship moved = removed + appeared in one entry).
     # "area" (TYLKO we wpisie z użyciem bohatera: value = pozycja systemu, detail = "gain" / "loss"
     # jednostek gracza albo "token_removed" jego żetonu dowodzenia — miejsce efektu na planszy,
     # RULES.md 64.4; feed go nie wypisuje).
@@ -100,8 +104,9 @@ class ActivityFact(BaseModel):
     anomalies: dict[str, list[str]] | None = None
     # Only "cannon_shot": how many dice the roll group threw (``delta`` = how many hit).
     dice: int | None = None
-    # Only "faction_token" / "faction_token_removed": the system position of the token (the map
-    # animates Creuss wormhole tokens there, RULES.md 62.19).
+    # Only "faction_token" / "faction_token_removed" / "unit_wormhole" / "unit_wormhole_removed":
+    # the system position of the token / wormhole (the map animates Creuss wormholes there,
+    # RULES.md 62.19).
     position: str | None = None
 
 
@@ -743,6 +748,7 @@ def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
             if card not in old_cards:
                 facts.append(ActivityFact(type="attached", value=card, detail=planet))
     facts.extend(_faction_token_facts(before, after))
+    facts.extend(_unit_wormhole_facts(before, after))
     for objective, scorers in after.objectives.scored.items():
         old_scorers = before.objectives.scored.get(objective, [])
         for pid in set(scorers):
@@ -825,6 +831,24 @@ def _faction_token_facts(before: GameState, after: GameState) -> list[ActivityFa
         ActivityFact(type="faction_token_removed", player_id=owner, value=key[2], detail=key[1],
                      position=key[0])
         for key, owner in sorted(old.items()) if key not in new
+    ]
+    return facts
+
+
+def _unit_wormhole_facts(before: GameState, after: GameState) -> list[ActivityFact]:
+    """Wormholes carried by units (Hil Colish's delta, RULES.md 62.19) that appeared in / left a
+    system - the map opens / collapses a vortex there, the feed says where the wormhole went."""
+    old = set(board_graph.unit_wormholes_by_owner(before))
+    new = set(board_graph.unit_wormholes_by_owner(after))
+    facts = [
+        ActivityFact(type="unit_wormhole", player_id=owner, value=kind.lower(), position=position)
+        for position, kind, owner in sorted(new - old)
+    ]
+    facts += [
+        ActivityFact(
+            type="unit_wormhole_removed", player_id=owner, value=kind.lower(), position=position
+        )
+        for position, kind, owner in sorted(old - new)
     ]
     return facts
 

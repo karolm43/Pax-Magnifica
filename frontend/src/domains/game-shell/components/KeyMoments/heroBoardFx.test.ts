@@ -150,9 +150,9 @@ describe("fxTargets (RULES.md 64.4)", () => {
         { position: "901", self: true, kind: "loss" as const },
       ],
     };
-    expect(Object.keys(TOKEN_BOARD_FX).sort()).toEqual(["creussalpha", "creussbeta", "creussgamma"]);
+    expect(Object.keys(TOKEN_BOARD_FX).sort()).toEqual(["creussalpha", "creussbeta", "creussgamma", "whdelta"]);
     expect(fxTargets(TOKEN_BOARD_FX.creussbeta, board, owner, null)).toEqual(["902"]);
-    expect(new Set(Object.values(TOKEN_BOARD_FX).map((r) => r.tone)).size).toBe(3);
+    expect(new Set(Object.values(TOKEN_BOARD_FX).map((r) => r.tone)).size).toBe(4);
     expect(TOKEN_BOARD_FX.creussalpha.mark).toBe("portal");
   });
 

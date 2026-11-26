@@ -5,11 +5,14 @@ import {
   BOOST_NAMES,
   boostConflicts,
   draftAsLeg,
+  flightBatches,
   legCargoCount,
   legRequest,
   legShipCount,
+  needsSeparateOrder,
   planIncoming,
   type IncomingFleet,
+  type SeparateOrder,
   type StagedLeg,
 } from "./flightPlan";
 
@@ -22,6 +25,10 @@ export type FlightPlanState = {
   incoming: IncomingFleet;
   /** Why the plan cannot fly yet (null = ready, or nothing staged). */
   blocker: string | null;
+  /** The plan holds a ship that may move before or after the others (Hil Colish) + other legs. */
+  separateOrderAsked: boolean;
+  separateOrder: SeparateOrder;
+  setSeparateOrder: (order: SeparateOrder) => void;
   fly: () => Promise<void>;
   discard: () => void;
 };
@@ -36,6 +43,9 @@ export function useFlightPlan(): FlightPlanState {
   const draft = useAppStore((s) => s.moveDraft);
   const clearMovePlan = useAppStore((s) => s.clearMovePlan);
   const closeMoveDraft = useAppStore((s) => s.closeMoveDraft);
+  const separateOrder = useAppStore((s) => s.separateMoveOrder);
+  const setSeparateOrder = useAppStore((s) => s.setSeparateMoveOrder);
+  const removeStagedLeg = useAppStore((s) => s.removeStagedLeg);
   const { moveBatch } = useBoardEditor();
 
   // The open leg joins the plan when it is complete; Ion Storm needs the explicit choice made
@@ -61,13 +71,19 @@ export function useFlightPlan(): FlightPlanState {
   const fly = useCallback(async () => {
     if (!faction || legs.length === 0 || blocker) return;
     try {
-      await moveBatch(faction, legs.map(legRequest));
+      // Hil Colish before / after the other ships: one or two flights in that order.
+      for (const batch of flightBatches(legs, separateOrder)) {
+        await moveBatch(faction, batch.map(legRequest));
+        // Flown legs leave the plan, so a failing later flight keeps only what is left.
+        batch.forEach((leg) => removeStagedLeg(leg.id));
+        if (openLeg && batch.some((leg) => leg.id === openLeg.id)) closeMoveDraft();
+      }
       clearMovePlan();
       closeMoveDraft();
     } catch {
       // The reason (422, naming the leg) is shown by the notice panel; the plan stays to fix.
     }
-  }, [faction, legs, blocker, moveBatch, clearMovePlan, closeMoveDraft]);
+  }, [faction, legs, openLeg, blocker, separateOrder, moveBatch, removeStagedLeg, clearMovePlan, closeMoveDraft]);
 
   const discard = useCallback(() => {
     clearMovePlan();
@@ -81,6 +97,9 @@ export function useFlightPlan(): FlightPlanState {
     systems: new Set(legs.map((l) => l.from)).size,
     incoming: planIncoming(legs),
     blocker,
+    separateOrderAsked: needsSeparateOrder(legs),
+    separateOrder,
+    setSeparateOrder,
     fly,
     discard,
   };

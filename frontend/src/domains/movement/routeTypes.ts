@@ -19,6 +19,8 @@ export type MoveRouteShip = {
   /** Ile sztuk wolno ruszyć z premią (1; z Gravleash cała grupa). */
   bonusMax: number;
   reason: string;
+  /** May move before or after the player's other ships (Hil Colish, RULES.md 62.19). */
+  movesSeparately?: boolean;
 };
 
 /** Ile sztuk statku wolno zaznaczyć: bez premii wszystkie, tylko z premią - ``bonusMax``. */

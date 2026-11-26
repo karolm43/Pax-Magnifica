@@ -59,6 +59,8 @@ class RouteShip:
     premii, jeśli lecą razem (Gravleash Maneuvers: ruch równy najwyższemu z ruszających).
     ``bonus_options`` = zestawy premii (Gravity Drive / Ionian Fuel Refinery), z którymi dolatuje;
     ``bonus_max`` = ile sztuk wolno wtedy ruszyć (premia działa na 1 statek, chyba że Gravleash).
+    ``moves_separately`` = the ship may move before or after the player's other ships (PERMIT
+    ``movement.moves_separately``, Hil Colish - RULES.md 62.19): the flight plan asks which.
     """
 
     base_type: str
@@ -70,6 +72,7 @@ class RouteShip:
     bonus_options: list[list[str]]
     bonus_max: int
     reason: str
+    moves_separately: bool = False
 
 
 @dataclass
@@ -255,10 +258,15 @@ def _ships(
         ) is None:
             continue
         capacity = movement._capacity_provided(registry, faction_id, technologies, base_type)
+        separately = rules_hooks.permits(
+            rules_hooks.POINT_MOVEMENT_MOVES_SEPARATELY, state, player_id,
+            {"base_type": base_type},
+        )
         if route is None:
             result.append(
                 RouteShip(
-                    base_type, count, capacity, False, False, [], [], 1, "No legal route."
+                    base_type, count, capacity, False, False, [], [], 1, "No legal route.",
+                    moves_separately=separately,
                 )
             )
             continue
@@ -304,6 +312,7 @@ def _ships(
                 bonus_options=bonus_options,
                 bonus_max=count if matched else 1,
                 reason="" if reachable else reason,
+                moves_separately=separately,
             )
         )
     return result

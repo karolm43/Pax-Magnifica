@@ -1,7 +1,7 @@
 # Project Progress — Custodian Engine
 
 This file tracks work status between sessions. Updated at the end of every block.
-Older, completed blocks (Phase 1 → blocks up to 2026-11-24) are in `PROGRESS_ARCHIWUM.md` (read selectively).
+Older, completed blocks (Phase 1 → early flight-replay blocks of 2026-11-25) are in `PROGRESS_ARCHIWUM.md` (read selectively).
 
 > **Current stage:** E8 (REFEREE engine) + hooks: action cards (143/143), relics (23/23 active), general technologies (33/33),
 > objectives (80/80), strategy cards (8/8), official agendas (50/50) ✅; **19/30 factions** done (Waves 1–2 ✅, Wave 3: I1 Capture + Cabal + Titans + I2 tokens 🔧 + I3 adjacency + Creuss, Wave 4: I4 Coexistence ✅);
@@ -37,45 +37,6 @@ Older, completed blocks (Phase 1 → blocks up to 2026-11-24) are in `PROGRESS_A
 
 > Full history of completed blocks with details: `PROGRESS_ARCHIWUM.md`.
 
-
-## Flight Replay: Armada Weight, Plain Cargo Sprites (2026-11-24)
-- User feedback: cargo showed the round-rect token background and the fleet still felt too fast ("I want to see
-  weight as an armada moves"). Cargo on the carrier and while packing/unpacking now uses plain unit sprites in a
-  loose group (`LooseCargo`, no token, no count); the map token with its count returns once the replay ends.
-- Heavy motion (`flightPath.ts`): ignition (`IGNITION_MS`, turn onto course in place while engines spool up and the
-  ship lifts: +7% scale, deeper shadow), ~2.8 s per system, settle (`SETTLE_MS`: stop, touch down, turn to park);
-  wormhole jump 2.4 s, pack/unpack 1.1/1.3 s. Engine flames spool up, burn and cut with those phases.
-- QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
-  ActivityPanel), build, e2e. Skipped: backend (no change).
-
-## Flight Replay: Fleet Visible While Cargo Boards, Cargo Physics (2026-11-24)
-- Bug: while cargo packed, the fleet waiting for it was invisible (its flight animation only filled forwards, so
-  the delay showed the hidden CSS state) - fighters/infantry slid into nothing. Routed and cargo flights now use
-  `fill: "both"`: ships rest visibly at their start until they launch.
-- Cargo moves like the ships (`buildCargoKeyframes`): boarding = fighters turn toward the carrier, accelerate,
-  brake into the hangar and only then shrink and vanish (fully visible while travelling); unpacking = emerge from
-  the carrier, launch out, brake, fighters turn back to the parked heading. Ground forces stay upright.
-- QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
-  ActivityPanel), build, e2e. Skipped: backend (no change).
-
-## Flight Replay: Ships That Fly, Cargo Goes Inside, Throttled Engines (2026-11-25)
-- User feedback: infantry/fighter icons drawn under/on the flying ships looked bad; too much rotation, ships did not
-  feel like they were flying; wanted visible engines and a war-fleet feel.
-- Cargo: no icons on the hull in flight (`CarriedCargo` and `carriedCargo` removed; `LooseCargo` split into its own
-  file). Boarding cargo is drawn BELOW the ships (no +200 badge z-boost for `cargoRide`), shrinks as it nears the
-  carrier and dwindles to a speck while fading as it slips under the hull; unpacking grows out from under it.
-- Motion (`flightPath.ts`): no pivot in place. Ignition only lifts off (+10% scale) and spools up the engines; the
-  ship comes about while accelerating and swings to its parked heading while braking (`TURN_WINDOW_*`); settle only
-  sets it down. Look-ahead steering (`LOOK_AHEAD_PX`) leads the nose into corners. A single hop is a straight line
-  (no arc). Wormholes: dive in holding the heading and emerge facing the next course (no 720° spin).
-- Engines: `buildPathKeyframes` returns a `thrust` timeline (flare at launch, burn with speed, fade while braking,
-  cold on landing) that the flight hook plays on each nozzle and a new ion wake (`[data-thrust]`); bigger flames with
-  a hot core and fast flicker. History replays keep the fixed CSS burn.
-- Fleet: ships launch in waves by class (`staggerFleetLaunch`: destroyers, cruisers, carriers, dreadnoughts,
-  flagship/war sun; `LAUNCH_WAVE_MS`); cargo unpacks exactly when its own carrier lands; wormhole/anomaly effects
-  are shared by ships passing within `SHARED_EFFECT_MS`.
-- QA: frontend tsc (app), eslint (changed), vitest (`entities/replay`, `state`, `domains/map`), build. Skipped:
-  backend (no change), e2e (replay layer only, not setup/flow), visual check in a live game.
 
 ## Titans: F_ul Ruling Coverage + Terragenesis Move Fix (2026-11-25)
 - New `tests/factions/test_rulings_titans.py`: 12 `@ruling` tests (terragenesis 1, awaken 3/4/6/7, terraform 2.1/5,
@@ -427,3 +388,21 @@ Older, completed blocks (Phase 1 → blocks up to 2026-11-24) are in `PROGRESS_A
   Jol / Nar produce 4", "Can't afford / costs 8 · you have 3"), so units never read as having PRODUCTION.
 - Empire panel: "versus the table" (`empireCompare.ts`) - 14 measures with value, place, leader(s), table/map total.
 - Tests: `board/PlayerBoard.test.tsx` (production lines + tips), `empireCompare.test.ts`; checked in the live game.
+
+## Creuss: Singularity Reactor Effect Fix, Hil Colish Move Order + Delta Portal (2026-11-26)
+
+- Singularity Reactor board effect (`map/layers/CreussFxMarks.tsx`): vortex arms rotate on a wrapping `<g>` (the
+  CSS `transform-box: fill-box` pivoted each arm around its own bbox, scattering them off centre — the token portal
+  had the same bug); vortices, tether, void and flying tiles follow the SHAPE of the tile shown in the slot
+  (`shapeCentre` + `tileOutline`: spiral tiles 416x386), each tile lands on its own shape centre; the empty slot is
+  a translucent lit wormhole mouth (not a near-black hex) only while its tile is in flight; board dim 0.62 -> 0.45.
+- Hil Colish "may move before or after your other ships" in the flight plan: route preview flags the ship
+  (`movesSeparately`, PERMIT `movement.moves_separately`, new API field — restart); with its leg + other legs the
+  Movement panel asks Before / After / Auto (= after, `⚠️ ASSUMPTION` in R62.19). Before = its leg flies first as
+  its own request, then the rest (`flightBatches`); a hint suggests flying it alone first to use the delta at the
+  destination.
+- Delta wormhole moving with the flagship: Activity facts `unit_wormhole` / `unit_wormhole_removed`
+  (`board_graph.unit_wormholes_by_owner`), feed line "Delta wormhole moved with the ship from X to Y", and the
+  board portal (`TOKEN_BOARD_FX.whdelta`): a vortex collapses where it left and opens where it arrived.
+- Tests: `test_ghost.py` (route flag, feed facts), `flightPlan.test.ts`, `CreussFxMarks.test.tsx`,
+  `keyMoments.test.ts`, `heroBoardFx.test.ts`, `describeActivity.creuss.test.tsx`.

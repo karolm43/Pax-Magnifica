@@ -471,6 +471,43 @@ def test_hil_colish_pierwszy_otwiera_delte_w_celu(registry: StaticDataRegistry) 
     assert after.tactical_step is TacticalStep.MOVEMENT
 
 
+@ruling("units:ghost_flagship#2")
+def test_hil_colish_podglad_trasy_pyta_o_kolejnosc(registry: StaticDataRegistry) -> None:
+    """The route preview flags the ship that may move before or after the others (the flight
+    plan asks the player which - RULES.md 62.19); the other ships are not flagged."""
+    from src.core import movement_route
+
+    state = _state(registry)
+    state.systems[VEFUT].space_units = {"p1": {"flagship": 1, "destroyer": 1}}
+    state.active_system = QUANN
+    state.tactical_step = TacticalStep.MOVEMENT
+    grid = _bind(state, registry)
+    report = movement_route.route_report(state, grid, registry, VEFUT, [], "p1")
+    flags = {ship.base_type: ship.moves_separately for ship in report.ships}
+    assert flags == {"flagship": True, "destroyer": False}
+
+
+@ruling("units:ghost_flagship#1")
+def test_hil_colish_delta_w_feedzie(registry: StaticDataRegistry) -> None:
+    """The delta moves with the ship: one entry = the wormhole left one system and appeared in
+    another (the map animates both, the feed names them)."""
+    from src.core.activity import derive_activity
+
+    state = _state(registry)
+    state.systems[VEFUT].space_units = {"p1": {"flagship": 1}}
+    state.active_system = QUANN
+    state.tactical_step = TacticalStep.MOVEMENT
+    after = _move(state, registry, VEFUT, {"flagship": 1})
+    entry = derive_activity(f"tactical:move:{VEFUT}", state, after)
+    assert entry is not None
+    facts = {(f.type, f.position, f.value, f.player_id) for f in entry.facts
+             if f.type.startswith("unit_wormhole")}
+    assert facts == {
+        ("unit_wormhole", QUANN, "delta", "p1"),
+        ("unit_wormhole_removed", VEFUT, "delta", "p1"),
+    }
+
+
 @ruling("F_creuss/hil-colish/2")
 def test_hil_colish_ostatni_reszta_przez_delte_startu(registry: StaticDataRegistry) -> None:
     state = _state(registry)

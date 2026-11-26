@@ -92,6 +92,8 @@ class MoveRouteShip(BaseModel):
     # Ile sztuk wolno ruszyć z premią (1, a z Gravleash cała grupa).
     bonus_max: int = Field(alias="bonusMax")
     reason: str
+    # May move before or after the player's other ships (Hil Colish, RULES.md 62.19).
+    moves_separately: bool = Field(default=False, alias="movesSeparately")
 
 
 class MoveRouteCargo(BaseModel):

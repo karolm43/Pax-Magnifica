@@ -23,7 +23,11 @@ import {
 } from "./heroBoardFx";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { getRelicData } from "@/entities/lookup/relics";
-import { wormholeTokenImage, wormholeTokenName } from "@/entities/lookup/wormholeTokens";
+import {
+  isCreussWormholeToken,
+  wormholeTokenImage,
+  wormholeTokenName,
+} from "@/entities/lookup/wormholeTokens";
 import styles from "./KeyMomentStage.module.css";
 
 /** Czas sceny (ms) bez wygaszania. */
@@ -207,6 +211,11 @@ function ConverterCaption({ moment, player }: { moment: Extract<KeyMoment, { kin
  */
 function WormholeCaption({ moment, player }: { moment: Extract<KeyMoment, { kind: "wormhole" }>; player: ActivityPlayer | undefined }) {
   const image = wormholeTokenImage(moment.token);
+  // A unit's wormhole (Hil Colish's delta) is not a token: "Delta wormhole", moving with the ship.
+  const token = isCreussWormholeToken(moment.token);
+  const title = token
+    ? wormholeTokenName(moment.token)
+    : wormholeTokenName(moment.token).replace(/ token$/, "");
   return (
     <div
       className={styles.boardCaption}
@@ -217,9 +226,11 @@ function WormholeCaption({ moment, player }: { moment: Extract<KeyMoment, { kind
       <span className={styles.eyebrow}>Creuss wormhole</span>
       <h2 className={styles.captionTitle}>
         {image && <img src={assetUrl(image)} alt="" width={28} height={28} style={{ verticalAlign: "middle", marginRight: 8 }} />}
-        {wormholeTokenName(moment.token)}
+        {title}
       </h2>
-      <span className={styles.subline}>{moment.from ? "Moved to a new system" : "Opened in a system"}</span>
+      <span className={styles.subline}>
+        {!token ? "Moves with the ship" : moment.from ? "Moved to a new system" : "Opened in a system"}
+      </span>
       <Who player={player} id={moment.player} />
     </div>
   );

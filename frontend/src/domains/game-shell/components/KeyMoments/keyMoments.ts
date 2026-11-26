@@ -32,7 +32,8 @@ export type KeyMoment =
   | { kind: "converter"; seq: number; player: string | null; planet: string; position: string }
   /**
    * A Creuss wormhole token opened in a system (Wormhole Generator, Creuss IFF, Icarus Drive —
-   * RULES.md 62.19); `from` = the system it left when it was moved.
+   * RULES.md 62.19), or a unit's wormhole moved with it (Hil Colish's delta, `token` =
+   * `whdelta`); `from` = the system it left when it was moved.
    */
   | {
       kind: "wormhole";
@@ -140,12 +141,36 @@ export function momentsForEntry(entry: ActivityEntry, isHero: IsHero): KeyMoment
       });
     }
   }
+  // A wormhole carried by a unit moved with it (Hil Colish's delta, RULES.md 62.19): the same
+  // portal - a vortex opens where it arrived and collapses where it left. Token id of that
+  // wormhole type in the token data (`wh<type>`) = its image and its recipe.
+  if (!godmode && !swapped) {
+    for (const f of a.facts) {
+      if (f.type !== "unit_wormhole" || !f.value || !f.position) continue;
+      const left = a.facts.find(
+        (x) => x.type === "unit_wormhole_removed" && x.value === f.value && x.player_id === f.player_id,
+      );
+      out.push({
+        kind: "wormhole",
+        seq,
+        player: f.player_id ?? a.actor_id,
+        token: unitWormholeToken(f.value),
+        position: f.position,
+        from: left?.position ?? null,
+      });
+    }
+  }
   // Fracture otwiera scenę: jeśli w jednym wpisie jest kilka momentów (przełom -> rzut 1/10),
   // najpierw przełom, potem Fracture.
   return out.sort((x, y) => order(x) - order(y));
 }
 
 const AREA_KINDS = new Set(["gain", "loss", "token_removed"]);
+
+/** Token id of a unit-carried wormhole type (`delta` -> `whdelta`, `assets/data/tokens`). */
+export function unitWormholeToken(type: string): string {
+  return `wh${type.toLowerCase()}`;
+}
 
 function order(m: KeyMoment): number {
   return m.kind === "fracture" ? 1 : 0;

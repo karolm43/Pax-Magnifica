@@ -332,7 +332,7 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
   // to trade places; under the flash the swapped board is revealed, the vortices collapse in
   // ripples. Sound: a low wormhole hum, a reversed rush (space folding), the snap, settling.
   ghosthero: {
-    dim: 0.62,
+    dim: 0.45,
     target: "swapped",
     mark: "rift",
     tone: "110 190 255",
@@ -413,7 +413,8 @@ export const RELIC_BOARD_FX: Record<string, HeroFxRecipe> = {
 };
 
 /**
- * Creuss wormhole token placed or moved (Wormhole Generator, Creuss IFF, Icarus Drive) — a short
+ * Creuss wormhole token placed or moved (Wormhole Generator, Creuss IFF, Icarus Drive) or the
+ * Hil Colish carrying its delta wormhole to another system — a short
  * board effect for everybody, no portrait: a vortex in the token's colour opens in the new
  * system (and, when moved, the old one collapses). Key = token id (`assets/data/tokens`).
  */
@@ -434,6 +435,8 @@ export const TOKEN_BOARD_FX: Record<string, HeroFxRecipe> = {
   creussalpha: portal("255 150 70"),
   creussbeta: portal("80 185 255"),
   creussgamma: portal("200 120 255"),
+  // Hil Colish's delta wormhole moving with the flagship (`unit_wormhole` facts).
+  whdelta: portal("80 235 205"),
 };
 
 const GROUND = new Set(["gf", "mf"]);

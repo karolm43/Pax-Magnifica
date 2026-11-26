@@ -6476,3 +6476,42 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
 - Slower overall (user: "a little bit slower"): ~1.75 s per system, wormhole jump 1.8 s.
 - QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
   ActivityPanel), build, e2e. Skipped: backend (no change).
+
+## Flight Replay: Armada Weight, Plain Cargo Sprites (2026-11-24)
+- User feedback: cargo showed the round-rect token background and the fleet still felt too fast ("I want to see
+  weight as an armada moves"). Cargo on the carrier and while packing/unpacking now uses plain unit sprites in a
+  loose group (`LooseCargo`, no token, no count); the map token with its count returns once the replay ends.
+- Heavy motion (`flightPath.ts`): ignition (`IGNITION_MS`, turn onto course in place while engines spool up and the
+  ship lifts: +7% scale, deeper shadow), ~2.8 s per system, settle (`SETTLE_MS`: stop, touch down, turn to park);
+  wormhole jump 2.4 s, pack/unpack 1.1/1.3 s. Engine flames spool up, burn and cut with those phases.
+- QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
+  ActivityPanel), build, e2e. Skipped: backend (no change).
+
+## Flight Replay: Fleet Visible While Cargo Boards, Cargo Physics (2026-11-24)
+- Bug: while cargo packed, the fleet waiting for it was invisible (its flight animation only filled forwards, so
+  the delay showed the hidden CSS state) - fighters/infantry slid into nothing. Routed and cargo flights now use
+  `fill: "both"`: ships rest visibly at their start until they launch.
+- Cargo moves like the ships (`buildCargoKeyframes`): boarding = fighters turn toward the carrier, accelerate,
+  brake into the hangar and only then shrink and vanish (fully visible while travelling); unpacking = emerge from
+  the carrier, launch out, brake, fighters turn back to the parked heading. Ground forces stay upright.
+- QA: frontend tsc (app), eslint (changed), vitest (`entities`, `state`, `domains/map`, `domains/battle`,
+  ActivityPanel), build, e2e. Skipped: backend (no change).
+
+## Flight Replay: Ships That Fly, Cargo Goes Inside, Throttled Engines (2026-11-25)
+- User feedback: infantry/fighter icons drawn under/on the flying ships looked bad; too much rotation, ships did not
+  feel like they were flying; wanted visible engines and a war-fleet feel.
+- Cargo: no icons on the hull in flight (`CarriedCargo` and `carriedCargo` removed; `LooseCargo` split into its own
+  file). Boarding cargo is drawn BELOW the ships (no +200 badge z-boost for `cargoRide`), shrinks as it nears the
+  carrier and dwindles to a speck while fading as it slips under the hull; unpacking grows out from under it.
+- Motion (`flightPath.ts`): no pivot in place. Ignition only lifts off (+10% scale) and spools up the engines; the
+  ship comes about while accelerating and swings to its parked heading while braking (`TURN_WINDOW_*`); settle only
+  sets it down. Look-ahead steering (`LOOK_AHEAD_PX`) leads the nose into corners. A single hop is a straight line
+  (no arc). Wormholes: dive in holding the heading and emerge facing the next course (no 720° spin).
+- Engines: `buildPathKeyframes` returns a `thrust` timeline (flare at launch, burn with speed, fade while braking,
+  cold on landing) that the flight hook plays on each nozzle and a new ion wake (`[data-thrust]`); bigger flames with
+  a hot core and fast flicker. History replays keep the fixed CSS burn.
+- Fleet: ships launch in waves by class (`staggerFleetLaunch`: destroyers, cruisers, carriers, dreadnoughts,
+  flagship/war sun; `LAUNCH_WAVE_MS`); cargo unpacks exactly when its own carrier lands; wormhole/anomaly effects
+  are shared by ships passing within `SHARED_EFFECT_MS`.
+- QA: frontend tsc (app), eslint (changed), vitest (`entities/replay`, `state`, `domains/map`), build. Skipped:
+  backend (no change), e2e (replay layer only, not setup/flow), visual check in a live game.

@@ -152,6 +152,19 @@ describe("momentsForEntry (RULES.md 64)", () => {
     expect(momentsForEntry(sleeper, isHero)).toEqual([]);
   });
 
+  it("Hil Colish moved: its delta wormhole = wormhole moment (whdelta, from -> to)", () => {
+    const moved = entry([
+      fact({ type: "unit_wormhole", player_id: "p1", value: "delta", position: "104" }),
+      fact({ type: "unit_wormhole_removed", player_id: "p1", value: "delta", position: "103" }),
+    ]);
+    expect(momentsForEntry(moved, isHero)).toEqual([
+      { kind: "wormhole", seq: 7, player: "p1", token: "whdelta", position: "104", from: "103" },
+    ]);
+    // Destroyed / returned: the wormhole only closes - no portal opens.
+    const gone = entry([fact({ type: "unit_wormhole_removed", player_id: "p1", value: "delta", position: "103" })]);
+    expect(momentsForEntry(gone, isHero)).toEqual([]);
+  });
+
   it("Singularity Reactor: hero moment with BOTH swapped tiles, no wormhole moment", () => {
     const e = entry([
       fact({ type: "leader", player_id: "p1", value: "ghosthero", detail: "purged" }),

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { IconClick, IconRoute } from "@tabler/icons-react";
-import { Switch } from "@/ds";
+import { SegmentedControl, Switch } from "@/ds";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
@@ -12,6 +12,9 @@ import { FleetPoolWarning } from "@/domains/map/components/FleetPoolWarning";
 import { MoveRouteBox } from "@/domains/movement/MoveRouteBox";
 import { FlightPlanList } from "@/domains/movement/FlightPlanList";
 import { useFlightPlan } from "@/domains/movement/useFlightPlan";
+import { movesSeparately, type SeparateOrder } from "@/domains/movement/flightPlan";
+import { asyncOfBase } from "@/domains/movement/routeTypes";
+import { lookupUnit } from "@/entities/lookup/units";
 import { usePlayerLook } from "@/domains/invasion/invasionUi";
 import styles from "./GameStatePanel.module.css";
 
@@ -100,6 +103,15 @@ export function MovementStepPanel({
 
   const sources = Object.keys(moveRange?.sources ?? {});
   const { incoming } = flight;
+  // A ship that "may move before or after your other ships" (Hil Colish, RULES.md 62.19).
+  const separateShip = flight.legs
+    .filter(movesSeparately)
+    .flatMap((leg) => leg.route.ships.filter((ship) => ship.movesSeparately))[0];
+  const separateName = separateShip
+    ? (lookupUnit(asyncOfBase(separateShip.baseType), faction, player)?.name ?? separateShip.baseType)
+    : null;
+  const onlySeparate =
+    separateName !== null && flight.legs.length > 0 && flight.legs.every(movesSeparately);
   return (
     <div className={styles.movement}>
       {/* Technologies that affect movement (Antimass, Light/Wave, Gravity Drive...). */}
@@ -171,6 +183,38 @@ export function MovementStepPanel({
           </span>
           <FlightPlanList legs={movePlan} />
         </section>
+      )}
+
+      {separateName && flight.separateOrderAsked && (
+        <div className={styles.planSection} role="group" aria-label={`When ${separateName} moves`}>
+          <span className={styles.prodZoneLabel}>{separateName} moves</span>
+          <SegmentedControl
+            aria-label={`When ${separateName} moves`}
+            size="xs"
+            fullWidth
+            data={[
+              { value: "before", label: "Before the others" },
+              { value: "after", label: "After the others" },
+              { value: "auto", label: "Auto (after)" },
+            ]}
+            value={flight.separateOrder}
+            onChange={(value) => flight.setSeparateOrder(value as SeparateOrder)}
+          />
+          <small className={styles.moveHint}>
+            {flight.separateOrder === "before"
+              ? `${separateName} flies first, then the other legs - with its delta wormhole already in its new system.`
+              : `The other legs fly first - they may still use the delta wormhole where ${separateName} starts.`}
+          </small>
+        </div>
+      )}
+      {onlySeparate && (
+        <p className={styles.moveHint}>
+          <IconRoute size={14} aria-hidden="true" />
+          <span>
+            {separateName} may move before your other ships: fly it on its own now, then plan the
+            rest - their routes will see its delta wormhole in its new system.
+          </span>
+        </p>
       )}
 
       {/* Combined result once the WHOLE plan arrives (RULES.md 42: the pool may be exceeded,

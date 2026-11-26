@@ -66,4 +66,22 @@ describe("describeActivity — Ghosts of Creuss wormhole tokens (RULES.md 62.19)
     );
     expect(screen.getByText(/placed the Alpha wormhole token in/)).toBeTruthy();
   });
+
+  it("Hil Colish: its delta wormhole moves with the ship - ONE line from -> to", () => {
+    const facts = renderFacts([
+      { type: "unit_wormhole", player_id: "p1", value: "delta", position: "104" },
+      { type: "unit_wormhole_removed", player_id: "p1", value: "delta", position: "103" },
+    ] as Activity["facts"]);
+    expect(facts).toHaveLength(1);
+    expect(screen.getByText(/Delta wormhole moved with the ship from/)).toBeTruthy();
+    expect(screen.getByText("System 103")).toBeTruthy();
+    expect(screen.getByText("System 104")).toBeTruthy();
+  });
+
+  it("Hil Colish destroyed: its delta wormhole closes", () => {
+    renderFacts([
+      { type: "unit_wormhole_removed", player_id: "p1", value: "delta", position: "103" },
+    ] as Activity["facts"]);
+    expect(screen.getByText(/Delta wormhole in/)).toBeTruthy();
+  });
 });

@@ -561,6 +561,7 @@ async def get_move_route(
                 bonusOptions=s.bonus_options,
                 bonusMax=s.bonus_max,
                 reason=s.reason,
+                movesSeparately=s.moves_separately,
             )
             for s in report.ships
         ],

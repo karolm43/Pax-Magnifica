@@ -17,9 +17,12 @@
 
 /* ------------------------------------------------------------------ Singularity Reactor */
 
+/* Shown only while the tile is in flight (lift 2.4 s -> landing ~4.2 s), translucent: the
+   board under it stays readable, the slot glows instead of going black. */
 .riftVoid {
   opacity: 0;
-  animation: riftVoid 2100ms ease-in-out 2350ms both;
+  mix-blend-mode: screen;
+  animation: riftVoid 1900ms ease-in-out 2450ms both;
 }
 
 .riftRim {
@@ -146,8 +149,8 @@
 
 @keyframes riftVoid {
   0% { opacity: 0; }
-  12% { opacity: 1; }
-  86% { opacity: 1; }
+  18% { opacity: 0.75; }
+  80% { opacity: 0.75; }
   100% { opacity: 0; }
 }
 

@@ -1024,6 +1024,40 @@ function describeFact(
           ),
       };
     }
+    case "unit_wormhole":
+    case "unit_wormhole_removed": {
+      // A wormhole carried by a unit (Hil Colish's delta, RULES.md 62.19) moved with it.
+      if (!fact.position) return null;
+      const type = fact.value ?? "";
+      const name = `${type.charAt(0).toUpperCase()}${type.slice(1)} wormhole`;
+      const system = (position: string) => (
+        <Named kind="system" id={position} name={ctx.systemName(position)} systemText={ctx.systemHint(position)} />
+      );
+      const pair = a.facts.find(
+        (x) =>
+          x.value === fact.value &&
+          x.player_id === fact.player_id &&
+          x.position &&
+          x.type === (fact.type === "unit_wormhole" ? "unit_wormhole_removed" : "unit_wormhole"),
+      );
+      if (fact.type === "unit_wormhole_removed") {
+        if (pair) return null; // a move is described once, by its "appeared" half
+        return { key, tone: "bad", text: <>{name} in {system(fact.position)} closed</> };
+      }
+      return {
+        key,
+        tone: "info",
+        text: pair?.position ? (
+          <>
+            {name} moved with the ship from {system(pair.position)} to {system(fact.position)}
+          </>
+        ) : (
+          <>
+            {name} opened in {system(fact.position)}
+          </>
+        ),
+      };
+    }
     case "objective_scored":
       if (a.action === "objective.score" && fact.value === a.subject) return null;
       return {

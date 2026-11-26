@@ -241,17 +241,26 @@ def action_wormholes(state: GameState, position: str) -> frozenset[str]:
     ))
 
 
-def unit_wormholes(state: GameState) -> dict[str, list[str]]:
-    """``{position: [TYPE]}`` wormholes carried by units (hook FORBID ``board.unit_wormholes``,
-    entries ``"<position>|<TYPE>"``) - Hil Colish's delta wormhole (RULES.md 62.19)."""
-    found: dict[str, list[str]] = {}
+def unit_wormholes_by_owner(state: GameState) -> list[tuple[str, str, str]]:
+    """``(position, TYPE, owner)`` of every wormhole carried by units (hook FORBID
+    ``board.unit_wormholes``, entries ``"<position>|<TYPE>"``) - Hil Colish's delta wormhole
+    (RULES.md 62.19). Sorted by owner, then entry."""
+    found: list[tuple[str, str, str]] = []
     for player_id in sorted(state.players):
         for entry in sorted(rules_hooks.forbidden(
             rules_hooks.POINT_BOARD_UNIT_WORMHOLES, state, player_id
         )):
             position, _, kind = str(entry).partition("|")
             if position and kind:
-                found.setdefault(position, []).append(kind.upper())
+                found.append((position, kind.upper(), player_id))
+    return found
+
+
+def unit_wormholes(state: GameState) -> dict[str, list[str]]:
+    """``{position: [TYPE]}`` wormholes carried by units (``unit_wormholes_by_owner``)."""
+    found: dict[str, list[str]] = {}
+    for position, kind, _owner in unit_wormholes_by_owner(state):
+        found.setdefault(position, []).append(kind)
     return found
 
 

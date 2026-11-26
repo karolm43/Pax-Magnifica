@@ -18,7 +18,7 @@ import {
   type MoveRouteData,
   type PickTarget,
 } from "@/domains/movement/routeTypes";
-import type { StagedLeg } from "@/domains/movement/flightPlan";
+import type { SeparateOrder, StagedLeg } from "@/domains/movement/flightPlan";
 
 const STORAGE_KEY = "ti4_settings";
 const THEME_STORAGE_KEY = "ti4_theme";
@@ -383,6 +383,9 @@ type AppStore = {
   editStagedLeg: (id: string) => void;
   removeStagedLeg: (id: string) => void;
   clearMovePlan: () => void;
+  /** Hil Colish "may move before or after your other ships" - the player's pick for this plan. */
+  separateMoveOrder: SeparateOrder;
+  setSeparateMoveOrder: (order: SeparateOrder) => void;
 
   /*
    * Ruch z EFEKTU (bohater, przełom, karta - ``UnitMovesField``): okno decyzji wystawia, które
@@ -665,7 +668,9 @@ export const useAppStore = create<AppStore>((set) => {
         movePlan: s.movePlan.filter((l) => l.id !== id),
         moveDraft: s.moveDraft?.legId === id ? null : s.moveDraft,
       })),
-    clearMovePlan: () => set({ movePlan: [] }),
+    clearMovePlan: () => set({ movePlan: [], separateMoveOrder: "auto" }),
+    separateMoveOrder: "auto",
+    setSeparateMoveOrder: (order) => set({ separateMoveOrder: order }),
     effectMove: null,
     setEffectMove: (move) => set({ effectMove: move }),
     effectMoveDrag: null,

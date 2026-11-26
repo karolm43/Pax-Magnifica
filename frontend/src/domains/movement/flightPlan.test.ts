@@ -1,7 +1,10 @@
 import {
   boostConflicts,
   draftAsLeg,
+  flightBatches,
   legRequest,
+  movesSeparately,
+  needsSeparateOrder,
   neededBoosts,
   planIncoming,
   stagedElsewhere,
@@ -138,5 +141,43 @@ describe("flight plan legs", () => {
     const withPick = { ...draft, picks: { [pickKey(pick({}))]: pick({}) } };
     expect(draftAsLeg(withPick, "x")?.from).toBe("101");
     expect(draftAsLeg({ ...withPick, route: null }, "x")).toBeNull();
+  });
+});
+
+describe("Hil Colish: may move before or after your other ships (RULES.md 62.19)", () => {
+  const flagship = leg(
+    "fs",
+    "103",
+    [pick({ position: "103", baseType: "flagship" })],
+    [ship({ baseType: "flagship", movesSeparately: true })],
+  );
+  const carrier = leg("cv", "101", [pick({})], [ship({})]);
+  // The flagship's system also holds a carrier; only the carrier is picked.
+  const carrierBeside = leg(
+    "cv2",
+    "103",
+    [pick({ position: "103" })],
+    [ship({}), ship({ baseType: "flagship", movesSeparately: true })],
+  );
+
+  it("only a leg that flies the flagship moves separately", () => {
+    expect(movesSeparately(flagship)).toBe(true);
+    expect(movesSeparately(carrier)).toBe(false);
+    expect(movesSeparately(carrierBeside)).toBe(false);
+  });
+
+  it("the choice is asked only with the flagship AND other legs in the plan", () => {
+    expect(needsSeparateOrder([flagship])).toBe(false);
+    expect(needsSeparateOrder([carrier])).toBe(false);
+    expect(needsSeparateOrder([flagship, carrier])).toBe(true);
+  });
+
+  it("before = the flagship flies first on its own; after / auto = one flight, flagship last", () => {
+    const ids = (batches: StagedLeg[][]) => batches.map((b) => b.map((l) => l.id));
+    expect(ids(flightBatches([flagship, carrier], "before"))).toEqual([["fs"], ["cv"]]);
+    expect(ids(flightBatches([flagship, carrier], "after"))).toEqual([["cv", "fs"]]);
+    expect(ids(flightBatches([flagship, carrier], "auto"))).toEqual([["cv", "fs"]]);
+    expect(ids(flightBatches([flagship], "before"))).toEqual([["fs"]]);
+    expect(flightBatches([], "auto")).toEqual([]);
   });
 });

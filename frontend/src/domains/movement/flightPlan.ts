@@ -148,6 +148,42 @@ export function legRequest(leg: StagedLeg): MoveLegRequest {
   };
 }
 
+/**
+ * When a ship that "may move before or after your other ships" (Hil Colish, RULES.md 62.19)
+ * flies: `auto` = after (every leg was previewed with that ship where it starts, so its delta
+ * wormhole there stays usable - `⚠️ ASSUMPTION` in rules/R62.md).
+ */
+export type SeparateOrder = "auto" | "before" | "after";
+
+/** A leg flying a ship that moves separately (by the route preview of the engine's hook). */
+export function movesSeparately(leg: StagedLeg): boolean {
+  return leg.route.ships.some(
+    (ship) =>
+      ship.movesSeparately === true &&
+      Object.values(leg.picks).some(
+        (p) => p.kind === "ship" && p.baseType === ship.baseType && p.count > 0,
+      ),
+  );
+}
+
+/** True when the order choice matters: a separately moving leg AND other legs in the plan. */
+export function needsSeparateOrder(legs: StagedLeg[]): boolean {
+  const separate = legs.filter(movesSeparately).length;
+  return separate > 0 && separate < legs.length;
+}
+
+/**
+ * Flights the plan is sent as, in order. "Before": the separate legs fly first as their own
+ * request (the state is committed, the rest then fly with its delta in its NEW system);
+ * "after" / auto: one request with the separate legs last.
+ */
+export function flightBatches(legs: StagedLeg[], order: SeparateOrder): StagedLeg[][] {
+  if (!needsSeparateOrder(legs)) return legs.length > 0 ? [legs] : [];
+  const separate = legs.filter(movesSeparately);
+  const rest = legs.filter((leg) => !movesSeparately(leg));
+  return order === "before" ? [separate, rest] : [[...rest, ...separate]];
+}
+
 export type IncomingFleet = {
   /** Ships flying in (asyncId -> count), fighters included. */
   ships: Record<string, number>;

@@ -12,7 +12,7 @@
  */
 import type { CSSProperties } from "react";
 import type { Tile } from "@/entities/game/types";
-import { HEX_PATH, TILE_HEIGHT, TILE_WIDTH } from "@/entities/geometry/tilePositioning";
+import { tileOutline } from "@/entities/geometry/tileOutline";
 import { getTileById } from "@/entities/lookup/systems";
 import { wormholeTokenImage } from "@/entities/lookup/wormholeTokens";
 import { assetUrl } from "@/shared/assets/resolveAsset";
@@ -24,10 +24,14 @@ type Point = { x: number; y: number };
 const vars = (v: Record<string, string | number>) => v as CSSProperties;
 const seq = <T,>(n: number, f: (i: number) => T): T[] => Array.from({ length: n }, (_, i) => f(i));
 
-const centre = (t: Tile): Point => ({
-  x: t.properties.x + TILE_WIDTH / 2,
-  y: t.properties.y + TILE_HEIGHT / 2,
-});
+/**
+ * Centre of the SHAPE shown in the slot (`systemId` = the tile drawn there; spiral tiles such as
+ * Crimson / Kwon are 416x386 drawn from the top-left corner - not the 345x299 hex centre).
+ */
+export function shapeCentre(t: Tile, systemId: string = t.systemId): Point {
+  const { center } = tileOutline(systemId);
+  return { x: t.properties.x + center.x, y: t.properties.y + center.y };
+}
 
 /** Spiral arm of a vortex (log-spiral-like curve from the rim into the core). */
 function armPath(r: number, turn: number): string {
@@ -79,14 +83,12 @@ function Vortex({ at, dir, index }: { at: Point; dir: 1 | -1; index: number }) {
       <circle className={classes.riftHalo} r={190} fill="url(#fxRiftHalo)" />
       <g className={classes.riftVortex}>
         <g className={classes.riftSpin}>
+          {/* Rotation on a <g>: the arm itself has a fill-box origin (CSS) and would pivot
+              around its own bounding box, scattering the arms off the vortex centre. */}
           {seq(5, (k) => (
-            <path
-              key={k}
-              className={classes.riftArm}
-              d={armPath(150, dir)}
-              transform={`rotate(${k * 72})`}
-              style={vars({ "--k": k })}
-            />
+            <g key={k} transform={`rotate(${k * 72})`}>
+              <path className={classes.riftArm} d={armPath(150, dir)} style={vars({ "--k": k })} />
+            </g>
           ))}
         </g>
         <circle className={classes.riftCore} r={46} fill="url(#fxRiftCore)" />
@@ -113,15 +115,20 @@ function FlyingTile({
   from,
   to,
   apex,
-  image,
+  systemId,
   dir,
 }: {
   from: Point;
   to: Point;
   apex: Point;
-  image: string | null;
+  /** The tile that flies (the one the slot showed before the swap). */
+  systemId: string;
   dir: 1 | -1;
 }) {
+  const image = tileImage(systemId);
+  const outline = tileOutline(systemId);
+  // Tile-local origin of the art, so that the SHAPE centre sits on the flight point.
+  const at = `translate(${-outline.center.x} ${-outline.center.y})`;
   const style = vars({
     "--mx": `${apex.x - from.x}px`,
     "--my": `${apex.y - from.y}px`,
@@ -132,23 +139,14 @@ function FlyingTile({
   return (
     <g transform={`translate(${from.x} ${from.y})`}>
       <g className={classes.riftFlight} style={style}>
-        {image ? (
-          <image
-            href={image}
-            x={-TILE_WIDTH / 2}
-            y={-TILE_HEIGHT / 2}
-            width={TILE_WIDTH}
-            height={TILE_HEIGHT}
-            preserveAspectRatio="none"
-          />
-        ) : (
-          <path d={HEX_PATH} transform={`translate(${-TILE_WIDTH / 2} ${-TILE_HEIGHT / 2})`} className={classes.riftGhostHex} />
-        )}
-        <path
-          d={HEX_PATH}
-          transform={`translate(${-TILE_WIDTH / 2} ${-TILE_HEIGHT / 2})`}
-          className={classes.riftGhostRim}
-        />
+        <g transform={at}>
+          {image ? (
+            <image href={image} width={outline.width} height={outline.height} />
+          ) : (
+            <path d={outline.path} className={classes.riftGhostHex} />
+          )}
+          <path d={outline.path} className={classes.riftGhostRim} />
+        </g>
       </g>
     </g>
   );
@@ -171,10 +169,12 @@ export function CreussFxDefs() {
         <stop offset="45%" style={c("rgb(120 80 255)", 0.28)} />
         <stop offset="100%" style={tone(0)} />
       </radialGradient>
+      {/* The empty slot = the wormhole's lit mouth (tone + violet), never a black hole. */}
       <radialGradient id="fxRiftVoid">
-        <stop offset="0%" style={c("rgb(4 6 20)", 0.96)} />
-        <stop offset="80%" style={c("rgb(10 14 40)", 0.92)} />
-        <stop offset="100%" style={tone(0.5)} />
+        <stop offset="0%" style={tone(0.95)} />
+        <stop offset="35%" style={c("rgb(120 80 255)", 0.7)} />
+        <stop offset="75%" style={c("rgb(40 50 140)", 0.6)} />
+        <stop offset="100%" style={tone(0.85)} />
       </radialGradient>
       <linearGradient id="fxRiftTether" gradientUnits="objectBoundingBox">
         <stop offset="0%" style={tone(0.2)} />
@@ -192,20 +192,25 @@ export function CreussFxDefs() {
 export function SingularityRiftMark({ targets, replaced }: { targets: Tile[]; replaced: ReplacedTile[] }) {
   if (targets.length < 2) return null;
   const [first, second] = targets;
-  const a = centre(first);
-  const b = centre(second);
+  // Until the reveal the map still shows the OLD tile in each slot (`covers`): every shape,
+  // centre and flight here follows the old tiles, not the swapped state.
+  const oldTile = (t: Tile) => replaced.find((r) => r.position === t.position)?.from ?? t.systemId;
+  const a = shapeCentre(first, oldTile(first));
+  const b = shapeCentre(second, oldTile(second));
   const arc = riftArc(a, b);
   const back = riftArc(b, a);
-  const oldTile = (t: Tile) => replaced.find((r) => r.position === t.position)?.from ?? t.systemId;
   return (
     <g className={classes.rift}>
-      {/* The slots go dark (void) while their tiles are away. */}
-      {[first, second].map((t, i) => (
-        <g key={`void-${t.position}`} transform={`translate(${t.properties.x} ${t.properties.y})`} style={vars({ "--i": i })}>
-          <path className={classes.riftVoid} d={HEX_PATH} fill="url(#fxRiftVoid)" />
-          <path className={classes.riftRim} d={HEX_PATH} />
-        </g>
-      ))}
+      {/* While its tile is away, the slot glows as the wormhole's mouth (not a black hole). */}
+      {[first, second].map((t, i) => {
+        const path = tileOutline(oldTile(t)).path;
+        return (
+          <g key={`void-${t.position}`} transform={`translate(${t.properties.x} ${t.properties.y})`} style={vars({ "--i": i })}>
+            <path className={classes.riftVoid} d={path} fill="url(#fxRiftVoid)" />
+            <path className={classes.riftRim} d={path} />
+          </g>
+        );
+      })}
       {/* The tether: glow, bright core, two particle streams running opposite ways. */}
       <path className={classes.riftTetherGlow} d={arc.d} pathLength={1} />
       <path className={classes.riftTether} d={arc.d} pathLength={1} />
@@ -213,15 +218,17 @@ export function SingularityRiftMark({ targets, replaced }: { targets: Tile[]; re
       <path className={classes.riftStream} data-back d={back.d} pathLength={100} />
       <Vortex at={a} dir={1} index={0} />
       <Vortex at={b} dir={-1} index={1} />
-      <FlyingTile from={a} to={b} apex={arc.apex} image={tileImage(oldTile(first))} dir={1} />
-      <FlyingTile from={b} to={a} apex={back.apex} image={tileImage(oldTile(second))} dir={-1} />
+      {/* Each tile lands where ITS shape will be drawn in the other slot (a spiral tile and a
+          hex have different centres in the same slot). */}
+      <FlyingTile from={a} to={shapeCentre(second, oldTile(first))} apex={arc.apex} systemId={oldTile(first)} dir={1} />
+      <FlyingTile from={b} to={shapeCentre(first, oldTile(second))} apex={back.apex} systemId={oldTile(second)} dir={-1} />
     </g>
   );
 }
 
 /** Creuss wormhole token: a vortex opens (`closing` = the system the token left collapses). */
 export function WormholePortalMark({ tile, token, closing }: { tile: Tile; token: string; closing?: boolean }) {
-  const at = centre(tile);
+  const at = shapeCentre(tile);
   const image = closing ? null : wormholeTokenImage(token);
   return (
     <g className={classes.portal} data-closing={closing || undefined} transform={`translate(${at.x} ${at.y})`}>
@@ -229,7 +236,9 @@ export function WormholePortalMark({ tile, token, closing }: { tile: Tile; token
       <g className={classes.portalVortex}>
         <g className={classes.riftSpin} style={vars({ "--dir": closing ? -1 : 1 })}>
           {seq(4, (k) => (
-            <path key={k} className={classes.portalArm} d={armPath(105, 1)} transform={`rotate(${k * 90})`} />
+            <g key={k} transform={`rotate(${k * 90})`}>
+              <path className={classes.portalArm} d={armPath(105, 1)} />
+            </g>
           ))}
         </g>
         <circle className={classes.portalCore} r={30} fill="url(#fxRiftCore)" />
