@@ -950,3 +950,8 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
 - Lore now shown: generic promissory notes in the library/deck browser, hover hints and ⓘ hint cards (action card,
   relic, exploration, planet), legendary planet ability card (`legendaryAbilityFlavourText`).
 - Still empty, for the user to write: relic fragments, generic units, JR-XS455-O. Strategy cards have no lore kind.
+
+## Intro → setup: no board flash
+
+- The wizard enters `/game` with `state.newGame`; `GameSetupOverlay` shows its backdrop while web-data loads.
+- The setup backdrop no longer fades in (only the panel does). New game drops the cached `playerData` (host and guest).

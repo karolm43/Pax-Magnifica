@@ -15,7 +15,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useBoardEditor } from "@/api/useBoardEditor";
@@ -56,7 +56,9 @@ function playerSwatch(player?: GameSetupPlayer): CSSProperties {
 export function GameSetupOverlay() {
   const params = useParams<{ mapid: string }>();
   const gameId = params.mapid ?? DEFAULT_GAME_ID;
-  const { data: gameState } = useGameState(gameId);
+  const { data: gameState, isPending } = useGameState(gameId);
+  // Arriving from the wizard: setup is certain, so cover the board before the data lands.
+  const newGame = (useLocation().state as { newGame?: boolean } | null)?.newGame === true;
   const gameData = useGameData();
   const { setupSecret, setupCustodians, setupRevealObjectives, setupSkip } = useBoardEditor();
 
@@ -86,6 +88,9 @@ export function GameSetupOverlay() {
 
   // Po zakończeniu setupu okno żyje jeszcze tylko jako pokaz odkrytych celów (`finished`).
   const finished = !setup && revealedByUs;
+  if (newGame && isPending) {
+    return createPortal(<div className={styles.overlay} aria-busy="true" />, document.body);
+  }
   if (!setup && (dismissed || !revealedByUs)) return null;
 
   const run = (action: () => Promise<void>, after?: () => void) => {

@@ -23,9 +23,9 @@
     linear-gradient(rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.88)),
     url("/static/extra/main_menu.jpg") center / cover no-repeat,
     #050505;
-  animation: setupIn 0.5s ease-out both;
 }
 
+/* Only the content fades in: a fading backdrop would let the board flash through. */
 @keyframes setupIn {
   from {
     opacity: 0;
@@ -42,6 +42,7 @@
   flex-direction: column;
   gap: clamp(10px, 2vh, 20px);
   align-items: center;
+  animation: setupIn 0.5s ease-out both;
 }
 
 .header {

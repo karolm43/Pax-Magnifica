@@ -126,7 +126,12 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
   const networkLobby = me?.network === true;
   // Gość: host wystartował grę → ta sama plansza otwierająca co u hosta, potem gra.
   const [guestStarted, setGuestStarted] = useState(false);
-  useSetupSync(networkLobby, () => setGuestStarted(true));
+  useSetupSync(networkLobby, () => {
+    queryClient.removeQueries({ queryKey: ["playerData"] }); // same as the host's submit
+    setGuestStarted(true);
+  });
+  // `newGame` keeps the setup backdrop up while the game page loads (no board flash).
+  const enterGame = () => navigate("/game", { state: { newGame: true } });
   const isGuest = useLobbyRole((r) => r.active && r.isGuest);
 
   // Mapa frakcji po id — do walidacji (liczba wymaganych tech) i mapowania żądania.
@@ -185,8 +190,9 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
       await createNewGame(request);
       // Lobby: właściciele slotów (host, goście) siadają jako p{i+1}; goście same wchodzą do gry.
       if (networkLobby) await seatLobbyPlayers();
-      // Nowa gra = nowy stan; wymuś świeży fetch web-data (staleTime: Infinity).
-      await queryClient.invalidateQueries({ queryKey: ["playerData"] });
+      // New game = new state: drop the cached web-data (staleTime: Infinity), otherwise the
+      // game page would show the previous game's board until the refetch lands.
+      queryClient.removeQueries({ queryKey: ["playerData"] });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error while creating the game.");
       setSubmitting(false);
@@ -206,13 +212,13 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
         /* intro pominięte */
       }
     }
-    navigate("/game");
+    enterGame();
   };
 
   useEffect(() => {
     if (!guestStarted) return;
     if (adminFastMode) {
-      navigate("/game");
+      enterGame();
       return;
     }
     let cancelled = false;
@@ -220,10 +226,10 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
       .then((players) => {
         if (cancelled) return;
         if (players.length > 0) setIntroPlayers(players);
-        else navigate("/game");
+        else enterGame();
       })
       .catch(() => {
-        if (!cancelled) navigate("/game"); // intro to tylko oprawa
+        if (!cancelled) enterGame(); // intro to tylko oprawa
       });
     return () => {
       cancelled = true;
@@ -233,7 +239,7 @@ export default function SetupWizard({ onExit }: { onExit?: () => void } = {}) {
 
   // Plansza otwierająca nakłada się na kreator (portal) aż do wejścia w grę.
   const intro = introPlayers && (
-    <GameIntro players={introPlayers} onFinish={() => navigate("/game")} />
+    <GameIntro players={introPlayers} onFinish={enterGame} />
   );
 
   return (
