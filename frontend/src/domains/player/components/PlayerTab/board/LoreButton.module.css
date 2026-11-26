@@ -1,0 +1,43 @@
+/* Full faction lore inside the modal. */
+.lore {
+  display: grid;
+  gap: 10px;
+  max-width: 72ch;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ds-ink-hi);
+}
+
+.lore h3 {
+  margin: 8px 0 0;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.lore p {
+  margin: 0;
+}
+
+.lore p[data-tone="red"] {
+  color: #f87171;
+}
+
+.lore p[data-tone="dark-red"] {
+  color: #b91c1c;
+}
+
+.loreQuote {
+  margin: 0;
+  padding-left: 12px;
+  font-style: italic;
+  border-left: 2px solid var(--ds-h14);
+  color: var(--ds-ink-lo);
+}
+
+.loreAuthor {
+  margin: -6px 0 0;
+  font-size: 12px;
+  color: var(--ds-ink-lo);
+}

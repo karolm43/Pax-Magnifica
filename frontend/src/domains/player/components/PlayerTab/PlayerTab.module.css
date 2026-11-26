@@ -1,15 +1,17 @@
-/* Panel dowódcy (zakładka Player): nagłówek gracza, odprawa + zasoby + pełna karta w głównej
-   kolumnie, stół (wyścig VP) + akcje + ręka w bocznej. Kolor gracza = --pc. Na wąskich
-   ekranach kolumny składają się w jeden pion. */
+/* Player tab: seat switcher, table badges, the player zone (board/) and the lower dock.
+   Player colour = --pc. */
 .layout {
   display: grid;
-  gap: 12px;
+  /* Without this the widest child (tab list) widens the whole tab on a phone. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
   padding: 12px;
 }
 
+/* --- Dock --- */
 .grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
   gap: 12px;
   align-items: start;
 }
@@ -20,64 +22,44 @@
   }
 }
 
-.main,
-.side {
+.column {
   display: grid;
   gap: 12px;
   min-width: 0;
 }
 
-/* --- Telemetria pod banerem --- */
-.telemetry {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  padding: 6px 12px;
-  border: 1px solid var(--ds-h14);
-  border-radius: var(--ds-radius-md);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.readouts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 14px;
-}
-
-.readout {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  font-size: 13px;
-  color: var(--ds-ink-hi);
-}
-
-.readout small {
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ds-ink-lo);
-}
-
-.readout i {
-  font-style: normal;
-  color: var(--ds-ink-lo);
-}
-
-.readout[data-warn] b {
-  color: #fbbf24;
-}
-
-/* --- Zakładki dolnej części --- */
 .viewTabs {
   margin-bottom: 8px;
+}
+
+.tabMeta {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--ds-ink-lo);
+}
+
+.tabMeta[data-warn] {
+  color: #fbbf24;
 }
 
 .view {
   display: grid;
   gap: 12px;
+}
+
+.dockSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.dockFlow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
 }
 
 /* --- Panele --- */
@@ -164,116 +146,6 @@
 .refLink:focus-visible {
   outline: 2px solid var(--ds-accent, #2563eb);
   outline-offset: 2px;
-}
-
-/* --- Stół --- */
-.seats {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.seat {
-  display: grid;
-  gap: 2px;
-  padding: 4px 6px;
-  border-radius: 8px;
-}
-
-.seat[data-selected] {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.seatBtn {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) 90px;
-  align-items: center;
-  gap: 8px;
-  padding: 0;
-  font: inherit;
-  color: var(--ds-ink-hi);
-  text-align: left;
-  border: 0;
-  background: none;
-  cursor: pointer;
-}
-
-.seatBtn:focus-visible {
-  outline: 2px solid var(--ds-accent, #2563eb);
-  outline-offset: 2px;
-}
-
-.seatRing {
-  display: grid;
-  place-items: center;
-  padding: 2px;
-  border-radius: 50%;
-  box-shadow: 0 0 0 2px var(--pc);
-}
-
-.seatName {
-  overflow: hidden;
-  font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.seatVp {
-  position: relative;
-  display: flex;
-  justify-content: flex-end;
-  height: 16px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.seatVp i {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pc) 70%, transparent);
-}
-
-.seatVp b {
-  position: relative;
-  padding: 0 6px;
-  font-size: 11px;
-  line-height: 16px;
-}
-
-.seatMeta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  padding-left: 30px;
-  font-size: 11px;
-  color: var(--ds-ink-lo);
-}
-
-.badge {
-  padding: 0 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.badge[data-kind="turn"] {
-  color: #0b1220;
-  background: #60a5fa;
-}
-
-.sc {
-  padding: 0 6px;
-  font-weight: 700;
-  border-radius: 4px;
-  background: rgba(250, 204, 21, 0.18);
-}
-
-.sc[data-used] {
-  opacity: 0.5;
 }
 
 .empty {

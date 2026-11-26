@@ -1,0 +1,51 @@
+/* Three wings side by side; below that the sheet takes the full width and the two wings sit
+   under it; on a phone everything is one column. Measured on the board, not the viewport. */
+.board {
+  container-type: inline-size;
+}
+
+.wings {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr) 232px;
+  grid-template-areas: "leaders sheet command";
+  gap: 8px;
+}
+
+.leaders {
+  grid-area: leaders;
+  display: grid;
+  min-width: 0;
+}
+
+.sheet {
+  grid-area: sheet;
+  display: grid;
+  min-width: 0;
+}
+
+.command {
+  grid-area: command;
+  display: grid;
+  min-width: 0;
+}
+
+@container (max-width: 1240px) {
+  .wings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "sheet   sheet"
+      "leaders command";
+  }
+
+  .command {
+    justify-self: center;
+    width: min(100%, 300px);
+  }
+}
+
+@container (max-width: 560px) {
+  .wings {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "sheet" "leaders" "command";
+  }
+}

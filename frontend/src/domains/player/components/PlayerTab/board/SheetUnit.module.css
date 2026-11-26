@@ -1,0 +1,241 @@
+/* A unit box of the faction sheet: dark chamfered plate, stat bar on the floor, UPGRADE strip. */
+.slot {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 4px;
+  min-width: 0;
+}
+
+.box {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ds-ink-hi);
+  text-align: left;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  background: linear-gradient(180deg, rgb(22 26 36 / 0.9), rgb(9 11 17 / 0.94));
+  clip-path: polygon(0 0, calc(100% - var(--ti-cut)) 0, 100% var(--ti-cut), 100% 100%, var(--ti-cut) 100%, 0 calc(100% - var(--ti-cut)));
+  cursor: pointer;
+  transition: border-color 0.15s, filter 0.15s;
+}
+
+.box:hover {
+  filter: brightness(1.15);
+}
+
+.box:focus-visible {
+  outline: 2px solid var(--ds-accent, #2563eb);
+  outline-offset: -3px;
+}
+
+.box[data-upgraded] {
+  border-color: color-mix(in srgb, var(--pc) 75%, transparent);
+  box-shadow: inset 0 0 22px color-mix(in srgb, var(--pc) 28%, transparent);
+}
+
+.box[data-variant="flagship"] {
+  border-color: rgb(var(--ti-gold-rgb) / 0.55);
+}
+
+.unavailable {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.unavailable:hover {
+  filter: none;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 8px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  /* Room for the count tag in the corner. */
+  padding-right: 34px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.14);
+}
+
+.name {
+  margin: 0;
+  color: #fff;
+  font-family: var(--ti-font-title);
+  font-size: 12.5px;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.box[data-upgraded] .name {
+  color: color-mix(in srgb, var(--pc) 40%, #fff);
+}
+
+.subtitle {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ti-gold);
+}
+
+/* Silhouette: the unit sprite in the player's colour, with a glow of the same colour. */
+.art {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-height: 46px;
+  --unit-fit: 64px;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--pc) 65%, transparent));
+}
+
+.box[data-variant="flagship"] .art {
+  --unit-fit: 90px;
+}
+
+.unavailable .art {
+  filter: grayscale(1);
+}
+
+.ability {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: pre-line;
+}
+
+.inlineIcons img {
+  width: 11px;
+  height: 11px;
+  vertical-align: middle;
+}
+
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.keywords li {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.keywords li::before {
+  content: "✦ ";
+  color: var(--ti-gold);
+}
+
+.stats {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 3px;
+  margin: 0;
+}
+
+.stat {
+  display: grid;
+  justify-items: center;
+  max-width: 52px;
+  padding: 2px 0 1px;
+  border-top: 2px solid rgb(var(--ti-gold-rgb) / 0.75);
+  background: rgb(var(--ti-gold-rgb) / 0.12);
+  clip-path: polygon(14% 0, 86% 0, 100% 30%, 100% 70%, 86% 100%, 14% 100%, 0 70%, 0 30%);
+}
+
+.stat dd {
+  margin: 0;
+  font-family: var(--ti-font-title);
+  font-size: 17px;
+  line-height: 1.1;
+}
+
+.stat dd i {
+  font-family: system-ui, sans-serif;
+  font-size: 10px;
+  font-style: normal;
+  color: var(--ds-ink-lo);
+}
+
+.stat dt {
+  font-size: 7px;
+  text-transform: uppercase;
+  color: var(--ds-ink-lo);
+}
+
+/* Live count: a small "plastic" tag in the corner. */
+.count {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  padding: 1px 5px;
+  font-size: 10px;
+  color: var(--ds-ink-lo);
+  border: 1px solid color-mix(in srgb, var(--pc) 60%, transparent);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.7);
+}
+
+.box:has(.upgrade) .count {
+  right: 24px;
+}
+
+.count b {
+  font-size: 12px;
+  color: var(--ds-ink-hi);
+}
+
+.count[data-empty] b {
+  color: #fbbf24;
+}
+
+.upgrade {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 19px;
+  padding: 10px 0 6px;
+  border-left: 1px solid rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.04);
+}
+
+.upgrade span {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.upgrade img {
+  width: 13px;
+  height: 13px;
+}
+
+.upgrade[data-researched] {
+  background: color-mix(in srgb, var(--pc) 45%, rgb(0 0 0 / 0.4));
+}
+
+.stasis {
+  width: 64px;
+}

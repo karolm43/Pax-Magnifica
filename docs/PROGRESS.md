@@ -399,3 +399,13 @@ Older, completed blocks (Phase 1 → blocks up to 2026-11-24) are in `PROGRESS_A
 - ⚠️ ASSUMPTIONS (RULES.md 62.19): "Auto" defaults (token, system, Splicer target, mech, hero pair, fighters);
   Hil Colish order = order of submitted fleet moves; "moved through a wormhole" = hop between two wormhole systems that
   do not share an edge. New `GameState`/API fields (`TokenDef.wormholes`, `ActivityFact.position`): restart the backend.
+
+## Player tab as a physical player zone (frontend only)
+- Layout (`PlayerTab/`): seat switcher + table badges (`TableStrip`), the 3-wing board (`board/PlayerBoard`:
+  `LeaderWing` | `FactionSheet` | `CommandWing`), tabbed lower dock (`EmpireDock`: hand & briefing, planets,
+  technologies, objectives & cards). `CommandBanner` and the telemetry strip are gone.
+- Unit boxes (`board/SheetUnit` + `sheetUnits.ts`) print stat boxes, keywords and the UPGRADE strip from unit data
+  only; live deployed/cap tag. Click opens the shared `UnitCard/UnitDetails`; upgrade modifiers now live in
+  `UnitCard/unitModifiers.ts` (used by `UnitCard` too). `PlayerCard` lost the unused `hideHeader`/`sections` props.
+- Responsive by container queries: wings under the sheet below 1240px, one column on a phone.
+- Tests: `board/PlayerBoard.test.tsx`; checked in a real browser (solo Muaat game, 1920 / 1366 / 420 px).

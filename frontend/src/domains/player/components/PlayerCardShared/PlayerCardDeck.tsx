@@ -25,7 +25,7 @@ import { useGameData } from "@/state/useGameContext";
 import { useSettingsStore } from "@/state/appStore";
 import styles from "./PlayerCardDeck.module.css";
 
-/** Groups of compartments; the Player tab deals them out over its sub-views. */
+/** Groups of compartments; the Player tab's dock draws the tech rack alone. */
 export type DeckSection = "loadout" | "status" | "tech" | "units" | "planets";
 
 const ALL_SECTIONS: readonly DeckSection[] = ["loadout", "status", "tech", "units", "planets"];

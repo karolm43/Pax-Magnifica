@@ -1,17 +1,14 @@
 import { useDisclosure } from "@/hooks/useDisclosure";
 import styles from "./UnitCard.module.css";
-import { UnitDetailsCard } from "@/domains/cards/components/UnitDetailsCard";
 import { SmoothPopover } from "@/shared/ui/SmoothPopover";
 import { Unit } from "@/shared/ui/Unit";
 import { BaseCard } from "./BaseCard";
 import { DenseUnitCell } from "./DenseUnitCell";
 import { getColorAlias } from "@/entities/lookup/colors";
-import {
-  getOwnedTwilightsFallUnitByAsyncId,
-  getUnitData,
-  isNekroFlagship,
-} from "@/entities/lookup/units";
+import { getUnitData } from "@/entities/lookup/units";
 import { useGameContext } from "@/state/useGameContext";
+import { UnitDetails } from "./UnitDetails";
+import { DEFAULT_UNIT_CAPS, getUnitModifiers } from "./unitModifiers";
 
 type Props = {
   unitId: string;
@@ -20,20 +17,6 @@ type Props = {
   unitCap?: number;
   condensed?: boolean;
   showUpgradeState?: boolean;
-};
-
-const DEFAULT_UNIT_CAPS = {
-  carrier: 4,
-  mech: 4,
-  flagship: 1,
-  spacedock: 3,
-  dreadnought: 5,
-  destroyer: 8,
-  cruiser: 8,
-  pds: 6,
-  warsun: 2,
-  infantry: 12,
-  fighter: 10,
 };
 
 export function UnitCard({
@@ -51,29 +34,13 @@ export function UnitCard({
 
   if (!unitData) return null;
 
-  const isMech = unitData.baseType === "mech";
   const playerData = color
     ? gameData?.playerData?.find((p) => p.color === color)
     : undefined;
-  const playerUnitsOwned = playerData?.unitsOwned;
-
-  const hasCabalMechUpgrade =
-    isMech && playerUnitsOwned?.includes("tf-eidolonterminus");
-  const hasNaazMechUpgrade =
-    isMech && playerUnitsOwned?.includes("tf-eidolonlandwaster");
-  const hasNekroMechUpgrade =
-    isMech && playerUnitsOwned?.includes("tf-valefarprime");
-  const ownedTwilightsFallUnit = getOwnedTwilightsFallUnitByAsyncId(
-    unitData.asyncId,
-    playerUnitsOwned
+  const { upgradeFactions: allUpgradeFactions } = getUnitModifiers(
+    unitData,
+    playerData?.unitsOwned,
   );
-
-  const allUpgradeFactions = Array.from(new Set([
-    ...(hasCabalMechUpgrade ? ["cabal"] : []),
-    ...(hasNaazMechUpgrade ? ["naaz"] : []),
-    ...(hasNekroMechUpgrade ? ["nekro"] : []),
-    ...(ownedTwilightsFallUnit?.faction ? [ownedTwilightsFallUnit.faction] : []),
-  ]));
   const unitIsUpgraded =
     unitData.upgradesFromUnitId !== undefined || unitData.baseType === "warsun";
   const isUpgraded =
@@ -83,8 +50,7 @@ export function UnitCard({
       ? allUpgradeFactions
       : undefined;
   const isFaction = unitData.faction !== undefined;
-  const defaultCap =
-    DEFAULT_UNIT_CAPS[unitData.baseType as keyof typeof DEFAULT_UNIT_CAPS];
+  const defaultCap = DEFAULT_UNIT_CAPS[unitData.baseType];
   const unitCap = unitCapProp ?? defaultCap;
   const reinforcements = unitCap - deployedCount;
 
@@ -134,22 +100,7 @@ export function UnitCard({
         )}
       </SmoothPopover.Target>
       <SmoothPopover.Dropdown className={styles.popoverDropdown}>
-        <UnitDetailsCard
-          unitId={unitId}
-          color={color}
-          bonusCombatDice={hasNaazMechUpgrade ? 1 : undefined}
-          combatValueModifier={hasCabalMechUpgrade ? -1 : undefined}
-          costModifier={hasNekroMechUpgrade ? -1 : undefined}
-          playerUnitsOwned={
-            unitId === "pinktf_flagship" ? playerUnitsOwned : undefined
-          }
-          valefarZTargets={
-            isNekroFlagship(unitId) ? playerData?.valefarZTargets : undefined
-          }
-          allPlayerData={
-            isNekroFlagship(unitId) ? gameData?.playerData : undefined
-          }
-        />
+        <UnitDetails unitId={unitId} color={color} />
       </SmoothPopover.Dropdown>
     </SmoothPopover>
   );
