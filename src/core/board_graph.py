@@ -97,6 +97,9 @@ def home_positions(state: GameState, registry: StaticDataRegistry) -> set[str]:
             continue  # slot trzyma bramę, nie dom
         if player.home_position:
             positions.add(player.home_position)
+    # R_elimination: an eliminated player's home system remains a home system for game effects
+    # (C_action_cards ghost-ship/2, signal-jamming/2).
+    positions |= {e.home_position for e in state.eliminated_players if e.home_position}
     ids = home_system_ids(state, registry)
     positions |= {pos for pos, system in state.systems.items() if system.system_id in ids}
     return positions

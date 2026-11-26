@@ -57,6 +57,7 @@ from src.core.reaction_cards import (
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import (
     POINT_MOVEMENT_ALPHA_BETA_ADJACENT,
+    POINT_MOVEMENT_EXTRA_ADJACENT,
     POINT_MOVEMENT_IGNORE_ANOMALIES,
     POINT_MOVEMENT_MOVE_VALUE,
     POINT_MOVEMENT_PASS_FOREIGN_SHIPS,
@@ -99,7 +100,7 @@ def _register_flank_speed(card_id: str) -> None:
     def effect(
         state: GameState, _registry: StaticDataRegistry, player_id: str, _params: Mapping[str, Any]
     ) -> None:
-        # Klucz efektu = id konkretnej kopii karty, więc dwie zagrane kopie sumują się (+2).
+        # Klucz efektu = id konkretnej kopii karty (drugiej kopii broni ``_cond_flank_speed``).
         active_effects.add_effect(
             state, f"action_cards:{card_id}", Duration.TACTICAL_ACTION, owner=player_id
         )
@@ -114,6 +115,19 @@ def _register_flank_speed(card_id: str) -> None:
 
 for _card in _FLANK_SPEED:
     _register_flank_speed(_card)
+
+
+def _cond_flank_speed(
+    state: GameState, _registry: StaticDataRegistry, player_id: str, _window: OpenWindow
+) -> bool:
+    """Druga kopia w tej samej akcji taktycznej nie daje +2 (C_action_cards, R_action_cards)."""
+    return not any(
+        active_effects.has_effect(state, player_id, f"action_cards:{card_id}")
+        for card_id in _FLANK_SPEED
+    )
+
+
+declare_reaction(*_FLANK_SPEED, condition=_cond_flank_speed)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -314,8 +328,16 @@ def _cond_war_machine(
 def _cond_reparations(
     state: GameState, _registry: StaticDataRegistry, player: str, window: OpenWindow
 ) -> bool:
-    """Reparations: planeta, którą ZDOBYŁ inny gracz, była TWOJA (kontrolowałeś ją)."""
-    return window.ctx.get("previous") == player
+    """Reparations: planeta, którą ZDOBYŁ inny gracz, była TWOJA (kontrolowałeś ją).
+
+    C_action_cards: bez wyczerpanej własnej planety ORAZ bez gotowej planety zdobywcy kart nie
+    wolno zagrać (sam jeden z tych braków nie przeszkadza).
+    """
+    if window.ctx.get("previous") != player:
+        return False
+    return bool(
+        _exhausted_planets(state, player) or _ready_planets(state, str(window.ctx.get("player")))
+    )
 
 
 declare_reaction("harness", condition=_cond_anomaly)
@@ -355,6 +377,30 @@ _register_duration_effect("lost_star")
 register(
     POINT_MOVEMENT_ALPHA_BETA_ADJACENT, card_effect_source("lost_star"), HookKind.PERMIT
 )(_always)
+
+
+def _lost_star_adjacent(
+    _state: GameState, _player_id: str, ctx: Mapping[str, Any]
+) -> frozenset[str]:
+    """Systems with alpha / beta wormholes are adjacent to each other during this action.
+
+    Registered on the action-wide adjacency (``action_adjacency``), so it also counts for other
+    players' Deep Space Cannon (C_action_cards lost-star-chart/2). It is added after the Enforced
+    Travel Ban filter, so the law does not stop it - alpha-alpha and beta-beta too (1, 1.1).
+    """
+    from src.core import board_graph  # lokalnie: board_graph importuje warstwę hooków
+
+    grid = board_graph.bound_grid()
+    if grid is None:
+        return frozenset()
+    linked = set(grid.wormhole_positions("ALPHA")) | set(grid.wormhole_positions("BETA"))
+    position = str(ctx.get("position", ""))
+    return frozenset(linked - {position}) if position in linked else frozenset()
+
+
+register(
+    POINT_MOVEMENT_EXTRA_ADJACENT, card_effect_source("lost_star"), HookKind.FORBID
+)(_lost_star_adjacent)
 
 # Nav Suite: „During the 'Movement' step of this tactical action, ignore the effect of anomalies."
 _register_duration_effect("nav_suite")
@@ -638,8 +684,10 @@ def rescue(
     contain one of your command tokens.
 
     ⚠ ZAŁOŻENIE: ruch nie sprawdza zasięgu ani przejezdności (karta nie jest „ruchem" o wartości
-    ruchu); rzut usunięcia ze studni grawitacyjnej (ruling) nie jest jeszcze egzekwowany.
+    ruchu). Statek wychodzący z gravity rift rzuca na usunięcie (C_action_cards rescue/1).
     """
+    from src.core import board_graph, movement  # lokalnie: movement nie importuje hooków
+
     window_raw = params.get(WINDOW_KEY)
     window = OpenWindow(
         GameEvent.SHIPS_MOVED, Moment.AFTER, dict(window_raw["ctx"])
@@ -651,6 +699,14 @@ def rescue(
         raise ValueError("Choose one of your ships in a system without your command token.")
     active = state.systems[_active_position(window)]
     source = state.systems[str(source_pos)]
+    grid = board_graph.bound_grid()
+    if grid is not None and movement.is_gravity_rift(grid, source.position):
+        lost = movement.roll_rift_exit(state, player_id, {str(base_type): 1}, source.position)
+        if lost:
+            unit_ops.remove_units(
+                state, source, "space", player_id, str(base_type), 1, UnitCause.REMOVED
+            )
+            return
     unit_ops.transfer_units(state, source, "space", active, "space", player_id, str(base_type), 1)
 
 

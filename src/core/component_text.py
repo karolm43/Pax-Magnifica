@@ -86,6 +86,7 @@ _CATALOG_ALIASES = {
 # co z nimi zrobić, więc nie trafiają na tacę efektów.
 _HIDDEN_KEYS = {
     "action_cards:dp_give",
+    "action_cards:mjets_used",
     "agenda_phase:dp_target",
     "production:commander_trade_good",
 }

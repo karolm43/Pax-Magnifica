@@ -3,7 +3,8 @@
 Sabotage: „When another player plays an action card other than 'Sabotage': Cancel that action card."
 Okno istnieje tylko, gdy cudza karta (inna niż Sabotage) czeka w ``GameState.held_play``
 (``core/card_hold.py``, RULES.md 53.6). Efekt: karta czekająca idzie na odrzucone, jej efekt się
-nie wykonuje, a akcja zagrywającego pozostaje zużyta. Samą Sabotage odrzuca zwykła ścieżka
+nie wykonuje, a karta ACTION oddaje akcję tury (C_action_cards: inna akcja albo pas).
+Samą Sabotage odrzuca zwykła ścieżka
 ``action_cards`` (jak każdą zagraną kartę reakcji).
 """
 
@@ -12,7 +13,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import card_hold
+from src.core import action_budget, card_hold
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.reaction_cards import OTHER, OpenWindow, declare_reaction, window_provider
@@ -53,8 +54,15 @@ declare_reaction(
 def _cancel(
     state: GameState, _registry: StaticDataRegistry, _player_id: str, _params: Mapping[str, Any]
 ) -> None:
-    """Anuluje czekającą kartę (``card_hold.cancel_in_place``)."""
+    """Anuluje czekającą kartę (``card_hold.cancel_in_place``).
+
+    C_action_cards/sabotage: anulowana akcja komponentu nie liczy się jako akcja tury (przy drugiej
+    akcji, np. Fleet Logistics, pierwsza zostaje, więc turę można po prostu zakończyć).
+    """
+    held = state.held_play
     card_hold.cancel_in_place(state)
+    if held is not None and held.is_action:
+        action_budget.unregister_action(state, held.player_id)
 
 
 for _card in card_hold.SABOTAGE_IDS:

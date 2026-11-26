@@ -28,6 +28,7 @@ from typing import Any
 from src.core import (
     active_effects,
     agenda_phase,
+    board_reinforcements,
     card_draw,
     command_tokens,
     economy,
@@ -42,7 +43,13 @@ from src.core import (
 )
 from src.core.components import ComponentCategory
 from src.core.game_events import Duration, GameEvent, Moment
-from src.core.game_state import AgendaPhaseState, AgendaStep, GameState, Phase
+from src.core.game_state import (
+    AgendaPhaseState,
+    AgendaStep,
+    GameState,
+    Phase,
+    SystemState,
+)
 from src.core.hooks import card_targets_economy as targets
 from src.core.hooks.action_card_inputs import (
     Input,
@@ -54,11 +61,7 @@ from src.core.hooks.action_card_inputs import (
     _player_label,
     _system_label,
 )
-from src.core.hooks.card_helpers import (
-    controlled,
-    place_from_reinforcements,
-    system_of_planet,
-)
+from src.core.hooks.card_helpers import controlled, system_of_planet
 from src.core.reaction_cards import (
     OpenWindow,
     card_effect_source,
@@ -67,6 +70,8 @@ from src.core.reaction_cards import (
 )
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import on_event, register_effect, register_effect_inputs
+from src.core.strategy_cards.common import structure_problem
+from src.core.unit_catalog import is_space_unit
 
 # --- Stałe z tekstów kart (assets/data/action_cards) --------------------------------------
 _IMPERIAL_RIDER_VP = 1  # „gain 1 victory point"
@@ -76,12 +81,17 @@ _TRADE_RIDER_TG = 5  # „gain 5 trade goods"
 _DISTINGUISHED_VOTES = 5  # „Cast 5 additional votes for that outcome"
 _INSIDER_COUNT = 3  # „Look at the top 3 cards of the agenda deck"
 
+_NO_SOURCE = "none"  # form value: do not take a unit from the board
+
 _VOTING_STEPS = (AgendaStep.VOTE, AgendaStep.TIEBREAK, AgendaStep.COUNTED)
 
 _KIND_VOTED = "voted"  # okno „po tym, jak gracz oddał głosy"
 _KIND_SPEAKER = "speaker"  # okno „po tym, jak mówca zagłosował / wstrzymał się"
 # Hack Election Ω: kto głosuje ostatni w tej agendzie (nie zagra Bribery - ruling).
 HACK_ELECTION = "action_cards:hack:vote_last"
+# Confounding/Confusing Legal Text changed the elected player: no more additional votes
+# (Bribery / Distinguished Councilor come before outcome-changing effects, C_action_cards).
+OUTCOME_CHANGED = "action_cards:legal_text:outcome_changed"
 
 
 # =========================================================================================
@@ -94,10 +104,14 @@ def _speaker_window_open(state: GameState, agenda: Any, speaker: str) -> bool:
     kolejce jeszcze nie głosował. Mówca Argent głosuje PIERWSZY (Zeal), więc Bribery zagrywa tylko
     on i tylko od razu po swoim głosie (C_action_cards). Głos gracza z Hack Election Ω (ostatni,
     po mówcy) okna nie zamyka - on sam Bribery i tak nie zagra."""
-    if not (speaker in agenda.votes or speaker in agenda.abstained or speaker in agenda.blocked):
-        return False
     order = list(agenda.vote_order)
-    later = order[order.index(speaker) + 1:] if speaker in order else []
+    place = order.index(speaker) if speaker in order else len(order)
+    done = {*agenda.votes, *agenda.abstained, *agenda.blocked}
+    if not (speaker in agenda.votes or speaker in agenda.abstained):
+        # A speaker who cannot vote: the window opens when they "would vote", not at the reveal.
+        if speaker not in agenda.blocked or any(p not in done for p in order[:place]):
+            return False
+    later = order[place + 1:]
     return not any(
         (p in agenda.votes or p in agenda.abstained)
         and not active_effects.has_effect(state, p, HACK_ELECTION)
@@ -216,7 +230,10 @@ def _ship_systems(state: GameState, player_id: str) -> list[str]:
     return [
         position
         for position, system in state.systems.items()
-        if any(n > 0 for n in system.space_units.get(player_id, {}).values())
+        if any(
+            n > 0 and is_space_unit(bt)  # carried ground forces are not ships
+            for bt, n in system.space_units.get(player_id, {}).items()
+        )
     ]
 
 
@@ -267,10 +284,61 @@ def _no_validation(
     return {}
 
 
+# Empty reinforcements: the unit may be taken from the board instead (C_action_cards).
+def _source_inputs(
+    state: GameState, registry: StaticDataRegistry, player_id: str, base_type: str
+) -> list[Input]:
+    if not board_reinforcements.needs_board_source(state, player_id, base_type):
+        return []
+    sources = board_reinforcements.source_options(state, registry, player_id, base_type)
+    if not sources:
+        return []
+    name = "space dock" if base_type == targets.SPACE_DOCK else base_type
+    return [_choice(
+        "source", f"No {name} in your reinforcements - take one from the board?",
+        [_option(_NO_SOURCE, f"Do not place a {name}")]
+        + [_option(value, label) for value, label in sources],
+    )]
+
+
+def _source_data(
+    state: GameState, player_id: str, base_type: str, params: Mapping[str, Any]
+) -> dict[str, Any]:
+    source = params.get("source")
+    if source in (None, "", _NO_SOURCE):
+        return {}
+    if source not in board_reinforcements.board_sources(state, player_id, base_type):
+        raise ValueError(
+            f"Choose your {base_type} on the board in a system without your command token."
+        )
+    return {"source": source}
+
+
+def _place_reward_unit(
+    state: GameState, system: SystemState, zone: str, player_id: str, base_type: str,
+    data: Mapping[str, Any],
+) -> None:
+    source = data.get("source")
+    board_reinforcements.place_unit(
+        state, system, zone, player_id, base_type, source=str(source) if source else None
+    )
+
+
 # Construction Rider - place 1 space dock from your reinforcements on a planet you control.
+def _dock_problem(state: GameState, player_id: str, planet: str) -> str | None:
+    return structure_problem(state, player_id, planet, targets.SPACE_DOCK, allow_board=True)
+
+
 def _const_inputs(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[Input]:
-    options = [_option(p, _planet_label(state, registry, p)) for p in controlled(state, player_id)]
-    return [_choice("planet", "Planet you control (for the space dock)", options)]
+    options = [
+        _option(p, _planet_label(state, registry, p))
+        for p in controlled(state, player_id)
+        if _dock_problem(state, player_id, p) is None
+    ]
+    return [
+        _choice("planet", "Planet you control (for the space dock)", options),
+        *_source_inputs(state, registry, player_id, targets.SPACE_DOCK),
+    ]
 
 
 def _const_validate(
@@ -279,7 +347,10 @@ def _const_validate(
     planet = params.get("planet")
     if not isinstance(planet, str) or planet not in controlled(state, player_id):
         raise ValueError("Choose 1 planet you control ('planet').")
-    return {"planet": planet}
+    problem = _dock_problem(state, player_id, planet)
+    if problem is not None:
+        raise ValueError(problem)
+    return {"planet": planet, **_source_data(state, player_id, targets.SPACE_DOCK, params)}
 
 
 def _const_reward(
@@ -288,8 +359,11 @@ def _const_reward(
     planet = str(data.get("planet"))
     if planet not in controlled(state, player_id):
         raise ValueError(f"{player_id} no longer controls {planet}.")
-    place_from_reinforcements(
-        state, system_of_planet(state, planet), planet, player_id, targets.SPACE_DOCK, 1
+    problem = _dock_problem(state, player_id, planet)
+    if problem is not None:
+        raise ValueError(problem)
+    _place_reward_unit(
+        state, system_of_planet(state, planet), planet, player_id, targets.SPACE_DOCK, data
     )
 
 
@@ -467,7 +541,10 @@ def _trade_reward(
 # more of your ships.
 def _war_inputs(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[Input]:
     systems = _ship_systems(state, player_id)
-    return [_system_choice(state, registry, "System with your ships", systems)]
+    return [
+        _system_choice(state, registry, "System with your ships", systems),
+        *_source_inputs(state, registry, player_id, "dreadnought"),
+    ]
 
 
 def _war_validate(
@@ -476,7 +553,7 @@ def _war_validate(
     position = _position_param(
         state, params, _ship_systems(state, player_id), "a system that contains your ships"
     )
-    return {"position": position}
+    return {"position": position, **_source_data(state, player_id, "dreadnought", params)}
 
 
 def _war_reward(
@@ -485,7 +562,7 @@ def _war_reward(
     position = str(data.get("position"))
     if position not in _ship_systems(state, player_id):
         raise ValueError(f"{player_id} has no ships in system {position} any more.")
-    place_from_reinforcements(state, state.systems[position], "space", player_id, "dreadnought", 1)
+    _place_reward_unit(state, state.systems[position], "space", player_id, "dreadnought", data)
 
 
 _RIDERS: dict[str, _Rider] = {
@@ -770,6 +847,10 @@ declare_reaction("veto", "veto3", "veto4", condition=_veto_ok)
 # =========================================================================================
 
 
+def _outcome_changed(state: GameState) -> bool:
+    return any(e.key == OUTCOME_CHANGED for e in state.active_effects)
+
+
 def _bribery_ok(
     state: GameState, _r: StaticDataRegistry, player_id: str, window: OpenWindow
 ) -> bool:
@@ -778,6 +859,7 @@ def _bribery_ok(
         window.ctx.get("kind") == _KIND_SPEAKER
         and agenda is not None
         and player_id in agenda.votes  # „you voted" - dodatkowe głosy na ten sam wynik
+        and not _outcome_changed(state)
         # Hack Election Ω: zagrywający nie może zagrać Bribery (C_action_cards).
         and not active_effects.has_effect(state, player_id, HACK_ELECTION)
     )
@@ -791,6 +873,7 @@ def _distinguished_ok(
         window.ctx.get("kind") == _KIND_VOTED
         and agenda is not None
         and player_id in agenda.votes
+        and not _outcome_changed(state)
     )
 
 
@@ -849,6 +932,7 @@ def confounding(
     if agenda_phase.elected_player(state) in (None, player_id):
         raise ValueError("Another player must be about to be elected.")
     agenda_phase.replace_elected(state, player_id)
+    active_effects.add_effect(state, OUTCOME_CHANGED, Duration.AGENDA, owner=player_id)
 
 
 @register_effect_inputs("action_cards:confusing")
@@ -868,6 +952,7 @@ def confusing(
     if agenda_phase.elected_player(state) != player_id:
         raise ValueError("You must be the player about to be elected.")
     agenda_phase.replace_elected(state, target)
+    active_effects.add_effect(state, OUTCOME_CHANGED, Duration.AGENDA, owner=player_id)
 
 
 def _voted_or_predicted_other(state: GameState, player_id: str, outcome: str) -> bool:

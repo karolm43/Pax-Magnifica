@@ -208,7 +208,7 @@ def cancel_by_component(state: GameState) -> None:
 
     Czeka Sabotage: idzie na odrzucone bez efektu, wraca okno anulowanej karty (kolejna Sabotage
     nadal możliwa). Inaczej czekająca karta idzie na odrzucone bez kosztów, a karta ACTION oddaje
-    akcję tury (gracz musi wykonać inną akcję albo spasować - inaczej niż przy Sabotage).
+    akcję tury (gracz musi wykonać inną akcję albo spasować - tak samo jak przy Sabotage).
 
     Raises:
         ValueError: Brak okna.
@@ -368,7 +368,7 @@ def resolve(state: GameState, registry: StaticDataRegistry) -> GameState:
 def cancel_in_place(state: GameState) -> None:
     """Anuluje czekającą kartę (Sabotage): idzie na odrzucone, efekt się nie wykonuje (mutuje).
 
-    Akcja tury zagrywającego pozostaje zużyta (zużył ją w chwili zagrania).
+    Akcję tury oddaje wołający (``action_budget.unregister_action``), gdy to karta ACTION.
 
     Raises:
         ValueError: Brak okna.

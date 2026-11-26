@@ -30,6 +30,7 @@ from src.core import (
     battle_rerolls,
     board_graph,
     capacity,
+    command_tokens,
     damage,
     economy,
     payment,
@@ -38,6 +39,7 @@ from src.core import (
     rules_hooks,
     space_cannon,
     technology,
+    timing,
     triggers,
     unit_ops,
 )
@@ -65,7 +67,12 @@ from src.core.reaction_cards import (
     window_provider,
 )
 from src.core.registry import StaticDataRegistry
-from src.core.retreat import retreat_destinations, retreat_in_place, ships_move_destinations
+from src.core.retreat import (
+    TOKEN_POOLS,
+    retreat_destinations,
+    retreat_in_place,
+    ships_move_destinations,
+)
 from src.core.rules_hooks import (
     HookKind,
     register,
@@ -88,6 +95,7 @@ _REFLECTIVE_HITS = 2  # „Produce 2 hits”
 _COURAGEOUS_DICE = 2  # „Roll 2 dice”
 _FIGHTER = "fighter"
 _ANNOUNCE_STEP = "announce_retreats"
+_AUTO = "auto"
 
 # Kroki, w których ślady zniszczeń / odwrotów są jeszcze „świeże" (walka trwa).
 _LIVE_STEPS = (CombatStep.ASSIGN, CombatStep.ANNOUNCE, CombatStep.ROLL)
@@ -489,8 +497,10 @@ def _register_skilled_retreat(card_id: str) -> None:
     that does not contain another player's ships. The space combat ends in a draw. Then, place a
     command token from your reinforcements in that system.
 
-    To nie odwrót (nie da się go anulować Intercept). ⚠ ZAŁOŻENIE: ładunek jak w odwrocie
-    (mechy → piechota → myśliwce do pojemności, reszta zdjęta); żeton tylko z rezerwy.
+    To nie odwrót (nie da się go anulować Intercept). Rulingi C_action_cards: jadą WSZYSTKIE
+    statki i ładunek z przestrzeni, także ponad pojemność (8), a nadwyżkę usuwa sprawdzenie
+    pojemności w systemie docelowym (5). Bez żetonu w rezerwie gracz bierze go z puli arkusza
+    (7): ``token_pool`` albo Auto (⚠ ZAŁOŻENIE: kolejność tactic → fleet → strategy).
     """
 
     def effect(
@@ -501,9 +511,11 @@ def _register_skilled_retreat(card_id: str) -> None:
         allowed = _skilled_destinations(state, player_id)
         if destination not in allowed:
             raise ValueError(f"Your ships cannot move to system {destination}.")
+        pool = params.get("token_pool")
         result = retreat_in_place(
             state, _grid(), registry, combat.position, player_id, destination,
-            destinations=allowed, token_pools=False,
+            token_pool=pool if isinstance(pool, str) and pool != _AUTO else None,
+            destinations=allowed, carry_all=True,
         )
         if not result.moved:
             raise ValueError("None of your ships can move out of the active system.")
@@ -522,8 +534,10 @@ def _register_skilled_retreat(card_id: str) -> None:
         # Karta kończy walkę REMISEM (nawet gdy przeciwnikowi zostały statki).
         state.pending_window = None
         battle.end_combat_as_draw(state)
+        # Pojemność w systemie docelowym (wymuszone usunięcie od razu, wybór w oknie CAPACITY).
         checked = capacity.open_capacity_check(state, registry, destination)
-        state.pending_window = checked.pending_window
+        if checked is not state:
+            state.__dict__.update(checked.__dict__)
 
     register_effect(f"action_cards:{card_id}")(effect)
 
@@ -533,7 +547,22 @@ def _register_skilled_retreat(card_id: str) -> None:
             system = state.systems.get(position)
             label = _system_label(registry, system) if system is not None else f"Tile {position}"
             options.append(_option(position, label))
-        return [_choice("destination", "Adjacent system to move your ships to", options)]
+        out = [_choice("destination", "Adjacent system to move your ships to", options)]
+        if command_tokens.reinforcements(state, player_id) <= 0:
+            pools = [
+                _option(name, f"{name.capitalize()} pool")
+                for name, sheet in TOKEN_POOLS.items()
+                if command_tokens.pool_count(state, player_id, sheet) > 0
+            ]
+            if pools:
+                out.append(
+                    _choice(
+                        "token_pool",
+                        "No command token in reinforcements - take it from a pool",
+                        [_option(_AUTO, "Auto (tactic, then fleet, then strategy)"), *pools],
+                    )
+                )
+        return out
 
     register_effect_inputs(f"action_cards:{card_id}")(inputs)
 
@@ -979,11 +1008,11 @@ def _register_direct_hit(card_id: str) -> None:
     """
 
     def effect(
-        state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
+        state: GameState, registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
     ) -> None:
         base_type = _text(params, "ship", "Choose the ship that used SUSTAIN DAMAGE ('ship').")
         if state.active_combat is None:
-            _direct_hit_outside_combat(state, player_id, params, base_type)
+            _direct_hit_outside_combat(state, registry, player_id, params, base_type)
             return
         combat = _combat(state)
         target = _opponent(combat, player_id)
@@ -1015,12 +1044,17 @@ def _register_direct_hit(card_id: str) -> None:
 
 
 def _direct_hit_outside_combat(
-    state: GameState, player_id: str, params: Mapping[str, Any], base_type: str
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    params: Mapping[str, Any],
+    base_type: str,
 ) -> None:
     """Direct Hit po Sustain Damage przeciw Twoim trafieniom Space Cannon (poza walką).
 
-    Nadwyżkę pojemności po zniszczeniu statku egzekwuje ``limits`` przy zatwierdzeniu
-    (ruling: myśliwce / siły naziemne usuwa się od razu).
+    Ruling C_action_cards direct-hit/4: nadwyżkę ładunku (myśliwce / siły naziemne) po
+    zniszczeniu statku z pojemnością usuwa się OD RAZU - bez wyboru wprost, z wyborem w oknie
+    ``CAPACITY``, które zawiesza bieżące okno Space Cannon (``timing.interrupt``).
     """
     raw = params.get(reaction_cards.WINDOW_KEY)
     ctx = raw.get("ctx", {}) if isinstance(raw, Mapping) else {}
@@ -1041,6 +1075,18 @@ def _direct_hit_outside_combat(
     state.sustain_trace = trace
     unit_ops.remove_units(state, system, "space", target, base_type, 1, UnitCause.DESTROYED)
     damage.set_damaged(system, "space", target, base_type, damaged_before - 1)
+    _enforce_capacity_now(state, registry, system.position)
+
+
+def _enforce_capacity_now(state: GameState, registry: StaticDataRegistry, position: str) -> None:
+    """Usuwa nadwyżkę pojemności w systemie natychmiast (MUTUJE ``state``)."""
+    forced = capacity.remove_forced_excess(state, registry, position)
+    if forced is not state:
+        state.__dict__.update(forced.__dict__)
+    queue = capacity.players_with_excess(state, registry, position)
+    if queue:
+        opened = timing.interrupt(state, WindowType.CAPACITY, queue, context={"position": position})
+        state.__dict__.update(opened.__dict__)
 
 
 for _card in DIRECT_HIT:

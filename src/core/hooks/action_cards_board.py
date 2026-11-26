@@ -17,10 +17,12 @@ from typing import Any
 
 from src.core import (
     board_graph,
+    board_reinforcements,
     capacity,
     command_tokens,
     control,
     economy,
+    exploration,
     payment,
     strategic_action,
     strategy_phase,
@@ -31,6 +33,7 @@ from src.core.hooks.card_helpers import (
     controlled,
     other_player_param,
     place_from_reinforcements,
+    place_one_or_from_board,
     require_reinforcements,
 )
 from src.core.neutral import NEUTRAL_PLAYER_ID
@@ -136,11 +139,10 @@ def fighter_conscription(
     ``CAPACITY`` (⚠ ZAŁOŻENIE: jedno okno naraz, dla pierwszego systemu z nadwyżką).
     """
     eligible = conscription_systems(state, registry, player_id)
-    if not eligible:
-        raise ValueError("You have no system where a fighter can be placed.")
     required = conscription_required(state, player_id, len(eligible))
-    if required < 1:
-        raise ValueError("You have no fighters in your reinforcements.")
+    # R_action_cards: karta celująca w „each” może trafić zero systemów (zagranie bez skutku).
+    if required < 1 and not params.get("positions"):
+        return
     chosen = params.get("positions")
     if chosen is None and required == len(eligible):
         chosen = eligible
@@ -166,9 +168,10 @@ def fighter_conscription(
 def ghost_ship_targets(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[str]:
     """Systemy dla Ghost Ship: nie-domowe, z wormholem, bez statków innych graczy.
 
-    Wymaga destroyera w rezerwie (⚠ ZAŁOŻENIE: bez wariantu „zdejmij z planszy” z rulingu).
+    Wymaga destroyera w rezerwie albo na planszy w systemie bez żetonu gracza (ruling
+    ghost-ship/3, ``board_reinforcements.can_place``).
     """
-    if reinforcements_left(state, player_id, "destroyer") == 0:
+    if not board_reinforcements.can_place(state, player_id, "destroyer"):
         return []
     return [
         position
@@ -190,7 +193,7 @@ def ghost_ship(
         params, targets, "a non-home system with a wormhole and no other players' ships"
     )
     system = board_graph.ensure_system(state, position)
-    place_from_reinforcements(state, system, "space", player_id, "destroyer", 1)
+    place_one_or_from_board(state, system, "space", player_id, "destroyer", params.get("source"))
 
 
 # ------------------------------------------------------------------------- Signal Jamming
@@ -300,6 +303,8 @@ def mercenary_contract(
     if system.planet_owners.get(str(planet)) is not None:
         # Poprzedni kontroler oddaje kartę planety do talii (traci kontrolę, planeta się odświeża).
         control.set_planet_control(state, str(position), str(planet), None, registry)
+        # C_action_cards: wszystkie karty przyczepione do zwróconej planety są purge'owane.
+        exploration.purge_planet_attachments(state, str(planet))
     _place_neutral(state, system, str(planet), "infantry", _MERCENARY_INFANTRY)
 
 

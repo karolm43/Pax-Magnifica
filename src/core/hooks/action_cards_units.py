@@ -10,17 +10,18 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import economy, unit_ops
+from src.core import board_reinforcements, economy, unit_ops
 from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.fleet_pool import unit_cost
 from src.core.game_state import GameState
 from src.core.hooks.card_helpers import (
     other_player_param,
     place_from_reinforcements,
-    require_reinforcements,
+    place_one_or_from_board,
     system_of_planet,
     system_param,
 )
+from src.core.production import reinforcements_left
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import register_effect
 from src.core.unit_ops import UnitCause
@@ -41,11 +42,13 @@ def war_effort(
 ) -> None:
     """War Effort: Place 1 cruiser from your reinforcements in a system that contains 1 or more of
     your ships.
+
+    C_action_cards war-effort/1: with no cruiser left, one is taken from the board (``source``).
     """
     system = system_param(state, params)
     if not _has_ships(state, player_id, system.position):
         raise ValueError("Choose a system that contains 1 or more of your ships ('position').")
-    place_from_reinforcements(state, system, "space", player_id, "cruiser", 1)
+    place_one_or_from_board(state, system, "space", player_id, "cruiser", params.get("source"))
 
 
 @register_effect("action_cards:lucky")
@@ -114,6 +117,12 @@ def plague(
         unit_ops.remove_units(state, system, planet, owner, "infantry", hits, UnitCause.DESTROYED)
 
 
+def refit_shortfall(state: GameState, player_id: str, count: int) -> int:
+    """Ilu mechów z ``count`` brakuje w rezerwie (trzeba je zdjąć z planszy)."""
+    left = reinforcements_left(state, player_id, "mech")
+    return 0 if left is None else max(0, count - max(0, left))
+
+
 @register_effect("action_cards:refit")
 def refit_troops(
     state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
@@ -131,7 +140,17 @@ def refit_troops(
         have = unit_ops.count_in_zone(system, planet, player_id, "infantry")
         if have < planets.count(planet):
             raise ValueError(f"You do not have that many infantry on {planet}.")
-    require_reinforcements(state, player_id, "mech", len(planets))
+    # C_action_cards: gdy mechów w rezerwie brak, zdejmuje się mecha z systemu bez własnego
+    # żetonu i stawia go (nieuszkodzonego) w miejsce piechoty.
+    short = refit_shortfall(state, player_id, len(planets))
+    sources = params.get("sources") or []
+    if not isinstance(sources, list) or len(sources) < short:
+        raise ValueError(
+            f"Not enough mechs in reinforcements - choose {short} of your mechs on the board "
+            "in systems without your command token ('sources')."
+        )
+    for source in sources[:short]:
+        board_reinforcements.take_from_board(state, player_id, "mech", str(source))
     for planet in planets:
         system = system_of_planet(state, planet)
         unit_ops.take_units(state, system, planet, player_id, "infantry", 1, UnitCause.REMOVED)

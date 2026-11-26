@@ -19,6 +19,7 @@ from src.core.hooks.action_card_inputs import (
     _planet_label,
     _player_label,
     _system_label,
+    board_source_inputs,
 )
 from src.core.hooks.action_cards_board import (
     conscription_required,
@@ -64,12 +65,12 @@ def conscription_inputs(
 ) -> list[Input]:
     eligible = conscription_systems(state, registry, player_id)
     required = conscription_required(state, player_id, len(eligible))
+    if not required:
+        return []  # R_action_cards: „each” = także zero systemów, bez wyboru
     options = [_option(p, _label(state, registry, p)) for p in eligible]
-    # min = max = liczba myśliwców do postawienia; 0 celów albo pusta rezerwa blokuje kartę.
-    count = max(1, required)
+    # min = max = liczba myśliwców do postawienia.
     hint = "One fighter in each listed system; with fewer fighters, choose where."
-    shown = options if required else []
-    return [_multi("positions", "Systems receiving a fighter", shown, count, count, hint)]
+    return [_multi("positions", "Systems receiving a fighter", options, required, required, hint)]
 
 
 @register_effect_inputs("action_cards:ghost_ship")
@@ -78,7 +79,10 @@ def ghost_ship_inputs(
 ) -> list[Input]:
     targets = ghost_ship_targets(state, registry, player_id)
     hint = "Pick the non-home system with a wormhole that receives the card's effect."
-    return [_position_choice(state, registry, targets, "Non-home system with a wormhole", hint)]
+    return [
+        _position_choice(state, registry, targets, "Non-home system with a wormhole", hint),
+        *board_source_inputs(state, registry, player_id, "destroyer"),
+    ]
 
 
 @register_effect_inputs("action_cards:jamming")

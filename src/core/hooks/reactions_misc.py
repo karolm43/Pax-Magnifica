@@ -71,6 +71,7 @@ _INVESTMENTS_MIN_CARDS = 3  # „You must place these tokens on at least 3 diffe
 _SUMMIT_TOKENS = 2  # „Gain 2 command tokens.”
 _CRISIS_MIN_UNPASSED = 2  # „if there are at least 2 players who have not passed”
 _MASTER_PLAN_BONUS = 1  # „Perform an additional action.”
+_DURESS_MET = "met"  # Extreme Duress: następną akcją była strategiczna (do końca tury)
 _LIE_IN_WAIT_PER_HAND = 1  # „choose and take 1 action card from each”
 
 _KEY = "action_cards:{}"
@@ -393,8 +394,8 @@ def puppets_effect(
     Dodatkowa akcja spasowanego gracza poza kolejką (``GameState.bonus_turn``): gracz zostaje
     aktywny, wykonuje JEDNĄ akcję i ``end_turn`` oddaje turę temu, kto miał ją zacząć.
     ⚠ ZAŁOŻENIA: na czas akcji ``passed=False`` (silnik blokuje akcje spasowanych; ruling mówi, że
-    gracz nadal „jest spasowany” - po akcji flaga wraca); technologia Fleet Logistics nie jest
-    wyłączona w bonusowej akcji (ruling: nie działa); akcja strategiczna niedostępna (karty
+    gracz nadal „jest spasowany” - po akcji flaga wraca); Fleet Logistics nie daje drugiej akcji
+    (``fleet_logistics_actions``); akcja strategiczna niedostępna (karty
     gracza są już zagrane, bo spasował).
     """
     window = state.turn_end_window
@@ -423,8 +424,9 @@ def duress_effect(
     their action cards, give you all of their trade goods, and show you all of their secret
     objectives.
 
-    Efekt trwały (``Duration.TURN``) na CELU; rozstrzygany przy pierwszej akcji celu przez hook
-    ``POINT_ACTION_STARTED``. Pokazanie tajnych celów = zapis w prywatnym polu zagrywającego
+    Efekt trwały na CELU do jego następnej akcji (``Duration.ROUND``: przetrwa turę pominiętą
+    przez Crisis albo urwaną bez akcji); rozstrzygany przez hook ``POINT_ACTION_STARTED``.
+    Pokazanie tajnych celów = zapis w prywatnym polu zagrywającego
     (``private.revealed_secrets``).
     """
     window = state.turn_end_window
@@ -432,7 +434,7 @@ def duress_effect(
     if target is None or not _has_readied_strategy_card(state, target):
         raise ValueError("The next player has no readied strategy card.")
     active_effects.add_effect(
-        state, _key("extremeduress"), Duration.TURN, owner=target, data={"holder": player_id}
+        state, _key("extremeduress"), Duration.ROUND, owner=target, data={"holder": player_id}
     )
 
 
@@ -440,13 +442,21 @@ def duress_effect(
 def _duress_resolve(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Pierwsza akcja celu: strategiczna = bez kary; inna = karty, TG i tajne cele dla gracza."""
     key = _key("extremeduress")
-    mine = [e for e in state.active_effects if e.key == key and e.owner == player_id]
+    mine = [
+        e for e in state.active_effects
+        if e.key == key and e.owner == player_id and not e.data.get(_DURESS_MET)
+    ]
     if not mine:
+        return
+    if ctx.get("strategic"):
+        # Warunek spełniony, ale Coup d'Etat może jeszcze cofnąć tę akcję: efekt czeka do końca
+        # tury (``restore_duress``).
+        for effect in mine:
+            effect.data[_DURESS_MET] = True
+            effect.scope = Duration.TURN.value
         return
     for effect in mine:
         active_effects.remove_effect(state, effect.id)
-    if ctx.get("strategic"):
-        return
     # Grana właśnie karta akcji (akcja komponentu) nie jest już „w ręce” - zostaje do zagrania.
     played = str(ctx.get("component") or "")
     target = state.players[player_id]
@@ -464,6 +474,15 @@ def _duress_resolve(state: GameState, player_id: str, ctx: Mapping[str, Any]) ->
         if gold:
             economy.give_to_player(state, player_id, holder, trade_goods=gold)
         secret_objectives.reveal_hand(state, holder, player_id)
+
+
+def restore_duress(state: GameState, player_id: str) -> None:
+    """Akcja strategiczna celu się nie odbyła (Coup d'Etat): Extreme Duress nadal czeka na jego
+    następną akcję (C_action_cards). Mutuje ``state``."""
+    for effect in state.active_effects:
+        if effect.key == _key("extremeduress") and effect.owner == player_id:
+            if effect.data.pop(_DURESS_MET, None):
+                effect.scope = Duration.ROUND.value
 
 
 # ------------------------------------------------------------------------------ Master Plan

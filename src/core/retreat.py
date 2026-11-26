@@ -234,6 +234,7 @@ def retreat_in_place(
     *,
     destinations: list[str] | None = None,
     token_pools: bool = True,
+    carry_all: bool = False,
 ) -> RetreatResult:
     """Wycofuje jednostki gracza z ``position`` do ``destination`` (O5/O6) - MUTUJE ``state``.
 
@@ -242,6 +243,9 @@ def retreat_in_place(
     z której idzie żeton, gdy rezerwa jest pusta (``TOKEN_POOLS``; ``None`` = kolejność domyślna).
     ``destinations`` nadpisuje listę dozwolonych celów (Skilled Retreat);
     ``token_pools=False`` = żeton tylko z rezerwy (bez sięgania do puli arkusza).
+    ``carry_all=True`` = cały ładunek z przestrzeni jedzie razem ze statkami, także ponad
+    pojemność (Skilled Retreat, C_action_cards skilled-retreat/8); nadwyżkę usuwa potem
+    sprawdzenie pojemności w systemie docelowym (skilled-retreat/5).
 
     Raises:
         ValueError: Niedozwolony cel, zły ładunek (przekroczona pojemność, porzucanie ładunku
@@ -285,7 +289,9 @@ def retreat_in_place(
     )
     cost = {bt: _capacity_used(registry, faction, techs, bt) for bt in _CARGO_BASE_TYPES}
 
-    if cargo is None:
+    if carry_all:
+        chosen = [CargoPickup(bt, n) for bt, n in sorted(space_cargo.items())] if movers else []
+    elif cargo is None:
         chosen = _auto_cargo(space_cargo, capacity, cost) if movers else []
     else:
         chosen = [c for c in cargo if c.count > 0]
@@ -314,7 +320,7 @@ def retreat_in_place(
                 raise ValueError(f"Not enough {base_type} in {zone} to transport.")
 
     used = sum(cost.get(c.base_type, 1) * c.count for c in chosen)
-    if used > capacity:
+    if used > capacity and not carry_all:
         raise ValueError(
             f"The retreating ships can carry {capacity}, but the cargo needs {used}."
         )
@@ -328,7 +334,7 @@ def retreat_in_place(
         if n - taken_space.get(bt, 0) > 0
     }
     free = capacity - used
-    if any(cost.get(bt, 1) <= free for bt in left_behind):
+    if not carry_all and any(cost.get(bt, 1) <= free for bt in left_behind):
         raise ValueError(
             "Fighters and ground forces in space cannot be left behind while the "
             "retreating ships still have free capacity."

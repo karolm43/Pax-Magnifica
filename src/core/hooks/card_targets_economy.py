@@ -24,10 +24,15 @@ SPACE_DOCK = "spacedock"
 
 
 def home_planet_ids(state: GameState, registry: StaticDataRegistry) -> set[str]:
-    """Planety domowe wszystkich graczy (z arkuszy frakcji; zdobyta planeta domowa nią zostaje)."""
+    """Planety domowe wszystkich graczy (z arkuszy frakcji; zdobyta planeta domowa nią zostaje).
+
+    Także graczy wyeliminowanych: ich system domowy nadal jest domowy (C_action_cards).
+    """
     planets: set[str] = set()
-    for player in state.players.values():
-        faction = registry.factions.get(player.faction or "")
+    factions = [p.faction for p in state.players.values()]
+    factions += [p.faction for p in state.eliminated_players]
+    for faction_id in factions:
+        faction = registry.factions.get(faction_id or "")
         if faction is not None:
             planets.update(faction.home_planets)
     return planets

@@ -18,12 +18,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import economy, payment, planet_stats, secret_objectives
+from src.core import board_reinforcements, economy, payment, planet_stats, secret_objectives
 from src.core.components import ComponentCategory
 from src.core.fleet_pool import unit_name
 from src.core.game_state import GameState, SystemState
 from src.core.hooks import card_labels
-from src.core.hooks.card_helpers import controlled
+from src.core.hooks.action_cards_units import refit_shortfall
+from src.core.hooks.card_helpers import BOARD_SOURCE_AUTO, controlled
 from src.core.offer_inputs import as_payment, unit_at
 from src.core.offer_inputs import option as as_option
 from src.core.registry import StaticDataRegistry
@@ -164,6 +165,23 @@ def unexpected_inputs(
     return [_choice("position", "System with your command token", options)]
 
 
+def board_source_inputs(
+    state: GameState, registry: StaticDataRegistry, player_id: str, base_type: str
+) -> list[Input]:
+    """Choice of where to take the unit from when reinforcements are empty (else no field).
+
+    No legal source = empty options, so the card is not playable (``_has_legal_choices``).
+    """
+    if not board_reinforcements.needs_board_source(state, player_id, base_type):
+        return []
+    sources = board_reinforcements.source_options(state, registry, player_id, base_type)
+    options = [_option(value, label) for value, label in sources]
+    if options:
+        options.insert(0, _option(BOARD_SOURCE_AUTO, "Auto (first one on the board)"))
+    name = unit_name(state, registry, player_id, base_type)
+    return [_choice("source", f"No {name} in reinforcements - take one from the board", options)]
+
+
 @register_effect_inputs("action_cards:war_effort")
 def war_effort_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
@@ -174,7 +192,10 @@ def war_effort_inputs(
         if any(n > 0 for n in s.space_units.get(player_id, {}).values())
     ]
     options = [_option(s.position, _system_label(registry, s)) for s in systems]
-    return [_choice("position", "System with your ships", options)]
+    return [
+        _choice("position", "System with your ships", options),
+        *board_source_inputs(state, registry, player_id, "cruiser"),
+    ]
 
 
 @register_effect_inputs("action_cards:insub")
@@ -242,6 +263,10 @@ def impersonation_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[Input]:
     ready = payment.ready_planet_values(state, registry, player_id, "influence")
+    if sum(ready.values()) + economy.spendable_trade_goods(state, player_id) < 3:
+        # C_action_cards: mniej niż 3 dostępnego wpływu = karty nie wolno zagrać (wymagany wybór
+        # bez opcji blokuje zagrywalność).
+        return [_multi("planets", "Planets to exhaust (3 influence needed)", [], 1, 1)]
     planets = [
         _option(p, _planet_label(state, registry, p, f"spend {value} influence"), p)
         for p, value in ready.items()
@@ -301,7 +326,8 @@ def plague_inputs(state: GameState, registry: StaticDataRegistry, player_id: str
     options = []
     for system in state.systems.values():
         for planet, owner in system.planet_owners.items():
-            if owner != player_id and count_in_zone(system, planet, owner, "infantry") > 0:
+            # C_action_cards: planeta bez piechoty też jest legalnym celem.
+            if owner != player_id and owner in state.players:
                 have = count_in_zone(system, planet, owner, "infantry")
                 label = (
                     f"{_planet_label(state, registry, planet)} · "
@@ -354,16 +380,34 @@ def refit_inputs(state: GameState, registry: StaticDataRegistry, player_id: str)
                 )
                 meta = unit_at(state, player_id, "infantry", planet=planet)
                 options.append(_option(planet, label, f"{planet}#{index}", meta=meta))
-    return [
+    # C_action_cards: przy braku mechów w rezerwie można je zdjąć z planszy (systemy bez
+    # własnego żetonu); bez żadnego dostępnego mecha karta nie jest zagrywalna.
+    short = refit_shortfall(state, player_id, _MAX_PICKS)
+    sources = (
+        board_reinforcements.source_options(state, registry, player_id, "mech") if short else []
+    )
+    most = _MAX_PICKS - short + min(short, len(sources))
+    inputs = [
         _multi(
             "planets",
             "Infantry to replace with mechs",
-            options,
+            options if most else [],
             1,
-            _MAX_PICKS,
+            max(1, most),
             "Pick 1 or 2 of your infantry; each is replaced with a mech on the same planet.",
         )
     ]
+    if sources:
+        inputs.append(
+            _multi(
+                "sources",
+                "Mechs short in reinforcements - take them from the board",
+                [_option(value, label) for value, label in sources],
+                0,
+                min(short, len(sources)),
+            )
+        )
+    return inputs
 
 
 @register_effect_inputs("action_cards:scuttle")

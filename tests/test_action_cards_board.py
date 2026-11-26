@@ -150,11 +150,13 @@ def test_fighter_conscription_ponad_capacity_otwiera_okno_capacity(
     assert new.pending_window.window_type is WindowType.CAPACITY
 
 
-def test_fighter_conscription_bez_celow_jest_niezagrywalna(registry: StaticDataRegistry) -> None:
+def test_fighter_conscription_bez_celow_jest_zagrywalna_bez_skutku(
+    registry: StaticDataRegistry,
+) -> None:
     state = _state(["f_conscription"], [_system("101", "113", space_units={"p1": {"fighter": 1}})])
-    assert not _playable(registry, state, "f_conscription")
-    with pytest.raises(ValueError, match="no system"):
-        _play(registry, state, "f_conscription")
+    assert _playable(registry, state, "f_conscription")
+    new = _play(registry, state, "f_conscription")
+    assert new.systems["101"].space_units == state.systems["101"].space_units
 
 
 # ------------------------------------------------------------------------------ Ghost Ship

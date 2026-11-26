@@ -518,17 +518,14 @@ def test_reparations_wyczerpuje_planete_zdobywcy_i_odswieza_wlasna(
         _play(state, registry, "p2", "reparations", {**params, "ready_planet": "mr"})
 
 
-def test_reparations_bez_celow_jest_dozwolone(registry: StaticDataRegistry) -> None:
-    """Ruling: można zagrać bez wyczerpanej planety / gdy zdobywca nie ma gotowej planety."""
+def test_reparations_bez_zadnego_celu_jest_zabronione(registry: StaticDataRegistry) -> None:
+    """C_action_cards: brak wyczerpanej planety ORAZ brak gotowej planety zdobywcy = zakaz."""
     state = _capture_state()
     state.players["p2"].exhausted_planets = []
     state.systems["102"].planet_owners = {}  # zdobywca nie ma innej planety do wyczerpania
     control.set_planet_control(state, ACTIVE, "mr", "p1")
     state.players["p1"].exhausted_planets = ["mr"]  # świeżo zdobyta jest już wyczerpana
-    assert _playable(state, registry, "p2", "reparations")
-    params = {"planet": "mr", "exhaust_planet": "", "ready_planet": ""}
-    new = _play(state, registry, "p2", "reparations", params)
-    assert new.players["p2"].private.action_cards == []
+    assert not _playable(state, registry, "p2", "reparations")
 
 
 # ---------------------------------------------------------------------- okna po aktywacji

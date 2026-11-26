@@ -46,6 +46,7 @@ from src.core.game_state import CombatStep, GameState, Phase, StatusStep, System
 from src.core.hex_grid import HexGrid
 from src.core.hooks import card_labels
 from src.core.hooks.action_card_inputs import _choice, _option, _system_label
+from src.core.hooks.reactions_misc import restore_duress
 from src.core.neutral import NEUTRAL_PLAYER_ID
 from src.core.reaction_cards import (
     OpenWindow,
@@ -222,6 +223,7 @@ def coup_detat(
     state.pending_strategy = None
     exhaust.ready_strategy_card(state, target, pending.initiative)
     action_budget.unregister_action(state, target)
+    restore_duress(state, target)  # przed końcem tury: spełniony efekt wygasłby razem z nią
     _adopt(state, turn_flow.end_turn(state, target, registry=registry, forced=True))
 
 
@@ -265,6 +267,7 @@ def political_stability(
     if not state.players[player_id].strategy_cards:
         raise ValueError("You have no strategy cards to keep.")
     active_effects.add_effect(state, strategy_phase.STABILITY_KEY, Duration.ROUND, owner=player_id)
+    exhaust.ready_all_strategy_cards(state, player_id)  # C_action_cards: readied when played
 
 
 # ------------------------------------------------------------------ Crash Landing

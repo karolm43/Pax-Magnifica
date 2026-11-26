@@ -211,7 +211,8 @@ def test_duress_akcja_strategiczna_bez_kary(registry: StaticDataRegistry) -> Non
     action_budget.register_action(state, "p2", strategic=True)
     assert state.players["p2"].private.action_cards == ["fs1"]
     assert state.players["p2"].trade_goods == 4
-    assert not state.active_effects
+    # Spełniony efekt czeka tylko do końca tury (Coup d'Etat może jeszcze cofnąć akcję).
+    assert not turn_flow.end_turn(state, "p2").active_effects
 
 
 def test_duress_grana_karta_akcji_zostaje_do_zagrania(registry: StaticDataRegistry) -> None:

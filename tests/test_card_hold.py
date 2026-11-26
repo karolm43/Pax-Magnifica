@@ -262,7 +262,7 @@ def test_sabotage_anuluje_karte_action(registry: StaticDataRegistry) -> None:
     assert implemented
     assert done.held_play is None
     assert done.players["p1"].trade_goods == 1  # efekt się nie wykonał
-    assert done.players["p1"].took_action_this_turn  # akcja zostaje zużyta
+    assert not done.players["p1"].took_action_this_turn  # inna akcja albo pas
     assert sorted(done.decks.action_card_discard) == sorted([card, "sabo1"])
     assert done.players["p2"].private.action_cards == []
 

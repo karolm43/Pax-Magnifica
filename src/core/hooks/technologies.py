@@ -96,9 +96,15 @@ def light_wave_pass_foreign_ships(
     covers=f"technologies:{FLEET_LOGISTICS_ALIAS}",
 )
 def fleet_logistics_actions(
-    _state: GameState, _player_id: str, _ctx: Mapping[str, Any]
+    state: GameState, player_id: str, _ctx: Mapping[str, Any]
 ) -> int:
-    """Fleet Logistics: w swojej turze fazy akcji gracz wykonuje 2 akcje zamiast 1."""
+    """Fleet Logistics: w swojej turze fazy akcji gracz wykonuje 2 akcje zamiast 1.
+
+    Dodatkowa akcja spasowanego gracza (Puppets on a String) to nie jego tura (C_action_cards).
+    """
+    bonus = state.bonus_turn
+    if bonus is not None and bonus.player == player_id and bonus.restore_passed:
+        return 0
     return 1
 
 

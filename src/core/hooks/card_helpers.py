@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import exploration, objectives, unit_ops
+from src.core import board_reinforcements, exploration, objectives, unit_ops
 from src.core.game_state import GameState, SystemState
 from src.core.production import reinforcements_left
 from src.core.registry import StaticDataRegistry
@@ -69,6 +69,39 @@ def require_reinforcements(state: GameState, player_id: str, base_type: str, cou
     left = reinforcements_left(state, player_id, base_type)
     if left is not None and left < count:
         raise ValueError(f"Not enough {base_type} in reinforcements: {left} < {count}.")
+
+
+BOARD_SOURCE_AUTO = "auto"  # Auto: the first legal source on the board (systems in map order)
+
+
+def place_one_or_from_board(
+    state: GameState,
+    system: SystemState,
+    zone: str,
+    player_id: str,
+    base_type: str,
+    source: object,
+) -> None:
+    """Places 1 unit from reinforcements; with none left, from the board (``source``).
+
+    R_component_limitations (C_action_cards war-effort/1, ghost-ship/3): with no unit of that
+    type in reinforcements the player MAY remove one from a system without their command token
+    and place it (undamaged). ``source`` = ``"<position>|<zone>"`` or ``BOARD_SOURCE_AUTO``.
+    ⚠ ASSUMPTION: Auto takes the first legal source (``board_reinforcements.board_sources``).
+
+    Raises:
+        ValueError: No unit left and no legal board source chosen.
+    """
+    if board_reinforcements.needs_board_source(state, player_id, base_type):
+        sources = board_reinforcements.board_sources(state, player_id, base_type)
+        pick = sources[0] if source == BOARD_SOURCE_AUTO and sources else source
+        if not isinstance(pick, str) or pick not in sources:
+            raise ValueError(
+                f"No {base_type} left in your reinforcements - choose one on the board in a "
+                "system without your command token ('source')."
+            )
+        board_reinforcements.take_from_board(state, player_id, base_type, pick)
+    place_from_reinforcements(state, system, zone, player_id, base_type, 1)
 
 
 def place_from_reinforcements(

@@ -383,5 +383,89 @@
   },
   "C_units/war-sun/2": {
     "na": "Refers to the base Magen Defense Grid exhaust ability (needs a unit with PLANETARY SHIELD); only Magen Defense Grid ΩΩ is in play (technologies_combat.MAGEN_ALIAS, superseded md_base/md_c1) and its structure-based text has no Planetary Shield condition."
+  },
+  "C_action_cards/hack-election/*": {
+    "na": "Replaced by Hack Election Ω: the active card 'hack' uses the Ω text (see C_action_cards/hack-election-omega)."
+  },
+  "C_action_cards/divert-funding/6": {
+    "requires": [
+      "faction:nekro"
+    ],
+    "reason": "Nekro's Propagation (3 command tokens instead of research) - faction not implemented."
+  },
+  "C_action_cards/manipulate-investments/1": {
+    "gap": "The start-of-strategy-phase window (reactions_misc.strategy_phase_start) stays closed if any player holds a strategy card, so Manipulate Investments cannot be played while Political Stability retains one."
+  },
+  "C_action_cards/plagiarize/3": {
+    "gap": "The technology is locked in held_play.params at play time, but web_game._held_play and HeldPlayBanner do not show it to players deciding on Sabotage."
+  },
+  "C_action_cards/reverse-engineer/2": {
+    "gap": "The Activity feed does not record which card Reverse Engineer takes from the discard pile."
+  },
+  "C_action_cards/sabotage/3": {
+    "gap": "The Sabotage window does not announce the played card's choices: web_game._held_play exposes the card only, not HeldPlay.params."
+  },
+  "C_action_cards/sabotage/3.1": {
+    "gap": "Targets (planets, systems, units, players, cards, outcomes) are stored in HeldPlay.params but not shown to other players."
+  },
+  "C_action_cards/sabotage/3.2": {
+    "gap": "Variable costs are stored in HeldPlay.params but not shown to other players."
+  },
+  "C_action_cards/puppets-on-a-string/2.2": {
+    "requires": [
+      "faction:yssaril"
+    ],
+    "reason": "Transparasteel Plating is a Yssaril technology."
+  },
+  "C_action_cards/puppets-on-a-string/3": {
+    "gap": "transaction.validate_transaction treats the bonus-action player as the turn player; it needs a bonus_turn guard (also for negotiation tables)."
+  },
+  "C_action_cards/puppets-on-a-string/4": {
+    "gap": "Minister of Peace calls end_tactical_action, which would abort the bonus action instead of letting it be performed."
+  },
+  "C_action_cards/puppets-on-a-string/6.2": {
+    "requires": [
+      "faction:keleres"
+    ],
+    "reason": "Suffi An is the Keleres commander."
+  },
+  "C_action_cards/puppets-on-a-string/7": {
+    "gap": "The engine sets passed=False during the bonus action, so effects that read 'passed' see the player as not passed. No pass happens at the end."
+  },
+  "R_action_cards/notes/3": {
+    "gap": "There is no way to voluntarily reveal action cards from hand."
+  },
+  "R_action_cards/notes/5.2": {
+    "requires": [
+      "faction:yssaril"
+    ],
+    "reason": "Scheming is a Yssaril ability."
+  },
+  "C_action_cards/direct-hit/3": {
+    "gap": "battle.assign_combat_hits takes the whole sustain/destroy plan in one call; a player cannot hold off deciding a second ship's SUSTAIN DAMAGE until after the opponent uses or declines Direct Hit. Needs step-by-step hit assignment in battle.py."
+  },
+  "C_action_cards/experimental-battlestation/1": {
+    "gap": "The card fires at once in the Movement step (space_cannon.open_remote_shot); it is not deferred to the Space Cannon Offense step. Needs a deferred shooter in space_cannon.py."
+  },
+  "C_action_cards/experimental-battlestation/3.2": {
+    "na": "Ships cannot leave the active system in the Move Ships step (it holds the active player's command token), so the engine never moves a ship out and back in during one move step."
+  },
+  "C_action_cards/experimental-battlestation/3.3": {
+    "gap": "movement.move_fleet sets tactical_moved even when a gravity rift removes every moving ship; the SHIPS_MOVED/AFTER window (also used by Rescue) is computed from that flag. Needs a movement.py change."
+  },
+  "C_action_cards/reflective-shielding/1.1": {
+    "requires": [
+      "faction:empyrean"
+    ],
+    "reason": "Repair via the Empyrean flagship Dynamo; Empyrean is not implemented."
+  },
+  "C_action_cards/rescue/2": {
+    "gap": "The first sentence is enforced (_rescue_options skips systems with the player's token), but Rescue moves a single ship with no transport of fighters or ground forces."
+  },
+  "C_action_cards/rout/2": {
+    "requires": [
+      "faction:mahact"
+    ],
+    "reason": "Space combat started by the Mahact hero Benediction; Mahact is not implemented."
   }
 }

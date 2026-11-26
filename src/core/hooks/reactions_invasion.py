@@ -363,11 +363,33 @@ def _parley_ready(
     return bool(committed & set(_controlled_in(system, player_id)))
 
 
+_MJETS_USED = "action_cards:mjets_used"  # hidden marker: Maneuvering Jets used on one roll
+
+
+def _mjets_roll(state: GameState, ctx: Mapping[str, Any]) -> str:
+    """Identity of the Space Cannon roll the hits come from (C_action_cards maneuvering-jets/3).
+
+    Offense: each player's roll is its own log entry (3.1). Defense: each planet rolls on its
+    own (3.2). The tactical step keeps an Experimental Battlestation shot (Movement step) apart
+    from the Space Cannon Offense step.
+    """
+    if ctx.get("kind") == KIND_DEFENSE:
+        return f"defense:{ctx.get('planet')}"
+    step = state.tactical_step.value if state.tactical_step is not None else ""
+    return f"offense:{step}:{ctx.get('player')}:{len(space_cannon.read_log(state))}"
+
+
 def _mjets_ready(
-    _state: GameState, _registry: StaticDataRegistry, player_id: str, window: OpenWindow
+    state: GameState, _registry: StaticDataRegistry, player_id: str, window: OpenWindow
 ) -> bool:
-    """Hity Space Cannon czekają na przypisanie przez TEGO gracza."""
-    return window.ctx.get("ability") == "space_cannon" and window.ctx.get("target") == player_id
+    """Hity Space Cannon czekają na przypisanie przez TEGO gracza; jedna karta na ten rzut."""
+    if window.ctx.get("ability") != "space_cannon" or window.ctx.get("target") != player_id:
+        return False
+    roll = _mjets_roll(state, window.ctx)
+    return not any(
+        effect.data.get("roll") == roll
+        for effect in active_effects.effects_for(state, player_id, _MJETS_USED)
+    )
 
 
 def _scramble_ready(
@@ -647,6 +669,10 @@ def _register_maneuvering_jets(card_id: str) -> None:
         if ctx.get("target") != player_id:
             raise ValueError("You are not assigning these hits.")
         count = _number(card_id, r"Cancel\s+(\d+)\s+hit")
+        active_effects.add_effect(
+            state, _MJETS_USED, Duration.TACTICAL_ACTION, owner=player_id,
+            data={"roll": _mjets_roll(state, ctx)},
+        )
         if ctx.get("kind") == KIND_DEFENSE:
             invasion.cancel_defense_hits(state, str(ctx["planet"]), count)
         else:
