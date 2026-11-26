@@ -5,6 +5,7 @@ import { getUnitData, isNekroFlagship } from "@/entities/lookup/units";
 import { getPlayerFactionDisplayName } from "@/entities/game/playerUtils";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
 import { CardLore } from "@/shared/ui/DetailsCard/CardLore";
+import { unitLoreId } from "@/entities/lore/lookupLore";
 import { FactionIcon } from "@/shared/ui/FactionIcon";
 import { useGameData } from "@/state/useGameContext";
 import type { PlayerData } from "@/entities/data/types";
@@ -112,8 +113,7 @@ export function UnitDetailsCard({
       <AssimilatedAbilityList assimilated={assimilated} />
       <UnitAbilitiesSection unit={unitData} inherited={inherited} />
       <UpgradeSection upgrade={upgrade} />
-      {/* Ulepszona wersja czyta lore jednostki bazowej (jedno pole na jednostkę frakcji). */}
-      <CardLore kind="unit" id={unitData.upgradesFromUnitId ?? unitId} />
+      <CardLore kind="unit" id={unitLoreId(unitId, unitData.upgradesFromUnitId)} />
     </DetailsCard>
   );
 }

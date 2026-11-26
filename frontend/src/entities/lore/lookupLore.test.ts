@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CARD_LORE, LORE_ALIASES } from "./cardLore";
-import { lookupCardLore } from "./lookupLore";
+import { lookupCardLore, unitLoreId } from "./lookupLore";
 
 describe("lookupCardLore", () => {
   it("puste pole i nieznana karta = null (UI nic nie pokazuje)", () => {
@@ -32,6 +32,21 @@ describe("lookupCardLore", () => {
   it("every relic fragment and generic unit has a slot to write into", () => {
     for (const id of ["crf1", "hrf1", "irf1", "urf1"]) expect(CARD_LORE.exploration).toHaveProperty(id);
     for (const id of ["fighter", "cruiser", "spacedock"]) expect(CARD_LORE.unit).toHaveProperty(id);
+  });
+
+  it("Corsair keeps its own slot; other upgrades read the base unit's", () => {
+    expect(unitLoreId("mentak_cruiser3", "cruiser2")).toBe("mentak_cruiser3");
+    expect(unitLoreId("cavalry2")).toBe("cavalry2");
+    expect(unitLoreId("cruiser2", "cruiser")).toBe("cruiser");
+    for (const id of ["mentak_cruiser3", "naaz_voltron", "cavalry1", "ghemina_carrier"]) {
+      expect(CARD_LORE.unit).toHaveProperty(id);
+    }
+    for (const [id, target] of Object.entries(LORE_ALIASES.unit ?? {})) {
+      expect(CARD_LORE.unit).toHaveProperty(target);
+      expect(lookupCardLore("unit", id)).toBe(lookupCardLore("unit", target));
+    }
+    expect(CARD_LORE.promissoryNote).toHaveProperty("rider");
+    expect(CARD_LORE.relic).toHaveProperty("enigmaticdevice");
   });
 
   it("karty usunięte przez PoK/Codex/TE nie mają pól", () => {

@@ -955,3 +955,5 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
 
 - The wizard enters `/game` with `state.newGame`; `GameSetupOverlay` shows its backdrop while web-data loads.
 - The setup backdrop no longer fades in (only the panel does). New game drops the cached `playerData` (host and guest).
+- Follow-up: slots for Corsair, Eidolon Maximum, The Cavalry, Combat Transport, Keleres Rider, Enigmatic Device;
+  unit aliases (`LORE_ALIASES.unit`). `unitLoreId` prefers the unit's own slot (Corsair no longer looks under Cruiser II).

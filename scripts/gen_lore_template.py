@@ -171,6 +171,20 @@ GENERIC_UNITS = {
     "dreadnought", "warsun", "pds", "spacedock",
 }
 
+# Karty spoza list frakcji, które mimo to mają własną kartę w grze (przełomy, The Cavalry, …).
+EXTRA_CARDS = {
+    "unit": {"mentak_cruiser3", "naaz_voltron", "cavalry1", "ghemina_carrier"},
+    "promissoryNote": {"rider"},  # Keleres Rider
+    "relic": {"enigmaticdevice"},
+}
+# Ta sama jednostka pod innym id: czyta pole wskazanej (jak agendy Absol).
+UNIT_ALIASES = {
+    "absol_naaz_mech_space": "naaz_mech_space",
+    "cavalry2": "cavalry1",
+    "naalu_mech": "naalu_mech_te",
+    "naalu_mech_omega": "naalu_mech_te",
+}
+
 # Moduł talii agend Absol (assets/config/variants.json).
 ABSOL_AGENDAS = "absol_agendas"
 # Karty Absol przemianowane względem oficjalnych (ta sama karta, inna nazwa).
@@ -313,6 +327,8 @@ def main() -> None:
     labels = {kind: _labels(kind) for kind in KINDS}
     absol_own, absol_aliases = _absol_agendas(used["agenda"], labels["agenda"])
     used["agenda"] |= absol_own
+    for kind, extra in EXTRA_CARDS.items():
+        used[kind] |= extra
 
     lines = [
         *HEADER,
@@ -349,7 +365,7 @@ def main() -> None:
         "",
     ]
 
-    lines.append("/** Ta sama karta pod innym id (talia Absol) — czyta lore karty oficjalnej. */")
+    lines.append("/** Ta sama karta pod innym id — czyta lore wskazanej karty. */")
     lines.append(
         "export const LORE_ALIASES: "
         "Partial<Record<LoreKind, Readonly<Record<string, string>>>> = {"
@@ -357,6 +373,10 @@ def main() -> None:
     lines.append("  agenda: {")
     for cid, target in sorted(absol_aliases.items()):
         comment = labels["agenda"].get(cid, "")
+        lines.append(f"    {json.dumps(cid)}: {json.dumps(target)}, // {comment}")
+    lines += ["  },", "  unit: {"]
+    for cid, target in sorted(UNIT_ALIASES.items()):
+        comment = labels["unit"].get(cid, "")
         lines.append(f"    {json.dumps(cid)}: {json.dumps(target)}, // {comment}")
     lines += ["  },", "};", ""]
 

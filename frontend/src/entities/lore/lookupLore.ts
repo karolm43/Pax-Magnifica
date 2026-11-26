@@ -22,6 +22,15 @@ export function lookupCardLore(kind: LoreKind, id: string | null | undefined): s
 }
 
 /**
+ * Id, pod którym jednostka ma lore: własne pole albo alias (Corsair, The Cavalry), a bez nich —
+ * jednostki bazowej (ulepszona wersja dzieli jedno pole z podstawową).
+ */
+export function unitLoreId(unitId: string, upgradesFromUnitId?: string): string {
+  const own = unitId in CARD_LORE.unit || LORE_ALIASES.unit?.[unitId] !== undefined;
+  return own ? unitId : (upgradesFromUnitId ?? unitId);
+}
+
+/**
  * Flavour karty, której tekst startowy pochodzi z danych gry (karty akcji, relikty, eksploracja,
  * systemy, planety): wpis w `cardLore.ts` wygrywa (pusty = świadomie brak lore); gdy karty tam
  * nie ma (np. fanowska), czytamy `fallback` z danych — bez kursywy `*...*`.
