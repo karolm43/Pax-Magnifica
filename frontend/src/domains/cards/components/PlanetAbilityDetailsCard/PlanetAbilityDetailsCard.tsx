@@ -1,6 +1,7 @@
 import { Image } from "@/ds";
 import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getPlanetData } from "@/entities/lookup/planets";
+import { typeset } from "@/entities/lore/typography";
 import { DetailsCard } from "@/shared/ui/DetailsCard";
 import { PlanetActionCardsSection } from "./PlanetActionCardsSection";
 
@@ -20,6 +21,9 @@ export function PlanetAbilityDetailsCard({
   const planetData = getPlanetData(planetId);
 
   if (!planetData) return null;
+
+  // Data wraps flavour in `*...*`; some entries are just "**".
+  const flavour = (planetData.legendaryAbilityFlavourText ?? "").replace(/^\*+|\*+$/g, "").trim();
 
   return (
     <DetailsCard width={340} color="gold">
@@ -41,6 +45,7 @@ export function PlanetAbilityDetailsCard({
       />
       <DetailsCard.Section title="Ability" content={abilityText} />
       <PlanetActionCardsSection actionCards={actionCards} />
+      {flavour && <DetailsCard.Flavor quiet>{typeset(flavour)}</DetailsCard.Flavor>}
     </DetailsCard>
   );
 }

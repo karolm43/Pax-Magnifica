@@ -251,6 +251,7 @@ export function genericPromissoryPool(): PoolGroup[] {
       name: note.name.replace(/<color>/g, "[color]"),
       text: note.text.replace(/<color>/g, "[color]"),
       meta: note.playArea ? "Play area" : undefined,
+      flavor: lookupCardLore("promissoryNote", note.alias) ?? undefined,
       source: note.source,
     }))
     .sort(byName);

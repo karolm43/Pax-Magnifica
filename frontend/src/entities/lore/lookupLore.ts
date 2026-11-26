@@ -1,10 +1,12 @@
+import { getExploration } from "@/entities/lookup/explorations";
 import { CARD_LORE, LORE_ALIASES, type LoreKind } from "./cardLore";
 import { typeset } from "./typography";
 
 /**
  * Tekst fabularny karty wpisany ręcznie w `cardLore.ts` (flavour). Zwraca `null`, gdy pole puste
  * albo karty brak — wtedy UI nic nie pokazuje. Karta z innej talii o tej samej nazwie (np. agendy
- * Absol: `absol_mutiny`) czyta lore karty oficjalnej przez `LORE_ALIASES`. Karty akcji, relikty,
+ * Absol: `absol_mutiny`) czyta lore karty oficjalnej przez `LORE_ALIASES`. Karta eksploracji typu
+ * „Attach” z pustym polem czyta lore swojego attachmentu (to ta sama karta). Karty akcji, relikty,
  * eksploracja, systemy i planety mają tekst startowy skopiowany z assetów; czytają go przez
  * `lookupLoreOr` (poniżej), z fallbackiem do danych gry dla kart spoza `cardLore.ts`.
  */
@@ -14,7 +16,9 @@ export function lookupCardLore(kind: LoreKind, id: string | null | undefined): s
   const base = kind === "attachment" ? id.replace(/stat$/, "") : id;
   const key = LORE_ALIASES[kind]?.[base] ?? base;
   const text = CARD_LORE[kind][key];
-  return text && text.trim() ? typeset(text.trim()) : null;
+  if (text && text.trim()) return typeset(text.trim());
+  const attachmentId = kind === "exploration" ? getExploration(id)?.attachmentId : undefined;
+  return attachmentId ? lookupCardLore("attachment", attachmentId) : null;
 }
 
 /**

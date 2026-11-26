@@ -941,3 +941,12 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
 - `/dev/ui`: applies the theme class, one-line sticky header + `scroll-margin-top`, real token names (hairlines were
   `h08/h36/h56` = undefined), framed swatches, working phase stepper / notice dismiss + reset, Drawer/Tooltip/Popover
   demos, footer-pinned Close in long modals, ds Buttons instead of raw buttons in the Transaction mock.
+
+## Card lore: missing slots and missing display
+
+- `gen_lore_template.py` only made slots for action cards / relics / exploration that had asset flavour, and none for
+  generic units. Now every card in the game gets a slot (24 relic fragments, 12 attach cards, JR-XS455-O, 9 units).
+- Attach exploration cards with an empty slot read their attachment's lore (`lookupCardLore`).
+- Lore now shown: generic promissory notes in the library/deck browser, hover hints and ⓘ hint cards (action card,
+  relic, exploration, planet), legendary planet ability card (`legendaryAbilityFlavourText`).
+- Still empty, for the user to write: relic fragments, generic units, JR-XS455-O. Strategy cards have no lore kind.

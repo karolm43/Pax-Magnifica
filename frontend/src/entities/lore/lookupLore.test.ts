@@ -23,6 +23,17 @@ describe("lookupCardLore", () => {
     for (const n of [1, 2, 3, 4]) expect(CARD_LORE.agenda).toHaveProperty(`absol_emergency${n}`);
   });
 
+  it("attach exploration card with an empty slot reads its attachment's lore", () => {
+    expect(CARD_LORE.exploration.ds).toBe("");
+    expect(lookupCardLore("exploration", "ds")).toBe(lookupCardLore("attachment", "dysonsphere"));
+    expect(lookupCardLore("exploration", "ds")).not.toBeNull();
+  });
+
+  it("every relic fragment and generic unit has a slot to write into", () => {
+    for (const id of ["crf1", "hrf1", "irf1", "urf1"]) expect(CARD_LORE.exploration).toHaveProperty(id);
+    for (const id of ["fighter", "cruiser", "spacedock"]) expect(CARD_LORE.unit).toHaveProperty(id);
+  });
+
   it("karty usunięte przez PoK/Codex/TE nie mają pól", () => {
     for (const gone of ["core_mining", "rt_biotic", "crown_of_thalnos", "representative_government"]) {
       expect(CARD_LORE.agenda).not.toHaveProperty(gone);

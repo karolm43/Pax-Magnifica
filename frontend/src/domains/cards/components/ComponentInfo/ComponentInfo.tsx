@@ -67,6 +67,7 @@ function HintCard({ componentRef }: { componentRef: ComponentRef }) {
       {hint.lines.map((line, index) => (
         <DetailsCard.Section key={index} content={line} />
       ))}
+      {hint.lore && <DetailsCard.Flavor quiet>{hint.lore}</DetailsCard.Flavor>}
     </DetailsCard>
   );
 }

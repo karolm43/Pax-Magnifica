@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Tooltip } from "@/ds";
 import { agendas } from "@/entities/data/agendas";
 import { promissoryNotes } from "@/entities/data/promissoryNotes";
-import { lookupCardLore } from "@/entities/lore/lookupLore";
+import { lookupCardLore, lookupLoreOr } from "@/entities/lore/lookupLore";
 import { getAbility } from "@/entities/lookup/abilities";
 import { getActionCard } from "@/entities/lookup/actionCards";
 import { getBreakthroughData } from "@/entities/lookup/breakthroughs";
@@ -52,6 +52,17 @@ function withLore(hint: Hint | null, ...sources: [Parameters<typeof lookupCardLo
   return hint;
 }
 
+/** Lore for cards whose starting text comes from game data (see `lookupLoreOr`). */
+function withLoreOr(
+  hint: Hint | null,
+  kind: Parameters<typeof lookupLoreOr>[0],
+  id: string,
+  fallback?: string,
+): Hint | null {
+  const lore = hint ? lookupLoreOr(kind, id, fallback) : undefined;
+  return hint && lore ? { ...hint, lore } : hint;
+}
+
 export function hintFor(
   kind: NamedKind,
   id: string,
@@ -59,6 +70,14 @@ export function hintFor(
 ): Hint | null {
   const hint = baseHint(kind, id, extra);
   switch (kind) {
+    case "actionCard":
+      return withLoreOr(hint, "actionCard", id, getActionCard(id)?.flavorText);
+    case "relic":
+      return withLoreOr(hint, "relic", id, getRelicData(id)?.flavourText);
+    case "explore":
+      return withLoreOr(hint, "exploration", id, getExploration(id)?.flavorText);
+    case "planet":
+      return withLoreOr(hint, "planet", id, getPlanetData(id)?.flavourText ?? undefined);
     case "agenda":
       return withLore(hint, ["agenda", id]);
     case "tech":

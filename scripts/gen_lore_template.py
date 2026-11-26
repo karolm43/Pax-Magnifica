@@ -165,6 +165,12 @@ def _explored_attachments() -> set[str]:
     return out
 
 
+# Jednostki ogólne: karta jednostki czyta pole po id bazowym (ulepszenia je dziedziczą).
+GENERIC_UNITS = {
+    "fighter", "infantry", "destroyer", "cruiser", "carrier",
+    "dreadnought", "warsun", "pds", "spacedock",
+}
+
 # Moduł talii agend Absol (assets/config/variants.json).
 ABSOL_AGENDAS = "absol_agendas"
 # Karty Absol przemianowane względem oficjalnych (ta sama karta, inna nazwa).
@@ -227,7 +233,8 @@ def _labels(kind: str) -> dict[str, str]:
             if isinstance(item, dict) and item.get(key):
                 label = str(item.get("name", "")).replace("\n", " ")
                 if kind == "unit":  # nazwa jednostki + frakcja i typ bazowy
-                    label += f" ({item.get('faction', '?')} {item.get('baseType', '')})".rstrip()
+                    owner = item.get("faction", "generic")
+                    label += f" ({owner} {item.get('baseType', '')})".rstrip()
                 if kind == "leader":  # imię lidera nic nie mówi — dopisz frakcję i rolę
                     label += f" ({item.get('faction', '?')} {item.get('type', '')})".rstrip()
                 if item.get("source") == "absol":
@@ -265,11 +272,12 @@ def _used(registry: StaticDataRegistry) -> dict[str, set[str]]:
             if not a.endswith("stat")
         },
         "feature": (_official_ids("tokens") - SKIPPED_TOKENS) | set(STATIC_FEATURES),
-        "unit": {u for f in factions for u in f.units if registry.units[u].faction},
-        # id kart/pól z istniejącym flavourem + wszystkie oficjalne systemy i planety
-        "actionCard": set(_prefill("actionCard")),
-        "relic": set(_prefill("relic")),
-        "exploration": set(_prefill("exploration")),
+        "unit": {u for f in factions for u in f.units if registry.units[u].faction}
+        | GENERIC_UNITS,
+        # każda karta w grze dostaje pole, także bez flavouru w assetach (+ karty z flavourem)
+        "actionCard": set(deck_card_ids(registry, "action_card")) | set(_prefill("actionCard")),
+        "relic": set(deck_card_ids(registry, "relic")) | set(_prefill("relic")),
+        "exploration": _official_ids("explores"),
         "plot": _official_plots(),
         "system": {
             i["id"]
