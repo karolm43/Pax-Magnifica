@@ -387,3 +387,17 @@ Older, completed blocks (Phase 1 → early flight-replay blocks of 2026-11-25) a
   Shielding 1.1), research card announced at play (watcher 6), Fleet Logistics scenario (watcher 8.1).
 - Tests: `test_empyrean.py` (41), `test_flows_empyrean.py` (12), `test_activity.py`, frontend `empyreanFx.test.ts`,
   `EmpyreanFxMarks.test.tsx`, `describeActivity.empyrean.test.tsx`, `heroBoardFx.test.ts`.
+
+## Rulings audit: R_exhausted + R_readied (2026-11-26)
+
+- Verified `core/exhaust.py` and its callers (payment, status step 6, end of agenda phase, strategic action,
+  exhaust-cost technologies, "exhaust / ready a planet" effects) against `R_exhausted.md` / `R_readied.md`: no
+  discrepancies, no `src/` change.
+- `tests/rulings_general/test_rulings_exhaust_ready.py` (10 tests, every point of both files): facedown = on the
+  `exhausted_*` list; exhausted planet cannot be spent; Sling Relay exhausts itself and cannot be reused while
+  exhausted; Psychoarchaeology does not exhaust its own card; exhausted Self-Assembly Routines still pays 1 TG per
+  destroyed mech; Ready Cards readies planets/techs/SCs/relics/legendaries/breakthrough/exhausted leaders; end of
+  agenda readies planets, space stations and The Triad only; Uprising (another player's planet) vs Brilliance /
+  Psychoarchaeology (own planets only).
+- Statuses: Deepwrought ocean cards (`R_exhausted/notes/1.1`, `R_readied/notes/2.1`) `requires faction:deepwrought`.
+- `tests/rulings_debt.json` -2 entries, `GENERAL_DEBT_LIMIT` 101 -> 99. Ruff fix in `tests/test_activity.py:657`.

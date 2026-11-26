@@ -405,6 +405,18 @@
   "F_empyrean/watcher/7": {
     "na": "Only the play of a card opens the hold window (core/card_hold.begin); a rider resolving later is not a new play, so nothing can be cancelled then - the ruling holds by construction (RULES.md 62.20)."
   },
+  "R_exhausted/notes/1.1": {
+    "requires": [
+      "faction:deepwrought"
+    ],
+    "reason": "Space stations and The Triad are tested (test_rulings_exhaust_ready.py); Deepwrought ocean cards need the Deepwrought faction module."
+  },
+  "R_readied/notes/2.1": {
+    "requires": [
+      "faction:deepwrought"
+    ],
+    "reason": "Space stations and The Triad are tested (test_rulings_exhaust_ready.py); Deepwrought ocean cards need the Deepwrought faction module."
+  },
   "F_empyrean/watcher/8.1": {
     "gap": "card_hold.cancel_by_component returns the cancelled ACTION card's action (action_budget.unregister_action); ending the turn without the Fleet Logistics second action is the existing End turn path - no dedicated scenario with Fleet Logistics (RULES.md 62.20)."
   }

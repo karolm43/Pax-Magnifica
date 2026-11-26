@@ -654,7 +654,8 @@ def test_multiverse_shift_frontier_w_feedzie_i_obszar() -> None:
     assert entry is not None
     assert [f.delta for f in entry.facts if f.type == "frontier_tokens"] == [2]
     areas = {(f.value, f.detail) for f in entry.facts if f.type == "area"}
-    assert {("101", "frontier"), ("102", "frontier"), ("103", "explore"), ("102", "explore")} <= areas
+    expected = {("101", "frontier"), ("102", "frontier"), ("103", "explore"), ("102", "explore")}
+    assert expected <= areas
 
 
 def test_void_tether_na_granicy_w_feedzie() -> None:
