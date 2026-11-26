@@ -319,7 +319,7 @@ const technology: LoreMap = {
   "bio": "Tendrils of pale Dirzuga moss crept down the landing struts of the freighter overnight, rooting into the wet shale of the neighboring moon before the local garrison opened its morning gates.", // Bioplasmosis
   "cv2": "With extended flight decks and twin gravitic catapults, the retrofitted carriers could launch an entire fighter screen before enemy pickets even closed to gun range.", // Carrier II
   "cm": "Inside the Jorun belt, Saar pilots cut their transponders and thread their floating factories between tumbling iron slabs by dead reckoning. Foreign nav-computers flag the sector as impassable.", // Chaos Mapping
-  "cl2": "The Legionnaire stepped from the gene-vats of Ixth conditioned by the ancient kings, marching through artillery fire without breaking stride. When his armor finally buckled, his neural imprint had already uploaded to the clone-cradles on the homeworld.", // Crimson Legionnaire II
+  "cl2": "Bound to Mahact command frequencies, the Crimson Legionnaire marches through artillery fire without breaking stride. When its runic armor finally shatters, the captive energy pattern snaps back to Ixth to be forged into a new frame.", // Crimson Legionnaire II
   "cr2": "Stripped of non-essential armor and fitted with an auxiliary drop-bay, the upgraded cruisers could outrun sector patrols and land shock troops before planetary alarms sounded.", // Cruiser II
   "dxa": "Medics didn't bother tagging the dead along the southern trench on Abyz. A single dose of Dacxive serum had half the fallen platoon back on their feet—and marching—within the hour.", // Dacxive Animators
   "det": "Long collector vanes unfolded from the scout frigate's spine, drawing stray charge from deep-space vacuum while its crew charted forgotten hyperlanes.", // Dark Energy Tap
@@ -372,7 +372,7 @@ const technology: LoreMap = {
   "pfa": "Drop-pods punched into the red clay of Lazar and fired their foam-crete charges. By the next morning cycle, pressurized habitation domes and solar arrays stood anchored around the excavation pit.", // Pre-Fab Arcologies
   "pi": "Statistical models cross-referenced every senator's voting history, trade debts, and border garrisons, printing the likely roll call on the ambassador's slate six hours before the gavel fell.", // Predictive Intelligence
   "pm": "Pressurized glass domes stretched across the dunes of Arretze, turning arid moons into irrigated spice-gardens whose harvests filled both Hacan vaults and allied freighter holds.", // Production Biomes
-  "pws2": "Slag rained from the orbital rings of Muaat as the refined sphere broke clear of the gantry, its containment core burning brighter and faster than the original designs stolen from the Jol-Nar.", // Prototype War Sun II
+  "pws2": "Slag rained from the orbital rings of Muaat as the refined sphere broke clear of the gantry, its containment core burning brighter and faster than the original designs seized from the Jol-Nar.", // Prototype War Sun II
   "proxima": "Six thousand ballistic solutions a second let Bastion gunners drop orbital shells forty meters ahead of their own trenches, walking a curtain of fire straight into the enemy line.", // Proxima Targeting VI
   "pa": "The researcher pressed her palm against the carved basalt of the Lazax vault, reading the faint neural echo left by its builders before keying the lock open without a cipher.", // Psychoarchaeology
   "qdn": "\"Transfer three hundred thousand aurei from the Arretze reserve to the Sol delegation's account,\" Gila told her clerk, tapping the encrypted relay. \"Tell the ambassador we will take the Imperial docket this cycle.\"", // Quantum Datahub Node
@@ -410,7 +410,7 @@ const breakthrough: LoreMap = {
   "cabalbt": "Long before the violet tear split the sky above Acheron, every long-range transponder in the sector began broadcasting a low, grinding static. Old navigators mutter protective wards at the sound and call it Al'Raith Ix Ianovar.", // Al'Raith Ix Ianovar (Vuil'raith Cabal)
   "xxchabt": "Elder Qanoj set the silver-bound charter of Archon Ren beside the rival ambassador's slate. \"A gift from the Kingdom carries no tribute,\" he said. \"Only the memory of who stood beside us when the sky darkened.\"", // Archon's Gift (Xxcha)
   "hacanbt": "Across the orbital rings of Arretze, automated plasma gantries welded freighter keels through the night shift with no organic foreman on the catwalks. By dawn, fresh hulls hung ready for the guild factors.", // Auto-Factories (Hacan)
-  "solbt": "The iron plaque above the embarkation ramp at Churchill Prima bears two words hammered into weathered brass: *Bellum Gloriosum*. Every marine touches the letters with a gloved palm before the bay doors cycle open.", // Bellum Gloriosum (Sol)
+  "solbt": "The plaque above the embarkation ramp at Churchill Prima bears two words hammered into weathered brass: *Bellum Gloriosum*. Every marine touches the letters with a gloved palm before the bay doors cycle open.", // Bellum Gloriosum (Sol)
   "ralnelbt": "A Ral Nel broker leaves the encrypted vault doors untouched. A thin tap spliced into the relay buoy's routing headers yields ship tonnages, fuel stops, and buyer codes before the convoy even clears customs.", // Data Skimmer (Ral Nel)
   "yssarilbt": "The Jol-Nar systems chief signed off on fourteen consecutive clean security audits, never realizing the minor latency spike in the dispatch kernel was a Yssaril worm copying every fleet order in real time.", // Deepgloom Executable (Yssaril)
   "saarbt": "Saar tug-crews welded surplus maneuvering thrusters onto a half-kilometer slab of iron-rich asteroid in the Jorun belt and burned it into a decaying vector. Down on the contested moon, the planetary shield sirens began to wail.", // Deorbit Barrage (Saar)
@@ -481,7 +481,7 @@ const ability: LoreMap = {
   "mitosis": "Every morning cycle, the Letani shed pale spores across the damp soil, raising fresh warriors from the mud before the local sun clears the ridge.", // Mitosis (Arborec)
   "munitions": "\"Break open the reserve lockers and double the plasma charge,\" the Letnev gunnery chief barked as the hull shuddered. \"The Baron pays for dead cruisers, not full magazines.\"", // Munitions Reserves (Letnev)
   "nocturne": "When the sector relays go dark and long-range sensors fill with cold static, the Obsidian slip their moorings and cross the border.", // Nocturne (Obsidian)
-  "nomadic": "Home is wherever the floating factories drop anchor. Even if Jorun burns, the Clan of Saar carries its entire civilization in its wake.", // Nomadic (Saar)
+  "nomadic": "Home is wherever the floating factories drop anchor. Since the loss of Lisis, the Clan of Saar carries its entire civilization in its wake.", // Nomadic (Saar)
   "oceanbound": "Crushing abyssal pressure that would buckle a dreadnought's keel feels like calm air to the Deepwrought. Beneath the dark swells of Ikatena, their vaults remain untouched.", // Oceanbound (Deepwrought)
   "orbital_drop": "Drop-pods screamed through the storm clouds in tight rows, punching into the gravel around the spaceport before the local garrison could reach the perimeter wall.", // Orbital Drop (Sol)
   "peace_accords": "\"Why shell a border world into rubble when a fair charter will bring their governor to Archon Ren by sunset?\" Elder Qanoj asked, folding his hands.", // Peace Accords (Xxcha)
@@ -588,24 +588,24 @@ const unit: LoreMap = {
   "mahact_flagship": "Gilded in First Empire bronze and obsidian, the *Arvicon Rex* cuts hardest against houses whose admirals have not yet knelt before the Plateau Imperia.", // Arvicon Rex (mahact flagship)
   "yssaril_mech": "By the time the border garrison spots the faint heat-shimmer of a Blackshade Infiltrator along the ridge, the perimeter mines have already been rewired to face the bunkers.", // Blackshade Infiltrator (yssaril mech)
   "sardakk_flagship": "Chitinous armor plates bristle along the prow of the *C'morran N'orr*. Where its war-horns vibrate across the hull-comms, every N'orr cruiser in the sector tightens its formation and drives forward.", // C'morran N'orr (sardakk flagship)
-  "carrier": "", // Carrier I (generic carrier)
-  "mentak_cruiser3": "", // Corsair (mentak cruiser)
-  "mahact_infantry": "Cloned from the ancient warrior-castes of Ixth, the Crimson Legionnaires march through artillery smoke in unbroken silence. When one falls in the mud, its neural imprint returns to the homeworld vats.", // Crimson Legionnaire I (mahact infantry)
-  "cruiser": "", // Cruiser I (generic cruiser)
+  "carrier": "Fleet carriers trade speed and heavy armor for cavernous hangar bays, ferrying fighter wings and ground divisions wherever the campaign demands.", // Carrier I (generic carrier)
+  "mentak_cruiser3": "\"Let the admirals form their neat battle lines,\" the Mentak helmswoman smirked, cutting through the blockade's blind spot. \"We didn't come to trade broadsides with their escorts.\"", // Corsair (mentak cruiser)
+  "mahact_infantry": "Creuss explorers enslaved on Ixth and twisted to burn crimson inside bronze-sealed armor, the Legionnaires advance through artillery smoke in eerie silence until their containment shells crack.", // Crimson Legionnaire I (mahact infantry)
+  "cruiser": "Fast enough to outrun a dreadnought and armed well enough to scatter pickets, the standard cruiser handles everything from border patrols to deep-space raids.", // Cruiser I (generic cruiser)
   "deepwrought_flagship": "Bioluminescent conduits pulse pale blue along the pressure-rated hull of the *D.W.S. Luminous*, casting the cold light of the Ikatena trenches across the dark.", // D.W.S. Luminous (deepwrought flagship)
-  "destroyer": "", // Destroyer I (generic destroyer)
+  "destroyer": "Built cheap and fast around rapid-tracking flak batteries, destroyers break enemy fighter screens before torpedoes can reach the capital ships.", // Destroyer I (generic destroyer)
   "cabal_spacedock": "A jagged violet wound hangs in low orbit, pulling loose orbital debris into its swirling rim while fresh flesh-and-steel hulls crawl out of the tear.", // Dimensional Tear I (cabal spacedock)
-  "dreadnought": "", // Dreadnought I (generic dreadnought)
+  "dreadnought": "Smaller vessels clear the lane whenever a dreadnought drops out of warp. Its layered armor shrugs off escort fire while its main guns hammer planetary shields.", // Dreadnought I (generic dreadnought)
   "arborec_flagship": "Glass-domed spore nurseries span the dorsal spine of the *Duha Menaimon*. Whenever the flagship anchors above a contested world, clouds of pale pollen drift straight down into the soil.", // Duha Menaimon (arborec flagship)
   "letnev_mech": "\"Roll the Reapers off the ramp,\" the Barony captain ordered, tapping ash from his cigarillo onto the steel grating. \"The Baron's reserves are open, and those trenches are coming down before nightfall.\"", // Dunlain Reaper (letnev mech)
   "empyrean_flagship": "The *Dynamo* draws stray radiation from the dark between stars and bends it into pale barrier screens, absorbing plasma fire meant for the Empyrean vessels sailing in its wake.", // Dynamo (empyrean flagship)
   "deepwrought_mech": "Built for the crushing dark four kilometers beneath the waves of Ikatena, the Eanautic steps onto dry basalt with slow, hydraulic certainty.", // Eanautic (deepwrought mech)
   "naaz_mech": "Dart eased the gyroscopic stick back while Tai swung the dorsal railgun onto the bunker roof. Inside the *Eidolon*'s shared cockpit, Naaz reflexes and Rokha steel moved as a single frame.", // Eidolon (naaz mech)
-  "naaz_voltron": "", // Eidolon Maximum (naaz mech)
+  "naaz_voltron": "Four Eidolons locked limb-to-hull in a roar of entropic energy, rising into a colossus built to fight equally well in orbit or ankle-deep in bunker rubble. \"Hold onto the controls, Tai!\" Dart shouted over the klaxons.", // Eidolon Maximum (naaz mech)
   "muaat_mech": "Superheated plasma vents from the Ember Colossus's knee-joints with every stride, turning frozen tundra into steaming black mud while Gashlai shock troops advance in its wake.", // Ember Colossus (muaat mech)
   "crimson_destroyer": "Stripped of non-essential bulkheads and painted dull iron-red, the Exile I drops out of a crimson breach, rakes the convoy's escorts, and vanishes before the Core cruisers can come about.", // Exile I (crimson destroyer)
   "sardakk_dreadnought": "Carapace-thick armor plates and oversized ventral bomb-bays make the Exotrireme I a blunt instrument built to crack planetary fortresses from high orbit.", // Exotrireme I (sardakk dreadnought)
-  "fighter": "", // Fighter I (generic fighter)
+  "fighter": "Stripped down to an engine, a cockpit, and twin pulse cannons, a carrier-launched fighter relies on numbers and tight formation flying to overwhelm heavier hulls.", // Fighter I (generic fighter)
   "saar_spacedock": "Welded from stripped freighter hulls and propelled by salvaged thrusters, a Floating Factory turns any dense asteroid belt into a working shipyard before rival scouts can chart the lane.", // Floating Factory I (saar spacedock)
   "mentak_flagship": "The *Fourth Moon* slipped through the crossfire with its jamming arrays screaming at full gain, collapsing the rival dreadnought's damage-control shields before the broadside hit.", // Fourth Moon (mentak flagship)
   "sol_flagship": "Part fleet carrier, part orbital barracks, the *Genesis* holds enough drop-troopers and training decks inside its keel to reinforce an entire sector campaign without returning to Jord.", // Genesis (sol flagship)
@@ -618,7 +618,7 @@ const unit: LoreMap = {
   "ghost_mech": "At the pilot's command, the Icarus Drive overloads its Shaleri core, folding local space inward and tearing open a fresh aperture straight across the sector.", // Icarus Drive (ghost mech)
   "naalu_mech_te": "Slender, silent, and tuned to the Collective's psychic chorus, the Iconoclast dismantles heavy enemy armor with surgical precision.", // Iconoclast TE (naalu mech)
   "xxcha_mech": "Even from high orbit, invading cruisers plot wide around the Indomitus. Its shoulder-mounted plasma rails reach well past the upper cloud deck.", // Indomitus (xxcha mech)
-  "infantry": "", // Infantry I (generic infantry)
+  "infantry": "Warships win the sky, yet it still takes rifle squads holding trenches and clearing bunkers to keep a world.", // Infantry I (generic infantry)
   "jolnar_flagship": "\"Route auxiliary reactor draw straight into the experimental arrays,\" the Hylar captain ordered over the bridge hum. \"If the containment coils hold, one clean strike will shear both dreadnoughts.\"", // J.N.S. Hylarim (jolnar flagship)
   "ralnel_flagship": "Packed with encrypted relay dishes and oversized sublight drives, the *Last Dispatch* delivers sealed orders, contraband cargo, and heavy broadsides on the same schedule.", // Last Dispatch (ralnel flagship)
   "arborec_mech": "Towering trunks of armored ironwood stride through the artillery smoke, projecting a planetary shield canopy while scattering fresh Letani spores across the churned earth.", // Letani Behemoth (arborec mech)
@@ -629,10 +629,10 @@ const unit: LoreMap = {
   "nomad_flagship": "Scorch marks from weapons not yet invented line the *Memoria*'s hull. Its flak pods track incoming fighter wings before they even clear their carrier's launch tubes.", // Memoria I (nomad flagship)
   "mentak_mech": "Riveted together from salvaged Barony armor plates on Moll Primus, the Moll Terminus strips enemy field-shields bare before the corsair boarding teams breach the bunker.", // Moll Terminus (mentak mech)
   "nekro_mech": "UNIT.DESGN: MORDRED // DIRECTIVE: TERMINATE.\nORGANIC INFANTRY LOCATED. DEPLOYING THERMAL LANCES.", // Mordred (nekro mech)
-  "yin_mech": "Forged in memory of the brothers lost at Darien, Moyin's Ashes strides into the heaviest fire, its loudspeakers chanting the liturgy of the Brotherhood over the mortar blasts.", // Moyin's Ashes (yin mech)
+  "yin_mech": "Named for the ashes scattered atop the Hills of Grace, Moyin's Ashes strides into the heaviest fire while its speakers echo the liturgy of Lucas across the trenches.", // Moyin's Ashes (yin mech)
   "keleres_mech": "Painted in the silver and gold of the Tribunal, an Omniopiares walker locks down contested spaceports, forcing rival commanders to answer to Council authority before committing troops.", // Omniopiares (keleresm mech)
   "titans_flagship": "The *Ouranos* drifts into orbit with the slow weight of a basalt mountain, waking dormant orbital defenses beneath the crust below.", // Ouranos (titans flagship)
-  "pds": "", // PDS I (generic pds)
+  "pds": "Anchored in reinforced concrete bunkers and tied into planetary shields, ground-based defense batteries punish any invasion fleet careless enough to settle into low orbit.", // PDS I (generic pds)
   "hacan_mech": "Gilded in Arretze gold and built to guard the Emirates' trade factors, the Pride of Kenara turns even a frontier landing pad into a secure auction floor.", // Pride of Kenara (hacan mech)
   "muaat_warsun": "Rough-welded and radiating enough thermal glare to blind standard optics, the Prototype War Sun still boils an ocean dry the moment its main aperture opens.", // Prototype War Sun I (muaat warsun)
   "nomad_mech": "A low, brassy hum bends local probability around the Quantum Manipulator, nudging incoming artillery shells off-axis until they bury themselves harmlessly in the shale.", // Quantum Manipulator (nomad mech)
@@ -646,7 +646,7 @@ const unit: LoreMap = {
   "saar_mech": "Built from salvaged titanium and outfitted with industrial plasma torches, the Scavenger Zeta dismantles enemy bunkers and hauls the scrap straight back to the floating factories.", // Scavenger Zeta (saar mech)
   "jolnar_mech": "Overlapping barrier domes rise from the Shield Paling's dorsal emitter, letting fragile Hylar squads hold a trench line under heavy bombardment.", // Shield Paling (jolnar mech)
   "saar_flagship": "Scarred by a hundred asteroid belts and bristling with flak barrels, the *Son of Ragh* fills the forward arc with white-hot shrapnel.", // Son of Ragh (saar flagship)
-  "spacedock": "", // Space Dock I (generic spacedock)
+  "spacedock": "Skeletons of scaffolding, fuel spheres, and zero-gravity slipways ring every settled world, turning raw planetary ore into warships and transports.", // Space Dock I (generic spacedock)
   "sol_infantry": "First through the cloud deck and last off the ridge. When the Federation commits Spec Ops to a frontier world, the garrison digs in for good.", // Spec Ops I (sol infantry)
   "mahact_mech": "Wielding crackling genetic disruption staves, a Starlancer strips enemy officers of their command codes before the assault can even begin.", // Starlancer (mahact mech)
   "argent_destroyer": "Gull-winged and flown by zealots who never break formation, Strike Wing Alpha I clears the fighter screen and drops ground troops in a single pass.", // Strike Wing Alpha I (argent destroyer)
@@ -660,7 +660,7 @@ const unit: LoreMap = {
   "firmament_mech": "Low-profile and coated in thermal baffles, the Viper EX-23 slips past perimeter sensors long before the night watch changes.", // Viper EX-23 (firmament mech)
   "obsidian_mech": "Cold iron and dark optical lenses. The Viper Hollow strikes from the black and leaves no garrison standing to file a dispatch.", // Viper Hollow (obsidian mech)
   "naaz_flagship": "From high orbit, the *Visz El Vir* links every Naaz-Rokha walker on the surface into a single fire-control lattice, doubling the weight of their assault.", // Visz El Vir (naaz flagship)
-  "warsun": "", // War Sun (generic warsun)
+  "warsun": "Half a moon of armor wrapped around a captive stellar furnace, a War Sun turns an entire planetary defense grid to ash in a single sustained sweep.", // War Sun (generic warsun)
   "empyrean_mech": "Silent sentinels stationed at the edge of the dark, Watchers sense an incoming ambush and dismantle rival contingencies before the first shot is fired.", // Watcher (empyrean mech)
   "hacan_flagship": "Treasury-grade catalyst crates emptied straight into the fuel condensers as the *Wrath of Kenara* brought its main batteries online, reminding the Core that the Emirates guard their own lanes.", // Wrath of Kenara (hacan flagship)
   "yssaril_flagship": "No sensor grid in the sector holds a lock on the *Y'sia Y'ssrila* for long. It glides straight through enemy blockades without tripping a single perimeter buoy.", // Y'sia Y'ssrila (yssaril flagship)
@@ -822,7 +822,7 @@ const relic: LoreMap = {
   "dominusorb": "Goldos hoisted the ivory orb at the head of their army. At once, the weariness that filled the bodies and minds of each soldier vanished. They strode forth as if fresh from a week's rest.", // Dominus Orb
   "dynamiscore": "Dart and Tai stood, mesmerized by the swirling mass. Neither had any idea what it was, but both were fairly sure they were about to retire.", // Dynamis Core
   "heartofixth": "\"It should be impossible.\" Feng glanced sidelong at his compatriot. The Thundarian merely stared ahead, as if he did not hear. Feng snorted. \"One day I mean to know the source of this so-called power of yours.\"", // Heart of Ixth
-  "titanprototype": "", // JR-XS455-O
+  "titanprototype": "\"I have no name. Perhaps I shall be Dart II,\" the little Titan said, studying the Naaz archaeologist solemnly. \"How about Junior instead?\" Dart offered. \"Yes,\" it nodded. \"I like that name—and I would also like to come with you.\"", // JR-XS455-O
   "lightrailordnance": "A single sparkle was the only warning the Yin fleet had before a massive hole had been punched through the hull of the Van Hauge.\nThen, searing light.", // Lightrail Ordnance
   "mawofworlds": "No larger than a carrier, the spherical lattice held a captive singularity at its heart. As they dumped the planet's entire energy grid into its core, the black hole began to spin, the complex logic-circuitry along the lattice slowly coming to life.", // Maw of Worlds
   "metalivoidarmaments": "The Metali, Empyrean artificers of legend, were said to have created weapons that harnessed the power of space itself.", // Metali Void Armaments
@@ -848,22 +848,22 @@ const exploration: LoreMap = {
   "aw2": "Suffi An drifted into the derelict orbital and brushed her suited hand across the inner hatch controls. A light glowed, and she smiled. The stasis seals were still operational.", // Abandoned Warehouses
   "aw3": "The storage silos had been half buried in sand dunes, sealed enviro-doors hiding the stockpiles within.", // Abandoned Warehouses
   "aw4": "Far beneath the storm-wracked seas, vast storage tanks drifted in the lightless depths.", // Abandoned Warehouses
-  "biotic": "", // Biotic Research Facility
+  "biotic": "Surveyors hacking through the overgrown ridge found an intact conservatory with pressurized tanks still glowing pale green with pre-war specimens.", // Biotic Research Facility
   "cm1": "\"If we don't seal it now, this mine is going to erupt and spew those metals you want so badly across the entire continent!\"", // Core Mine
   "cm2": "The borehole was over a kilometer across. It seemed to stretch down forever, but Ilan could see a faint orange glow in its depths.", // Core Mine
   "cm3": "Without the proper machinery, a core mine can be a more hostile environment than a star's corona.", // Core Mine
-  "crf1": "", // Cultural Relic Fragment
-  "crf2": "", // Cultural Relic Fragment
-  "crf3": "", // Cultural Relic Fragment
-  "crf4": "", // Cultural Relic Fragment
-  "crf5": "", // Cultural Relic Fragment
-  "crf6": "", // Cultural Relic Fragment
-  "crf7": "", // Cultural Relic Fragment
-  "crf8": "", // Cultural Relic Fragment
-  "crf9": "", // Cultural Relic Fragment
-  "cybernetic": "", // Cybernetic Research Facility
+  "crf1": "Half-buried beneath temple rubble, a tablet of veined marble still carried a Lazax royal seal from a house lost during the Twilight Wars.", // Cultural Relic Fragment
+  "crf2": "\"Keep the brush steady,\" the archaeologist whispered as gold leaf flaked away from the relief. \"That crest belongs to a court older than Mecatol City.\"", // Cultural Relic Fragment
+  "crf3": "A hollow bronze cylinder chimed softly when lifted from the silt, its surface etched with star charts for constellations no longer visible from this world.", // Cultural Relic Fragment
+  "crf4": "Behind the collapsed masonry lay three rows of crystal scrolls, intact in dry air and written in a dialect only half-matched by Winnaran lexicons.", // Cultural Relic Fragment
+  "crf5": "The carved funerary mask weighed next to nothing, cast in an iridescent alloy that shifted hue whenever anyone spoke near it.", // Cultural Relic Fragment
+  "crf6": "Shattered mosaic tiles littered the dry basin, piecing together a map of ten vanished worlds and a crown split cleanly down the middle.", // Cultural Relic Fragment
+  "crf7": "\"Don't touch the tuning fork,\" Tai warned too late; a single note rang out from the carved pedestal and echoed through the canyon for a full minute.", // Cultural Relic Fragment
+  "crf8": "Wrapped in rotting velvet inside an iron coffer sat a signet ring sized for no living species, still caked with dried sealing wax.", // Cultural Relic Fragment
+  "crf9": "Waterlogged frescoes along the sunken colonnade depicted Lazax heralds bearing the imperial signet before a forgotten frontier court.", // Cultural Relic Fragment
+  "cybernetic": "Thermal scans picked up a massive power draw beneath the permafrost, leading the expedition down into silent rows of ancient server vaults.", // Cybernetic Research Facility
   "dw": "The *Best Guess* drifted through the debris. Layers of rock and...metal? It was all being held together by some kind of electric field—the same field that had hidden it from their scanners. With a growing sense of unease, they hastened their salvage.", // Dead World
-  "dmz": "", // Demilitarized Zone
+  "dmz": "\"Power down the targeting grids,\" the captain ordered as the cruiser broke warp. \"Council neutrality beacons are active—any fleet that lands troops here forfeits its seat.\"", // Demilitarized Zone
   "dv1": "The flickering ion storm illuminated the hulk, its hull rent and torn by some monstrous force.", // Derelict Vessel
   "dv2": "Missing for fifty years, the *Errasthua* was found drifting off the Celder Nebula with her drive dead and every crewmember vanished.", // Derelict Vessel
   "ds": "", // Dyson Sphere
@@ -882,22 +882,22 @@ const exploration: LoreMap = {
   "fb4": "\"Yes commander, the base appears completely abandoned. No sign of what happened to the garrison.\"", // Functioning Base
   "gamma": "Old spacers would tell stories of a black gateway in the deep space beyond the outer Oort Cloud.", // Gamma Relay
   "gw": "The gravic sensors howled a warning. Ahead of the ship was a ring of twisted starlight, surrounding a sphere of utter darkness.", // Gamma Wormhole
-  "hrf1": "", // Hazardous Relic Fragment
-  "hrf2": "", // Hazardous Relic Fragment
-  "hrf3": "", // Hazardous Relic Fragment
-  "hrf4": "", // Hazardous Relic Fragment
-  "hrf5": "", // Hazardous Relic Fragment
-  "hrf6": "", // Hazardous Relic Fragment
-  "hrf7": "", // Hazardous Relic Fragment
-  "irf1": "", // Industrial Relic Fragment
-  "irf2": "", // Industrial Relic Fragment
-  "irf3": "", // Industrial Relic Fragment
-  "irf4": "", // Industrial Relic Fragment
-  "irf5": "", // Industrial Relic Fragment
-  "ion": "", // Ion Storm
+  "hrf1": "The metallic shard had cooled inside a pocket of volcanic glass, still faintly warm to the touch through three layers of thermal gloves.", // Hazardous Relic Fragment
+  "hrf2": "Dosimeters clicked wild around the basalt pillar until the salvage team pried a fractured core casing free from the frozen crust.", // Hazardous Relic Fragment
+  "hrf3": "Acid sleet had eaten half the cliffside away, exposing a rib of blackened alloy that refused to pit or corrode.", // Hazardous Relic Fragment
+  "hrf4": "\"Watch your step. The ash crust's hollow,\" the scout called out just before his boot broke through into a buried bunker ceiling.", // Hazardous Relic Fragment
+  "hrf5": "A severed stone gauntlet jutted from the sulfur flats, its knuckles locked tight around an uncracked containment vial.", // Hazardous Relic Fragment
+  "hrf6": "Lightning struck the same ridge twice while the survey crew winched a jagged shard of dark alloy out of the crater mud.", // Hazardous Relic Fragment
+  "hrf7": "Buried beneath three meters of irradiated slag, the ancient bulkhead plate still bore intact circuit traces pulsing with faint copper light.", // Hazardous Relic Fragment
+  "irf1": "Among the rusted ore crushers lay an unmarked fabrication die milled to tolerances no modern frontier foundry could match.", // Industrial Relic Fragment
+  "irf2": "\"Look at the bearing housing,\" the chief engineer muttered, wiping grease off the relic casing. \"Ten thousand years in the dirt and it still spins true.\"", // Industrial Relic Fragment
+  "irf3": "A cracked gyro-stabilizer salvaged from the collapsed mine lift turned out to house a pure crystalline memory rod inside its axle.", // Industrial Relic Fragment
+  "irf4": "Stacked neatly behind a caved-in smelter wall sat a crate of stamped pre-war power couplings, untouched by rust or time.", // Industrial Relic Fragment
+  "irf5": "The drill bit snapped against a buried casing of Lazax hull alloy, part of an assembly far older than the colony above it.", // Industrial Relic Fragment
+  "ion": "\"Sensors just went blind!\" Blue plasma sheets rolled across the upper atmosphere, twisting the local jump-corridor into a crackling storm.", // Ion Storm
   "kel1": "The stranded Keleres were grateful for the resupply, and offered to assist the research team in any way that they could.", // Keleres Ship
   "kel2": "The *Hinterlight* moved steadily toward the distress beacon, broadcasting their own response on all channels.", // Keleres Ship
-  "ls": "", // Lazax Survivors
+  "ls": "Behind a sealed vault door three levels beneath the ruins, the survey team froze as someone inside lit brass lamps and challenged them in Classical Lazax.", // Lazax Survivors
   "lf1": "Edict 281: All indigenous production facilities are placed under control of the occupational authorities until further notice.", // Local Fabricators
   "lf2": "\"These people's autofactories can turn out a new starfighter in less time than it takes me to order it!\"", // Local Fabricators
   "lf3": "Though sub-standard, the locally produced munitions were enough to turn the tide of the war.", // Local Fabricators
@@ -910,20 +910,20 @@ const exploration: LoreMap = {
   "mo3": "\"Morse's Marauders are the most affordable soldiers of fortune on-planet. And trust me, you get exactly what you pay for.\"", // Mercenary Outfit
   "ms1": "The deep space freeports tend to be infamous dens of criminals, but also valuable nodes in the interplanetary trade networks.", // Merchant Station
   "ms2": "\"Unidentified vessel, this is Freeport Canopus. State your intentions before approaching.\"", // Merchant Station
-  "mw": "", // Mining World
+  "mw": "Core samples came back heavy with refined iron and rare alloys; within a week, the scout ship's landing zone was buried under excavator rigs.", // Mining World
   "minent": "After the Naaz-Rokha's discoveries in the wake of the Acheron event, various enterprising corporations quickly sought to stake their claims in areas well suited to entropic field harvesting.", // Minor Entropic Field
   "mirage": "The star wasn't supposed to have a habitable planet, but one lay directly in the cruiser's path. And a cloud of starfighters was rising from the world's surface to greet it.", // Mirage
-  "pw": "", // Paradise World
-  "propulsion": "", // Propulsion Research Facility
-  "rw": "", // Rich World
-  "toe": "", // Tomb of Emphidia
-  "urf1": "", // Unknown Relic Fragment
-  "urf2": "", // Unknown Relic Fragment
-  "urf3": "", // Unknown Relic Fragment
+  "pw": "The survey crew expected another barren rock. Instead, the drop-shuttle broke through the cloud deck above turquoise lagoons and quiet terraced valleys.", // Paradise World
+  "propulsion": "Drifting silently in synchronous orbit, the abandoned test-rings still hummed with enough gravitic charge to rattle the scout frigate's hull.", // Propulsion Research Facility
+  "rw": "One pass with the subsurface scanner lit the screen bright gold: thick seams of heavy isotopes ran practically beneath the landing struts.", // Rich World
+  "toe": "The expedition halted at the edge of the salt flat, staring up at a windowless obsidian monolith that had defied wind and erosion for millennia.", // Tomb of Emphidia
+  "urf1": "Snagged in the frigate's magnetic scoop, the featureless black tetrahedron cast no reflection under the cargo bay floodlights.", // Unknown Relic Fragment
+  "urf2": "\"Where did this come from?\" the deck officer asked, turning the weightless ring over in his palm. \"The scanners showed empty space an hour ago.\"", // Unknown Relic Fragment
+  "urf3": "Recovered from the rim of a dead gravity well, the fractured prism bent cabin light into colors none of the crew could name.", // Unknown Relic Fragment
   "vfs1": "It turned out that the continuous lightning storms were an unlimited source of power, which was little consolation to those assigned to build the collection towers.", // Volatile Fuel Source
   "vfs2": "Only by using retrofitted Scavenger walkers could they mine the radioactive Nyx crystals safely.", // Volatile Fuel Source
   "vfs3": "\"With the extra fuel refined from the plasma clouds, our fleet can continue operations for months.\"", // Volatile Fuel Source
-  "warfare": "", // Warfare Research Facility
+  "warfare": "Charred armor hulls and unexploded plasma shells littered the southern proving grounds, left behind from weapons trials before the Twilight Wars.", // Warfare Research Facility
 };
 
 /** Plot cards (Firmament / Obsidian). */
@@ -971,7 +971,7 @@ const system: LoreMap = {
   "34": "Old Twilight Wars treaty monuments still stand above Centauri, looking out toward the modest vehicle foundries of Gral. Historians and fleet quartermasters alike find use for the sector.", // Centauri/Gral
   "fracture1": "Splintered light refracts off the cracking crust of Cocytus as the Fracture pulls the system apart. Only desperate scavengers and hardened war-fleets hold station near its decaying orbit.", // Cocytus
   "67": "Shards of a broken planetoid tumble inside a crackling gravity rift, gleaming with exposed seams of heavy metal. Mining crews gamble their hulls every cycle to haul ore out of the shear.", // Cormund
-  "33": "Cadets from Coorneeq's Free Worlds Academy run live-fire drills along the edge of Resculon's crowded trade routes. Warships and merchant haulers share the lanes in an uneasy truce.", // Corneeq/Resculon
+  "33": "Cadets from Corneeq's Free Worlds Academy run live-fire drills along the edge of Resculon's crowded trade routes. Warships and merchant haulers share the lanes in an uneasy truce.", // Corneeq/Resculon
   "106": "Isolationist wardens guard the toxic skies of Cresius while the clerks of Lazul Rex keep the subsector ledgers balanced nearby. Few foreign captains linger between the two orbits.", // Cresius/Lazul Rex
   "51": "An expanse of trapped violet light and radioactive frost sealed behind the Creuss Gate. Standard compasses spin wild here as translucent vessels glide across the glare.", // Creuss - Creuss
   "17": "A blinding tear in local space leaking cold, radioactive light. To long-haul freighter crews it is an omen to steer wide of; to the Ghosts of Creuss it is the sole threshold home.", // Creuss Gate - Creuss
