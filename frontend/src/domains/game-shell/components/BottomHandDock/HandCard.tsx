@@ -13,6 +13,7 @@ import { getActionCard } from "@/entities/lookup/actionCards";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import { getRelicData } from "@/entities/lookup/relics";
+import { CardLore } from "@/shared/ui/DetailsCard/CardLore";
 import { getExploration } from "@/entities/lookup/explorations";
 import { RelicCard } from "@/domains/player/components/Relic/RelicCard";
 import { ActionCardDetailsCard } from "@/domains/cards/components/ActionCardDetailsCard";
@@ -122,6 +123,7 @@ export function CardDetails({
       <div style={{ maxWidth: 320, padding: 14, whiteSpace: "pre-line" }}>
         <b>{card?.name ?? id}</b>
         <p style={{ margin: "8px 0 0" }}>{card?.text ?? ""}</p>
+        <CardLore kind="exploration" id={id} />
       </div>
     );
   }

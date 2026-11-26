@@ -190,7 +190,6 @@ const promissoryNote: LoreMap = {
   "fires": "Inside the orbital crucible above Muaat, Gashlai smiths poured liquid starlight into a foreign hull frame. The visiting engineers stood twenty meters behind the blast glass, sweating through their thermal suits.", // Fires of the Gashlai (Embers of Muaat)
   "gift": "The Naalu courier placed a small crystal shard on the admiral's map table before the fleet had even broken orbit. \"Your enemy will sstrike the northern flank at the third bell,\" she whispered. \"Move firsst.\"", // Gift of Prescience (Naalu Collective)
   "greyfire": "A single glass ampoule of pale, luminescent suspension, sealed inside a lead-lined case from the Monastery of Lucas. Where it breaks over a trench line, the defenders either fall or rise again wearing the white of Darien.", // Greyfire Mutagen (Yin Brotherhood)
-  "rider": "", // Keleres Rider
   "ridera": "Kuuasi Aun Jalatai signed the Tribunal's endorsement in crisp ink and passed the slate to the clerk. Overhead, an Argent interceptor wing banked across the dome of Mecatol City.", // Keleres Rider (Argent)
   "riderm": "\"The Tribunal does not gamble on rumors,\" Harka Leeds said, dropping a heavy pouch of aurei beside the ballot box. \"We back outcomes we intend to enforce.\"", // Keleres Rider (Mentak)
   "riderx": "Odlynn Myrr set the Xxcha seal beside the motion's docket number. Around the lower tier, three undecided delegations quietly adjusted their voting slates.", // Keleres Rider (Xxcha)
@@ -590,7 +589,6 @@ const unit: LoreMap = {
   "yssaril_mech": "By the time the border garrison spots the faint heat-shimmer of a Blackshade Infiltrator along the ridge, the perimeter mines have already been rewired to face the bunkers.", // Blackshade Infiltrator (yssaril mech)
   "sardakk_flagship": "Chitinous armor plates bristle along the prow of the *C'morran N'orr*. Where its war-horns vibrate across the hull-comms, every N'orr cruiser in the sector tightens its formation and drives forward.", // C'morran N'orr (sardakk flagship)
   "carrier": "", // Carrier I (generic carrier)
-  "ghemina_carrier": "", // Combat Transport I (ghemina carrier)
   "mentak_cruiser3": "", // Corsair (mentak cruiser)
   "mahact_infantry": "Cloned from the ancient warrior-castes of Ixth, the Crimson Legionnaires march through artillery smoke in unbroken silence. When one falls in the mud, its neural imprint returns to the homeworld vats.", // Crimson Legionnaire I (mahact infantry)
   "cruiser": "", // Cruiser I (generic cruiser)
@@ -654,7 +652,6 @@ const unit: LoreMap = {
   "argent_destroyer": "Gull-winged and flown by zealots who never break formation, Strike Wing Alpha I clears the fighter screen and drops ground troops in a single pass.", // Strike Wing Alpha I (argent destroyer)
   "l1z1x_dreadnought": "Black durasteel, red optical arrays, and ventral bombardment rails built to crack fortified cities from high orbit.", // Super Dreadnought I (l1z1x dreadnought)
   "nekro_flagship": "UNIT.DESGN: THE.ALASTOR // DIRECTIVE: REPURPOSE.\nGROUND ASSETS TRANSFERRED TO ORBITAL COMBAT MATRIX. EXPENDABILITY: TOTAL.", // The Alastor (nekro flagship)
-  "cavalry1": "", // The Cavalry I (generic flagship)
   "bastion_flagship": "Through the orbital smoke above Ordinian, the white-hulled *Egeiro* held high station, its steady transponder signal visible from every trench below.", // The Egeiro (bastion flagship)
   "muaat_flagship": "\"Stoke the crucibles and open the ventral bays!\" The *Inferno* drifted through the blockade like a furnace, casting fresh cruisers straight into the crossfire.", // The Inferno (muaat flagship)
   "cabal_flagship": "Jagged iron ribs and hungry violet light frame the prow of the *Terror Between*, pulling crippled ships straight into its maw.", // The Terror Between (cabal flagship)
@@ -824,7 +821,6 @@ const relic: LoreMap = {
   "circletofthevoid": "Xuange touched the jeweled circlet that sat upon their temple. The pride of the Archive. Knowledge of the stars, passed down from the First, fated for the Last.", // Circlet of the Void
   "dominusorb": "Goldos hoisted the ivory orb at the head of their army. At once, the weariness that filled the bodies and minds of each soldier vanished. They strode forth as if fresh from a week's rest.", // Dominus Orb
   "dynamiscore": "Dart and Tai stood, mesmerized by the swirling mass. Neither had any idea what it was, but both were fairly sure they were about to retire.", // Dynamis Core
-  "enigmaticdevice": "", // Enigmatic Device
   "heartofixth": "\"It should be impossible.\" Feng glanced sidelong at his compatriot. The Thundarian merely stared ahead, as if he did not hear. Feng snorted. \"One day I mean to know the source of this so-called power of yours.\"", // Heart of Ixth
   "titanprototype": "", // JR-XS455-O
   "lightrailordnance": "A single sparkle was the only warning the Yin fleet had before a massive hole had been punched through the hull of the Van Hauge.\nThen, searing light.", // Lightrail Ordnance
@@ -1419,7 +1415,6 @@ export const LORE_ALIASES: Partial<Record<LoreKind, Readonly<Record<string, stri
   },
   unit: {
     "absol_naaz_mech_space": "naaz_mech_space", // Z-Grav Eidolon (naaz mech)
-    "cavalry2": "cavalry1", // The Cavalry II (generic flagship)
     "naalu_mech": "naalu_mech_te", // Iconoclast (naalu mech)
     "naalu_mech_omega": "naalu_mech_te", // Iconoclast Omega (naalu mech)
   },

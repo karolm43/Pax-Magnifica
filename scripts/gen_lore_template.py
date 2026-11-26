@@ -171,16 +171,12 @@ GENERIC_UNITS = {
     "dreadnought", "warsun", "pds", "spacedock",
 }
 
-# Karty spoza list frakcji, które mimo to mają własną kartę w grze (przełomy, The Cavalry, …).
-EXTRA_CARDS = {
-    "unit": {"mentak_cruiser3", "naaz_voltron", "cavalry1", "ghemina_carrier"},
-    "promissoryNote": {"rider"},  # Keleres Rider
-    "relic": {"enigmaticdevice"},
-}
+# Jednostki z przełomów (spoza list frakcji), które mają własną kartę w grze. The Cavalry nie ma
+# pola: jej karta jednostki czyta lore notki „The Cavalry” (``lookupLore.ts``).
+EXTRA_UNITS = {"mentak_cruiser3", "naaz_voltron"}
 # Ta sama jednostka pod innym id: czyta pole wskazanej (jak agendy Absol).
 UNIT_ALIASES = {
     "absol_naaz_mech_space": "naaz_mech_space",
-    "cavalry2": "cavalry1",
     "naalu_mech": "naalu_mech_te",
     "naalu_mech_omega": "naalu_mech_te",
 }
@@ -327,8 +323,7 @@ def main() -> None:
     labels = {kind: _labels(kind) for kind in KINDS}
     absol_own, absol_aliases = _absol_agendas(used["agenda"], labels["agenda"])
     used["agenda"] |= absol_own
-    for kind, extra in EXTRA_CARDS.items():
-        used[kind] |= extra
+    used["unit"] |= EXTRA_UNITS
 
     lines = [
         *HEADER,

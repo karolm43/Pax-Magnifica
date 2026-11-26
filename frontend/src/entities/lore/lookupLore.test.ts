@@ -36,17 +36,18 @@ describe("lookupCardLore", () => {
 
   it("Corsair keeps its own slot; other upgrades read the base unit's", () => {
     expect(unitLoreId("mentak_cruiser3", "cruiser2")).toBe("mentak_cruiser3");
-    expect(unitLoreId("cavalry2")).toBe("cavalry2");
     expect(unitLoreId("cruiser2", "cruiser")).toBe("cruiser");
-    for (const id of ["mentak_cruiser3", "naaz_voltron", "cavalry1", "ghemina_carrier"]) {
+    for (const id of ["mentak_cruiser3", "naaz_voltron"]) {
       expect(CARD_LORE.unit).toHaveProperty(id);
     }
     for (const [id, target] of Object.entries(LORE_ALIASES.unit ?? {})) {
       expect(CARD_LORE.unit).toHaveProperty(target);
       expect(lookupCardLore("unit", id)).toBe(lookupCardLore("unit", target));
     }
-    expect(CARD_LORE.promissoryNote).toHaveProperty("rider");
-    expect(CARD_LORE.relic).toHaveProperty("enigmaticdevice");
+    for (const id of ["cavalry1", "cavalry2"]) {
+      expect(lookupCardLore("unit", unitLoreId(id))).toBe(lookupCardLore("promissoryNote", "cavalry"));
+      expect(lookupCardLore("unit", unitLoreId(id))).not.toBeNull();
+    }
   });
 
   it("karty usunięte przez PoK/Codex/TE nie mają pól", () => {

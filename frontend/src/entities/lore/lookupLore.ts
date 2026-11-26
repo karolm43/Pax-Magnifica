@@ -2,6 +2,9 @@ import { getExploration } from "@/entities/lookup/explorations";
 import { CARD_LORE, LORE_ALIASES, type LoreKind } from "./cardLore";
 import { typeset } from "./typography";
 
+/** Jednostka, która jest tą samą rzeczą co notka (The Cavalry zastępuje statek) — jedno lore. */
+const UNIT_NOTES: Readonly<Record<string, string>> = { cavalry1: "cavalry", cavalry2: "cavalry" };
+
 /**
  * Tekst fabularny karty wpisany ręcznie w `cardLore.ts` (flavour). Zwraca `null`, gdy pole puste
  * albo karty brak — wtedy UI nic nie pokazuje. Karta z innej talii o tej samej nazwie (np. agendy
@@ -12,6 +15,7 @@ import { typeset } from "./typography";
  */
 export function lookupCardLore(kind: LoreKind, id: string | null | undefined): string | null {
   if (!id) return null;
+  if (kind === "unit" && id in UNIT_NOTES) return lookupCardLore("promissoryNote", UNIT_NOTES[id]);
   // Warianty „...stat” attachmentów (bonus do cech) czytają pole karty bazowej.
   const base = kind === "attachment" ? id.replace(/stat$/, "") : id;
   const key = LORE_ALIASES[kind]?.[base] ?? base;
@@ -22,7 +26,7 @@ export function lookupCardLore(kind: LoreKind, id: string | null | undefined): s
 }
 
 /**
- * Id, pod którym jednostka ma lore: własne pole albo alias (Corsair, The Cavalry), a bez nich —
+ * Id, pod którym jednostka ma lore: własne pole albo alias (Corsair, Eidolon Maximum), a bez nich —
  * jednostki bazowej (ulepszona wersja dzieli jedno pole z podstawową).
  */
 export function unitLoreId(unitId: string, upgradesFromUnitId?: string): string {
