@@ -437,6 +437,33 @@ def test_hil_colish_niesie_delte(registry: StaticDataRegistry) -> None:
         state, registry, VEFUT)
 
 
+@ruling("units:ghost_flagship#1")
+def test_hil_colish_delta_widoczna_na_mapie(registry: StaticDataRegistry) -> None:
+    """The map draws the delta (``whdelta`` marker) in the flagship's system while it is there."""
+    from src.api.web_tiles import _build_tile_unit_data
+
+    state = _state(registry)
+    state.systems[VEFUT].space_units = {"p1": {"flagship": 1}}
+    grid = _bind(state, registry)
+    tiles, _ = _build_tile_unit_data(grid, registry, state, {"p1": "ghost", "p2": "sol"})
+    marker = {"entityId": "whdelta", "entityType": "token", "count": 1}
+    assert marker in tiles[VEFUT]["space"].get("neutral", [])
+    assert all(marker not in t["space"].get("neutral", []) for pos, t in tiles.items()
+               if pos != VEFUT)
+
+
+@ruling("abilities:quantum_entanglement#1")
+def test_quantum_entanglement_linki_tylko_dla_creuss(registry: StaticDataRegistry) -> None:
+    """Web data ``wormholeLinks``: alpha <-> beta only for the Creuss player (hover lines)."""
+    from src.api.web_players import _player_wormhole_links
+
+    state = _state(registry)
+    grid = _bind(state, registry)
+    creuss = _player_wormhole_links(state, grid, "p1")
+    assert QUANN in creuss[LODOR] and LODOR in creuss[QUANN]  # alpha <-> beta
+    assert _player_wormhole_links(state, grid, "p2") == {}
+
+
 @ruling("F_creuss/hil-colish/7")
 def test_bez_hil_colish_bez_delty(registry: StaticDataRegistry) -> None:
     state = _state(registry)

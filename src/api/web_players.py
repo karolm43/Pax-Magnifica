@@ -20,6 +20,7 @@ from src.api.web_tiles import _ring_count
 from src.core import (
     action_budget,
     agenda_phase,
+    board_graph,
     capture,
     economy,
     faction_tokens,
@@ -345,6 +346,19 @@ def _relic_fragment_cards(
     return cards
 
 
+def _player_wormhole_links(
+    state: GameState, grid: HexGrid, player_id: str
+) -> dict[str, list[str]]:
+    """``{wormhole system: [systems adjacent to it only for this player]}`` - the player's own
+    adjacency layer (hook ``adjacency.extra_for_player``) seen from every wormhole system."""
+    links: dict[str, list[str]] = {}
+    for position in sorted(grid.all_wormhole_positions()):
+        extra = board_graph.extra_adjacent_for_player(state, player_id, position, grid)
+        if extra:
+            links[position] = sorted(extra)
+    return links
+
+
 def _build_player_data(
     state: GameState,
     registry: StaticDataRegistry,
@@ -467,6 +481,9 @@ def _build_player_data(
                 # gracza). notResearchedFactionTechs frontend wyszarza; zbadane
                 # frakcyjne są w ``techs`` (trafiają do racka techów).
                 "abilities": abilities,
+                # Wormholes linked ONLY for this player (Quantum Entanglement: alpha <-> beta,
+                # RULES.md 61.7): hovering a wormhole draws these links in the player's colour.
+                "wormholeLinks": _player_wormhole_links(state, grid, player_id),
                 "factionTechs": faction_techs,
                 "notResearchedFactionTechs": not_researched_ft,
                 "planets": controlled,

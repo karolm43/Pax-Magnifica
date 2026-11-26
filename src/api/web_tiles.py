@@ -6,11 +6,12 @@ from typing import Any
 
 from src.api import web_setup
 from src.api.web_game import _color_of
-from src.core import invasion as invasion_core
 from src.core import (
+    board_graph,
     production,
     space_cannon,
 )
+from src.core import invasion as invasion_core
 from src.core.fracture import is_fracture_position
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
@@ -154,6 +155,7 @@ def _build_tile_unit_data(
     # Pokrycie ostrzałem Space Cannon (soczewka „Space Cannon range", RULES.md 38.2) liczone
     # RAZ dla całej mapy; per kafelek mapowane niżej na klucze tożsamości graczy.
     sc_coverage = space_cannon.coverage(state, grid, registry)
+    unit_wormholes = board_graph.unit_wormholes(state)
 
     for position in sorted(grid.positions):
         system_id = grid.system_id_at(position)
@@ -253,6 +255,14 @@ def _build_tile_unit_data(
                     {"entityId": wormhole.lower(), "entityType": "token", "count": 1}
                 )
 
+        # Wormholes carried by units (Hil Colish's delta, RULES.md 62.19): drawn in the space area
+        # as the wormhole's marker (``wh<type>`` from the token catalogue) for as long as the
+        # ship is there - the map's wormhole hover links follow it. NOT a token in the rules
+        # (F_creuss hil-colish 9): only the view uses this entity.
+        for kind in unit_wormholes.get(position, []):
+            space.setdefault("neutral", []).append(
+                {"entityId": f"wh{kind.lower()}", "entityType": "token", "count": 1}
+            )
         # Ion Storm (karta frontier): żeton ze stroną aktywną (id katalogu: ionalpha / ionbeta).
         if sys_state is not None and sys_state.ion_storm:
             space.setdefault("neutral", []).append(

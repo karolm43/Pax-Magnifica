@@ -1128,6 +1128,8 @@ export type PlayerData = {
   debtTokens?: Record<string, number>;
   nombox?: CapturedUnitsData;
   abilities?: string[];
+  /** Wormhole system -> systems adjacent to it ONLY for this player (Quantum Entanglement). */
+  wormholeLinks?: Record<string, string[]>;
   decalId?: string;
 
   // card counts

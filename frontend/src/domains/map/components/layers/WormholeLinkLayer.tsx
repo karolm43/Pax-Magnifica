@@ -1,6 +1,9 @@
 import type { Tile } from "@/entities/game/types";
 import { tileOutline } from "@/entities/geometry/tileOutline";
-import { linkTargets, useWormholeHoverStore } from "../../wormholeLinks";
+import type { CSSProperties } from "react";
+import { resolvePrimaryRgb } from "@/entities/lookup/colors";
+import { useGameData } from "@/state/useGameContext";
+import { linkTargets, playerLinkTargets, useWormholeHoverStore } from "../../wormholeLinks";
 import classes from "./WormholeLinkLayer.module.css";
 
 type Point = { x: number; y: number };
@@ -30,6 +33,7 @@ export function WormholeLinkLayer({
   contentSize: { width: number; height: number };
 }) {
   const hovered = useWormholeHoverStore((s) => s.hovered);
+  const players = useGameData()?.playerData;
   if (!hovered) return null;
 
   const byPosition = new Map(tiles.map((t) => [t.position, t]));
@@ -49,6 +53,16 @@ export function WormholeLinkLayer({
       return target ? [{ kind, target }] : [];
     }),
   );
+
+  // Links only one player has (Quantum Entanglement: alpha <-> beta for Creuss) - dashed, in
+  // that player's colour, so everybody sees where THEY can go.
+  const common = new Set(links.map((l) => l.target.position));
+  const own = playerLinkTargets(hovered.position, players ?? [], common).flatMap((link) => {
+    const target = byPosition.get(link.position);
+    const rgb = resolvePrimaryRgb(link.color);
+    return target ? [{ ...link, target, rgb: rgb ? `${rgb.red}, ${rgb.green}, ${rgb.blue}` : undefined }] : [];
+  });
+  if (links.length === 0 && own.length === 0) return null;
 
   return (
     <div
@@ -76,6 +90,27 @@ export function WormholeLinkLayer({
               <path className={classes.line} d={d} pathLength={100} />
               <path className={classes.comet} d={d} pathLength={100} />
               <circle className={classes.pulse} cx={to.x} cy={to.y} r={40} />
+              <circle className={classes.dot} cx={to.x} cy={to.y} r={14} />
+            </g>
+          );
+        })}
+        {own.map(({ target, faction, rgb }) => {
+          const to = center(target);
+          const d = arc(from, to);
+          return (
+            <g
+              key={`own-${faction}-${target.position}`}
+              data-kind="PLAYER"
+              data-faction={faction}
+              style={rgb ? ({ "--link-rgb": rgb } as CSSProperties) : undefined}
+            >
+              <path
+                className={classes.targetHex}
+                d={tileOutline(target.systemId).path}
+                transform={`translate(${target.properties.x} ${target.properties.y})`}
+              />
+              <path className={classes.shadow} d={d} />
+              <path className={`${classes.line} ${classes.ownLine}`} d={d} pathLength={100} />
               <circle className={classes.dot} cx={to.x} cy={to.y} r={14} />
             </g>
           );

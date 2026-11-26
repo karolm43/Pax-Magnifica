@@ -340,6 +340,14 @@ class HexGrid:
         found |= self._token_wormholes.get(wormhole_type, set())
         return {p for p in found if p in self._systems}
 
+    def all_wormhole_positions(self) -> set[str]:
+        """Positions of every system with any wormhole (printed or from tokens)."""
+        found: set[str] = set()
+        for source in (self._wormholes, self._token_wormholes):
+            for positions in source.values():
+                found |= positions
+        return {p for p in found if p in self._systems}
+
     # --- Zapis / odtworzenie (plik partii, RULES.md 44.4) ---------------------------------
 
     def to_placements(self) -> list[dict[str, object]]:

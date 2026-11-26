@@ -71,6 +71,12 @@ const TOKEN_RULES: Record<
     rule: "An unexplored reach of space. A player with Dark Energy Tap (or the Empyrean) explores this token when they activate the system with one or more of their ships in it.",
     imagePath: "token_frontier.png",
   },
+  // Hil Colish's delta wormhole (web-data marker while the flagship is in the system).
+  whdelta: {
+    name: "Delta wormhole (Hil Colish)",
+    rule: "This ship's system contains a delta wormhole. It moves with the ship and is not a wormhole token. Systems that contain matching wormholes are adjacent to each other for all purposes, including movement and neighboring effects.",
+    imagePath: "token_whdelta.png",
+  },
   ingress: {
     name: "Ingress",
     rule: "A tear leading into the Fracture. This system is adjacent to every egress system inside the Fracture — but never to another ingress.",

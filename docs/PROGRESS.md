@@ -406,3 +406,14 @@ Older, completed blocks (Phase 1 → early flight-replay blocks of 2026-11-25) a
   board portal (`TOKEN_BOARD_FX.whdelta`): a vortex collapses where it left and opens where it arrived.
 - Tests: `test_ghost.py` (route flag, feed facts), `flightPlan.test.ts`, `CreussFxMarks.test.tsx`,
   `keyMoments.test.ts`, `heroBoardFx.test.ts`, `describeActivity.creuss.test.tsx`.
+
+## Creuss: Hil Colish Delta Always on the Map, Quantum Entanglement Hover Links (2026-11-26)
+
+- `web_tiles`: a `whdelta` space marker wherever a unit carries a wormhole (`board_graph.unit_wormholes`) - the
+  map's Token renders it with the hover links and a "Delta wormhole (Hil Colish)" rule popover (view only).
+- `web_players.wormholeLinks`: per player, wormhole system -> systems adjacent only for that player
+  (`board_graph.extra_adjacent_for_player`; new `HexGrid.all_wormhole_positions`). `WormholeLinkLayer` draws them
+  on hover as dashed lines in that player's colour (Creuss: alpha <-> beta) besides the common links.
+- Tests: `test_ghost.py` (marker, links only for Creuss), `wormholeLinks.playerLinks.test.ts`. New web-data fields
+  - restart the backend.
+
