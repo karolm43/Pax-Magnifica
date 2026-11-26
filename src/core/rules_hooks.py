@@ -198,6 +198,10 @@ POINT_STRATEGY_SECONDARY_AS_PRIMARY = "strategy.secondary_as_primary"
 # FORBID -> pozycje dodatkowo sąsiadujące z ``ctx["position"]`` w RUCHU gracza (warstwa ruchu,
 # graf mapy bez zmian); Spatial Conduit Cylinder (RULES.md 62.3).
 POINT_MOVEMENT_EXTRA_ADJACENT = "movement.extra_adjacent"
+# FORBID -> positions additionally adjacent to ``ctx["position"]`` ONLY for this player,
+# persistently (ctx: position, grid: HexGrid | None); map graph untouched. Read solely via
+# ``board_graph.extra_adjacent_for_player`` (RULES.md 61.7, e.g. Quantum Entanglement).
+POINT_ADJACENCY_EXTRA_FOR_PLAYER = "adjacency.extra_for_player"
 # PERMIT -> myśliwce i siły naziemne do łącznej capacity produkowanych statków nie liczą się do
 # limitu PRODUCTION; Bellum Gloriosum (RULES.md 62.4).
 POINT_PRODUCTION_FREE_CARGO = "production.free_cargo"

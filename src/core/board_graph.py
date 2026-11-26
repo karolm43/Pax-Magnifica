@@ -8,12 +8,18 @@ statycznych); bez niego funkcje widzą tylko systemy, które mają wpis w ``stat
 a sąsiedztwo jest puste (bezpieczny, węższy zakres).
 
 Adjacency ≠ traversability: tu liczy się wyłącznie czyste sąsiedztwo grafu mapy.
+
+Player-dependent adjacency (RULES.md 61.7, block I3) also lives here, as the ONE central point:
+``extra_adjacent_for_player`` reads hook ``adjacency.extra_for_player`` (e.g. Creuss Quantum
+Entanglement) and ``neighbors_for_player`` / ``are_adjacent_for_player`` combine the three layers
+(map graph + tactical-action adjacency + the player's own). The map graph is never mutated.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
 
+from src.core import action_adjacency, rules_hooks
 from src.core.faction_setup import OFF_BOARD_HOME
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import HexGrid
@@ -68,6 +74,52 @@ def adjacent_positions(position: str) -> set[str]:
     """Pozycje sąsiadujące (geometria + wormhole + portale) - pusty zbiór bez siatki."""
     grid = bound_grid()
     return grid.neighbors(position) if grid is not None else set()
+
+
+def extra_adjacent_for_player(
+    state: GameState, player_id: str, position: str, grid: HexGrid | None = None
+) -> frozenset[str]:
+    """Systems adjacent to ``position`` ONLY for ``player_id`` (layer 3, RULES.md 61.7).
+
+    Union of hook FORBID ``adjacency.extra_for_player`` (ctx: ``position``, ``grid`` - the given
+    grid or the bound one). A system is never adjacent to itself (R_adjacency rules-reference/2.1),
+    so ``position`` is dropped. Hooks must return a symmetric relation.
+    """
+    if player_id not in state.players:
+        return frozenset()
+    found = rules_hooks.forbidden(
+        rules_hooks.POINT_ADJACENCY_EXTRA_FOR_PLAYER, state, player_id,
+        {"position": position, "grid": grid if grid is not None else bound_grid()},
+    )
+    return frozenset(found - {position})
+
+
+def neighbors_for_player(
+    state: GameState, grid: HexGrid, player_id: str, position: str
+) -> set[str]:
+    """Systems adjacent to ``position`` from ``player_id``'s point of view (RULES.md 61.7).
+
+    Map graph (geometry + wormholes + portals) + tactical-action adjacency (``action_adjacency``,
+    valid for everybody) + the player's own adjacency (``extra_adjacent_for_player``). Pure
+    adjacency: traversability (anomalies, blockades, laws) is the caller's separate layer.
+    """
+    result = action_adjacency.neighbors(state, grid, position)
+    result |= extra_adjacent_for_player(state, player_id, position, grid)
+    result.discard(position)
+    return result
+
+
+def are_adjacent_for_player(
+    state: GameState, grid: HexGrid, player_id: str, a: str, b: str
+) -> bool:
+    """Whether systems ``a`` and ``b`` are adjacent for ``player_id`` (all three layers)."""
+    if a == b:
+        return False
+    if action_adjacency.are_adjacent(state, grid, a, b):
+        return True
+    return b in extra_adjacent_for_player(
+        state, player_id, a, grid
+    ) or a in extra_adjacent_for_player(state, player_id, b, grid)
 
 
 def home_system_ids(state: GameState, registry: StaticDataRegistry) -> set[str]:

@@ -468,6 +468,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `action_cards.forbidden`
 - `action_cards.canceller`
 - `turn.action_started`
+- `adjacency.extra_for_player`
 - `agenda.single_vote`
 - `agenda.votes_per_planet`
 - `agenda.vote_first`

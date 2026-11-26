@@ -18,13 +18,15 @@ sąsiadów dla danego gracza. Warstwa serializacji (``api/web_data.py``) mapuje
 Ograniczenia (świadome, zgodne z RULES.md 2 — adjacency zweryfikowane częściowo):
 * sąsiedztwo systemów bierzemy z ``HexGrid`` (geometria + wormhole) plus sąsiedztwo
   z bieżącej akcji taktycznej (``action_adjacency``: SCC, Lazax Gate Folding — F_winnu:
-  „the Winnu player may become neighbors…”); hyperlanes i stałe efekty frakcyjne
-  (np. Creuss Quantum Entanglement) wejdą z pełną warstwą adjacency.
+  „the Winnu player may become neighbors…”); hyperlanes nie są modelowane.
+* player-dependent adjacency (RULES.md 61.7, ``board_graph.extra_adjacent_for_player``): A in X
+  and B in Y are neighbors when X, Y are adjacent for A OR for B (F_creuss Quantum
+  Entanglement: "the Creuss player and that player are neighbors") - the relation stays symmetric.
 """
 
 from __future__ import annotations
 
-from src.core import action_adjacency
+from src.core import action_adjacency, board_graph
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
 
@@ -66,6 +68,19 @@ def _extra_map(state: GameState, presence: dict[str, set[str]]) -> dict[str, fro
     return {pos: extra for pos, extra in found.items() if extra}
 
 
+def _player_extra(
+    state: GameState, grid: HexGrid, presence: dict[str, set[str]]
+) -> dict[tuple[str, str], frozenset[str]]:
+    """``{(player_id, position): systems adjacent only for that player}`` where it is present."""
+    found: dict[tuple[str, str], frozenset[str]] = {}
+    for position, here in presence.items():
+        for owner in here:
+            extra = board_graph.extra_adjacent_for_player(state, owner, position, grid)
+            if extra:
+                found[(owner, position)] = extra
+    return found
+
+
 def _adjacent(grid: HexGrid, extra: dict[str, frozenset[str]], a: str, b: str) -> bool:
     if grid.are_adjacent(a, b):
         return True
@@ -76,24 +91,10 @@ def neighbors_of(player_id: str, state: GameState, grid: HexGrid) -> set[str]:
     """Zbiór ``player_id`` graczy będących sąsiadami ``player_id`` (bez niego).
 
     Sąsiedztwo: wspólna obecność w tym samym systemie lub w systemach wzajemnie
-    sąsiednich (``HexGrid.are_adjacent`` — geometria + wormhole). Gracz nigdy nie
-    jest własnym sąsiadem. Pusty stan / brak obecności → pusty zbiór.
+    sąsiednich (graf mapy + akcja taktyczna + sąsiedztwo zależne od gracza, RULES.md 61.7).
+    Gracz nigdy nie jest własnym sąsiadem. Pusty stan / brak obecności → pusty zbiór.
     """
-    presence = _players_present(state)
-    # Systemy, w których obecny jest nasz gracz.
-    own_positions = [pos for pos, here in presence.items() if player_id in here]
-    if not own_positions:
-        return set()
-
-    extra = _extra_map(state, presence)
-    result: set[str] = set()
-    for own_pos in own_positions:
-        for other_pos, here in presence.items():
-            if other_pos != own_pos and not _adjacent(grid, extra, own_pos, other_pos):
-                continue
-            result.update(here)
-    result.discard(player_id)
-    return result
+    return neighbors_by_player(state, grid).get(player_id, set())
 
 
 def neighbors_by_player(
@@ -107,6 +108,7 @@ def neighbors_by_player(
     """
     presence = _players_present(state)
     extra = _extra_map(state, presence)
+    own_extra = _player_extra(state, grid, presence)
     result: dict[str, set[str]] = {pid: set() for pid in state.players}
 
     positions = list(presence.items())
@@ -117,14 +119,22 @@ def neighbors_by_player(
                 result[owner].update(here_a)
         # Systemy sąsiednie: obecni po obu stronach krawędzi.
         for pos_b, here_b in positions[i + 1 :]:
-            if not _adjacent(grid, extra, pos_a, pos_b):
+            if _adjacent(grid, extra, pos_a, pos_b):
+                for owner in here_a:
+                    if owner in result:
+                        result[owner].update(here_b)
+                for owner in here_b:
+                    if owner in result:
+                        result[owner].update(here_a)
                 continue
-            for owner in here_a:
-                if owner in result:
-                    result[owner].update(here_b)
-            for owner in here_b:
-                if owner in result:
-                    result[owner].update(here_a)
+            # Player-dependent adjacency: the owner of the effect and everybody on the other side.
+            sides = ((here_a, here_b, pos_a, pos_b), (here_b, here_a, pos_b, pos_a))
+            for side, other, pos, far in sides:
+                for owner in side:
+                    if far in own_extra.get((owner, pos), frozenset()):
+                        result[owner].update(other)
+                        for peer in other:
+                            result[peer].add(owner)
 
     # Gracz nie jest własnym sąsiadem.
     for pid, neigh in result.items():

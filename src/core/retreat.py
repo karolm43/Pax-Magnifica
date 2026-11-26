@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from src.core import (
-    action_adjacency,
+    board_graph,
     command_tokens,
     floating_structures,
     ion_storm,
@@ -122,9 +122,11 @@ def retreat_destinations(
     can_enter_asteroids = _can_enter_asteroids(state, player_id)
     anywhere = rules_hooks.permits(rules_hooks.POINT_RETREAT_ANYWHERE, state, player_id)
     result: list[str] = []
-    # Sąsiedztwo z akcji taktycznej (SCC, Lazax Gate Folding — rulingi) też pozwala na odwrót.
-    for neighbor in sorted(action_adjacency.neighbors(state, grid, position)):
-        if neighbor == position or wormhole_link_blocked(
+    # Tactical-action adjacency (SCC, Lazax Gate Folding) and the retreating player's own
+    # adjacency (RULES.md 61.7) also allow a retreat.
+    own = board_graph.extra_adjacent_for_player(state, player_id, position, grid)
+    for neighbor in sorted(board_graph.neighbors_for_player(state, grid, player_id, position)):
+        if neighbor not in own and wormhole_link_blocked(
             grid, state, player_id, position, neighbor
         ):
             continue
@@ -205,8 +207,9 @@ def ships_move_destinations(
     """
     can_enter_asteroids = _can_enter_asteroids(state, player_id)
     result: list[str] = []
-    for neighbor in sorted(action_adjacency.neighbors(state, grid, position)):
-        if neighbor == position or wormhole_link_blocked(
+    own = board_graph.extra_adjacent_for_player(state, player_id, position, grid)
+    for neighbor in sorted(board_graph.neighbors_for_player(state, grid, player_id, position)):
+        if neighbor not in own and wormhole_link_blocked(
             grid, state, player_id, position, neighbor
         ):
             continue

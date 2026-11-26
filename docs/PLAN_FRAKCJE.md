@@ -3,7 +3,7 @@
 Implementation plan for **all faction components**: abilities, faction technologies, leaders
 (agent / commander / hero), breakthrough (Thunder's Edge), faction promissory notes, and faction units
 (flagship, mech, special units). Expands section "H5 — Factions" from
-`PLAN_PELNA_ROZGRYWKA.md`. Plan: 2026-11-11, status (§6): 2026-11-17.
+`PLAN_PELNA_ROZGRYWKA.md`. Plan: 2026-11-11, status (§6): 2026-11-26.
 
 > **Overriding rule unchanged:** texts and numbers EXCLUSIVELY from assets (`registry.catalog`,
 > `catalog.faction_bundle(<id>)`), rule in `docs/rules/R<NN>.md` BEFORE it enters code, exception =
@@ -184,5 +184,5 @@ faction components per `POKRYCIE_HOOKOW.md` §7 (+ flagship/mech).
 | F3 Abilities / breakthroughs / units | ✅ 2026-11-12 (RULES 61.3–61.4) |
 | B1–B12 (Waves 1–2) | ✅ B1 (2026-11-12): Sardakk (62.1), Letnev (62.2); B2: Jol-Nar (62.3); B3: Sol (62.4), Arborec (62.5); B4 (2026-11-13): Hacan (62.6), Winnu (62.7); B5 (2026-11-13): Mentak (62.8); B6 (2026-11-16): Xxcha (62.9); B7 (2026-11-16): Yin (62.10); B8 (2026-11-18): Argent (62.11); B9: L1Z1X (62.12); B10: Muaat (62.13); B11: Saar (62.14), Naaz-Rokha (62.15); B12 (2026-11-22): Naalu (62.16) |
 | Rulings contract (every `F_<faction>.md` point & component sentence = test or status) | ✅ for all 18 implemented factions (Waves 1–2 + Cabal + Titans). Each subsequent faction passes it in its block (`uv run python -m tests.rulings <faction>`) |
-| I1–I3, B13–B21 (Wave 3) | 🟡 I1 ✅ (2026-11-22) capture (RULES.md 61.5, `core/capture.py`); B13 ✅ (2026-11-22) Vuil'raith Cabal (62.17); I2 🟡 (2026-11-23) faction tokens — sleeper (61.6, `core/faction_tokens.py`; breach/galvanize/Creuss wormhole in faction blocks); B14 ✅ (2026-11-23) Titans of Ul (62.18) — next **I3** (player-dependent adjacency) + B15–B21 (Creuss, Empyrean, Nekro, Nomad, Yssaril, Mahact, Keleres) |
+| I1–I3, B13–B21 (Wave 3) | 🟡 I1 ✅ (2026-11-22) capture (RULES.md 61.5, `core/capture.py`); B13 ✅ (2026-11-22) Vuil'raith Cabal (62.17); I2 🟡 (2026-11-23) faction tokens — sleeper (61.6, `core/faction_tokens.py`; breach/galvanize/Creuss wormhole in faction blocks); B14 ✅ (2026-11-23) Titans of Ul (62.18); I3 ✅ (2026-11-26) player-dependent adjacency (61.7, hook `adjacency.extra_for_player` in `core/board_graph.py`; movement, retreat, Space Cannon, neighbors/transactions) — next B15–B21 (Creuss, Empyrean, Nekro, Nomad, Yssaril, Mahact, Keleres) |
 | I4, B22–B27 (Wave 4) | 🟡 I4 ✅ (2026-11-25) Coexistence (`core/coexistence.py`, RULES.md 40.1 I7b); ⬜ B22–B27 (Deepwrought, Last Bastion, Crimson Rebellion, Ral Nel, Firmament/Obsidian) |

@@ -44,7 +44,7 @@ STATUS_FILE = TESTS_DIR / "rulings_status.json"
 DEBT_FILE = TESTS_DIR / "rulings_debt.json"
 
 # Rozmiar długu ogólnego przy wprowadzeniu strażnika (2026-11-17): zmniejszaj przy każdym audycie.
-GENERAL_DEBT_LIMIT = 102
+GENERAL_DEBT_LIMIT = 101
 
 # Frakcje zaimplementowane przed strażnikiem, jeszcze nie przeaudytowane (tylko USUWAĆ).
 UNAUDITED: frozenset[str] = frozenset()

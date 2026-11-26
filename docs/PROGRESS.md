@@ -396,3 +396,15 @@ Older, completed blocks (Phase 1 → blocks up to 2026-11-24) are in `PROGRESS_A
   eliminated players' home tiles stay home systems in `board_graph.home_system_ids` (Mercenary Contract etc.).
 - Verified + tested: R_action_cards 6.2 audit guard (every duplicated reaction card blocks its second copy),
   Public Disgrace vs Imperial Arbiter. Assumptions in `rules/R53.md` §53.11. New `GameState` field: restart the backend.
+
+## I3 · Player-dependent adjacency (2026-11-26)
+- New hook point FORBID `adjacency.extra_for_player` (ctx `position`, `grid`), read ONLY via
+  `board_graph.extra_adjacent_for_player`; `neighbors_for_player` / `are_adjacent_for_player` combine map graph +
+  tactical-action adjacency (`action_adjacency`) + the player's own layer. `HexGrid` stays pure topology (RULES.md 61.7).
+- Consumers: movement (`movement_paths._neighbors_for_move`, outside the wormhole-law filter), retreats
+  (`retreat_destinations`, `skilled_retreat` destinations), Space Cannon offense + range lens (`coverage`: the SHOOTER's
+  adjacency), neighbors (A↔B when X,Y adjacent for A OR B; `neighbors_of` now delegates to `neighbors_by_player`) →
+  transactions, Pillage, objectives, web-data `neighbors`. Target-centric effects (Ixthian etc.) keep pure adjacency.
+- Tests `tests/test_player_adjacency.py` (16, with/without a temporary QE-like hook). `R_adjacency` audited and
+  removed from `rulings_debt.json` (`GENERAL_DEBT_LIMIT` 101; hyperlanes = `gap` status); R_wormholes rr/2, rr/3, notes/3 tested.
+- No real hook yet — Creuss Quantum Entanglement arrives in B15; Crimson breaches in B24.

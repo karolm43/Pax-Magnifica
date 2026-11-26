@@ -23,9 +23,9 @@ from dataclasses import asdict, dataclass, replace
 from typing import Any, cast
 
 from src.core import (
-    action_adjacency,
     active_effects,
     battle,
+    board_graph,
     capacity,
     chronicle_log,
     entropic_scar,
@@ -269,8 +269,9 @@ def offense_shooters(
         # Entropic Scar: SPACE CANNON nie strzela w jednostki w bliźnie (RULES.md 1.5).
         return []
     result = _system_shooters(state, registry, player_id, active)
-    # Sąsiedztwo z akcji taktycznej (SCC, Lazax Gate Folding) działa też dla Deep Space Cannon.
-    for neighbor in sorted(action_adjacency.neighbors(state, grid, active)):
+    # Tactical-action adjacency (SCC, Lazax Gate Folding) works for Deep Space Cannon too; the
+    # SHOOTER's own adjacency counts, never the target's (RULES.md 61.7, F_creuss).
+    for neighbor in sorted(board_graph.neighbors_for_player(state, grid, player_id, active)):
         result.extend(
             replace(s, remote=True)
             for s in _system_shooters(state, registry, player_id, neighbor)
@@ -342,9 +343,10 @@ def coverage(
     for position in sorted(grid.positions):
         if entropic_scar.unit_abilities_blocked(state, position, registry):
             continue  # Entropic Scar: nikt nie strzela w jednostki w bliźnie (RULES.md 1.5)
-        neighbors = grid.neighbors(position)
         for player_id, positions in by_player_pos.items():
             covering = list(positions.get(position, []))
+            # The shooter's adjacency (RULES.md 61.7) - the same layers as ``offense_shooters``.
+            neighbors = board_graph.neighbors_for_player(state, grid, player_id, position)
             for neighbor in sorted(neighbors):
                 covering.extend(s for s in positions.get(neighbor, []) if s.deep)
             if not covering:

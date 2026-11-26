@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import deque
 
-from src.core import rules_hooks, ship_roles
+from src.core import board_graph, rules_hooks, ship_roles
 from src.core.game_state import GameState, MoveCargo, MoveLoss, MoveRecord
 from src.core.hex_grid import HexGrid
 from src.core.unit_catalog import is_space_unit
@@ -179,6 +179,9 @@ def _neighbors_for_move(
     )
     if extra:
         result |= set(extra) - {position}
+    # Player-dependent adjacency (RULES.md 61.7): added AFTER the wormhole-law filter - these are
+    # not map wormhole links (F_creuss: Enforced Travel Ban does not affect Quantum Entanglement).
+    result |= board_graph.extra_adjacent_for_player(state, player_id, position, grid)
     return result
 
 

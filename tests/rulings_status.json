@@ -165,6 +165,9 @@
     ],
     "reason": "Hil Colish (flagowiec Creuss) rusza się przed/po innych statkach i może użyć obu stron Ion Storm."
   },
+  "R_adjacency/rules-reference/4": {
+    "gap": "Hyperlane tiles are not modelled as line connections: HexGrid places them as plain hexes with shared-edge adjacency only (RULES.md 61.7)."
+  },
   "R_attach/rules-reference/2.1": {
     "na": "Żadna karta attach w aktywnych assetach nie ma stanu wyczerpania - silnik trzyma attachmenty jako listę kart przy planecie (planet_attachments), stan planety jest osobny."
   },
