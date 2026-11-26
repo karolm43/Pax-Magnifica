@@ -15,7 +15,7 @@ import { SlotsMapField } from "./SlotsMapField";
 import { describeOption, useOptionLookups } from "./DecisionPickers";
 import { AutoButton } from "@/shared/ui/AutoButton/AutoButton";
 import { Stepper } from "@/shared/ui/Stepper/Stepper";
-import { DeclineRow, FieldHead, metaOf, Tile, UnitStackStepper } from "./DecisionTiles";
+import { DeclineRow, FieldHead, metaOf, pickNote, Tile, UnitStackStepper } from "./DecisionTiles";
 import { PaymentTiles } from "./PaymentTiles";
 import { GroupedMapField } from "./GroupedMapField";
 import { TechPickField } from "./TechPickField";
@@ -37,6 +37,9 @@ import styles from "./DecisionFields.module.css";
  * lista rozwijana (U6, decyzja użytkownika P2: klik/drag zamiast list).
  */
 const MAX_TILES = 18;
+
+/** Option labels longer than this get one full-width row each (``data-wide``). */
+const WIDE_LABEL = 26;
 
 /** Filtr pomocniczy dużej siatki kafelków: dopasowanie po etykiecie (bez rozróżniania wielkości). */
 function useTileFilter(options: ActionCardOption[]) {
@@ -191,6 +194,9 @@ function ChoiceField({
   const rich =
     classified?.kind === "technology" ||
     (!classified && options.some((o) => describeOption(o, idMap)));
+  // Sentence-long labels ("Purge 1 relic fragment: gain 1 command token (fleet pool)") get a
+  // full-width row each: clamped to a narrow tile, the options would look identical.
+  const wide = !rich && options.some((o) => o.label.length > WIDE_LABEL);
   // Odmowy („Do not …”, „Decline”) osobno, za „or” - nie jako kolejny kafelek opcji (pkt 6 planu).
   const { regular, declines } = useMemo(() => splitDeclines(options), [options]);
   const filter = useTileFilter(regular);
@@ -224,7 +230,7 @@ function ChoiceField({
   }
 
   if (input.kind === "multi") {
-    const range = input.min === input.max ? `${input.min}` : `${input.min}–${input.max}`;
+    const head = pickNote(picked.length, input.min, input.max);
     const toggle = (id: string) => {
       if (picked.includes(id)) onChange(picked.filter((p) => p !== id));
       else if (input.max === 1) onChange([id]);
@@ -235,7 +241,8 @@ function ChoiceField({
         <FieldHead
           label={input.label}
           hint={input.hint}
-          note={`${picked.length} selected · pick ${range}`}
+          note={head.note}
+          done={head.done}
         />
         {filter.many && (
           <TileFilter
@@ -249,6 +256,7 @@ function ChoiceField({
         <div
           className={filter.many ? `${styles.tiles} ${styles.tilesScroll}` : styles.tiles}
           data-rich={rich || undefined}
+        data-wide={wide || undefined}
         >
           {stacks.map(({ key, options: stack }) => {
             const [option] = stack;
@@ -305,7 +313,11 @@ function ChoiceField({
 
   return (
     <div className={styles.field}>
-      <FieldHead label={input.label} hint={input.hint} />
+      <FieldHead
+        label={input.label}
+        hint={input.hint}
+        {...pickNote(typeof value === "string" ? 1 : 0, 1, 1)}
+      />
       {filter.many && (
         <TileFilter
           label={input.label}
@@ -318,6 +330,7 @@ function ChoiceField({
       <div
         className={filter.many ? `${styles.tiles} ${styles.tilesScroll}` : styles.tiles}
         data-rich={rich || undefined}
+        data-wide={wide || undefined}
         role="radiogroup"
         aria-label={input.label}
       >

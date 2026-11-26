@@ -38,6 +38,27 @@
     /** Details Card (for all the popovers) **/
     --details-card-bg: linear-gradient(135deg, rgb(var(--mobile-rgb-dark)) 0%, rgb(var(--mobile-rgb-mid)) 100%);
     --details-card-border: 1px solid rgba(var(--mobile-rgb-gray-light), 0.28);
+
+    /* Unit Details Card */
+    --unit-details-inherited-bg: rgba(139, 92, 246, 0.06);
+    --unit-details-inherited-border: rgba(139, 92, 246, 0.15);
+
+    /* v2 Surface language parity (graphite, low-overhead) */
+    --panel-field-bg: rgba(12, 12, 13, 0.96);
+    --panel-field-flat: rgba(8, 8, 9, 0.55);
+    --panel-field-strip: rgba(10, 10, 11, 0.66);
+    --panel-hairline: rgba(190, 190, 196, 0.12);
+    --panel-hairline-strong: rgba(190, 190, 196, 0.2);
+    --panel-separator: rgba(190, 190, 196, 0.09);
+    --panel-bracket: rgba(222, 222, 228, 0.15);
+    --panel-radius: 3px;
+    --panel-texture: none;
+    --player-card-inner-glow: none;
+
+    --plate-ground: #121214;
+    --hud-deck-ground: #0b0b0c;
+    --hud-edge-accent: rgba(196, 196, 202, 0.3);
+    --survey-lit: rgba(216, 216, 222, 0.8);
 }
 
 .mobile *, .mobile *::before, .mobile *::after {

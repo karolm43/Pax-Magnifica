@@ -65,7 +65,7 @@
   padding: 2px 9px;
   font-size: 11px;
   color: #1a1306;
-  background: var(--ds-sig-warn, #f59f00);
+  background: rgb(var(--ds-sig-warn));
 }
 
 .textBlock {
@@ -149,9 +149,20 @@
   cursor: pointer;
 }
 
+/* Cancel / Skip is a ghost button: it must never look like one of the options above it. */
 .skip {
+  color: var(--ds-ink);
+  border-color: transparent;
+  background: transparent;
+}
+
+.skip:hover:not(:disabled) {
   color: var(--ds-ink-hi);
-  background: var(--ds-ground-2);
+  border-color: var(--ds-h22);
+}
+
+.use:hover:not(:disabled) {
+  filter: brightness(1.12);
 }
 
 .use {
@@ -206,8 +217,9 @@
 
 .frame[data-embedded] .actions {
   position: static;
-  margin: 0;
-  padding: 4px 0 0;
+  margin: 2px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--ds-h22);
   background: none;
 }
 

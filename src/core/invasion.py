@@ -47,7 +47,15 @@ from src.core.invasion_bombard import ground_bombarders as ground_bombarders
 from src.core.invasion_bombard import plasma_bombard_dice as plasma_bombard_dice
 from src.core.invasion_bombard import required_bombard_hits as required_bombard_hits
 from src.core.invasion_bombard import split_bombard_key as split_bombard_key
-from src.core.invasion_common import _DMZ_REASON, _defenders, _ground_in_zone, _inv, _phase, _system
+from src.core.invasion_common import (
+    _DMZ_REASON,
+    _STATION_REASON,
+    _defenders,
+    _ground_in_zone,
+    _inv,
+    _phase,
+    _system,
+)
 from src.core.invasion_common import GROUND_FORCES as GROUND_FORCES
 from src.core.invasion_common import BombardAssignment as BombardAssignment
 from src.core.invasion_common import BombardGroup as BombardGroup
@@ -137,7 +145,12 @@ def begin_invasion(
     new_state.invasion = InvasionState(position=active, attacker=attacker)
     system = new_state.systems.get(active)
     # Matriarch (RULES.md 62.16): myśliwce w przestrzeni też mogą lądować.
-    landable = system is not None and bool(
+    # Stacja kosmiczna nie jest planetą: bez planet w systemie nie ma dokąd lądować.
+    has_planet = any(
+        not planet_stats.is_space_station(registry, p)
+        for p in system_planets(new_state, registry, active)
+    )
+    landable = has_planet and system is not None and bool(
         _ground_in_zone(system, "space", attacker, attacker_ground_types(new_state))
     )
     # RULES.md 40.1 I7a: sporna planeta (siły aktywnego obok cudzych, np. po Crash Landing) też
@@ -222,6 +235,8 @@ def commit_ground_forces(
                     "The Custodians token blocks landing on Mecatol Rex - "
                     "remove it first (spend 6 influence)."
                 )
+            if planet_stats.is_space_station(registry, planet):
+                raise ValueError(_STATION_REASON)
             if planet_stats.is_demilitarized(state, planet):
                 raise ValueError(_DMZ_REASON)
             if base_type not in GROUND_FORCES and base_type not in as_ground:
@@ -315,6 +330,8 @@ def apply_commit_from_planets(
             raise ValueError(
                 "The Custodians token blocks landing on Mecatol Rex - remove it first."
             )
+        if planet_stats.is_space_station(registry, dest):
+            raise ValueError(_STATION_REASON)
         if planet_stats.is_demilitarized(new_state, dest):
             raise ValueError(_DMZ_REASON)
         if base_type not in GROUND_FORCES:

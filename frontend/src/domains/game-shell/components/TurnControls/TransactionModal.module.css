@@ -10,7 +10,7 @@
   gap: 8px;
   margin: 0;
   padding: 8px 10px;
-  font-size: var(--text-small, 12px);
+  font-size: var(--text-data);
   color: var(--ds-ink);
   background: rgb(var(--ds-sig-warn) / 0.1);
   border: 1px solid rgb(var(--ds-sig-warn) / 0.35);
@@ -167,7 +167,7 @@
 }
 
 .groupLabel {
-  font-size: var(--text-small, 12px);
+  font-size: var(--text-data);
   font-weight: 600;
   color: var(--ds-ink);
 }
@@ -184,7 +184,7 @@
 }
 
 .none {
-  font-size: var(--text-small, 12px);
+  font-size: var(--text-data);
   color: var(--ds-ink-lo);
 }
 
@@ -195,7 +195,7 @@
   align-items: center;
   gap: 6px;
   padding: 5px 10px;
-  font-size: var(--text-small, 12px);
+  font-size: var(--text-data);
   font-weight: 600;
   color: var(--ds-ink-hi);
   background: rgb(var(--ds-sig-ability) / 0.1);
@@ -255,7 +255,7 @@
 
 .dots b {
   margin-left: 4px;
-  font-size: var(--text-small, 12px);
+  font-size: var(--text-data);
   color: var(--ds-ink-hi);
 }
 
@@ -308,7 +308,7 @@ button.tradeCard:hover {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--text-small, 12px);
+  font-size: var(--text-data);
 }
 
 .tradeCardHead small {
@@ -343,7 +343,7 @@ button.tradeCard:hover {
   gap: 4px;
   padding: 4px 10px;
   font: inherit;
-  font-size: var(--text-small, 12px);
+  font-size: var(--text-data);
   font-weight: 600;
   color: var(--ds-ink-hi);
   background: rgba(255, 255, 255, 0.04);
@@ -404,7 +404,7 @@ button.tradeCard:hover {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--text-small, 12px);
+  font-size: var(--text-data);
   color: var(--ds-ink-hi);
 }
 
@@ -423,7 +423,7 @@ button.tradeCard:hover {
   gap: 6px;
   width: 100%;
   padding: 8px 10px;
-  font-size: var(--text-small, 12px);
+  font-size: var(--text-data);
   font-weight: 700;
   text-align: left;
   color: var(--ds-ink-hi);
@@ -594,5 +594,5 @@ button.tradeCard:hover {
 }
 
 .mapPickButton[aria-pressed="true"] {
-  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.2);
+  background: rgb(var(--ds-accent-rgb) / 0.2);
 }

@@ -95,6 +95,7 @@ _SYNERGY_RETURN = 3  # „return 3 of those mechs to your reinforcements”
 _FORGE_FRAGMENTS = 2  # „purge 2 of your relic fragments of the same type to gain 1 relic”
 _TOKEN_FRAGMENTS = 1  # „purge 1 of your relic fragments to gain 1 command token”
 _RELIC = "relic"
+_POOL_PREFIX = "pool_"
 _POOLS = (("tactical", "tactic pool"), ("fleet", "fleet pool"), ("strategic", "strategy pool"))
 
 
@@ -230,7 +231,9 @@ def fabrication_inputs(
 ) -> list[dict[str, Any]]:
     modes = [
         oi.option(_RELIC, "Purge 2 relic fragments of the same type: gain 1 relic"),
-        *(oi.option(pool, f"Purge 1 relic fragment: gain 1 command token ({label})")
+        # Prefixed: a bare "tactical" collides with an action card id and renders as that card.
+        *(oi.option(f"{_POOL_PREFIX}{pool}",
+                    f"Purge 1 relic fragment: gain 1 command token ({label})")
           for pool, label in _POOLS),
     ]
     options = _fragment_options(state, registry, player_id)
@@ -249,7 +252,7 @@ def fabrication(
     relic; or purge 1 of your relic fragments to gain 1 command token.
 
     Pusta talia reliktów: purge bez reliktu (F_naaz_rokha 1); pusta rezerwa: bez żetonu (2)."""
-    mode = str(params.get("mode") or "")
+    mode = str(params.get("mode") or "").removeprefix(_POOL_PREFIX)
     cards = _picked_fragments(state, player_id, params)
     if mode == _RELIC:
         relic = _forge_relic(state, registry, player_id, cards, "fabrication")

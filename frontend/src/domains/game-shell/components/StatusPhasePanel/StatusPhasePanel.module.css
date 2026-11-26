@@ -118,7 +118,7 @@
   font-size: var(--text-meta);
 }
 .step[data-state="done"] {
-  color: var(--ds-ink-mid, var(--ds-ink-lo));
+  color: var(--ds-ink);
 }
 .step[data-state="done"] .stepNo {
   background: rgb(var(--ds-sig-stage1) / 0.18);
@@ -202,7 +202,7 @@
   font-weight: var(--weight-rail);
   letter-spacing: var(--ds-label-track);
   text-transform: uppercase;
-  color: var(--ds-ink-mid, var(--ds-ink-lo));
+  color: var(--ds-ink);
 }
 .group h4 small {
   font-family: var(--font-text);

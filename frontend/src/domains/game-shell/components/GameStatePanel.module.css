@@ -957,8 +957,8 @@
 }
 
 .notice[data-kind="error"] {
-  background: rgba(var(--ds-sig-danger), 0.14);
-  border-color: rgba(var(--ds-sig-danger), 0.5);
+  background: rgb(var(--ds-sig-danger) / 0.14);
+  border-color: rgb(var(--ds-sig-danger) / 0.5);
   color: var(--ds-ink-hi);
 }
 

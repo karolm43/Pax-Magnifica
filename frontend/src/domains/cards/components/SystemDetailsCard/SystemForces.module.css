@@ -3,7 +3,7 @@
 .units { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
 .unit { display: inline-flex; align-items: center; gap: 1px; font-size: 11px; }
 .icon { --unit-fit: 16px; display: inline-grid; place-items: center; width: 18px; height: 18px; }
-.stats { margin-left: auto; white-space: nowrap; font: 500 11px/1 var(--ds-mono, monospace); }
+.stats { margin-left: auto; white-space: nowrap; font: 500 11px/1 var(--ds-font-data); }
 .odds { display: flex; flex-direction: column; gap: 2px; }
 .bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--ds-h10); }
 .bar > i { display: block; height: 100%; }

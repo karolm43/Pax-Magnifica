@@ -59,5 +59,8 @@
     --socket-bg: rgba(0, 0, 0, 0.3);
     --socket-border: rgba(190, 190, 196, 0.09);
 
+    --plate-ground: #121214;
+    --hud-deck-ground: #0b0b0c;
+    --hud-edge-accent: rgba(196, 196, 202, 0.3);
     --survey-lit: rgba(216, 216, 222, 0.8);
 }

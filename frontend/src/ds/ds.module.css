@@ -274,7 +274,7 @@
 :where(.selectValue) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 :where(.selectValue[data-placeholder]), :where(.placeholder) { color: var(--ds-ink-lo); }
 :where(.selectIcon) { color: var(--ds-ink-lo); font-size: 10px; flex: none; }
-:where(.selectPositioner) { z-index: var(--z-smooth-popover, 4000); outline: none; }
+:where(.selectPositioner) { z-index: var(--z-smooth-popover, 3500); outline: none; }
 :where(.selectPopup) { min-width: var(--anchor-width); max-height: min(var(--available-height), 320px); overflow-y: auto; padding: 4px; background: linear-gradient(180deg, var(--ds-ground), var(--ds-ground-2)); border: 1px solid var(--ds-h28); border-radius: var(--ds-radius-lg); box-shadow: var(--ds-shadow-lg); outline: none; transition: opacity var(--ds-dur-fast) var(--ds-ease); }
 :where(.selectPopup[data-starting-style]), :where(.selectPopup[data-ending-style]) { opacity: 0; }
 :where(.selectItem) { display: grid; grid-template-columns: 14px minmax(0, 1fr); align-items: center; gap: 6px; min-height: 28px; padding: 0 8px; border-radius: var(--ds-radius-sm); font-size: var(--text-body, 13px); color: var(--ds-ink); cursor: pointer; outline: none; user-select: none; }

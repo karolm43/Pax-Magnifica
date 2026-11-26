@@ -7,7 +7,7 @@
   min-height: 100dvh;
   background: var(--ds-page);
   color: var(--ds-ink);
-  font-family: var(--ds-font-body);
+  font-family: var(--ds-font-text);
 }
 
 .header {
@@ -39,8 +39,8 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ds-yellow-5);
-  background: rgb(var(--ds-yellow-9, 100 50 0) / 0.18);
-  border: 1px solid rgb(var(--ds-yellow-9, 100 50 0) / 0.3);
+  background: color-mix(in oklab, var(--ds-yellow-9) 18%, transparent);
+  border: 1px solid color-mix(in oklab, var(--ds-yellow-9) 30%, transparent);
   border-radius: 4px;
   padding: 2px 7px;
 }
@@ -126,7 +126,7 @@
 .tileLabel {
   font-size: 11px;
   color: var(--ds-ink-lo);
-  font-family: var(--ds-font-mono, monospace);
+  font-family: var(--ds-font-data);
 }
 
 /* ── Modal launcher ───────────────────────────────────────────────── */

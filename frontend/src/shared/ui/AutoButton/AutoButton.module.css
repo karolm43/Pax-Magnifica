@@ -8,19 +8,19 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--ds-ink-hi);
-  border: 1px solid var(--ds-line, rgba(255, 255, 255, 0.18));
+  border: 1px solid var(--ds-h14);
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
 }
 
 .auto:hover:not(:disabled) {
-  border-color: var(--ds-edge-accent, var(--ds-line));
+  border-color: var(--ds-edge-accent, var(--ds-h14));
 }
 
 .auto[aria-pressed="true"] {
-  border-color: var(--ds-edge-accent, var(--ds-line));
-  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.14);
+  border-color: var(--ds-edge-accent, var(--ds-h14));
+  background: rgb(var(--ds-accent-rgb) / 0.14);
 }
 
 .auto:disabled {

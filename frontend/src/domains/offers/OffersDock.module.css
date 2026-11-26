@@ -15,9 +15,9 @@
 }
 
 .poolsHint b {
-  color: var(--ds-sig-warn, #f59f00);
+  color: rgb(var(--ds-sig-warn));
 }
 
 .poolsHint b[data-ok] {
-  color: var(--ds-sig-ok, #4ade80);
+  color: rgb(var(--ds-sig-ok));
 }

@@ -36,7 +36,7 @@
   /* Nad paskiem ręki - wysokość doku mierzy BottomHandDock (--hand-dock-clear). */
   bottom: calc(var(--hand-dock-clear, 54px) + 12px);
   transform: translateX(-50%);
-  z-index: var(--z-app-modal, 3000);
+  z-index: var(--z-app-modal, 3500);
   display: inline-flex;
   align-items: center;
   gap: 8px;

@@ -566,7 +566,7 @@
 .textarea {
   resize: vertical;
   min-height: 80px;
-  font-family: var(--ds-font-mono, monospace);
+  font-family: var(--ds-font-data);
   font-size: var(--ds-fz-xs);
 }
 

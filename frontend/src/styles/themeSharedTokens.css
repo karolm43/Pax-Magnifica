@@ -168,4 +168,21 @@
    * so the board has a single colour for "the thing you are looking for".
    */
   --search-hit-rgb: 103, 232, 249;
+
+  /* Default surface shadows (themes with glow/drop-shadow override these). */
+  --surface-shadow: none;
+  --player-card-box-shadow: none;
+
+  /* Default scrollbar tokens for themes that do not define custom scrollbars
+     (midnightbluetheme, midnightgraytheme, midnightviolettheme, theme-mobile). */
+  --scrollbar-track-bg: rgba(8, 10, 14, 0.85);
+  --scrollbar-track-border: 1px solid rgba(148, 163, 184, 0.16);
+  --scrollbar-thumb-bg: linear-gradient(135deg, rgba(148, 163, 184, 0.32) 0%, rgba(100, 116, 139, 0.42) 100%);
+  --scrollbar-thumb-border: 1px solid rgba(255, 255, 255, 0.14);
+  --scrollbar-thumb-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1px 2px rgba(0, 0, 0, 0.45);
+  --scrollbar-thumb-hover-bg: linear-gradient(135deg, rgba(148, 163, 184, 0.48) 0%, rgba(100, 116, 139, 0.58) 100%);
+  --scrollbar-thumb-hover-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 2px 4px rgba(0, 0, 0, 0.55);
+  --scrollbar-corner-bg: rgba(8, 10, 14, 0.85);
+  --scrollbar-color-thumb: rgba(148, 163, 184, 0.4);
+  --scrollbar-color-track: rgba(8, 10, 14, 0.85);
 }

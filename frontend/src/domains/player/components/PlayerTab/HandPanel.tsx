@@ -1,4 +1,6 @@
 import { HandCard, type CardTab } from "@/domains/game-shell/components/BottomHandDock/HandCard";
+import { KnownCards } from "@/domains/game-shell/components/BottomHandDock/KnownCards";
+import { usePlayerData } from "@/api/usePlayerData";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
 import type { PlayerData } from "@/entities/data/types";
 import styles from "./PlayerTab.module.css";
@@ -36,6 +38,9 @@ function OwnHand({ gameId, player }: { gameId: string; player: PlayerData }) {
     ignoreAuthGate: true,
     player: player.discordId ?? null,
   });
+  // Knowledge from "look at..." cards: agenda deck order (RULES.md 53.5.a1), revealed secrets, M'aban.
+  const { data: mabanPeek } = usePlayerData(gameId, { select: (d) => d.gameState?.peek ?? null });
+  const { data: players } = usePlayerData(gameId, { select: (d) => d.playerData ?? [] });
   const frontier = player.frontierCards ?? [];
   const ids: Record<CardTab, string[]> = {
     actions: [...(hand?.actionCards ?? []), ...frontier],
@@ -44,7 +49,26 @@ function OwnHand({ gameId, player }: { gameId: string; player: PlayerData }) {
     relics: [],
   };
 
+  const hasKnown =
+    (hand?.agendaPeek?.length ?? 0) > 0 ||
+    (hand?.agendaPeekBottom?.length ?? 0) > 0 ||
+    Object.keys(hand?.revealedSecrets ?? {}).length > 0 ||
+    Boolean(mabanPeek);
+
   return (
+    <>
+    {hasKnown && (
+      <section className={styles.panel} aria-label="What you know">
+        <h3 className={styles.panelTitle}>What you know</h3>
+        <KnownCards
+          agendaTop={hand?.agendaPeek ?? []}
+          agendaBottom={hand?.agendaPeekBottom ?? []}
+          revealedSecrets={hand?.revealedSecrets ?? {}}
+          maban={mabanPeek ?? null}
+          players={players ?? []}
+        />
+      </section>
+    )}
     <section className={styles.panel} aria-label="Hand cards">
       <h3 className={styles.panelTitle}>Your hand</h3>
       <p className={styles.hint}>Click a card to read it - play cards by dragging them from the hand bar on the map.</p>
@@ -68,5 +92,6 @@ function OwnHand({ gameId, player }: { gameId: string; player: PlayerData }) {
         </div>
       ))}
     </section>
+    </>
   );
 }

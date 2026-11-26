@@ -23,6 +23,7 @@ from src.core import (
     entropic_scar,
     exhaust,
     legendary_planets,
+    planet_stats,
     rules_hooks,
     ship_roles,
     timing,
@@ -530,12 +531,13 @@ def allowed_ground_zones(
         ex = state.exploration
         waiting = [*ex.queue, *([ex.current.planet] if ex.current else [])] if ex else []
         owned = [p for p in owned if p not in waiting]
-        return [*owned, "space"]
+        return [p for p in [*owned, "space"] if not planet_stats.is_space_station(registry, p)]
     prods = producers(state, registry, player_id, position)
     zones: list[str] = []
     for p in prods:
         if p.zone != "space" and p.zone not in zones:
             zones.append(p.zone)
+    # R_space_stations: a station is not a planet - no ground forces there (filtered below).
     if any(p.zone == "space" for p in prods):
         system = state.systems.get(position)
         if system is not None:
@@ -543,7 +545,7 @@ def allowed_ground_zones(
                 if owner == player_id and planet_id not in zones:
                     zones.append(planet_id)
         zones.append("space")
-    return zones
+    return [z for z in zones if not planet_stats.is_space_station(registry, z)]
 
 
 def deployed_count(state: GameState, player_id: str, base_type: str) -> int:

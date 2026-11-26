@@ -77,7 +77,7 @@
   border-radius: 7px;
   border: 1px solid var(--ds-h14);
   background: transparent;
-  color: var(--ds-ink-mid, var(--ds-ink-hi));
+  color: var(--ds-ink-hi);
   cursor: pointer;
 }
 

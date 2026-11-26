@@ -32,7 +32,8 @@ from src.core.system_planets import planets_of_system
 
 # Siły naziemne (mogą lądować i walczyć na planecie); struktury (pds/spacedock) NIE.
 GROUND_FORCES = frozenset({"infantry", "mech"})
-_DMZ_REASON = "Units cannot be committed to a planet with the Demilitarized Zone."
+_STATION_REASON = "Ground forces cannot be committed to a space station (it is not a planet)."
+_DMZ_REASON ="Units cannot be committed to a planet with the Demilitarized Zone."
 
 
 # ----------------------------------------------------------------------------- modele

@@ -32,7 +32,7 @@
 }
 
 .holdHead small {
-  font-family: var(--font-body, inherit);
+  font-family: var(--font-text);
   color: var(--ds-ink-lo);
 }
 

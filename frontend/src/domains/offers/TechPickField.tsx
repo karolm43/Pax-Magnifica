@@ -6,7 +6,7 @@ import { getTechData } from "@/entities/lookup/tech";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import type { Classified } from "./optionKinds";
-import { FieldHead, Tile } from "./DecisionTiles";
+import { FieldHead, pickNote, Tile } from "./DecisionTiles";
 import styles from "./DecisionFields.module.css";
 
 /*
@@ -130,14 +130,17 @@ export function TechPickField({
   };
   const drop = (option: ActionCardOption) =>
     onChange(multi ? picked.filter((id) => id !== option.id) : null);
-  const range = multi ? (input.min === input.max ? `${input.min}` : `${input.min}–${input.max}`) : "";
+  const head = multi
+    ? pickNote(picked.length, input.min, input.max)
+    : pickNote(typeof value === "string" ? 1 : 0, 1, 1);
 
   return (
     <div className={styles.field}>
       <FieldHead
         label={input.label}
         hint={input.hint}
-        note={multi ? `${picked.length} selected · pick ${range}` : undefined}
+        note={head.note}
+        done={head.done}
       />
       {pickedOptions.length > 0 && (
         <div className={styles.tiles} data-rich>

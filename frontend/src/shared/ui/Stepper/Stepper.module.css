@@ -22,7 +22,7 @@
 
 .label > svg {
   flex: none;
-  color: var(--ds-sig-tg, #eab308);
+  color: rgb(var(--ds-sig-tg));
 }
 
 .text {

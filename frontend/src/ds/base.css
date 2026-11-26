@@ -73,7 +73,7 @@ body {
 
 #ds-portal-root {
   position: relative;
-  z-index: var(--z-app-modal, 3000);
+  z-index: var(--z-app-modal, 3500);
 }
 
 /* hiddenFrom / visibleFrom. Only the sm breakpoint is used; add a pair here

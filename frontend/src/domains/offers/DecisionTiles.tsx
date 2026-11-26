@@ -268,6 +268,11 @@ function ChoiceTile({
       onMouseEnter={mapRef ? () => showOnMap(mapRef) : undefined}
       onMouseLeave={mapRef ? clearMapMarks : undefined}
     >
+      {/* Selection mark on the left: radio = pick one, checkbox = pick several. It tells an
+          option apart from an action button at a glance. */}
+      <span className={styles.mark} data-multi={multi || undefined} aria-hidden="true">
+        {selected && multi && <IconCheck size={12} stroke={3} />}
+      </span>
       {techId ? (
         <TechOptionBody option={option} techId={techId} />
       ) : kind?.kind === "player" ? (
@@ -280,11 +285,6 @@ function ChoiceTile({
         />
       ) : (
         <OptionBody option={option} />
-      )}
-      {multi && (
-        <span className={styles.check} aria-hidden="true">
-          {selected && <IconCheck size={11} />}
-        </span>
       )}
     </button>
   );
@@ -337,13 +337,36 @@ function useMapRef(option: ActionCardOption) {
 /** Tytuł otaczającej ramy: etykieta pola równa tytułowi nie jest powtarzana (U4, Z12). */
 export const FrameTitleContext = createContext<string | null>(null);
 
-export function FieldHead({ label, hint, note }: { label: string; hint?: string; note?: string }) {
+/** Badge of a pick field: "Choose 1" until answered, then "✓ 1 chosen" (one wording everywhere). */
+export function pickNote(picked: number, min: number, max: number): { note: string; done: boolean } {
+  const range = min === max ? `${max}` : min <= 0 ? `up to ${max}` : `${min}–${max}`;
+  if (picked === 0) return { note: `Choose ${range}`, done: false };
+  return { note: max > 1 ? `${picked} of ${max} chosen` : "Chosen", done: picked >= Math.max(min, 1) };
+}
+
+export function FieldHead({
+  label,
+  hint,
+  note,
+  done,
+}: {
+  label: string;
+  hint?: string;
+  note?: string;
+  /** The field already has a valid answer: the note badge turns into a "done" tick. */
+  done?: boolean;
+}) {
   const frameTitle = useContext(FrameTitleContext);
   const repeats = frameTitle != null && label.trim().toLowerCase() === frameTitle.trim().toLowerCase();
   return (
     <div className={styles.head}>
       {!repeats && <span className={styles.label}>{label}</span>}
-      {note && <span className={styles.note}>{note}</span>}
+      {note && (
+        <span className={styles.note} data-done={done || undefined}>
+          {done && <IconCheck size={11} stroke={3} aria-hidden="true" />}
+          {note}
+        </span>
+      )}
       {hint && <p className={styles.hint}>{hint}</p>}
     </div>
   );

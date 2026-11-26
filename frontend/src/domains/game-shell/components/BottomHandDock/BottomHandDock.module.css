@@ -13,7 +13,7 @@
   bottom: 0;
   /* Nad nakładkami walki / produkcji / inwazji / agendy (2700-2900), pod modalami (3500):
      karty reakcji wolno zagrywać w trakcie tych okien (RULES.md 53.5). */
-  z-index: 3050;
+  z-index: var(--z-bottom-dock, 3050);
   /*
    * SLOT „dół środek" (hooks/useHudMetric.ts): dok stoi między lewym a prawym slotem HUD
    * i jest ZAWSZE na środku ekranu: oba boki dostają ten sam odstęp = większy z dwóch slotów.
@@ -524,7 +524,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  font-size: var(--text-sm, 13px);
+  font-size: var(--text-body);
   color: var(--ds-ink-hi);
   background: color-mix(in oklab, var(--ds-ground) 85%, rgb(234 179 8));
   border: 1px solid rgba(234, 179, 8, 0.6);
@@ -594,7 +594,7 @@
   display: flex;
   justify-content: flex-end;
   padding: 8px 10px 10px;
-  border-top: 1px solid var(--ds-line, rgb(255 255 255 / 0.12));
+  border-top: 1px solid var(--ds-h14);
 }
 
 .cardPlayBtn {

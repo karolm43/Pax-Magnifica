@@ -2,33 +2,63 @@
 
 .form {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
+/* Every question is its own panel: options of one question never blend with the next one,
+   nor with the window's text and its Cancel / Use buttons. */
 .field {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--ds-h22);
+  border-left: 3px solid rgb(var(--ds-accent-rgb) / 0.65);
+  border-radius: 10px;
+  background: rgb(var(--ds-hair-rgb) / 0.035);
+}
+
+/* A field wrapped in another field (the "Auto" row) is one panel, not two. */
+.field .field {
+  padding: 0;
+  border: 0;
+  background: none;
 }
 
 .head {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 4px 8px;
 }
 
+/* The question: a heading, clearly not an option. */
 .label {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--ds-ink-hi);
 }
 
+/* "Choose 1" badge; turns into a tick once the question is answered. */
 .note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-left: auto;
+  padding: 1px 8px;
   font-size: 11px;
-  color: var(--ds-ink-lo);
+  font-weight: 700;
+  border-radius: 999px;
+  color: var(--ds-ink-hi);
+  border: 1px solid rgb(var(--ds-sig-warn) / 0.55);
+  background: rgb(var(--ds-sig-warn) / 0.12);
+}
+
+.note[data-done] {
+  border-color: rgb(var(--ds-sig-ok) / 0.6);
+  background: rgb(var(--ds-sig-ok) / 0.14);
 }
 
 .hint {
@@ -43,6 +73,17 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   gap: 6px;
+}
+
+/* Long labels: one option per row, the whole sentence readable. */
+.tiles[data-wide] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tiles[data-wide] .optText b {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  font-weight: 600;
 }
 
 /* Kafelki z opisem zasady (technologie, cele, karty): szersze kolumny, tekst pod nazwą. */
@@ -63,7 +104,7 @@
   margin-top: 2px;
   font-size: 10.5px;
   line-height: 1.3;
-  color: var(--ds-ink-mid, var(--ds-ink-lo));
+  color: var(--ds-ink);
 }
 
 .tile {
@@ -73,12 +114,12 @@
   gap: 8px;
   min-width: 0;
   min-height: 44px;
-  padding: 6px 10px 6px 8px;
+  padding: 8px 10px;
   text-align: left;
   color: var(--ds-ink-hi);
   border: 1px solid var(--ds-h22);
   border-radius: 10px;
-  background: var(--ds-ground-2);
+  background: var(--ds-ground);
   cursor: pointer;
   transition:
     border-color var(--ds-dur-fast, 120ms) ease,
@@ -86,14 +127,52 @@
 }
 
 .tile:hover:not(:disabled) {
-  border-color: var(--ds-edge-accent);
-  background: var(--ds-tint-fill, rgba(255, 255, 255, 0.06));
+  border-color: rgb(var(--ds-accent-rgb) / 0.6);
+  background: rgb(var(--ds-accent-rgb) / 0.08);
+}
+
+/* Selection mark: radio (pick one) or checkbox (pick several), always on the left. */
+.mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: #fff;
+  border: 2px solid rgb(var(--ds-hair-rgb) / 0.55);
+  border-radius: 50%;
+  background: transparent;
+  transition:
+    border-color var(--ds-dur-fast, 120ms) ease,
+    background var(--ds-dur-fast, 120ms) ease;
+}
+
+.mark[data-multi] {
+  border-radius: 5px;
+}
+
+.tile:hover:not(:disabled) .mark {
+  border-color: var(--ds-accent, #2563eb);
+}
+
+.tile[aria-pressed="true"] .mark {
+  border-color: var(--ds-accent, #2563eb);
+  background: var(--ds-accent, #2563eb);
+}
+
+/* Chosen radio: a dot in the middle (the ring stays visible). */
+.tile[aria-pressed="true"] .mark:not([data-multi]) {
+  box-shadow: inset 0 0 0 3px var(--ds-deck);
+}
+
+.tiles[data-rich] .mark {
+  margin-top: 1px;
 }
 
 /* Zaznaczenie: stały akcent (bez pulsowania - preferencja użytkownika). */
 .tile[aria-pressed="true"] {
   border-color: var(--ds-accent, #2563eb);
-  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.18);
+  background: rgb(var(--ds-accent-rgb) / 0.18);
   box-shadow: inset 0 0 0 1px var(--ds-accent, #2563eb);
 }
 
@@ -256,23 +335,6 @@
   background: var(--ds-green-5, #40c057);
 }
 
-.check {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  margin-left: auto;
-  border-radius: 4px;
-  border: 1px solid var(--ds-h28, rgba(255, 255, 255, 0.28));
-}
-
-.tile[aria-pressed="true"] .check {
-  color: #fff;
-  border-color: var(--ds-accent, #2563eb);
-  background: var(--ds-accent, #2563eb);
-}
-
 .quick {
   display: flex;
   gap: 6px;
@@ -355,7 +417,7 @@
 
 .unitStack[data-picked] {
   border-color: var(--ds-accent, #2563eb);
-  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.12);
+  background: rgb(var(--ds-accent-rgb) / 0.12);
 }
 
 .stackCtl {
@@ -394,7 +456,7 @@
 }
 
 .placeChip[data-picked] {
-  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.14);
+  background: rgb(var(--ds-accent-rgb) / 0.14);
 }
 
 .placeChip:focus-visible {
@@ -448,7 +510,7 @@
 }
 
 .placeRemove:hover:not(:disabled) {
-  color: var(--ds-danger, #e5484d);
+  color: rgb(var(--ds-sig-danger));
 }
 
 /* Wezwanie „kliknij na mapie” zamiast listy celów (pola bez ``MapPickStatus``). */
@@ -460,7 +522,7 @@
   color: var(--ds-ink-hi);
   border-left: 3px solid var(--ds-accent, #2563eb);
   border-radius: 6px;
-  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.1);
+  background: rgb(var(--ds-accent-rgb) / 0.1);
 }
 
 /* Jedna linia stanu wyboru na mapie (``MapPickStatus``): co klikać + „Show” / „Pick here”. */
@@ -476,7 +538,7 @@
   color: var(--ds-ink-hi);
   border-left: 3px solid var(--ds-accent, #2563eb);
   border-radius: 6px;
-  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.1);
+  background: rgb(var(--ds-accent-rgb) / 0.1);
 }
 
 .mapStatus > span {
@@ -495,13 +557,13 @@
   font-weight: 700;
   border-radius: 999px;
   color: var(--ds-ink-hi);
-  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.35);
+  background: rgb(var(--ds-accent-rgb) / 0.35);
 }
 
 .mapStatus[data-state="waiting"] {
   color: var(--ds-ink);
-  border-left-color: var(--ds-sig-warn, #f59f00);
-  background: rgba(245, 159, 0, 0.08);
+  border-left-color: rgb(var(--ds-sig-warn));
+  background: rgb(var(--ds-sig-warn) / 0.08);
 }
 
 .mapStatus[data-state="empty"] {
@@ -555,7 +617,7 @@
   padding: 8px;
   border: 1px solid var(--ds-edge-accent, var(--ds-h22));
   border-radius: 12px;
-  background: var(--ds-tint-fill, rgba(255, 255, 255, 0.04));
+  background: rgb(var(--ds-hair-rgb) / var(--ds-tint-fill));
 }
 
 .placeTitle {
@@ -575,12 +637,12 @@
   color: var(--ds-ink-hi);
   border: 1px solid var(--ds-edge-accent, var(--ds-h22));
   border-radius: 10px;
-  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.14);
+  background: rgb(var(--ds-accent-rgb) / 0.14);
   cursor: pointer;
 }
 
 .treeCall:hover:not(:disabled) {
-  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.24);
+  background: rgb(var(--ds-accent-rgb) / 0.24);
 }
 
 /* Odmowa („Do not place”, „Decline”): przerywana ramka + ⊘, osobny wiersz za „or” (plan, pkt 6). */
@@ -592,14 +654,14 @@
 
 .tile[data-decline][aria-pressed="true"] {
   border-style: solid;
-  border-color: var(--ds-sig-warn, #f59f00);
-  background: rgba(245, 159, 0, 0.12);
-  box-shadow: inset 0 0 0 1px var(--ds-sig-warn, #f59f00);
+  border-color: rgb(var(--ds-sig-warn));
+  background: rgb(var(--ds-sig-warn) / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(var(--ds-sig-warn));
 }
 
 .declineIcon {
   flex: none;
-  color: var(--ds-sig-warn, #f59f00);
+  color: rgb(var(--ds-sig-warn));
 }
 
 .declineRow {

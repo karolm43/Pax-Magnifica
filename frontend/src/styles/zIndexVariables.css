@@ -20,6 +20,7 @@
   --z-map-unit-transition: 1250;
 
   /* MAP UI - Left sidebar, faction tab bar, scrollbar, controls (2000-2999) */
+  --z-app-header: 200;
   --z-left-sidebar: 2000;
   --z-faction-tab-bar: 2010;
   --z-decal-sidebar: 2330;
@@ -39,13 +40,29 @@
   --z-phase-banner: 2450;
   --z-key-moment: 2460;
 
+  /* FULLSCREEN OVERLAYS & DOCK (2700-3199) */
+  --z-overlay-window: 2700;
+  --z-chat-panel: 2750;
+  --z-invasion-overlay: 2800;
+  --z-exploration-overlay: 2850;
+  --z-battle-overlay: 2900;
+  --z-bottom-dock: 3050;
+  --z-hold-banner: 3070;
+  --z-toast: 3100;
+  --z-table-roll: 3150;
+
   /* MODALS - Settings, shortcuts and popovers (3000-3999) */
   --z-header-menu: 3300;
   --z-app-modal: 3500;
   --z-smooth-popover: 3500;
 
   /* TOOLTIPS/POPOVERS - Hover tooltips, popovers (4000-4999) */
+  --z-map-tooltip: 4100;
   --z-map-unit-details: 4100;
   --z-map-planet-details: 4100;
+  --z-tooltip: 4500;
+  --z-setup-overlay: 4500;
+  --z-intro-overlay: 5000;
+  --z-victory-overlay: 5500;
   --z-navigation-drawer: 10000;
 }

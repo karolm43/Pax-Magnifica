@@ -20,7 +20,7 @@
 
   position: fixed;
   inset: 0;
-  z-index: 5000;
+  z-index: var(--z-intro-overlay, 5000);
   overflow: hidden;
   color: #f6ead0;
   /* To samo tło co menu i scena frakcji, mocniej przyciemnione pod czytelny tekst. */

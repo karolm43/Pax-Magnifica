@@ -6,7 +6,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 2850;
+  z-index: var(--z-exploration-overlay, 2850);
   display: grid;
   place-items: center;
   padding: 20px;
@@ -75,7 +75,7 @@
 }
 
 .title small {
-  font-family: var(--font-body, inherit);
+  font-family: var(--font-text);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -252,6 +252,18 @@ h4 {
   gap: 10px;
 }
 
+.candidates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.candidates > h4 {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .optionRow {
   display: flex;
   flex-direction: column;
@@ -367,7 +379,7 @@ h4 {
   position: fixed;
   right: 20px;
   bottom: 20px;
-  z-index: 2850;
+  z-index: var(--z-exploration-overlay, 2850);
   display: inline-flex;
   align-items: center;
   gap: 8px;

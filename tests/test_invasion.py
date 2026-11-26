@@ -6,7 +6,7 @@ from collections.abc import Callable
 
 import pytest
 
-from src.core import battle, invasion, tactical
+from src.core import battle, invasion, planet_stats, tactical
 from src.core.game_state import (
     GameState,
     InvasionPhase,
@@ -445,3 +445,27 @@ def test_closed_invasion_cannot_be_started_again(registry: StaticDataRegistry) -
         invasion.begin_invasion(state, grid, registry)
     # Koniec akcji taktycznej zeruje znacznik (następna akcja ma własny krok INVASION).
     assert tactical.end_tactical_action(state).invasion_resolved is False
+
+
+def test_ground_forces_cannot_be_committed_to_a_space_station(
+    registry: StaticDataRegistry,
+) -> None:
+    """R_space_stations: ground forces cannot be committed to a station."""
+    tile, station = next(
+        (sid, p)
+        for sid, s in sorted(registry.systems.items())
+        for p in s.planets
+        if planet_stats.is_space_station(registry, p)
+    )
+    grid = HexGrid()
+    grid.place_system("000", tile, anomalies=set())
+    grid.build_edges()
+    state = _state({"p1": {"carrier": 1, "infantry": 2}})
+    state.systems["000"].system_id = tile
+    state = invasion.begin_invasion(state, grid, registry)
+    with pytest.raises(ValueError, match="space station"):
+        invasion.commit_ground_forces(state, registry, {station: {"infantry": 1}})
+    with pytest.raises(ValueError, match="space station"):
+        invasion.apply_commit_from_planets(
+            state.clone(), registry, [("000", "x", "infantry", station)]
+        )

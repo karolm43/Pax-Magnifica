@@ -128,7 +128,7 @@ export function HandReactionRows({
               <div className={styles.actions}>
                 <button
                   type="button"
-                  className={styles.ghost}
+                  className={styles.quiet}
                   title="Stop asking about this card. Undo in Reactions on the action panel."
                   onClick={() => {
                     setDismissed((cur) => new Set(cur).add(r.key));

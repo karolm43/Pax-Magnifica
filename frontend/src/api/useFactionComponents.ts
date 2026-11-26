@@ -31,6 +31,31 @@ export type FactionComponentForm = {
   can_claim_unlock: boolean;
 };
 
+export type FactionComponentPlayability = {
+  kind: FactionComponentKind;
+  component_id: string;
+  playable: boolean;
+  reason: string | null;
+};
+
+/** Faction components and why their ACTION cannot be played now (the engine's blockers). */
+export function useFactionComponentPlayability(playerId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["factionComponentPlayable", playerId],
+    enabled: Boolean(playerId) && enabled,
+    staleTime: 0,
+    refetchInterval: 3000,
+    retry: false,
+    queryFn: async (): Promise<FactionComponentPlayability[]> => {
+      const data = await fetchJson<{ components: FactionComponentPlayability[] }>(
+        `${BOT_ROOT}/faction-component/playable?player_id=${encodeURIComponent(playerId ?? "")}`,
+        "factionComponentPlayable",
+      );
+      return data.components;
+    },
+  });
+}
+
 /** Formularz komponentu frakcji gracza (422, gdy gracz go nie ma). */
 export function useFactionComponentForm(
   kind: FactionComponentKind | null,

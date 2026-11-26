@@ -47,10 +47,10 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--ds-sig-warn, #f59f00);
+  background: rgb(var(--ds-sig-warn));
   transition: width var(--ds-dur, 180ms) ease;
 }
 
 .bar[data-ok] em {
-  background: var(--ds-sig-ok, #40c057);
+  background: rgb(var(--ds-sig-ok));
 }

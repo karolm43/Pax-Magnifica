@@ -153,8 +153,14 @@ function ExplorationWindow({ view }: { view: ExplorationView }) {
                     {q.traits.map((t) => DECK_LABEL[t] ?? t).join(" / ")}
                   </span>
                   {!current &&
-                    q.traits.flatMap((trait) =>
-                      (q.extraDraw ? [false, true] : [false]).map((extra) => (
+                    q.traits.map((trait) => (
+                      <span
+                        key={trait}
+                        role="group"
+                        aria-label={`Draw ${DECK_LABEL[trait] ?? trait}`}
+                        style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}
+                      >
+                    {(q.extraDraw ? [false, true] : [false]).map((extra) => (
                         <button
                           key={`${trait}-${extra}`}
                           type="button"
@@ -175,12 +181,13 @@ function ExplorationWindow({ view }: { view: ExplorationView }) {
                             )
                           }
                         >
-                          {extra ? "Draw 2" : "Draw"}
+                          {extra ? "Draw 2, keep 1" : q.extraDraw ? "Draw 1" : "Draw"}
                           {q.traits.length > 1 ? ` ${DECK_LABEL[trait]}` : ""}
                           {extra ? " (Distant Suns)" : ""}
                         </button>
-                      )),
-                    )}
+                    ))}
+                      </span>
+                    ))}
                 </li>
               ))}
             </ol>
@@ -188,7 +195,7 @@ function ExplorationWindow({ view }: { view: ExplorationView }) {
         )}
 
         {current && (current.candidates?.length ?? 0) > 0 && (
-          <section className={styles.stage} aria-label="Distant Suns">
+          <section className={styles.candidates} aria-label="Distant Suns">
             <h4>Distant Suns: choose 1 card to resolve, discard the rest</h4>
             {current.candidates?.map((card) => (
               <div key={card.cardId} className={styles.optionRow}>

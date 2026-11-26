@@ -40,32 +40,34 @@ type ContentSize = ReturnType<typeof useMapContentSize>;
 
 /**
  * Scaled board extents and margins. Only the overflow this game's coordinates
- * can paint is reserved: stat tiles can sit outside the tile grid, but most
- * maps have no top/left overflow, and a fixed worst-case reserve grew into
- * hundreds of empty pixels at larger zooms. When the full painted width fits
- * it is centred; otherwise its left edge stays reachable with the standard
- * board clearance.
+ * can paint is reserved: stat tiles can sit outside the tile grid, and the
+ * wrapper's own 0..unscaledWidth box has asymmetric empty padding around the
+ * actual tiles. Centering against the painted bounds [bounds.left, bounds.right]
+ * puts the visual board in the middle of the viewport when it fits, and keeps
+ * its leftmost painted edge at BOARD_CLEARANCE when it overflows.
  */
-function boardGeometry(
+export function boardGeometry(
   contentSize: ContentSize,
   unscaledWidth: number,
   zoom: number,
 ) {
-  const { bleed } = contentSize;
+  const { bleed, bounds } = contentSize;
   const width = unscaledWidth * zoom;
-  const bleedLeft = bleed.left * zoom;
-  const bleedRight = bleed.right * zoom;
+  const paintedLeft = bounds.left * zoom;
+  const paintedRight = bounds.right * zoom;
+  const paintedSpan = bounds.right - bounds.left;
   return {
     unscaledWidth,
     unscaledHeight: contentSize.height,
     width,
     height: contentSize.height * zoom,
     bleedBottom: bleed.bottom * zoom,
-    /** Painted extent including the overlay bleed the wrapper excludes. */
-    paintedWidth: unscaledWidth + bleed.left + bleed.right,
+    /** Painted extent across all map and stat tiles. */
+    paintedWidth:
+      paintedSpan > 0 ? paintedSpan : unscaledWidth + bleed.left + bleed.right,
     margins: {
       marginTop: bleed.top * zoom + BOARD_CLEARANCE,
-      marginLeft: `max(${bleedLeft + BOARD_CLEARANCE}px, calc((100% - ${width}px + ${bleedLeft}px - ${bleedRight}px) / 2))`,
+      marginLeft: `max(${BOARD_CLEARANCE - paintedLeft}px, calc((100% - ${paintedLeft + paintedRight}px) / 2))`,
       marginRight: "auto",
     },
   };

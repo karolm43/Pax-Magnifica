@@ -904,6 +904,16 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   control for jitter yet (endpoint only); involvement filter for "global" agents (Naalu/Saar) = mute, not auto-detected.
 - Tests: `tests/test_reaction_pacing.py` (25).
 
+## Space stations, Fabrication gating, Distant Suns buttons
+
+- `planet_stats.is_space_station`: ground forces cannot be committed to (`invasion.commit_ground_forces`,
+  `apply_commit_from_planets`) or produced on (`production.allowed_ground_zones`) a space station
+  (R_space_stations). A system with only a station no longer opens the invasion window.
+- Component-action list now greys out faction abilities using the engine blockers
+  (`/faction-component/playable`, `useFactionComponentPlayability`): Fabrication needs a relic fragment.
+- Exploration overlay: Distant Suns shows a labelled pair "Draw 1" / "Draw 2, keep 1 (Distant Suns)".
+- Not reproduced: the unexpected tactical Bombardment step (needs a repro: which system/units).
+
 ## Stellar Converter: targets without units, destroyed planet token, board effect (RULES 59, 64.4a)
 
 - Bug: `_converter_planets` used `grid_from_state` (only systems with a state entry), so a planet in an untouched

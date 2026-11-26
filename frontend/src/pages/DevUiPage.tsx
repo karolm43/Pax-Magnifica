@@ -1129,7 +1129,7 @@ export function DevUiPage() {
                         <Text size="sm">{desc}</Text>
                         <kbd
                           style={{
-                            fontFamily: "var(--ds-font-mono)",
+                            fontFamily: "var(--ds-font-data)",
                             fontSize: 12,
                             background: "var(--ds-field)",
                             border: "1px solid var(--ds-h22)",
@@ -1324,7 +1324,7 @@ export function DevUiPage() {
                         size="sm"
                         style={{
                           color: val === 0 ? "var(--ds-ink-lo)" : "var(--ds-ink-hi)",
-                          fontFamily: "var(--ds-font-mono)",
+                          fontFamily: "var(--ds-font-data)",
                         }}
                       >
                         {val}
@@ -1352,7 +1352,7 @@ export function DevUiPage() {
                         size="sm"
                         style={{
                           color: "var(--ds-ink-hi)",
-                          fontFamily: "var(--ds-font-mono)",
+                          fontFamily: "var(--ds-font-data)",
                         }}
                       >
                         {val}

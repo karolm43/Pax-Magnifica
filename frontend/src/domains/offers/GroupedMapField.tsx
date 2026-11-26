@@ -15,7 +15,7 @@ import {
   type OptionLookups,
 } from "./optionKinds";
 import { useOptionLookups } from "./DecisionPickers";
-import { DeclineRow, FieldHead, Tile, UnitStackStepper } from "./DecisionTiles";
+import { DeclineRow, FieldHead, pickNote, Tile, UnitStackStepper } from "./DecisionTiles";
 import { MapPickStatus, type MapTarget } from "./MapPickStatus";
 import styles from "./DecisionFields.module.css";
 
@@ -159,7 +159,9 @@ export function GroupedMapField({
     { enabled: mapActive && !disabled, selected: current?.id ?? null },
   );
 
-  const range = multi ? (input.min === input.max ? `${input.min}` : `${input.min}–${input.max}`) : "";
+  const head = multi
+    ? pickNote(picked.length, input.min, input.max)
+    : pickNote(typeof value === "string" ? 1 : 0, 1, 1);
   // Na liście tylko wybrane miejsca (i to, które właśnie oglądamy) - resztę wskazuje mapa.
   const shown = named.filter((g) => pickedIn(g) > 0 || g.key === current?.key);
   const unpick = (group: Group) => {
@@ -177,7 +179,8 @@ export function GroupedMapField({
       <FieldHead
         label={input.label}
         hint={input.hint}
-        note={multi ? `${picked.length} selected · pick ${range}` : undefined}
+        note={head.note}
+        done={head.done}
       />
       {mapActive && (
         <MapPickStatus targets={named} handle={handle} disabled={disabled} />

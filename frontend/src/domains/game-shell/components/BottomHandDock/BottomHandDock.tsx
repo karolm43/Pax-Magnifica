@@ -17,7 +17,6 @@ import { getRelicData } from "@/entities/lookup/relics";
 import { getExploration } from "@/entities/lookup/explorations";
 import { Tech } from "@/domains/player/components/Tech";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
-import { usePlayerData } from "@/api/usePlayerData";
 import {
   loadStoredChoice,
   saveStoredChoice,
@@ -25,7 +24,6 @@ import {
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import type { PlayerData } from "@/entities/data/types";
 import { HoldControls } from "./HoldControls";
-import { KnownCards } from "./KnownCards";
 import {
   DRAG_TYPE,
   FRONTIER_DRAG_TYPE,
@@ -271,24 +269,6 @@ export function BottomHandDock() {
     return hand.promissoryNotes;
   }, [hand, tab, relicIds, frontierIds]);
 
-  // Wiedza z kart i zdolności „look at…”: talia agend (Insider Information, Politics - trwa, aż
-  // talia się zmieni, RULES.md 53.5.a1), tajne cele (Extreme Duress), stały podgląd M'aban.
-  const { data: mabanPeek } = usePlayerData(gameId, { select: (d) => d.gameState?.peek ?? null });
-  const { data: players } = usePlayerData(gameId, { select: (d) => d.playerData ?? [] });
-  const known = (
-    <KnownCards
-      agendaTop={hand?.agendaPeek ?? []}
-      agendaBottom={hand?.agendaPeekBottom ?? []}
-      revealedSecrets={hand?.revealedSecrets ?? {}}
-      maban={mabanPeek ?? null}
-      players={players ?? []}
-    />
-  );
-  const hasKnown =
-    (hand?.agendaPeek?.length ?? 0) > 0 ||
-    (hand?.agendaPeekBottom?.length ?? 0) > 0 ||
-    Object.keys(hand?.revealedSecrets ?? {}).length > 0 ||
-    Boolean(mabanPeek);
 
   // Mierzymy wysokość doku (zwinięty / rozwinięty) i wystawiamy ją jako zmienną CSS
   // ``--hand-dock-clear`` na <html> - pastylki powrotu do okien (produkcja, technologie…)
@@ -396,11 +376,9 @@ export function BottomHandDock() {
         // Pusta zakładka (np. brak kart akcji na starcie) nie trzyma 176 px pustej tacy
         // nad planszą - ręka kurczy się do jednej linii komunikatu.
         data-empty={
-          (tab !== "techs" && tab !== "relics" && ids.length === 0 && !hasKnown) ||
-          undefined
+          (tab !== "techs" && tab !== "relics" && ids.length === 0) || undefined
         }
       >
-      {hasKnown && known}
 
       {/* Fragmenty -> relikt (RULES.md 59.7): przycisk „Forge relic" nad reliktami. */}
       {tab === "relics" && active.discordId && (

@@ -55,6 +55,7 @@ import { LegendaryUseModal } from "./LegendaryUseModal";
 import { FactionComponentUseModal } from "./FactionComponentUseModal";
 import { useTechnologyAbilities } from "@/api/useTechnology";
 import { useForgeOptions } from "@/api/useRelics";
+import { useFactionComponentPlayability } from "@/api/useFactionComponents";
 import { ExpeditionModal } from "@/domains/thunders-edge/ExpeditionModal";
 import { ComponentInfoButton, type ComponentKind } from "@/domains/cards/components/ComponentInfo";
 import styles from "./TurnControls.module.css";
@@ -343,7 +344,20 @@ export function TurnControls() {
     componentOpen || canComponentAction,
   );
   // Karty akcji z ręki NIE są na liście (U4/Z9): zagrywa się je przeciągnięciem z ręki.
-  const componentChoices = collectComponentActions(activePlayerData, []);
+  // The engine's own blockers (e.g. Fabrication needs a relic fragment) grey out abilities.
+  const { data: componentPlayability } = useFactionComponentPlayability(
+    active.discordId ?? null,
+    componentOpen || canComponentAction,
+  );
+  const componentChoices = collectComponentActions(activePlayerData, []).map((choice) => {
+    if (choice.kind !== "ability" || choice.unavailable) return choice;
+    const row = componentPlayability?.find(
+      (r) => r.kind === "ability" && r.component_id === choice.id,
+    );
+    return row && !row.playable
+      ? { ...choice, unavailable: row.reason ?? "Not playable now" }
+      : choice;
+  });
   const forgeShown = (forgeOptions ?? []).filter((opt) => opt.owned + opt.wildcards > 0);
   // Czy cokolwiek da się teraz zagrać (wyczerpane/zablokowane/purge się nie liczą).
   const hasUsableComponent =

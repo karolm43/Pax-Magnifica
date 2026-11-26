@@ -37,6 +37,6 @@
   flex: 1 1 0;
   min-width: 0;
   padding: 8px 10px;
-  border: 1px solid var(--ds-hair, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--ds-h14);
   border-radius: 6px;
 }

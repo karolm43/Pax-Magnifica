@@ -7,7 +7,7 @@
   position: fixed;
   right: 16px;
   top: var(--decisions-top);
-  z-index: var(--z-app-modal, 3000);
+  z-index: var(--z-app-modal, 3500);
   display: grid;
   align-content: start;
   gap: 6px;
@@ -80,7 +80,7 @@
   position: fixed;
   right: 16px;
   top: calc(var(--map-viewport-top, 114px) + 60px);
-  z-index: var(--z-app-modal, 3000);
+  z-index: var(--z-app-modal, 3500);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -106,7 +106,7 @@
 }
 
 .pillCount[data-required] {
-  background: var(--ds-sig-warn, #f59f00);
+  background: rgb(var(--ds-sig-warn));
   color: #1a1306;
 }
 
@@ -149,23 +149,31 @@
 }
 
 .title {
-  overflow: hidden;
   font-size: 15px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
+/* Card text as a quoted block: reads as "what the card says", apart from the buttons. */
 .text {
   margin: 0;
+  padding: 6px 10px;
   font-size: 12.5px;
   line-height: 1.4;
   color: var(--ds-ink);
+  border-left: 3px solid rgb(var(--ds-hair-rgb) / 0.35);
+  border-radius: 6px;
+  background: rgb(var(--ds-hair-rgb) / 0.04);
 }
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ds-h14);
 }
 
 .iconBtn,
@@ -189,14 +197,37 @@
 .ghost {
   padding: 5px 10px;
   font-size: 12.5px;
-  border: 1px solid var(--ds-edge, rgba(255, 255, 255, 0.15));
+  border: 1px solid var(--ds-h14);
   color: var(--ds-ink);
   background: transparent;
 }
 
+.ghost:hover {
+  color: var(--ds-ink-hi);
+  border-color: var(--ds-h22);
+}
+
+/* "Never ask": a quiet text link on the left, apart from the real choices. */
+.quiet {
+  margin-right: auto;
+  padding: 5px 2px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ds-ink-lo);
+  border: 0;
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.quiet:hover {
+  color: var(--ds-ink-hi);
+}
+
 .primary {
-  padding: 5px 12px;
-  font-size: 12.5px;
+  padding: 6px 14px;
+  font-size: 13px;
   font-weight: 700;
   border: 0;
   color: #0b1220;
@@ -262,7 +293,7 @@
      dokleja tekst POD wierszem zamiast zmieniać pigułkę w prostokąt i przesuwać kolumnę. */
   padding: 5px 6px 5px 10px;
   border-radius: 12px;
-  border: 1px solid var(--ds-edge, rgba(255, 255, 255, 0.15));
+  border: 1px solid var(--ds-h14);
   background: color-mix(in oklab, var(--ds-deck) 88%, transparent);
   color: var(--ds-ink-hi);
   box-shadow: 0 6px 16px rgb(0 0 0 / 0.35);

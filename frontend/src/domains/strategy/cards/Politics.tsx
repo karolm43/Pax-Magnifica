@@ -1,8 +1,10 @@
 import { useState, type CSSProperties } from "react";
 import { IconArrowDown, IconArrowUp, IconCheck } from "@tabler/icons-react";
 import { getAgenda } from "@/entities/lookup/agendas";
-import { getActionCard } from "@/entities/lookup/actionCards";
-import { ComponentInfoButton } from "@/domains/cards/components/ComponentInfo";
+import { assetUrl } from "@/shared/assets/resolveAsset";
+import { SmoothPopover } from "@/shared/ui/SmoothPopover";
+import { ComponentCard } from "@/domains/cards/components/ComponentInfo";
+import { HandCard } from "@/domains/game-shell/components/BottomHandDock/HandCard";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { ConfirmButton, Hint, PromptShell, Section } from "../PromptParts";
 import { playerName, playerRgb } from "../PlayerChip";
@@ -24,23 +26,46 @@ export function PoliticsPrimary(props: PrimaryViewProps) {
   );
 }
 
-/** Lista kart akcji (nazwa + okno zagrania + tekst) - dobrane w Politics. */
+/** Action cards drawn in Politics: the same tiles as in the hand (click = full card). */
 export function DrawnActionCards({ cards }: { cards: string[] }) {
   if (cards.length === 0) {
     return <span className={styles.empty}>No cards drawn (the deck is empty).</span>;
   }
   return (
     <div className={styles.cardList}>
-      {cards.map((id, i) => {
-        const card = getActionCard(id);
-        return (
-          <div className={styles.actionCard} key={`${id}-${i}`}>
-            <b>{card?.name ?? id}</b>
-            <small>{[card?.window, card?.text].filter(Boolean).join(" - ")}</small>
-          </div>
-        );
-      })}
+      {cards.map((id, i) => (
+        <HandCard key={`${id}-${i}`} tab="actions" id={id} />
+      ))}
     </div>
+  );
+}
+
+/** Agenda tile: deck card back + name; click opens the full agenda card. */
+function AgendaTile({ id }: { id: string }) {
+  const [open, setOpen] = useState(false);
+  const name = getAgenda(id)?.name ?? id;
+  return (
+    <SmoothPopover opened={open} onChange={setOpen} position="top">
+      <SmoothPopover.Target>
+        <button
+          type="button"
+          className={styles.agendaTile}
+          data-open={open || undefined}
+          onClick={() => setOpen((v) => !v)}
+          title={`${name} - click for the full card`}
+        >
+          <span
+            className={styles.agendaArt}
+            style={{ backgroundImage: `url("${assetUrl("/player_area/cardback_agenda.png")}")` }}
+            aria-hidden="true"
+          />
+          <b className={styles.agendaName}>{name}</b>
+        </button>
+      </SmoothPopover.Target>
+      <SmoothPopover.Dropdown p={0}>
+        <ComponentCard componentRef={{ kind: "agenda", id }} />
+      </SmoothPopover.Dropdown>
+    </SmoothPopover>
   );
 }
 
@@ -203,16 +228,9 @@ function AgendaOrder({ prompt, shell, busy, submit }: PrimaryViewProps) {
     const sameSide = order.filter((c) => sides[c] === sides[id]);
     const idx = sameSide.indexOf(id);
     return (
-      <div className={styles.row} key={id}>
-        <span className={styles.rowLabel}>
-          {agenda?.name ?? id}
-          {/* Cały tekst agendy (typ, cel głosowania, oba akapity) - decyzja góra/dół. */}
-          <small>{[agenda?.type, agenda?.target].filter(Boolean).join(" · ")}</small>
-          {agenda?.text1 && <small>{agenda.text1}</small>}
-          {agenda?.text2 && <small>{agenda.text2}</small>}
-        </span>
-        <ComponentInfoButton componentRef={{ kind: "agenda", id }} name={agenda?.name ?? id} />
-        <span className={styles.stepper}>
+      <div className={styles.agendaSlot} key={id}>
+        <AgendaTile id={id} />
+        <span className={styles.stepper} aria-label={`Place ${agenda?.name ?? id}`}>
           <button
             type="button"
             className={styles.stepBtn}
@@ -239,7 +257,7 @@ function AgendaOrder({ prompt, shell, busy, submit }: PrimaryViewProps) {
               setSides((cur) => ({ ...cur, [id]: cur[id] === "top" ? "bottom" : "top" }))
             }
           >
-            {sides[id] === "top" ? "On top" : "On bottom"}
+            {sides[id] === "top" ? "To bottom" : "To top"}
           </button>
         </span>
       </div>
@@ -267,15 +285,21 @@ function AgendaOrder({ prompt, shell, busy, submit }: PrimaryViewProps) {
         <DrawnActionCards cards={drawn} />
       </Section>
       <Hint>
-        Only you can see the agenda cards - <b>do not show them to the other players</b>. Put
-        each on the top or the bottom of the deck; cards on the same side can be ordered.
+        Put each agenda on the top or the bottom of the deck; cards on the same side can be
+        ordered (first = drawn first). Click a card for its full text.
       </Hint>
-      <Section title="Top of the deck (first = drawn first)">
-        {top.length ? top.map(renderCard) : <span className={styles.empty}>None</span>}
-      </Section>
-      <Section title="Bottom of the deck (last = very bottom)">
-        {bottom.length ? bottom.map(renderCard) : <span className={styles.empty}>None</span>}
-      </Section>
+      <div className={styles.agendaSides}>
+        <Section title="Top of the deck">
+          <div className={styles.agendaRow}>
+            {top.length ? top.map(renderCard) : <span className={styles.empty}>None</span>}
+          </div>
+        </Section>
+        <Section title="Bottom of the deck">
+          <div className={styles.agendaRow}>
+            {bottom.length ? bottom.map(renderCard) : <span className={styles.empty}>None</span>}
+          </div>
+        </Section>
+      </div>
     </PromptShell>
   );
 }

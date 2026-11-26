@@ -6,7 +6,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 4500;
+  z-index: var(--z-setup-overlay, 4500);
   /*
    * Flex + `margin: auto` na panelu (zamiast `place-items: center`): gdy treść jest wyższa
    * niż ekran (np. 1280×720, cele publiczne), centrowanie siatką wypychało górę panelu

@@ -16,8 +16,8 @@
   gap: 6px;
   padding: 8px 10px;
   border-radius: 10px;
-  border: 1px solid rgba(var(--ds-accent-rgb, 37, 99, 235), 0.5);
-  background: rgba(var(--ds-accent-rgb, 37, 99, 235), 0.1);
+  border: 1px solid rgb(var(--ds-accent-rgb) / 0.5);
+  background: rgb(var(--ds-accent-rgb) / 0.1);
 }
 
 .tool[data-tone="relic"] {
@@ -100,7 +100,7 @@
 
 /* Zaznaczona do przerzutu: stała obwódka (bez pulsowania). */
 .die[aria-pressed="true"] {
-  outline: 2px solid var(--ds-sig-warn, #f59f00);
+  outline: 2px solid rgb(var(--ds-sig-warn));
   outline-offset: 1px;
 }
 

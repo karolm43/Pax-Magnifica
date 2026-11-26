@@ -7,7 +7,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 5500;
+  z-index: var(--z-victory-overlay, 5500);
   overflow: hidden;
   color: #f6ead0;
   background:

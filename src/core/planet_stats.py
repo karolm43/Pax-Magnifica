@@ -54,6 +54,14 @@ def is_demilitarized(state: GameState, planet_id: str) -> bool:
     return DMZ_ATTACHMENT in state.planet_attachments.get(planet_id, [])
 
 
+def is_space_station(registry: StaticDataRegistry, planet_id: str) -> bool:
+    """Czy to stacja kosmiczna (R_space_stations: nie planeta; bez sił naziemnych i struktur)."""
+    planet = registry.planets.get(planet_id)
+    if planet is None:
+        return False
+    return planet.planet_type == "SPACESTATION" or "SPACESTATION" in (planet.planet_types or [])
+
+
 def attachment_defs(
     state: GameState, registry: StaticDataRegistry, planet_id: str
 ) -> list[AttachmentDef]:

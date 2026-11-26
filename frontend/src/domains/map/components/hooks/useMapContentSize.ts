@@ -11,6 +11,7 @@ const EMPTY_CONTENT_SIZE = {
   width: 0,
   height: 0,
   bleed: { top: 0, right: 0, bottom: 0, left: 0 },
+  bounds: { left: 0, right: 0, top: 0, bottom: 0 },
 };
 
 export function useMapContentSize(layout: MapLayout) {
@@ -59,6 +60,12 @@ export function useMapContentSize(layout: MapLayout) {
       right: Math.max(0, paintedRight - (baseWidth + mapWidthExtra)),
       bottom: Math.max(0, paintedBottom - baseHeight),
       left: Math.max(0, -minLeft),
+    },
+    bounds: {
+      left: minLeft,
+      right: paintedRight,
+      top: minTop,
+      bottom: paintedBottom,
     },
   };
 }

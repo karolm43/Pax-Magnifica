@@ -224,12 +224,12 @@ def test_fabrication_zeton_i_pusta_rezerwa(registry: StaticDataRegistry) -> None
     state = _state()
     state.players["p1"].relic_fragments = ["irf1", "irf2"]
     after = _play(state, registry, "ability", "fabrication",
-                  {"mode": "fleet", "fragments": ["irf1"]})
+                  {"mode": "pool_fleet", "fragments": ["irf1"]})
     assert after.players["p1"].fleet_cc == 4 and after.players["p1"].cc_reinf == 7
     assert after.players["p1"].relic_fragments == ["irf2"]
     state.players["p1"].cc_reinf = 0
     after = _play(state, registry, "ability", "fabrication",
-                  {"mode": "tactical", "fragments": ["irf1"]})
+                  {"mode": "pool_tactical", "fragments": ["irf1"]})
     assert after.players["p1"].tactical_cc == 3  # bez żetonu, fragment i tak purge
     assert after.players["p1"].relic_fragments == ["irf2"]
 

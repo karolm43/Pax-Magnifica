@@ -28,7 +28,7 @@
 }
 
 .slice:hover:not(:disabled) {
-  border-color: var(--ds-h30, var(--ds-ink-lo));
+  border-color: var(--ds-h28);
 }
 
 /* Zaznaczenie statyczne (bez pulsowania - preferencja użytkownika). */
@@ -49,7 +49,7 @@
   height: 34px;
   flex: none;
   border-radius: 50%;
-  background: var(--ds-ground-3, var(--ds-ground));
+  background: var(--ds-ground);
   color: var(--ds-ink-hi);
 }
 
@@ -112,7 +112,7 @@
   top: 84px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: var(--z-app-modal, 400);
+  z-index: var(--z-app-modal, 3500);
   display: flex;
   align-items: center;
   gap: 14px;

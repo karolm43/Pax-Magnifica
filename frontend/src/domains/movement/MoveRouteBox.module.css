@@ -6,7 +6,7 @@
   /* Domyślnie z zapasem miejsca po prawej, żeby było w co rozciągnąć panel. */
   left: max(8px, calc(100vw - 560px));
   top: 96px;
-  z-index: var(--z-app-modal, 3000);
+  z-index: var(--z-app-modal, 3500);
   display: flex;
   flex-direction: column;
   gap: 10px;

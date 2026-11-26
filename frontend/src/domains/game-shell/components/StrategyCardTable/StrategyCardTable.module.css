@@ -27,7 +27,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: calc(var(--ds-z-overlay, 60) - 1);
+  z-index: calc(var(--z-phase-banner, 2450) - 1);
   display: grid;
   place-items: center;
   pointer-events: none;

@@ -3,7 +3,7 @@
   position: fixed;
   left: 50%;
   bottom: 96px;
-  z-index: 3150;
+  z-index: var(--z-table-roll, 3150);
   display: flex;
   align-items: center;
   gap: 12px;
