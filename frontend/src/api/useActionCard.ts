@@ -254,6 +254,27 @@ export async function postDiscardExcess(actorId: string, cardId: string): Promis
   return `Error ${response.status}`;
 }
 
+/** Shows the chosen action cards from the hand to everyone (R_action_cards); error text or null. */
+export async function postRevealActionCards(
+  actorId: string,
+  cards: string[],
+): Promise<string | null> {
+  const response = await fetch(`${BOT_ROOT}/action-card/reveal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ actor_id: actorId, cards }),
+  });
+  if (response.ok) return null;
+  const raw = await response.text().catch(() => "");
+  try {
+    const parsed = JSON.parse(raw) as { detail?: unknown };
+    if (typeof parsed.detail === "string") return parsed.detail;
+  } catch {
+    // nie-JSON — zostaje kod statusu
+  }
+  return `Error ${response.status}`;
+}
+
 /** Krok historii, do którego można się cofnąć kartą (HOLD, RULES.md 53.7). */
 export type HoldStep = {
   seq: number;

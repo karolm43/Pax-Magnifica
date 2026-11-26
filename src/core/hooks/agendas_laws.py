@@ -12,6 +12,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from src.core import (
+    action_budget,
     agenda_phase,
     board_graph,
     card_draw,
@@ -516,6 +517,11 @@ def _peace_ready(state: GameState, pid: str, ctx: Mapping[str, Any]) -> bool:
           label="Minister of Peace")
 def _peace(state: GameState, _pid: str, _ctx: Mapping[str, Any]) -> None:
     agenda_phase.remove_law(state, "minister_peace")
+    active = state.active_player_id
+    if active is not None and action_budget.outside_turn(state, active):
+        # C_action_cards/puppets-on-a-string/4: there is no turn to end - the card is discarded
+        # (its cost), yet the extra action is still performed.
+        return
     ended = tactical.end_tactical_action(state)
     state.__dict__.update(ended.__dict__)
 

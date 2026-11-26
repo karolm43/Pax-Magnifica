@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.core import (
+    action_budget,
     agenda_phase,
     battle,
     card_hold,
@@ -372,7 +373,7 @@ def _action_phase(obs: Observation, ctx: EngineContext) -> list[Action]:
     player = s.players[pid]
     if s.tactical_step is not None:
         return lt.tactical_step(obs, ctx)
-    if player.passed or player.took_action_this_turn:
+    if action_budget.blocked_by_pass(s, pid) or player.took_action_this_turn:
         return [act.TurnEnd(player_id=pid)]
     # Pierwszy = ruch domyślny (karta strategii, potem pas); dalej aktywacje i karty akcji (B5).
     unplayed = [i for i in player.strategy_cards if i not in player.exhausted_strategy_cards]

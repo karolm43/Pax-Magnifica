@@ -877,6 +877,7 @@ def roll_round(
     combat.side_rolls = {}
     combat.destroyed_ships = []  # ślady kart reakcji dotyczą ostatnich strat
     combat.sustained_ships = []
+    combat.stepwise_assign = []
     offers_before = len(new_state.pending_offers)
     for pid in rolls:
         triggers.fire(
@@ -1185,19 +1186,54 @@ def assign_combat_hits(
     combat = _combat(new_state)
     combat.hit_targets = {p: t for p, t in combat.hit_targets.items() if p != player_id}
     zone = _zone(combat.kind, combat.planet)
-    triggers.fire(
-        new_state, GameEvent.HITS_ASSIGNED, Moment.BEFORE, subject=player_id,
-        ctx={"player": player_id, "kind": combat.kind, "hits": required},
-    )
+    if player_id in combat.stepwise_assign:
+        # Started with ``sustain_one``: "before you assign hits" already fired for these hits.
+        combat.stepwise_assign = [p for p in combat.stepwise_assign if p != player_id]
+    else:
+        triggers.fire(
+            new_state, GameEvent.HITS_ASSIGNED, Moment.BEFORE, subject=player_id,
+            ctx={"player": player_id, "kind": combat.kind, "hits": required},
+        )
     apply_losses(new_state, combat.position, zone, player_id, units, plan)
     for base_type, lost in losses_of(units, plan).items():
         note_destroyed(combat, player_id, base_type, lost, units[base_type].base_hits_on)
-    for base_type, used in sustained_of(plan, sustain).items():
+    _note_sustains(new_state, combat, player_id, units, zone, sustained_of(plan, sustain))
+
+    entry = combat.log[-1] if combat.log else None
+    if entry is not None:
+        entry["losses"][player_id] = losses_of(units, plan)
+        entry["sustained"][player_id] = _merged(
+            entry["sustained"].get(player_id, {}), sustained_of(plan, sustain)
+        )
+    combat.pending_hits[player_id] = 0
+
+    new_state = timing.respond_current(new_state, player_id)
+    if timing.is_window_complete(new_state):
+        new_state = timing.close_window(new_state)
+        if _hold_for_sustain(new_state, registry, sustained_of(plan, sustain)):
+            return new_state
+        return _after_losses(new_state, grid, registry)
+    return new_state
+
+
+def _note_sustains(
+    state: GameState,
+    combat: ActiveCombat,
+    player_id: str,
+    units: dict[str, CombatUnit],
+    zone: str,
+    used_by_type: dict[str, int],
+) -> None:
+    """Records Sustain Damage uses for reaction cards (Direct Hit) and fires its AFTER event.
+
+    MUTATES ``state`` (the caller's clone).
+    """
+    for base_type, used in used_by_type.items():
         # W walce kosmicznej walczą tylko statki; w naziemnej - tylko siła naziemna-statek
         # (Eidolon Maximum: Direct Hit działa też na niego, F_naaz_rokha eidolon-maximum 2.3).
         if used > 0 and (
             combat.kind == "space" or floating_structures.ground_moves_as_ship(
-                new_state, player_id, base_type
+                state, player_id, base_type
             )
         ):
             where = units[base_type].zone or zone
@@ -1208,22 +1244,80 @@ def assign_combat_hits(
             ]
         if used > 0:
             triggers.fire(
-                new_state, GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, subject=player_id,
+                state, GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, subject=player_id,
                 ctx={"player": player_id, "base_type": base_type, "count": used},
             )
 
+
+def _merged(old: dict[str, int], new: dict[str, int]) -> dict[str, int]:
+    """Sums two ``{base_type: count}`` logs (step-by-step Sustain Damage + final assignment)."""
+    return {bt: old.get(bt, 0) + new.get(bt, 0) for bt in {*old, *new}}
+
+
+def sustain_one(
+    state: GameState,
+    grid: HexGrid,
+    registry: StaticDataRegistry,
+    player_id: str,
+    base_type: str,
+) -> GameState:
+    """Step-by-step hit assignment: ONE ship uses SUSTAIN DAMAGE now; the other hits wait.
+
+    C_action_cards/direct-hit/3: "When a player uses the Sustain Damage ability of one of their
+    ships, they do not have to decide if another of their ships in the same combat will use its
+    Sustain Damage ability until after their opponent has used or declined to use a Direct Hit."
+    The assign window stays with this player: the reaction pause offers Direct Hit, then they
+    sustain with another ship (again this function) or assign the rest (``assign_combat_hits``,
+    which also confirms when nothing is left to cover).
+
+    ⚠️ ASSUMPTION (RULES.md 39): with an effect that directs hits to particular units
+    (``hit_targets``) the hits are assigned in one go.
+
+    Raises:
+        ValueError: Not this player's assignment, no hits left, the ship cannot sustain, or the
+            hits are directed by an effect.
+    """
+    timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
+    timing.require_no_limit_window(state)  # nadwyżka puli floty najpierw (RULES.md 42.1)
+    combat = _combat(state)
+    window = state.pending_window
+    if (
+        combat.step is not CombatStep.ASSIGN
+        or window is None
+        or window.window_type is not WindowType.COMBAT_ASSIGN_HITS
+    ):
+        raise ValueError("There are no combat hits to assign right now.")
+    if window.current_responder != player_id:
+        raise ValueError(
+            f"It is now {window.current_responder}'s turn to assign hits, not {player_id}."
+        )
+    if combat.hit_targets.get(player_id):
+        raise ValueError("These hits must go to particular units - assign them all at once.")
+    units = {u.base_type: u for u in side_units(state, grid, registry, player_id)}
+    required = required_hits(state, grid, registry, player_id)
+    if required <= 0:
+        raise ValueError("There are no hits left to cover - confirm the assignment.")
+    cancels = sustain_cancels(state, player_id)
+    cancelled = min(cancels, required)
+    plan = plan_losses(units, {base_type: 1}, {}, {}, cancelled, cancels)
+
+    new_state = state.clone()
+    combat = _combat(new_state)
+    zone = _zone(combat.kind, combat.planet)
+    if player_id not in combat.stepwise_assign:
+        triggers.fire(
+            new_state, GameEvent.HITS_ASSIGNED, Moment.BEFORE, subject=player_id,
+            ctx={"player": player_id, "kind": combat.kind, "hits": required},
+        )
+        combat.stepwise_assign = [*combat.stepwise_assign, player_id]
+    apply_losses(new_state, combat.position, zone, player_id, units, plan)
+    _note_sustains(new_state, combat, player_id, units, zone, {base_type: 1})
     entry = combat.log[-1] if combat.log else None
     if entry is not None:
-        entry["losses"][player_id] = losses_of(units, plan)
-        entry["sustained"][player_id] = sustained_of(plan, sustain)
-    combat.pending_hits[player_id] = 0
-
-    new_state = timing.respond_current(new_state, player_id)
-    if timing.is_window_complete(new_state):
-        new_state = timing.close_window(new_state)
-        if _hold_for_sustain(new_state, registry, sustained_of(plan, sustain)):
-            return new_state
-        return _after_losses(new_state, grid, registry)
+        entry["sustained"][player_id] = _merged(
+            entry["sustained"].get(player_id, {}), {base_type: 1}
+        )
+    combat.pending_hits[player_id] = max(0, combat.pending_hits.get(player_id, 0) - cancelled)
     return new_state
 
 

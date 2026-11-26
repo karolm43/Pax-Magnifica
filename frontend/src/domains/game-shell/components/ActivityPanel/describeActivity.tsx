@@ -688,6 +688,30 @@ function describeFact(
         ),
       };
     }
+    case "action_card_taken": {
+      const card = <Named kind="actionCard" id={fact.value ?? ""} name={resolveCardName("CARD_PLAY_ACTION_CARD", fact.value ?? "")} />;
+      return {
+        key,
+        tone: "card",
+        text: (
+          <>
+            {prefix}took {card} from the discard pile
+          </>
+        ),
+      };
+    }
+    case "action_card_revealed": {
+      const card = <Named kind="actionCard" id={fact.value ?? ""} name={resolveCardName("CARD_PLAY_ACTION_CARD", fact.value ?? "")} />;
+      return {
+        key,
+        tone: "card",
+        text: (
+          <>
+            {prefix}revealed {card} from their hand
+          </>
+        ),
+      };
+    }
     case "agenda":
       return {
         key,

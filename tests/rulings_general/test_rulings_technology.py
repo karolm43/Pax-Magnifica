@@ -1095,23 +1095,27 @@ def test_plasma_scoring_adds_a_die_to_experimental_battlestation(
     registry: StaticDataRegistry,
 ) -> None:
     from src.core import action_cards, space_cannon
-    from tests.test_reactions_invasion import _move_state
+    from src.core.hex_grid import HexGrid
+    from tests.test_reactions_invasion import _at_space_cannon, _move_state
 
-    def shot(plasma: str | None) -> dict[str, Any]:
+    grid = HexGrid()
+
+    def shot(plasma: bool) -> dict[str, Any]:
         state = _move_state(seed=1)
         _techs(state, "p2", "ps")
         params: dict[str, Any] = {"dock": {"position": "000", "zone": _PL1}}
-        if plasma:
-            params["plasma"] = plasma
-        done, _ = action_cards.play_action_card(state, registry, "p2", "experimental", params)
+        played, _ = action_cards.play_action_card(state, registry, "p2", "experimental", params)
+        opened = _at_space_cannon(played, grid, registry)
+        (dock,) = space_cannon.offense_shooters(opened, grid, registry, "p2")
+        assert space_cannon.plasma_extra_dice(opened, dock) == 1  # offered in the Offense panel
+        done = space_cannon.fire_offense(
+            opened, grid, registry, "p2", plasma_unit=dock.key if plasma else None
+        )
         return cast("dict[str, Any]", space_cannon.read_log(done)[0]["rolls"][0])
 
-    form = action_cards.card_inputs(
-        _techs(_move_state(), "p2", "ps"), registry, "p2", "experimental"
-    )[1]
-    assert [i["key"] for i in form[1:]] == ["plasma"]  # choice (auto / none), not automatic
-    assert len(shot("auto")["dice"]) == 4 and shot("auto")["extraDice"] == 1  # SPACE CANNON 5(x3)+1
-    assert len(shot("none")["dice"]) == 3 and len(shot(None)["dice"]) == 3
+    # The dock fires in the Space Cannon Offense step, where the player chooses Plasma Scoring.
+    assert len(shot(True)["dice"]) == 4 and shot(True)["extraDice"] == 1  # SPACE CANNON 5(x3)+1
+    assert len(shot(False)["dice"]) == 3
 
 
 @ruling("R_space_cannon/notes/5")

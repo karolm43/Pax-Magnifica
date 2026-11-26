@@ -14,9 +14,10 @@ from src.api.schemas import (
     HeldActionRequest,
     PlayActionCardRequest,
     PlayActionCardResponse,
+    RevealActionCardsRequest,
     StateEnvelope,
 )
-from src.core import action_cards, card_hold, hand_limit, hold_rewind
+from src.core import action_cards, card_draw, card_hold, hand_limit, hold_rewind
 from src.core import actor as actor_rules
 from src.core.components import ComponentCategory
 from src.core.game_state import GameState
@@ -68,6 +69,22 @@ async def post_discard_excess(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit_held(ctx, new_state, f"action-card:discard-excess:{request.card_id}")
+
+
+@router.post("/action-card/reveal", response_model=StateEnvelope)
+async def post_reveal_action_cards(
+    actor: ActorId,
+    request: RevealActionCardsRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """The player shows chosen action cards from their hand to everyone (R_action_cards/notes/3)."""
+    request.actor_id = actor_rules.merge_claimed(actor, request.actor_id)  # RULES.md 44.1a
+    try:
+        new_state = card_draw.reveal_action_cards(
+            ctx.service.current_state(), request.actor_id, request.cards
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit_held(ctx, new_state, "action-card:reveal")
 
 
 @router.get("/action-card/{card_id}/inputs", response_model=ActionCardInputsResponse)

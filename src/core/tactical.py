@@ -152,7 +152,7 @@ def activate_system(
     player0 = state.players.get(active_id)
     if player0 is None or (not free and player0.tactical_cc <= 0):
         raise ValueError("No token in the tactical pool - cannot activate a system.")
-    if not free and player0.passed:
+    if not free and action_budget.blocked_by_pass(state, active_id):
         raise ValueError("You have passed - you cannot perform a tactical action.")
     # Jedna akcja na turę (R_action_phase, RULES.md 30.3): aktywacja = akcja taktyczna, więc nie
     # po innej akcji (strategicznej / komponentu). Warfare TE aktywuje w ramach SWOJEJ akcji.
@@ -186,6 +186,7 @@ def activate_system(
     new_state.tempesta_used = False
     new_state.imperator_used = False
     new_state.tactical_moved = False
+    new_state.tactical_none_arrived = False
     new_state.last_move = None
     new_state.invasion_resolved = False
     new_state.ion_storm_used = []
@@ -497,6 +498,7 @@ def end_tactical_action(state: GameState) -> GameState:
     new_state.tempesta_used = False
     new_state.imperator_used = False
     new_state.tactical_moved = False
+    new_state.tactical_none_arrived = False
     new_state.last_move = None
     new_state.invasion_resolved = False
     new_state.ion_storm_used = []

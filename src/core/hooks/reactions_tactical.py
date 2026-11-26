@@ -22,6 +22,7 @@ from src.core import (
     economy,
     exhaust,
     fleet_pool,
+    movement,
     production,
     reaction_cards,
     rules_hooks,
@@ -182,14 +183,15 @@ def _structures_in(system: SystemState | None, player_id: str) -> int:
 def after_ships_moved(state: GameState) -> list[OpenWindow]:
     """Okno „po ruchu statków do aktywnego systemu": krok ruchu, aktywny gracz już ruszył (Rescue).
 
-    Wyliczane z ``tactical_moved`` (ustawianego przez ``movement``), więc trwa do końca kroku ruchu.
+    Wyliczane z ``movement.ships_arrived`` (ustawianego przez ``movement``), więc trwa do końca
+    kroku ruchu; a move whose ships a gravity rift all removed does not open it.
     """
     active = state.active_player_id
     if (
         active is None
         or state.active_system is None
         or state.tactical_step is not TacticalStep.MOVEMENT
-        or not state.tactical_moved
+        or not movement.ships_arrived(state)
     ):
         return []
     ctx: dict[str, Any] = {"player": active, "position": state.active_system}
@@ -676,15 +678,106 @@ def _rescue_options(
     ]
 
 
+_RESCUE_CARGO = ("fighter", "infantry", "mech")  # "It may transport fighters and ground forces."
+_RESCUE_CARRY = "carry_"  # number input per cargo type: carry_<base_type>
+
+
+def _rescue_capacity(
+    state: GameState, registry: StaticDataRegistry, player_id: str, base_type: str
+) -> int:
+    from src.core import movement  # lokalnie: movement nie importuje hooków
+
+    player = state.players[player_id]
+    return movement._capacity_provided(registry, player.faction, player.technologies, base_type)
+
+
+def _rescue_cost(
+    state: GameState, registry: StaticDataRegistry, player_id: str, base_type: str
+) -> int:
+    from src.core import movement
+
+    player = state.players[player_id]
+    return movement._capacity_used(registry, player.faction, player.technologies, base_type)
+
+
+def _rescue_pickups(system: SystemState, player_id: str, base_type: str) -> list[tuple[str, int]]:
+    """Where ``base_type`` can be picked up in the ship's starting system: ``(zone, count)``.
+
+    Space area first, then planets with the most units first (ASSUMPTION, RULES.md 53.4: the
+    card form has one number per unit type, so the engine picks the zones).
+    """
+    found: list[tuple[str, int]] = []
+    in_space = system.space_units.get(player_id, {}).get(base_type, 0)
+    if in_space > 0:
+        found.append(("space", in_space))
+    if base_type in _GROUND_FORCES:
+        planets = [
+            (planet, by_player.get(player_id, {}).get(base_type, 0))
+            for planet, by_player in system.planet_units.items()
+        ]
+        found.extend(sorted(((p, n) for p, n in planets if n > 0), key=lambda pn: (-pn[1], pn[0])))
+    return found
+
+
+def _rescue_available(system: SystemState, player_id: str, base_type: str) -> int:
+    return sum(count for _zone, count in _rescue_pickups(system, player_id, base_type))
+
+
+def _rescue_auto_cargo(
+    state: GameState, registry: StaticDataRegistry, player_id: str, source: SystemState,
+    ship: str,
+) -> dict[str, int]:
+    """Auto: fill the ship's capacity - mechs, then infantry, then fighters (ASSUMPTION)."""
+    free = _rescue_capacity(state, registry, player_id, ship)
+    cargo: dict[str, int] = {}
+    for base_type in ("mech", "infantry", "fighter"):
+        per_unit = max(1, _rescue_cost(state, registry, player_id, base_type))
+        take = min(_rescue_available(source, player_id, base_type), free // per_unit)
+        if take > 0:
+            cargo[base_type] = take
+            free -= take * per_unit
+    return cargo
+
+
+def _rescue_cargo(
+    state: GameState, registry: StaticDataRegistry, player_id: str, source: SystemState,
+    ship: str, params: Mapping[str, Any],
+) -> dict[str, int]:
+    """Cargo chosen for the rescued ship (C_action_cards/rescue/2), within its capacity."""
+    cargo: dict[str, int] = {}
+    for base_type in _RESCUE_CARGO:
+        raw = params.get(f"{_RESCUE_CARRY}{base_type}", 0)
+        if isinstance(raw, bool) or not isinstance(raw, int) or raw < 0:
+            raise ValueError(f"Invalid number of {base_type} to transport.")
+        available = _rescue_available(source, player_id, base_type)
+        if raw > available:
+            raise ValueError(
+                f"Only {available} {base_type} can be picked up in the rescued ship's system."
+            )
+        if raw:
+            cargo[base_type] = raw
+    if not cargo:
+        return cargo
+    capacity = _rescue_capacity(state, registry, player_id, ship)
+    if capacity <= 0:
+        raise ValueError("Only ships with a capacity value can transport units.")
+    needed = sum(_rescue_cost(state, registry, player_id, bt) * n for bt, n in cargo.items())
+    if needed > capacity:
+        raise ValueError(f"Capacity exceeded: cargo needs {needed}, the ship provides {capacity}.")
+    return cargo
+
+
 @register_effect("action_cards:rescue")
 def rescue(
-    state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
+    state: GameState, registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
 ) -> None:
     """Rescue: You may move 1 of your ships into the active system from any system that does not
     contain one of your command tokens.
 
     ⚠ ZAŁOŻENIE: ruch nie sprawdza zasięgu ani przejezdności (karta nie jest „ruchem" o wartości
-    ruchu). Statek wychodzący z gravity rift rzuca na usunięcie (C_action_cards rescue/1).
+    ruchu). Statek wychodzący z gravity rift rzuca na usunięcie (C_action_cards rescue/1). The
+    fighters and ground forces it transports (``carry_<type>``: from its starting system, within
+    its capacity - rescue/2) move with it and are removed with it (R_transport).
     """
     from src.core import board_graph, movement  # lokalnie: movement nie importuje hooków
 
@@ -697,17 +790,33 @@ def rescue(
     source_pos, base_type = params.get("from"), params.get("base_type")
     if (source_pos, base_type) not in _rescue_options(state, player_id, window):
         raise ValueError("Choose one of your ships in a system without your command token.")
+    ship = str(base_type)
     active = state.systems[_active_position(window)]
     source = state.systems[str(source_pos)]
+    cargo = _rescue_cargo(state, registry, player_id, source, ship, params)
     grid = board_graph.bound_grid()
+    lost = False
     if grid is not None and movement.is_gravity_rift(grid, source.position):
-        lost = movement.roll_rift_exit(state, player_id, {str(base_type): 1}, source.position)
-        if lost:
-            unit_ops.remove_units(
-                state, source, "space", player_id, str(base_type), 1, UnitCause.REMOVED
-            )
-            return
-    unit_ops.transfer_units(state, source, "space", active, "space", player_id, str(base_type), 1)
+        lost = bool(movement.roll_rift_exit(state, player_id, {ship: 1}, source.position))
+    for cargo_type, count in cargo.items():  # only ships with capacity carry: never a fighter
+        left = count
+        for zone, available in _rescue_pickups(source, player_id, cargo_type):
+            take = min(left, available)
+            if lost:
+                unit_ops.remove_units(
+                    state, source, zone, player_id, cargo_type, take, UnitCause.REMOVED
+                )
+            else:
+                unit_ops.transfer_units(
+                    state, source, zone, active, "space", player_id, cargo_type, take
+                )
+            left -= take
+            if not left:
+                break
+    if lost:
+        unit_ops.remove_units(state, source, "space", player_id, ship, 1, UnitCause.REMOVED)
+    else:
+        unit_ops.transfer_units(state, source, "space", active, "space", player_id, ship, 1)
 
 
 @register_effect_inputs("action_cards:rescue")
@@ -725,7 +834,35 @@ def rescue_inputs(
         )
         for position, base_type in found
     ]
-    return [_choice("ship", "Ship to move into the active system", options, merge=True)]
+    inputs = [_choice("ship", "Ship to move into the active system", options, merge=True)]
+    carriers = [
+        (position, ship) for position, ship in found
+        if _rescue_capacity(state, registry, player_id, ship) > 0
+    ]
+    # Auto (ASSUMPTION, RULES.md 53.4): fill the capacity when only one ship can carry anything;
+    # otherwise the form cannot know which ship is chosen, so Auto carries nothing.
+    auto: dict[str, int] = {}
+    if len(carriers) == 1:
+        position, ship = carriers[0]
+        auto = _rescue_auto_cargo(state, registry, player_id, state.systems[position], ship)
+    for cargo_type in _RESCUE_CARGO:
+        most = max(
+            (
+                _rescue_available(state.systems[pos], player_id, cargo_type)
+                for pos, _ship in carriers
+            ),
+            default=0,
+        )
+        if most > 0:
+            inputs.append(oi.number(
+                f"{_RESCUE_CARRY}{cargo_type}",
+                f"{fleet_pool.unit_name(state, registry, player_id, cargo_type)} to transport",
+                0, most,
+                hint="Picked up in the rescued ship's system (space area first), within its "
+                "capacity.",
+                auto=auto.get(cargo_type, 0),
+            ))
+    return inputs
 
 
 # --- War Machine -----------------------------------------------------------------------------

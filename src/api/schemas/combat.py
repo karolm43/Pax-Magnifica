@@ -427,6 +427,15 @@ class BattleLossItem(BaseModel):
     count: int = 1
 
 
+class BattleSustainRequest(BaseModel):
+    """One ship uses Sustain Damage now; the other hits wait (C_action_cards/direct-hit/3)."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    faction: str
+    base_type: str = Field(alias="baseType")
+
+
 class BattleAssignRequest(BaseModel):
     """Pokrycie trafień przez gracza: Sustain Damage + niszczone (nieuszkodzone/uszkodzone)."""
 
@@ -474,6 +483,7 @@ __all__ = [
     "BattleAbilityToolView",
     "BattleAnnounceRetreatRequest",
     "BattleAssignRequest",
+    "BattleSustainRequest",
     "BattleEffectView",
     "BattleExtraDiceRequest",
     "BattleRollRequest",

@@ -39,6 +39,7 @@ import { useDockCovered } from "./useDockCovered";
 import { ActionCardPlayModal } from "@/domains/game-shell/components/TurnControls/ActionCardPlayModal";
 import {
   postDiscardExcess,
+  postRevealActionCards,
   useActionCardPlayability,
   useHandLimit,
 } from "@/api/useActionCard";
@@ -192,6 +193,10 @@ export function BottomHandDock() {
     for (const key of ["playerHand", "actionCardPlayable"]) {
       void queryClient.invalidateQueries({ queryKey: [key] });
     }
+  };
+  const revealCard = async (cardId: string) => {
+    if (!active?.discordId) return;
+    setDiscardError(await postRevealActionCards(active.discordId, [cardId]));
   };
   // Nadwyżka sama się pokazuje: dok otwiera się na kartach akcji (komponent wyskakuje sam).
   // Tylko przy POJAWIENIU się nadwyżki (zmiana false → true), więc ref zamiast zależności.
@@ -437,6 +442,9 @@ export function BottomHandDock() {
                     }
                     setPlayingCard({ id, tab, frontier });
                   }}
+                  onReveal={
+                    tab === "actions" && !frontier ? () => void revealCard(id) : undefined
+                  }
                   onDragChange={(cardId) => {
                     setDragCard(
                       cardId === null

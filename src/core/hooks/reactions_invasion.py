@@ -30,7 +30,6 @@ from src.core import (
     board_graph,
     combat_bombardment,
     entropic_scar,
-    extra_dice,
     invasion,
     rules_hooks,
     space_cannon,
@@ -370,8 +369,7 @@ def _mjets_roll(state: GameState, ctx: Mapping[str, Any]) -> str:
     """Identity of the Space Cannon roll the hits come from (C_action_cards maneuvering-jets/3).
 
     Offense: each player's roll is its own log entry (3.1). Defense: each planet rolls on its
-    own (3.2). The tactical step keeps an Experimental Battlestation shot (Movement step) apart
-    from the Space Cannon Offense step.
+    own (3.2). An Experimental Battlestation dock fires in its owner's Offense roll.
     """
     if ctx.get("kind") == KIND_DEFENSE:
         return f"defense:{ctx.get('planet')}"
@@ -727,20 +725,8 @@ def experimental_inputs(
         where = "in orbit" if zone == "space" else f"on {_planet_label(state, registry, zone)}"
         label = f"Space dock {where} (system {position})"
         options.append(_option({"position": position, "zone": zone}, label, f"{position}:{zone}"))
-    inputs = [_choice("dock", "Space dock that fires", options)]
-    if extra_dice.sources(state, player_id, rules_hooks.POINT_SPACE_CANNON_EXTRA_DICE):
-        # Plasma Scoring: "1 of those units MAY roll 1 additional die" - choice + Auto.
-        inputs.append(
-            _choice(
-                "plasma",
-                "Plasma Scoring: roll 1 additional die with the space dock?",
-                [
-                    _option("auto", "Auto (roll the extra die)"),
-                    _option("none", "No extra die"),
-                ],
-            )
-        )
-    return inputs
+    # Plasma Scoring is chosen when the dock fires, in the Space Cannon Offense step.
+    return [_choice("dock", "Space dock that fires", options)]
 
 
 @register_effect("action_cards:experimental")
@@ -751,9 +737,11 @@ def experimental(
     that system. That space dock uses SPACE CANNON 5(x3) against the active player's ships in
     the active system.
 
-    Liczby (5, x3) czytamy z tekstu karty. Trafienia czekają w oknie ``SPACE_CANNON`` na
-    przypisanie przez aktywnego gracza (``space_cannon.assign_hits``). ⚠ ZAŁOŻENIE: PLASMA
-    SCORING i inne modyfikatory kości wynikają z hooków ``roll_cannon`` (cel: aktywny gracz).
+    Liczby (5, x3) czytamy z tekstu karty. The dock does NOT fire now: it joins the owner's roll
+    in the Space Cannon Offense step of this tactical action
+    (C_action_cards/experimental-battlestation/1, ``space_cannon.defer_dock_shot``) - the owner
+    fires or passes there, picks Plasma Scoring there, and the active player assigns the hits
+    (``space_cannon.assign_hits``).
     """
     active = state.active_player_id
     if active is None or active == player_id:
@@ -781,9 +769,4 @@ def experimental(
         deep=False,
         remote=position != state.active_system,
     )
-    picks: dict[str, str] | None = None
-    if params.get("plasma") == extra_dice.AUTO:
-        # The only unit that fires is the chosen dock, so "auto" gives it every extra die source.
-        sources = extra_dice.sources(state, player_id, rules_hooks.POINT_SPACE_CANNON_EXTRA_DICE)
-        picks = {e.key: shooter.key for e in sources}
-    space_cannon.open_remote_shot(state, shooter, active, extra_picks=picks)
+    space_cannon.defer_dock_shot(state, shooter)

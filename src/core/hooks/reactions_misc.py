@@ -86,10 +86,14 @@ def _key(card_id: str) -> str:
 
 @window_provider
 def strategy_phase_start(state: GameState) -> list[OpenWindow]:
-    """„At the start of the strategy phase”: faza strategii, nikt jeszcze nie wybrał karty."""
+    """„At the start of the strategy phase”: faza strategii, nikt jeszcze nie wybrał karty.
+
+    "Picked" = a choice made this phase (``strategy_choices``), not "holds a card": a card kept
+    through Political Stability does not close the window (C_action_cards/manipulate-investments/1).
+    """
     if state.phase is not Phase.STRATEGY or state.setup is not None or not state.players:
         return []
-    if any(player.strategy_cards for player in state.players.values()):
+    if any(state.strategy_choices.values()):
         return []
     subject = state.speaker_id or state.active_player_id
     if subject is None or subject not in state.players:
@@ -142,7 +146,7 @@ def after_action(state: GameState) -> list[OpenWindow]:
         active is None
         or player is None
         or state.phase is not Phase.ACTION
-        or player.passed
+        or action_budget.blocked_by_pass(state, active)
         or not player.took_action_this_turn
         or state.active_system is not None
         or state.tactical_step is not None
@@ -392,10 +396,10 @@ def puppets_effect(
     """Puppets on a String: Perform 1 action.
 
     Dodatkowa akcja spasowanego gracza poza kolejką (``GameState.bonus_turn``): gracz zostaje
-    aktywny, wykonuje JEDNĄ akcję i ``end_turn`` oddaje turę temu, kto miał ją zacząć.
-    ⚠ ZAŁOŻENIA: na czas akcji ``passed=False`` (silnik blokuje akcje spasowanych; ruling mówi, że
-    gracz nadal „jest spasowany” - po akcji flaga wraca); Fleet Logistics nie daje drugiej akcji
-    (``fleet_logistics_actions``); akcja strategiczna niedostępna (karty
+    aktywny, wykonuje JEDNĄ akcję i ``end_turn`` oddaje turę temu, kto miał ją zacząć. The
+    player stays passed (``passed=True``) during the action and does not pass at its end
+    (puppets-on-a-string/7; ``action_budget.blocked_by_pass`` lets them act). Fleet Logistics nie
+    daje drugiej akcji (``fleet_logistics_actions``); akcja strategiczna niedostępna (karty
     gracza są już zagrane, bo spasował).
     """
     window = state.turn_end_window
@@ -407,7 +411,6 @@ def puppets_effect(
         resume_player=window.next_player,
         resume_window=window.model_copy(),
     )
-    player.passed = False
     action_budget.reset_turn(state, player_id)  # zeruje też ślad pauzy (zapisany w bonus_turn)
     player.transacted_with = []
     state.active_player_id = player_id
@@ -499,7 +502,7 @@ def master_plan_effect(
     wymaga zwykłej ścieżki: pas jest alternatywą dla akcji).
     """
     player = state.players[player_id]
-    if not player.took_action_this_turn or player.passed:
+    if not player.took_action_this_turn or action_budget.blocked_by_pass(state, player_id):
         raise ValueError("Master Plan can only be played after you perform an action.")
     active_effects.add_effect(state, _key("master_plan"), Duration.TURN, owner=player_id)
 

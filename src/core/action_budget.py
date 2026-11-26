@@ -24,10 +24,39 @@ def actions_allowed(state: GameState, player_id: str) -> int:
     )
 
 
+def in_bonus_action(state: GameState, player_id: str) -> bool:
+    """Whether ``player_id`` is performing an extra action outside the turn order (Puppets on a
+    String, Jupiter Brain - ``GameState.bonus_turn``)."""
+    bonus = state.bonus_turn
+    return bonus is not None and bonus.player == player_id
+
+
+def outside_turn(state: GameState, player_id: str) -> bool:
+    """Whether ``player_id`` acts although it is not their turn: the extra action of a passed
+    player (Puppets on a String - ``BonusTurn.restore_passed``).
+
+    C_action_cards/puppets-on-a-string/2: "It is not considered the turn of the player who played
+    Puppets On A String for game effects" - no transactions (/3), nothing ends the turn (/4), no
+    Fleet Logistics (/6).
+    """
+    bonus = state.bonus_turn
+    return bonus is not None and bonus.player == player_id and bonus.restore_passed
+
+
+def blocked_by_pass(state: GameState, player_id: str) -> bool:
+    """Whether having passed stops ``player_id`` from performing actions.
+
+    Puppets on a String: the player who played it "is still considered passed during their
+    action" (C_action_cards/puppets-on-a-string/7) - ``passed`` stays True, yet they act.
+    """
+    player = state.players.get(player_id)
+    return player is not None and player.passed and not in_bonus_action(state, player_id)
+
+
 def actions_left(state: GameState, player_id: str) -> int:
     """Ile akcji zostało graczowi w bieżącej turze (0, gdy spasował)."""
     player = state.players.get(player_id)
-    if player is None or player.passed:
+    if player is None or blocked_by_pass(state, player_id):
         return 0
     # Flaga ``took_action_this_turn`` jest nadrzędna (God-Mode i stare zapisy ustawiają ją ręcznie):
     # False = żadna akcja, True bez licznika = jedna akcja.

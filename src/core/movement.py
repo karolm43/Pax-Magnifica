@@ -379,6 +379,7 @@ def move_ships(
     unit_ops.take_units(new_state, src, "space", player_id, base_type, count, UnitCause.MOVED)
     unit_ops.place_units(new_state, dest, "space", player_id, base_type, count, UnitCause.MOVED)
     new_state.tactical_moved = True
+    new_state.tactical_none_arrived = False
     new_state.last_move = build_move_record(
         grid, [from_pos, active], player_id, {base_type: count}, []
     )
@@ -971,7 +972,10 @@ def move_fleet(
             item.count,
         )
     # Pierwszy ruch w akcji zamyka okno „po aktywacji systemu" kart reakcji i otwiera okno
-    # „po ruchu do systemu" (Rescue) - patrz ``core/hooks/reactions_tactical.py``.
+    # „po ruchu do systemu" (Rescue) - patrz ``core/hooks/reactions_tactical.py``. A move whose
+    # every ship a gravity rift removed moves nothing INTO the system: it keeps that window shut
+    # unless ships arrived earlier (C_action_cards/experimental-battlestation/3.3).
+    new_state.tactical_none_arrived = not ships and not ships_arrived(state)
     new_state.tactical_moved = True
     new_state.last_move = build_move_record(
         grid, plan_route or [from_pos, active], player_id, dict(ships),
@@ -1040,6 +1044,15 @@ def _load_in_active_system(
             new_state, dest, zone, dest, "space", player_id, base_type, count
         )
     return new_state
+
+
+def ships_arrived(state: GameState) -> bool:
+    """Whether the active player has moved ships INTO the active system in this tactical action.
+
+    Ships lost to a gravity rift on the way do not count (C_action_cards/experimental-
+    battlestation/3.3); one surviving move is enough.
+    """
+    return state.tactical_moved and not state.tactical_none_arrived
 
 
 def fire_ships_moved(

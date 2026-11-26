@@ -34,6 +34,7 @@ from src.api.schemas import (
     BattleRollView,
     BattleSideView,
     BattleStartRequest,
+    BattleSustainRequest,
     BattleUnitView,
     ExtraDieView,
     RetreatOptionView,
@@ -379,6 +380,27 @@ async def post_battle_assign(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return await _commit(ctx, new_state, f"battle:assign:{player_id}")
+
+
+@router.post("/tactical/battle/sustain", response_model=StateEnvelope)
+async def post_battle_sustain(
+    actor: ActorId,
+    request: BattleSustainRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """One ship uses Sustain Damage now; the rest of the hits are assigned afterwards (Direct
+    Hit can answer in between - C_action_cards/direct-hit/3)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.faction, None, "Sustain Damage"
+    )
+    state = ctx.service.current_state()
+    try:
+        player_id = board_edit.resolve_player_id(request.faction, state)
+        new_state = battle.sustain_one(
+            state, ctx.current_grid, ctx.registry, player_id, request.base_type
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, f"battle:assign:sustain:{player_id}")
 
 
 @router.post("/tactical/battle/relic-reroll", response_model=StateEnvelope)

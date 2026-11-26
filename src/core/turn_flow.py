@@ -162,6 +162,8 @@ def can_advance_phase(state: GameState) -> bool:
     if state.phase is Phase.AGENDA and state.agenda is not None:
         # Zainicjowana faza agendy (RULES.md 51): koniec dopiero po obu agendach i kroku 3.
         return state.agenda.step is AgendaStep.COMPLETE and state.winner_id is None
+    if state.phase is Phase.ACTION and state.bonus_turn is not None:
+        return False  # Puppets on a String: a passed player is still performing an action
     if state.phase in (Phase.ACTION, Phase.STATUS):
         return all_passed(state)
     # AGENDA bez stanu (God-Mode) i stany spoza głównej czwórki: mówca decyduje bez bramy.
@@ -283,7 +285,7 @@ def end_turn(
         not forced
         and current_player is not None
         and not current_player.took_action_this_turn
-        and not current_player.passed
+        and not action_budget.blocked_by_pass(state, current)
     ):
         raise ValueError(
             "You must take an action (strategic, tactical, or component) or pass "
@@ -343,9 +345,9 @@ def begin_bonus_action(state: GameState, player_id: str) -> None:
     """Zaczyna dodatkową akcję gracza tuż po końcu tury (Puppets on a String, Jupiter Brain).
 
     MUTUJE ``state`` (klon). Gracz zostaje aktywny, wykonuje JEDNĄ akcję, a ``end_turn`` oddaje
-    turę temu, kto miał ją zacząć (pauza ``turn_end_window`` wraca sprzed bonusu). Na czas akcji
-    ``passed=False`` (silnik blokuje akcje spasowanych); po niej flaga wraca do stanu sprzed
-    bonusu (``BonusTurn.restore_passed``).
+    turę temu, kto miał ją zacząć (pauza ``turn_end_window`` wraca sprzed bonusu). ``passed`` is
+    NOT changed: a passed player stays passed during the action and does not pass again at its
+    end (C_action_cards/puppets-on-a-string/7); ``action_budget.blocked_by_pass`` lets them act.
 
     Raises:
         ValueError: Brak pauzy po końcu tury albo trwa już dodatkowa akcja.
@@ -360,7 +362,6 @@ def begin_bonus_action(state: GameState, player_id: str) -> None:
         resume_window=window.model_copy(),
         restore_passed=player.passed,
     )
-    player.passed = False
     action_budget.reset_turn(state, player_id)  # zeruje też ślad pauzy (zapisany w bonus_turn)
     player.transacted_with = []
     state.active_player_id = player_id
@@ -370,13 +371,12 @@ def _finish_bonus_turn(state: GameState, player_id: str) -> GameState:
     """Kończy dodatkową akcję spasowanego gracza (Puppets on a String) i wraca do kolejki.
 
     To NIE jest tura: nie ma zdarzeń końca tury (efekty z czasem trwania ``TURN`` zostają), gracz
-    z powrotem jest spasowany, a tura wraca do gracza, który miał ją zacząć, z oknem pauzy sprzed
-    bonusu (jego tura jeszcze się nie zaczęła).
+    nadal jest spasowany (nie pasuje ponownie - puppets-on-a-string/7), a tura wraca do gracza,
+    który miał ją zacząć, z oknem pauzy sprzed bonusu (jego tura jeszcze się nie zaczęła).
     """
     bonus = state.bonus_turn
     assert bonus is not None
     state.bonus_turn = None
-    state.players[player_id].passed = bonus.restore_passed
     resume = bonus.resume_player
     if resume is None or resume not in state.players or state.players[resume].passed:
         resume = next_unpassed_player(state, player_id)
@@ -441,6 +441,10 @@ def pass_turn(state: GameState, player_id: str | None = None) -> GameState:
     current = state.active_player_id
     assert current is not None  # zagwarantowane przez _require_action_turn
     player = state.players.get(current)
+    if action_budget.in_bonus_action(state, current):
+        # Puppets on a String: "Perform 1 action" - passing is not an action, and the player
+        # does not pass at the end of it (C_action_cards/puppets-on-a-string/7).
+        raise ValueError("Perform your extra action - you cannot pass during it.")
     # Pas dopiero po akcji strategicznej: gracz z kartą strategii musi ją zagrać.
     if (
         player is not None

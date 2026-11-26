@@ -30,6 +30,7 @@ from dataclasses import asdict, dataclass, field, replace
 from typing import Any
 
 from src.core import (
+    action_budget,
     capture,
     card_draw,
     chronicle,
@@ -393,8 +394,8 @@ def components_allowed(state: GameState, grid: HexGrid, a: str, b: str) -> bool:
     if state.phase is not Phase.ACTION:
         return False
     active = state.active_player_id
-    if active not in (a, b):
-        return False
+    if active not in (a, b) or action_budget.outside_turn(state, active):
+        return False  # Puppets on a String: not a turn - only debt tokens (puppets-on-a-string/3)
     other = b if active == a else a
     return can_transact_with(state, grid, active, other)
 
@@ -438,6 +439,12 @@ def validate_transaction(
         raise ValueError("No active player in the action phase.")
     if player_id is not None and player_id != active_id:
         raise ValueError(f"It is not {player_id}'s turn (active: {active_id}).")
+    if action_budget.outside_turn(state, active_id):
+        # C_action_cards/puppets-on-a-string/3: the extra action is not that player's turn.
+        raise ValueError(
+            "Transactions are resolved on a player's turn - the extra action from Puppets on a "
+            "String is not your turn."
+        )
     if partner_id == active_id:
         raise ValueError("You cannot make a transaction with yourself.")
     if partner_id not in state.players:

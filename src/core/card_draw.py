@@ -6,10 +6,12 @@ tasuje się z własnego stosu odrzuconych (seedowalny RNG stanu — ``core/dice.
 
 from __future__ import annotations
 
+from collections import Counter
+
 from src.core import triggers
 from src.core.dice import next_rng
 from src.core.game_events import GameEvent, Moment
-from src.core.game_state import ActionDiscardTrace, GameState
+from src.core.game_state import ActionCardReveal, ActionDiscardTrace, GameState
 from src.core.registry import StaticDataRegistry
 
 
@@ -105,6 +107,32 @@ def take_from_hand_to_table(state: GameState, player_id: str, card_id: str) -> N
 def return_table_card_to_hand(state: GameState, player_id: str, card_id: str) -> None:
     """Odkłada kartę ze stołu (``held_play``) do ręki, by przeszła zwykłą ścieżką (mutuje)."""
     state.players[player_id].private.action_cards.append(card_id)
+
+
+def reveal_action_cards(state: GameState, player_id: str, cards: list[str]) -> GameState:
+    """The player shows everyone the chosen action cards from their hand (pure; new state).
+
+    R_action_cards/notes/3: "A player may choose to reveal any or all of the action cards in their
+    hand." Any time, any phase; the cards stay in the hand. ``GameState.action_card_reveal``
+    makes the cards public (Activity feed).
+
+    Raises:
+        ValueError: Unknown player, no cards chosen, or a card that is not in the hand.
+    """
+    player = state.players.get(player_id)
+    if player is None:
+        raise ValueError(f"Unknown player: {player_id}")
+    if not cards:
+        raise ValueError("Choose at least one action card to reveal.")
+    missing = Counter(cards) - Counter(player.private.action_cards)
+    if missing:
+        raise ValueError(f"You can only reveal action cards from your hand ({sorted(missing)}).")
+    new_state = state.clone()
+    previous = state.action_card_reveal
+    new_state.action_card_reveal = ActionCardReveal(
+        seq=(previous.seq if previous is not None else 0) + 1, player=player_id, cards=list(cards)
+    )
+    return new_state
 
 
 def take_from_discard(state: GameState, player_id: str, card_id: str) -> None:

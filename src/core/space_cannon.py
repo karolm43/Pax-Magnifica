@@ -19,11 +19,12 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from typing import Any, cast
 
 from src.core import (
     action_adjacency,
+    active_effects,
     battle,
     capacity,
     chronicle_log,
@@ -38,7 +39,7 @@ from src.core import (
 )
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, count_hits, next_rng, record_table_roll, roll_dice
-from src.core.game_events import GameEvent, Moment
+from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState, TimingWindow, WindowType
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
@@ -49,6 +50,10 @@ _PENDING_KEYS = ("roller", "target", "hits", "rolls", "gls")
 # Graviton Laser System (RULES.md 57): trafienia strzelca, który go wyczerpał, idą w statki
 # niemyśliwskie, o ile są.
 GLS = "gls"
+# Experimental Battlestation: a space dock chosen in the Movement step fires in the Space Cannon
+# Offense step of the same tactical action (C_action_cards/experimental-battlestation/1).
+# ``data`` = the ``SpaceCannonShooter`` fields.
+EXPERIMENTAL_DOCK = "action_cards:experimental"
 
 
 @dataclass(frozen=True)
@@ -271,7 +276,50 @@ def offense_shooters(
             for s in _system_shooters(state, registry, player_id, neighbor)
             if s.deep
         )
+    result.extend(deferred_dock_shooters(state, registry, player_id))
     return result
+
+
+def defer_dock_shot(state: GameState, shooter: SpaceCannonShooter) -> None:
+    """Experimental Battlestation: ``shooter`` (a space dock) joins its owner's roll in the Space
+    Cannon Offense step of the current tactical action (MUTATES ``state``).
+
+    C_action_cards/experimental-battlestation/1: "The selected space dock will use the Space
+    Cannon ability during the Space Cannon Offense step of the current tactical action."
+    """
+    active_effects.add_effect(
+        state, EXPERIMENTAL_DOCK, Duration.TACTICAL_ACTION, owner=shooter.player_id,
+        data=asdict(shooter),
+    )
+
+
+def deferred_dock_shooters(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> list[SpaceCannonShooter]:
+    """Space docks ``player_id`` chose with Experimental Battlestation that are still there.
+
+    ⚠️ ASSUMPTION (RULES.md 53.10): a dock destroyed or removed before the Space Cannon Offense
+    step does not fire; a dock now in an Entropic Scar does not fire either (RULES.md 1.5).
+    """
+    found: list[SpaceCannonShooter] = []
+    for effect in active_effects.effects_for(state, player_id, EXPERIMENTAL_DOCK):
+        if effect.owner != player_id:
+            continue
+        shooter = SpaceCannonShooter(**effect.data)
+        system = state.systems.get(shooter.position)
+        if system is None or entropic_scar.unit_abilities_blocked(
+            state, shooter.position, registry
+        ):
+            continue
+        if shooter.zone == "space":
+            docks = system.space_units.get(player_id, {}).get(shooter.base_type, 0)
+        else:
+            docks = system.planet_units.get(shooter.zone, {}).get(player_id, {}).get(
+                shooter.base_type, 0
+            )
+        if docks > 0:
+            found.append(replace(shooter, remote=shooter.position != state.active_system))
+    return found
 
 
 def coverage(
@@ -636,8 +684,9 @@ def fire_offense(
     rolled, cannon_rolls, total_hits = roll_cannon(
         state, shooters, target_id, plasma_unit, extra_picks
     )
+    rolled = rolled.clone()
+    active_effects.remove_by_key(rolled, EXPERIMENTAL_DOCK, owner=player_id)  # dock has fired
     if exhaust_gls:
-        rolled = rolled.clone()
         exhaust.exhaust_technology(rolled, player_id, GLS)
     rolls: list[dict[str, Any]] = [
         {
@@ -685,6 +734,8 @@ def pass_offense(state: GameState, player_id: str) -> GameState:
     timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
     state = _without_sustain_trace(state)
     _require_turn(state, player_id)
+    state = state.clone()
+    active_effects.remove_by_key(state, EXPERIMENTAL_DOCK, owner=player_id)  # shot forgone
     logged = _append_log(
         state,
         {
@@ -953,71 +1004,4 @@ def reroll_pending(
     context["hits"] = total
     context["rolls"] = json.dumps(fresh)
     window.context = context
-    return total
-
-
-def open_remote_shot(
-    state: GameState,
-    shooter: SpaceCannonShooter,
-    target_id: str,
-    extra_picks: Mapping[str, str] | None = None,
-) -> int:
-    """Pojedynczy strzał Space Cannon POZA kolejką Offense (Experimental Battlestation).
-
-    Rzuca ``shooter`` w statki ``target_id`` w aktywnym systemie. Trafienia czekają w oknie
-    ``SPACE_CANNON`` na przypisanie strat przez gracza-cel (``assign_hits``); bez trafień okno
-    się nie otwiera (wynik trafia do dziennika). Zwraca liczbę trafień.
-
-    Raises:
-        ValueError: Brak aktywnego systemu albo trwa inne okno czasowe.
-    """
-    if state.active_system is None:
-        raise ValueError("There is no active system.")
-    if state.pending_window is not None:
-        raise ValueError("Another timing window is still open - resolve it first.")
-    rolled, cannon_rolls, total = roll_cannon(
-        state, [shooter], target_id, extra_picks=extra_picks
-    )
-    state.rng_seed = rolled.rng_seed
-    state.rng_counter = rolled.rng_counter
-    rolls: list[dict[str, Any]] = [
-        {
-            "baseType": r.shooter.base_type,
-            "name": r.shooter.name,
-            "hitsOn": r.shooter.hits_on,
-            "position": r.shooter.position,
-            "zone": r.shooter.zone,
-            "dice": r.dice,
-            "hits": r.hits,
-            "modifier": r.modifier,
-            "extraDice": r.extra_dice,
-        }
-        for r in cannon_rolls
-    ]
-    owner = shooter.player_id
-    entry: dict[str, Any] = {
-        "roller": owner, "target": target_id, "hits": total, "rolls": rolls,
-        "destroyed": {}, "passed": False,
-    }
-    triggers.fire(
-        state, GameEvent.UNIT_ABILITY_USED, Moment.AFTER, subject=owner,
-        ctx={"ability": "space_cannon", "player": owner, "hits": total, "target": target_id},
-    )
-    log_json = json.dumps([entry])
-    if total == 0 or not target_ships(state, target_id):
-        state.space_cannon_log = log_json
-        return total
-    state.pending_window = TimingWindow(
-        window_type=WindowType.SPACE_CANNON,
-        queue=[owner],
-        context={
-            "position": state.active_system,
-            "log": log_json,
-            "roller": owner,
-            "target": target_id,
-            "hits": total,
-            "rolls": json.dumps(rolls),
-            "gls": 0,
-        },
-    )
     return total

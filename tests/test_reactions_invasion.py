@@ -783,11 +783,27 @@ def test_experimental_formularz_wymienia_doki(grid: HexGrid, registry: StaticDat
     }
 
 
-def _shot(seed: int, registry: StaticDataRegistry, dock_at: str = "000") -> GameState:
+def _deferred(seed: int, registry: StaticDataRegistry, dock_at: str = "000") -> GameState:
+    """p2 plays Experimental Battlestation in the Movement step: nothing fires yet."""
     state = _move_state(dock_at=dock_at, seed=seed)
     zone = _PL1 if dock_at == "000" else "pa"
     params = {"dock": {"position": dock_at, "zone": zone}}
     return _play(state, registry, "p2", "experimental", params)
+
+
+def _at_space_cannon(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -> GameState:
+    moved_on = state.clone()
+    moved_on.tactical_step = TacticalStep.SPACE_CANNON
+    return space_cannon.open_offense(moved_on, grid, registry)
+
+
+def _shot(
+    seed: int, registry: StaticDataRegistry, dock_at: str = "000", grid: HexGrid | None = None
+) -> GameState:
+    """The dock fires in p2's turn of the Space Cannon Offense step."""
+    board = grid if grid is not None else HexGrid()
+    opened = _at_space_cannon(_deferred(seed, registry, dock_at), board, registry)
+    return space_cannon.fire_offense(opened, board, registry, "p2")
 
 
 def test_experimental_strzela_5_x3_i_trafienia_przypisuje_aktywny(
@@ -843,14 +859,21 @@ def test_experimental_bledy_bez_zmian(grid: HexGrid, registry: StaticDataRegistr
 def test_experimental_integracja_z_krokiem_space_cannon(
     grid: HexGrid, registry: StaticDataRegistry
 ) -> None:
-    """Po przypisaniu strat okno znika i zwykły krok Space Cannon może się otworzyć."""
-    hit = _seek(lambda s: _shot(s, registry), lambda st: st.pending_window is not None)
-    pending = space_cannon.pending_hits(hit)
-    assert pending is not None
-    done = space_cannon.assign_hits(hit, "p1", {"destroyer": pending.hits})
-    done.tactical_step = TacticalStep.SPACE_CANNON
-    reopened = space_cannon.open_offense(done, grid, registry)
-    assert reopened.space_cannon_log == "[]"
+    """The card fires nothing in the Movement step; the dock joins p2's Offense roll later."""
+    played = _deferred(1, registry)
+    assert played.pending_window is None and space_cannon.read_log(played) == []
+    opened = _at_space_cannon(played, grid, registry)
+    window = opened.pending_window
+    assert window is not None and window.queue == ["p2"]  # p2 has no other Space Cannon
+    shooters = space_cannon.offense_shooters(opened, grid, registry, "p2")
+    assert [(s.base_type, s.hits_on, s.total_dice) for s in shooters] == [("spacedock", 5, 3)]
+    passed = space_cannon.pass_offense(opened, "p2")  # Space Cannon stays optional
+    assert passed.pending_window is None
+    assert not active_effects.has_effect(passed, "p2", space_cannon.EXPERIMENTAL_DOCK)
+    # A dock gone before the step does not fire.
+    gone = played.clone()
+    gone.systems["000"].planet_units = {}
+    assert _at_space_cannon(gone, grid, registry).pending_window is None
 
 
 # ------------------------------------------------------------------- koniec inwazji / akcji

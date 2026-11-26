@@ -6,8 +6,8 @@ import zlib
 from typing import Any
 
 from src.api import web_agenda, web_objectives
-from src.core import chronicle as chronicle_core
 from src.core import (
+    action_budget,
     component_text,
     faction_components,
     reaction_prefs,
@@ -15,6 +15,7 @@ from src.core import (
     strategy_phase,
     turn_flow,
 )
+from src.core import chronicle as chronicle_core
 from src.core import epilogue as epilogue_core
 from src.core.components import ActionCardDef, ComponentCategory
 from src.core.game_state import GameState, PlayerState
@@ -68,7 +69,7 @@ def _effective_active_id(state: GameState) -> str | None:
     if active_id is None:
         return None
     player = state.players.get(active_id)
-    if player is None or player.passed:
+    if player is None or action_budget.blocked_by_pass(state, active_id):
         return None
     return active_id
 

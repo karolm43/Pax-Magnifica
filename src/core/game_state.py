@@ -744,6 +744,9 @@ class ActiveCombat(BaseModel):
     # na walkę (R_objective_cards, C_relics Neuraloop). Osobna walka = osobny limit.
     objective_scorers: list[str] = Field(default_factory=list)
     sustained_ships: list[dict[str, Any]] = Field(default_factory=list)
+    # Players assigning this step's hits one Sustain Damage at a time (``battle.sustain_one``):
+    # "before you assign hits" already happened for them (C_action_cards/direct-hit/3).
+    stepwise_assign: list[str] = Field(default_factory=list)
     # Przypisanie strat po AFB z Waylay: krok ASSIGN traktowany jak koniec kroku AFB.
     afb_assign: bool = False
     # Gracze, którzy w tej walce użyją nadanego AFB (Metali Void Armaments: „you may resolve AFB
@@ -1010,6 +1013,20 @@ class ActionDiscardTrace(BaseModel):
     card: str
 
 
+class ActionCardReveal(BaseModel):
+    """Action cards a player chose to show everyone from their hand (R_action_cards/notes/3).
+
+    Public: everyone sees which cards. ``seq`` grows with every reveal, so two reveals of the
+    same cards are two events (Activity feed).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    seq: int
+    player: str
+    cards: list[str]
+
+
 class TransactionTable(BaseModel):
     """Stół transakcji pary graczy (RULES.md 47.1b).
 
@@ -1247,6 +1264,10 @@ class GameState(BaseModel):
     # Czy w tej akcji taktycznej poruszono już jakiś statek (okno „po aktywacji systemu” kart
     # reakcji zamyka się z pierwszym ruchem). Zerowane przy aktywacji i zakończeniu akcji.
     tactical_moved: bool = False
+    # Every ship moved so far in this tactical action was lost before reaching the active system
+    # (gravity rift): no ships "moved into" it, so SHIPS_MOVED/AFTER stays closed
+    # (C_action_cards/experimental-battlestation/3.3). Reset like ``tactical_moved``.
+    tactical_none_arrived: bool = False
     # Last confirmed fleet move of this action (route/cargo, so clients can replay the flight).
     # Presentation only - rules never read it. Cleared on activation and at the end of the action.
     last_move: MoveRecord | None = None
@@ -1280,6 +1301,8 @@ class GameState(BaseModel):
     # Umowy Trade czekające na uzupełnienie commodities wskazanego: {gracz: umowa} (RULES.md 47.4).
     trade_deals: dict[str, TradeDeal] = Field(default_factory=dict)
     last_action_discard: ActionDiscardTrace | None = None
+    # Last voluntary reveal of action cards from a hand (public; R_action_cards/notes/3).
+    action_card_reveal: ActionCardReveal | None = None
     # Kto uzupełnił commodities od ostatniej akcji (okno Trade Agreement, RULES.md 61.2).
     last_replenished: list[str] = Field(default_factory=list)
     # Badania od ostatniej akcji: ``{player, technology}`` (okno Research Agreement, RULES.md 62.3).

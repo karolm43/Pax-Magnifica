@@ -1033,6 +1033,11 @@ export type PlayerData = {
   isTyrant: boolean;
   passed: boolean;
   /**
+   * Puppets on a String: a passed player performing an extra action. Still passed, yet acting
+   * (action buttons on, Pass off). Optional for older snapshots (missing = false).
+   */
+  bonusAction?: boolean;
+  /**
    * Czy gracz wykonał już akcję w BIEŻĄCEJ turze fazy akcji (RULES.md 31.7). UI
    * blokuje „End turn", dopóki to false i gracz nie spasował. Pole opcjonalne dla
    * zgodności ze starymi migawkami (brak = traktuj jak false).

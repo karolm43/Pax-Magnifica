@@ -28,6 +28,7 @@ from src.core import (
     reaction_cards,
     rules_hooks,
     space_cannon,
+    tactical,
 )
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import (
@@ -85,8 +86,8 @@ def _windows(state: GameState, event: GameEvent) -> list[reaction_cards.OpenWind
 # ======================================================================================= Direct Hit
 
 
-def _two_sustains(grid: HexGrid, registry: StaticDataRegistry, hand1: list[str]) -> GameState:
-    """p2 cancels exactly 2 hits with SUSTAIN DAMAGE of two dreadnoughts; p1 still assigns."""
+def _two_hits(grid: HexGrid, registry: StaticDataRegistry, hand1: list[str]) -> GameState:
+    """Dreadnoughts 5 v 5 in the ASSIGN step: p2 (assigns first) has exactly 2 hits to cover."""
     for seed in range(1, 400):
         state = _start(
             _combat_state({"dreadnought": 5}, {"dreadnought": 5}, hand1=hand1, seed=seed),
@@ -96,11 +97,16 @@ def _two_sustains(grid: HexGrid, registry: StaticDataRegistry, hand1: list[str])
         combat = state.active_combat
         assert combat is not None
         if combat.pending_hits.get("p2") == 2 and combat.pending_hits.get("p1", 0) > 0:
-            return battle.assign_combat_hits(
-                state, grid, registry, "p2", sustain={"dreadnought": 2}, destroy={},
-                destroy_damaged={},
-            )
+            return state
     raise AssertionError("no seed gave p2 exactly 2 hits")
+
+
+def _two_sustains(grid: HexGrid, registry: StaticDataRegistry, hand1: list[str]) -> GameState:
+    """p2 cancels exactly 2 hits with SUSTAIN DAMAGE of two dreadnoughts; p1 still assigns."""
+    return battle.assign_combat_hits(
+        _two_hits(grid, registry, hand1), grid, registry, "p2", sustain={"dreadnought": 2},
+        destroy={}, destroy_damaged={},
+    )
 
 
 @ruling("C_action_cards/direct-hit/1", "C_action_cards/direct-hit/2")
@@ -113,6 +119,42 @@ def test_direct_hit_once_per_sustained_ship(grid: HexGrid, registry: StaticDataR
     second = _play_combat(first, registry, "p1", "dh2", {"ship": "dreadnought"})
     assert second.systems["000"].space_units["p2"]["dreadnought"] == 3
     assert damage.damaged_count(second.systems["000"], "space", "p2", "dreadnought") == 0
+
+
+@ruling("C_action_cards/direct-hit/3")
+def test_second_sustain_decided_after_direct_hit(grid: HexGrid, registry: StaticDataRegistry) -> None:
+    from src.core import reaction_pause
+
+    state = _two_hits(grid, registry, ["dh1", "dh2"])
+    first = battle.sustain_one(state, grid, registry, "p2", "dreadnought")
+    window = first.pending_window
+    combat = first.active_combat
+    assert combat is not None and combat.step is CombatStep.ASSIGN
+    assert window is not None and window.current_responder == "p2"  # p2 has not decided yet
+    assert combat.pending_hits["p2"] == 1
+    assert reaction_pause.would_open(first, registry)  # p1 is asked about Direct Hit first
+    assert _can(first, registry, "p1", "dh1")
+    # "Before you assign hits" already happened for these hits - it does not reopen.
+    assert not any(
+        w.subject == "p2" for w in _windows(first, GameEvent.HITS_ASSIGNED)
+    )
+    hit = _play_combat(first, registry, "p1", "dh1", {"ship": "dreadnought"})
+    assert hit.systems["000"].space_units["p2"]["dreadnought"] == 4
+    # Only now p2 decides whether another ship uses SUSTAIN DAMAGE.
+    second = battle.assign_combat_hits(
+        hit, grid, registry, "p2", sustain={"dreadnought": 1}, destroy={}, destroy_damaged={},
+    )
+    assert damage.damaged_count(second.systems["000"], "space", "p2", "dreadnought") == 1
+    assert _can(second, registry, "p1", "dh2")  # the second use can get its own Direct Hit
+    sec_combat = second.active_combat
+    assert sec_combat is not None and sec_combat.log[-1]["sustained"]["p2"] == {"dreadnought": 2}
+    # The same player may also decline the second SUSTAIN DAMAGE and lose the ship instead.
+    declined = battle.assign_combat_hits(
+        hit, grid, registry, "p2", sustain={}, destroy={"dreadnought": 1}, destroy_damaged={},
+    )
+    assert declined.systems["000"].space_units["p2"]["dreadnought"] == 3
+    with pytest.raises(ValueError, match="turn to assign"):
+        battle.sustain_one(state, grid, registry, "p1", "dreadnought")
 
 
 @ruling("C_action_cards/direct-hit/5")
@@ -769,6 +811,38 @@ def _eb_after_move(seed: int, registry: StaticDataRegistry, board: HexGrid) -> G
     return moved
 
 
+def _eb_fire(seed: int, registry: StaticDataRegistry, board: HexGrid) -> GameState:
+    """p2 plays the card after the move; its dock fires in the Space Cannon Offense step."""
+    played = _inv_play(
+        _eb_after_move(seed, registry, board), registry, "p2", "experimental",
+        {"dock": {"position": "000", "zone": _PL1}},
+    )
+    played.tactical_step = TacticalStep.SPACE_CANNON
+    opened = space_cannon.open_offense(played, board, registry)
+    return space_cannon.fire_offense(opened, board, registry, "p2")
+
+
+@ruling("C_action_cards/experimental-battlestation/1")
+def test_experimental_fires_in_the_space_cannon_offense_step(
+    registry: StaticDataRegistry,
+) -> None:
+    with _invasion_board() as board:
+        played = _inv_play(
+            _eb_after_move(1, registry, board), registry, "p2", "experimental",
+            {"dock": {"position": "000", "zone": _PL1}},
+        )
+        assert played.tactical_step is TacticalStep.MOVEMENT
+        assert played.pending_window is None and space_cannon.read_log(played) == []
+        stepped = tactical.advance_skipping_empty(played, board, registry)
+        assert stepped.tactical_step is TacticalStep.SPACE_CANNON
+        window = stepped.pending_window
+        assert window is not None and window.queue == ["p2"]
+        (dock,) = space_cannon.offense_shooters(stepped, board, registry, "p2")
+        assert (dock.base_type, dock.position, dock.zone) == ("spacedock", "000", _PL1)
+        fired = space_cannon.fire_offense(stepped, board, registry, "p2")
+        assert space_cannon.read_log(fired)[0]["rolls"][0]["baseType"] == "spacedock"
+
+
 @ruling(
     "C_action_cards/experimental-battlestation/2",
     "C_action_cards/experimental-battlestation/3.1",
@@ -777,13 +851,7 @@ def test_experimental_hits_go_to_the_active_players_ships_incl_ones_already_ther
     registry: StaticDataRegistry,
 ) -> None:
     with _invasion_board() as board:
-        hit = _seek(
-            lambda s: _inv_play(
-                _eb_after_move(s, registry, board), registry, "p2", "experimental",
-                {"dock": {"position": "000", "zone": _PL1}},
-            ),
-            lambda st: _sc_hits(st) >= 1,
-        )
+        hit = _seek(lambda s: _eb_fire(s, registry, board), lambda st: _sc_hits(st) >= 1)
     pending = space_cannon.pending_hits(hit)
     assert pending is not None and pending.target == "p1"  # only the active player
     with pytest.raises(ValueError):
@@ -804,6 +872,62 @@ def test_experimental_needs_ships_moved_in_not_only_present(registry: StaticData
         assert not _inv_row(state, registry, "p2", "experimental")["playable"]
         moved = _eb_after_move(1, registry, board)
         assert _inv_row(moved, registry, "p2", "experimental")["playable"]
+
+
+def _rift_moves(registry: StaticDataRegistry, seed: int, *, safe_first: bool) -> GameState:
+    """p1's destroyer leaves the gravity rift 104 for the active 000 (p1's cruiser is there).
+
+    With ``safe_first`` a carrier from 101 has already arrived. p2 has a dock in 000.
+    """
+    board = _tac_grid(
+        ("000", "18", set(), []), ("101", "20", set(), []), ("104", "21", {"GRAVITY_RIFT"}, []),
+    )
+    state = _tac_state({"p2": ["experimental", "rescue"]})
+    state.rng_seed = seed
+    state.active_system = "000"
+    state.systems["000"] = SystemState(
+        position="000", system_id="18", command_tokens=["p1"],
+        space_units={"p1": {"cruiser": 1}, "p2": {"spacedock": 1, "destroyer": 1}},
+    )
+    state.systems["101"] = SystemState(
+        position="101", system_id="20", space_units={"p1": {"carrier": 1}, "p2": {"cruiser": 1}}
+    )
+    state.systems["104"] = SystemState(
+        position="104", system_id="21", space_units={"p1": {"destroyer": 1}}
+    )
+    previous = board_graph._PROVIDER
+    board_graph.bind_grid_provider(lambda: board)
+    try:
+        if safe_first:
+            state = movement.move_fleet(state, board, registry, "101", {"carrier": 1}, {}, "p1")
+        return movement.move_fleet(state, board, registry, "104", {"destroyer": 1}, {}, "p1")
+    finally:
+        board_graph.bind_grid_provider(previous)
+
+
+def _rift_lost(state: GameState) -> bool:
+    return not state.systems["000"].space_units["p1"].get("destroyer")
+
+
+@ruling("C_action_cards/experimental-battlestation/3.3")
+def test_experimental_not_playable_when_a_gravity_rift_takes_every_moving_ship(
+    registry: StaticDataRegistry,
+) -> None:
+    lost = _seek(lambda s: _rift_moves(registry, s, safe_first=False), _rift_lost)
+    assert lost.tactical_moved and not movement.ships_arrived(lost)
+    assert not _tac_playable(lost, registry, "p2", "experimental")
+    assert not _tac_playable(lost, registry, "p2", "rescue")  # same SHIPS_MOVED/AFTER window
+    # When the destroyer survives the rift, the window opens.
+    arrived = _seek(
+        lambda s: _rift_moves(registry, s, safe_first=False),
+        lambda st: not _rift_lost(st),
+    )
+    assert movement.ships_arrived(arrived)
+    assert _tac_playable(arrived, registry, "p2", "experimental")
+    # Ships that arrived earlier in the action keep the window open after a rift loss.
+    earlier = _seek(lambda s: _rift_moves(registry, s, safe_first=True), _rift_lost)
+    assert movement.ships_arrived(earlier)
+    assert _tac_playable(earlier, registry, "p2", "experimental")
 
 
 @ruling("C_action_cards/experimental-battlestation/4")
@@ -974,6 +1098,63 @@ def test_rescue_out_of_a_gravity_rift_rolls_for_removal(registry: StaticDataRegi
     for new in lost:
         assert not new.systems["104"].space_units.get("p2")  # removed, not left behind
         assert new.table_roll is not None and int(new.table_roll["dice"][0]) <= 3
+
+
+def _rescue_carrier(
+    registry: StaticDataRegistry, seed: int, params: dict[str, Any], *, rift: bool = False
+) -> GameState:
+    """p2's carrier in 102 (a fighter in space, 2 infantry on Vefut II) is rescued into 000."""
+    anomalies = {"GRAVITY_RIFT"} if rift else set()
+    board = _tac_grid(
+        ("000", "18", set(), []), ("101", "20", set(), []), ("102", "20", anomalies, []),
+    )
+    state = _tac_state({"p2": ["rescue"]})
+    state.rng_seed = seed
+    state.active_system = "000"
+    state.systems["000"] = SystemState(
+        position="000", system_id="18", command_tokens=["p1"], space_units={"p2": {"cruiser": 1}}
+    )
+    state.systems["101"] = SystemState(
+        position="101", system_id="20", space_units={"p1": {"destroyer": 1}}
+    )
+    state.systems["102"] = SystemState(
+        position="102", system_id="20", space_units={"p2": {"carrier": 1, "fighter": 1}},
+        planet_units={"vefutii": {"p2": {"infantry": 2}}},
+    )
+    previous = board_graph._PROVIDER
+    board_graph.bind_grid_provider(lambda: board)
+    try:
+        moved = movement.move_fleet(state, board, registry, "101", {"destroyer": 1}, {}, "p1")
+        if not params:
+            return moved
+        return _tac_play(
+            moved, registry, "p2", "rescue", {"from": "102", "base_type": "carrier", **params}
+        )
+    finally:
+        board_graph.bind_grid_provider(previous)
+
+
+@ruling("C_action_cards/rescue/2")
+def test_rescue_ship_transports_fighters_and_ground_forces(registry: StaticDataRegistry) -> None:
+    moved = _rescue_carrier(registry, 1, {})
+    form = {i["key"]: i for i in action_cards.card_inputs(moved, registry, "p2", "rescue")[1]}
+    assert form["carry_fighter"]["auto"] == 1 and form["carry_infantry"]["auto"] == 2  # Auto
+    new = _rescue_carrier(registry, 1, {"carry_fighter": 1, "carry_infantry": 2})
+    assert new.systems["000"].space_units["p2"] == {"cruiser": 1, "carrier": 1, "fighter": 1,
+                                                    "infantry": 2}
+    assert not new.systems["102"].space_units.get("p2")
+    assert not new.systems["102"].planet_units["vefutii"].get("p2")
+    alone = _rescue_carrier(registry, 1, {"carry_fighter": 0})
+    assert alone.systems["102"].space_units["p2"] == {"fighter": 1}  # transport is optional
+    with pytest.raises(ValueError, match="can be picked up"):
+        _rescue_carrier(registry, 1, {"carry_infantry": 3})
+    # Units transported by a ship a gravity rift removes are removed too (R_transport).
+    lost = _seek(
+        lambda seed: _rescue_carrier(registry, seed, {"carry_infantry": 2}, rift=True),
+        lambda st: not st.systems["000"].space_units["p2"].get("carrier"),
+    )
+    assert not lost.systems["000"].space_units["p2"].get("infantry")
+    assert not lost.systems["102"].planet_units["vefutii"].get("p2")
 
 
 # ======================================================================================= Infiltrate

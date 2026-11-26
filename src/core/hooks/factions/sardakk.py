@@ -505,7 +505,7 @@ def _hero_window(state: GameState, _registry: StaticDataRegistry, player_id: str
         state.phase is not Phase.ACTION
         or state.active_player_id != player_id
         or state.tactical_step is not TacticalStep.MOVEMENT
-        or not state.tactical_moved
+        or not movement.ships_arrived(state)
     ):
         return "Use Tekklar Conditioning right after you move ships into the active system."
     return None

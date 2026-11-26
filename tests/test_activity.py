@@ -194,6 +194,35 @@ def test_discarded_action_card_is_not_shown_as_played() -> None:
     assert facts == [("action_card_discarded", "p1", "sabotage")]
 
 
+def test_card_taken_from_discard_is_public() -> None:
+    """Reverse Engineer: the card taken from the discard pile is public; the hand stays hidden."""
+    before = _state()
+    before.decks.action_card_deck = ["hidden_deck_card"]
+    before.decks.action_card_discard = ["sabotage", "directhit"]
+    before.players["p2"].private.action_cards = ["reverse_engineer", "secret_card"]
+    after = before.clone()
+    after.players["p2"].private.action_cards = ["secret_card", "directhit"]
+    after.decks.action_card_discard = ["sabotage", "reverse_engineer"]
+    entry = derive_activity("action-card:play:reverse_engineer", before, after)
+    assert entry is not None
+    facts = [(f.type, f.player_id, f.value) for f in entry.facts if "action_card" in f.type]
+    assert facts == [
+        ("action_card", "p2", "reverse_engineer"),
+        ("action_card_taken", "p2", "directhit"),
+    ]
+    assert "secret_card" not in entry.model_dump_json()
+
+
+def test_reshuffled_discard_is_not_reported_as_taken() -> None:
+    before = _state()
+    before.decks.action_card_discard = ["sabotage"]
+    after = before.clone()
+    after.decks.action_card_discard = []
+    after.players["p1"].private.action_cards = ["sabotage"]  # reshuffled, then drawn
+    entry = derive_activity("action-card:draw", before, after)
+    assert entry is None or not any(f.type == "action_card_taken" for f in entry.facts)
+
+
 def test_revealed_exploration_card_is_listed() -> None:
     from src.core.game_state import ExplorationState, ExploreCurrent
 

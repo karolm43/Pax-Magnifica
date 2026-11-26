@@ -1274,7 +1274,9 @@ function PhaseControls({
   // Otwarte okno czasowe (secondary itp.) blokuje End turn (RULES.md 31.6).
   const windowOpen = gameState.pendingWindow != null;
   // Czy aktywny gracz już spasował / wykonał akcję w tej turze (RULES.md 31.5/31.7).
-  const hasPassed = activePlayer?.passed === true;
+  // Puppets on a String: a passed player's extra action - still passed, yet acting.
+  const bonusAction = activePlayer?.bonusAction === true;
+  const hasPassed = activePlayer?.passed === true && !bonusAction;
   const tookAction = activePlayer?.tookActionThisTurn === true;
   // End turn możliwy dopiero po akcji lub pasie i gdy nie trwa okno czasowe.
   const canEndTurn = isAction && (tookAction || hasPassed) && !windowOpen;
@@ -1314,10 +1316,10 @@ function PhaseControls({
           <button
             type="button"
             className={styles.ctlBtn}
-            disabled={busy || hasPassed || tookAction || !canPass}
+            disabled={busy || hasPassed || bonusAction || tookAction || !canPass}
             onClick={() => setConfirmingPass(true)}
             title={
-              hasPassed
+              hasPassed || bonusAction
                 ? "You already passed — hand over with End turn"
                 : tookAction
                   ? "You already acted this turn — End turn instead"

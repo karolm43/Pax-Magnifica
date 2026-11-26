@@ -81,7 +81,7 @@ def play_component_action(
     player = state.players.get(active_id)
     if player is None:
         raise ValueError(f"Unknown active player: {active_id}")
-    if player.passed:
+    if action_budget.blocked_by_pass(state, active_id):
         raise ValueError(
             "You have passed - you cannot perform a component action this action phase."
         )

@@ -145,6 +145,7 @@ export function HandCard({
   discardable,
   onDragChange,
   onPlay,
+  onReveal,
 }: {
   tab: CardTab;
   id: string;
@@ -164,6 +165,8 @@ export function HandCard({
   onDragChange?: (cardId: string | null) => void;
   /** Zagranie / odrzucenie KLIKIEM (przycisk w podglądzie) - druga droga obok przeciągnięcia. */
   onPlay?: () => void;
+  /** Show this action card to everyone (R_action_cards: a player may reveal cards in hand). */
+  onReveal?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const { name, tag, ownerRgb } = useCardLabel(tab, id, relicTag, frontier);
@@ -234,19 +237,35 @@ export function HandCard({
       </SmoothPopover.Target>
       <SmoothPopover.Dropdown p={0}>
         <CardDetails tab={tab} id={id} frontier={frontier} />
-        {canDrag && onPlay && (
+        {((canDrag && onPlay) || onReveal) && (
           <div className={styles.cardActions}>
-            <button
-              type="button"
-              className={styles.cardPlayBtn}
-              data-discard={discardable || undefined}
-              onClick={() => {
-                setOpen(false);
-                onPlay();
-              }}
-            >
-              {discardable ? `Discard ${name}` : `Play ${name}`}
-            </button>
+            {canDrag && onPlay && (
+              <button
+                type="button"
+                className={styles.cardPlayBtn}
+                data-discard={discardable || undefined}
+                onClick={() => {
+                  setOpen(false);
+                  onPlay();
+                }}
+              >
+                {discardable ? `Discard ${name}` : `Play ${name}`}
+              </button>
+            )}
+            {onReveal && (
+              <button
+                type="button"
+                className={styles.cardPlayBtn}
+                data-reveal
+                title="Show this card to every player (it stays in your hand)"
+                onClick={() => {
+                  setOpen(false);
+                  onReveal();
+                }}
+              >
+                Reveal to all players
+              </button>
+            )}
           </div>
         )}
       </SmoothPopover.Dropdown>

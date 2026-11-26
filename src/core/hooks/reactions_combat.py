@@ -264,7 +264,8 @@ def combat_windows(state: GameState) -> list[OpenWindow]:
     if space and step is CombatStep.ASSIGN:
         for pid in (combat.defender, combat.attacker):
             hits = combat.pending_hits.get(pid, 0)
-            if hits > 0 and pid != NEUTRAL_PLAYER_ID:
+            # Step-by-step Sustain Damage (battle.sustain_one) already started assigning.
+            if hits > 0 and pid != NEUTRAL_PLAYER_ID and pid not in combat.stepwise_assign:
                 out.append(
                     OpenWindow(GameEvent.HITS_ASSIGNED, Moment.BEFORE, _ctx(combat, pid, hits=hits))
                 )

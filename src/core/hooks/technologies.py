@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from src.core import rules_hooks
+from src.core import action_budget, rules_hooks
 from src.core.game_state import GameState
 from src.core.rules_hooks import (
     POINT_BOMBARDMENT_EXTRA_DICE,
@@ -102,8 +102,7 @@ def fleet_logistics_actions(
 
     Dodatkowa akcja spasowanego gracza (Puppets on a String) to nie jego tura (C_action_cards).
     """
-    bonus = state.bonus_turn
-    if bonus is not None and bonus.player == player_id and bonus.restore_passed:
+    if action_budget.outside_turn(state, player_id):
         return 0
     return 1
 

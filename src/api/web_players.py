@@ -423,6 +423,9 @@ def _build_player_data(
                 "isSpeaker": state.speaker_id == player_id,
                 "isTyrant": False,
                 "passed": player.passed,
+                # Puppets on a String: a passed player performing an extra action (still passed,
+                # yet acting - C_action_cards/puppets-on-a-string/7). UI enables action buttons.
+                "bonusAction": action_budget.in_bonus_action(state, player_id),
                 # Czy gracz wykonał już akcję w BIEŻĄCEJ turze fazy akcji (RULES.md
                 # 31.7). UI blokuje „End turn", dopóki to False i gracz nie spasował.
                 "tookActionThisTurn": player.took_action_this_turn,

@@ -249,6 +249,13 @@ class DiscardExcessRequest(BaseModel):
     card_id: str
 
 
+class RevealActionCardsRequest(BaseModel):
+    """Showing chosen action cards from the hand to everyone (``/action-card/reveal``)."""
+
+    actor_id: str
+    cards: list[str]
+
+
 class PlayRelicRequest(BaseModel):
     """Zagranie „ACTION:” reliktu jako akcji komponentu (RULES.md 59).
 
@@ -357,6 +364,7 @@ __all__ = [
     "ReactionPrefsRequest",
     "ReactionWindowRequest",
     "RelicInputsResponse",
+    "RevealActionCardsRequest",
     "RelicPlayability",
     "RelicPlayabilityResponse",
     "TransactionPartnerView",

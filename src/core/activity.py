@@ -22,6 +22,7 @@ etykieta „krok".
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -50,6 +51,8 @@ class ActivityFact(BaseModel):
     # "vp" | "tech" | "tech_lost" | "ability_used" | "planet_gained" | "planet_lost" | "tg"
     # oraz JAWNE karty/cele:
     # "action_card" (zagrana), "action_card_discarded" (odrzucona bez zagrania),
+    # "action_card_taken" (wzięta ze stosu odrzuconych do ręki - Reverse Engineer, The Codex),
+    # "action_card_revealed" (shown from the hand by choice - R_action_cards/notes/3),
     # "agenda" (zużyta), "explore_card" (ujawniona),
     # "relic_fragment", "promissory_in_play", "objective_revealed", "secret_scored".
     # Zasoby/komponenty: "commodities", "cc" (value = pula), "hand" (value = ręka, tylko liczba),
@@ -820,6 +823,47 @@ def _faction_token_facts(before: GameState, after: GameState) -> list[ActivityFa
     return facts
 
 
+def _without(pile: list[str], taken: list[ActivityFact]) -> list[str]:
+    """``pile`` with each taken card removed (its LAST copy, as ``card_draw.take_from_discard``)."""
+    rest = list(pile)
+    for fact in taken:
+        card = fact.value or ""
+        if card in rest:
+            del rest[len(rest) - 1 - rest[::-1].index(card)]
+    return rest
+
+
+def _taken_from_discard(before: GameState, after: GameState) -> list[ActivityFact]:
+    """Action cards moved from the (public) discard pile into a hand: Reverse Engineer, The Codex.
+
+    Which card was taken is public knowledge (C_action_cards/reverse-engineer/2). The hand is read
+    only to find WHO took it. A reshuffle also empties the discard pile, and a card drawn from the
+    new deck must stay hidden - so with an empty deck before (a reshuffle may have happened) or a
+    deck that gained cards, nothing is reported.
+    """
+    if not before.decks.action_card_deck:
+        return []
+    if len(after.decks.action_card_deck) > len(before.decks.action_card_deck):
+        return []
+    removed = Counter(before.decks.action_card_discard) - Counter(after.decks.action_card_discard)
+    facts: list[ActivityFact] = []
+    for card, count in sorted(removed.items()):
+        gained = {
+            pid: new.private.action_cards.count(card)
+            - before.players[pid].private.action_cards.count(card)
+            for pid, new in after.players.items()
+            if pid in before.players
+        }
+        takers = [pid for pid, delta in gained.items() if delta > 0]
+        if len(takers) != 1:
+            continue  # moved elsewhere (e.g. Salvage Yard) or ambiguous: say nothing
+        facts.extend(
+            ActivityFact(type="action_card_taken", player_id=takers[0], value=card)
+            for _ in range(min(count, gained[takers[0]]))
+        )
+    return facts
+
+
 def public_card_facts(before: GameState, after: GameState) -> list[ActivityFact]:
     """Karty i cele JAWNE, które zmieniły się między migawkami.
 
@@ -832,8 +876,10 @@ def public_card_facts(before: GameState, after: GameState) -> list[ActivityFact]
     # Karty akcji zagrane/odrzucone: nowe wpisy na stosie odrzuconych (leży odkryty).
     old_discard = list(before.decks.action_card_discard)
     new_discard = list(after.decks.action_card_discard)
-    if len(new_discard) > len(old_discard) and new_discard[: len(old_discard)] == old_discard:
-        added = new_discard[len(old_discard) :]
+    taken = _taken_from_discard(before, after)
+    kept = _without(old_discard, taken)
+    if len(new_discard) > len(kept) and new_discard[: len(kept)] == kept:
+        added = new_discard[len(kept) :]
         # Odrzucenie bez zagrania (limit ręki, koszt celu) zostawia ślad ``last_action_discard``
         # (``card_draw``); zagranie idzie przez ``deck_piles`` bez tego śladu.
         trace = after.last_action_discard
@@ -853,6 +899,16 @@ def public_card_facts(before: GameState, after: GameState) -> list[ActivityFact]
             )
             kind = "action_card_discarded" if discarded else "action_card"
             facts.append(ActivityFact(type=kind, player_id=owner, value=card))
+    facts.extend(taken)
+
+    # Action cards a player chose to reveal from their hand (public: R_action_cards/notes/3).
+    reveal = after.action_card_reveal
+    shown_before = before.action_card_reveal.seq if before.action_card_reveal is not None else 0
+    if reveal is not None and reveal.seq > shown_before:
+        facts.extend(
+            ActivityFact(type="action_card_revealed", player_id=reveal.player, value=card)
+            for card in reveal.cards
+        )
 
     # Agendy zużyte (ujawnione na stole).
     for card in after.decks.agenda_discard[len(before.decks.agenda_discard) :]:

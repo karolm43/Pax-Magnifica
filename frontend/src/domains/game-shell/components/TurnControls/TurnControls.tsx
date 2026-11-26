@@ -270,7 +270,9 @@ export function TurnControls() {
   const activeName = getPlayerFactionDisplayName(active);
   // Czy gracz JUŻ spasował w tej fazie akcji. Pas ≠ koniec tury (RULES.md 31.5):
   // po pasie trzeba jeszcze oddać turę przez End turn.
-  const hasPassed = active.passed === true;
+  // Puppets on a String: a passed player's extra action - still passed, yet acting.
+  const bonusAction = active.bonusAction === true;
+  const hasPassed = active.passed === true && !bonusAction;
   // Czy gracz wykonał AKCJĘ w tej turze (strategiczna/taktyczna/komponentu —
   // RULES.md 31.7). End turn jest możliwy dopiero po akcji LUB pasie.
   const tookAction = active.tookActionThisTurn === true;
@@ -493,10 +495,10 @@ export function TurnControls() {
                 type="button"
                 className={`${styles.pass} ${styles.tile}`}
                 style={{ "--d": "60ms" } as CSSProperties}
-                disabled={busy || hasPassed || tookAction || !canPass}
+                disabled={busy || hasPassed || bonusAction || tookAction || !canPass}
                 onClick={() => setConfirmingPass(true)}
                 title={
-                  hasPassed
+                  hasPassed || bonusAction
                     ? "You already passed — hand over with End turn"
                     : tookAction
                       ? "You already acted this turn — End turn instead"

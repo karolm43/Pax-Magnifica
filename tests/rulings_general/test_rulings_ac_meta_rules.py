@@ -481,6 +481,69 @@ def test_puppets_player_may_use_master_plan(registry: StaticDataRegistry) -> Non
     assert back.active_player_id == "p2" and back.players["p3"].passed
 
 
+@ruling("C_action_cards/puppets-on-a-string/3")
+def test_puppets_player_cannot_resolve_transactions(registry: StaticDataRegistry) -> None:
+    state = _puppets(registry)
+    state.players["p3"].trade_goods = 2
+    give = transaction.TransactionSide(trade_goods=1)
+    with pytest.raises(ValueError, match="not your turn"):
+        transaction.validate_transaction(
+            state, HexGrid(), "p1", give, transaction.TransactionSide(), "p3"
+        )
+    assert not transaction.components_allowed(state, HexGrid(), "p3", "p1")  # tables: debts only
+    # Control: the same player may trade on their own turn.
+    normal = misc._state()
+    normal.active_player_id = "p3"
+    normal.players["p3"].trade_goods = 2
+    transaction.validate_transaction(
+        normal, HexGrid(), "p1", give, transaction.TransactionSide(), "p3"
+    )
+
+
+@ruling("C_action_cards/puppets-on-a-string/4")
+def test_minister_of_peace_does_not_stop_the_puppets_action(registry: StaticDataRegistry) -> None:
+    from src.core.hooks import agendas_laws
+
+    def activated(state: GameState) -> GameState:
+        state.active_system = "000"
+        state.tactical_step = TacticalStep.MOVEMENT
+        state.decks.agenda_laws = {"minister_peace": "p1"}
+        return state
+
+    state = activated(_puppets(registry))
+    agendas_laws._peace(state, "p1", {"position": "000"})
+    assert "minister_peace" not in state.decks.agenda_laws  # the card is discarded
+    assert state.active_system == "000" and state.tactical_step is TacticalStep.MOVEMENT
+    assert state.bonus_turn is not None and state.active_player_id == "p3"
+    # Control: on a normal turn it ends the active player's tactical action at once.
+    normal = misc._state()
+    normal.active_player_id = "p3"
+    normal = activated(normal)
+    agendas_laws._peace(normal, "p1", {"position": "000"})
+    assert normal.active_system is None and normal.tactical_step is None
+
+
+@ruling("C_action_cards/puppets-on-a-string/7")
+def test_puppets_player_stays_passed_and_does_not_pass_again(registry: StaticDataRegistry) -> None:
+    from src.core import chronicle_log
+
+    state = _puppets(registry)
+    assert state.players["p3"].passed  # still passed during the action
+    assert action_budget.actions_left(state, "p3") == 1
+    with pytest.raises(ValueError, match="cannot pass"):
+        turn_flow.pass_turn(state, "p3")
+    with pytest.raises(ValueError, match="must take an action"):
+        turn_flow.end_turn(state, "p3")  # "Perform 1 action"
+    state.players["p1"].passed = state.players["p2"].passed = True
+    assert not turn_flow.can_advance_phase(state)  # everyone passed, but an action is running
+    acted = component_action.play_component_action(state, "p3")
+    assert acted.players["p3"].passed
+    back = turn_flow.end_turn(acted, "p3")
+    assert back.players["p3"].passed and back.bonus_turn is None
+    chronicle_log.record_step(acted, back, "turn:end")
+    assert not any(entry["player"] == "p3" for entry in back.chronicle.passes)  # no new pass
+
+
 @ruling("C_action_cards/puppets-on-a-string/6")
 def test_puppets_player_gets_no_fleet_logistics_action(registry: StaticDataRegistry) -> None:
     state = _puppets(registry)
@@ -625,6 +688,32 @@ def test_hand_is_hidden_but_its_size_is_public(registry: StaticDataRegistry) -> 
     seen = visibility.project_for_viewer(state, "p2")
     assert seen.players["p1"].private.action_cards == []
     assert seen.players["p1"].hidden_card_counts["action_cards"] == 2
+
+
+@ruling("R_action_cards/notes/3")
+def test_player_may_reveal_any_or_all_action_cards_in_hand(registry: StaticDataRegistry) -> None:
+    from src.core.activity import derive_activity
+
+    state = misc._state({"p1": ["fs1", "fs2", "sabotage"]})
+    shown = card_draw.reveal_action_cards(state, "p1", ["fs1", "sabotage"])
+    assert shown.players["p1"].private.action_cards == ["fs1", "fs2", "sabotage"]  # stays in hand
+    seen = visibility.project_for_viewer(shown, "p2")  # public for every other player
+    assert seen.action_card_reveal is not None
+    assert (seen.action_card_reveal.player, seen.action_card_reveal.cards) == (
+        "p1", ["fs1", "sabotage"],
+    )
+    entry = derive_activity("action-card:reveal", state, shown)
+    assert entry is not None
+    facts = [(f.type, f.player_id, f.value) for f in entry.facts]
+    assert facts == [
+        ("action_card_revealed", "p1", "fs1"), ("action_card_revealed", "p1", "sabotage"),
+    ]
+    assert "fs2" not in entry.model_dump_json()  # unrevealed cards stay hidden
+    everything = card_draw.reveal_action_cards(shown, "p1", ["fs1", "fs2", "sabotage"])  # "or all"
+    assert everything.action_card_reveal is not None and everything.action_card_reveal.seq == 2
+    for bad in ([], ["directhit"], ["fs1", "fs1"]):
+        with pytest.raises(ValueError):
+            card_draw.reveal_action_cards(state, "p1", bad)
 
 
 @ruling("R_action_cards/notes/10")

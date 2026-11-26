@@ -287,7 +287,7 @@ def play_strategy_card(
         raise ValueError("A strategic action can only be performed during the action phase.")
     if state.active_player_id != player_id:
         raise ValueError(f"It is not {player_id}'s turn (active: {state.active_player_id}).")
-    if player.passed:
+    if action_budget.blocked_by_pass(state, player_id):
         raise ValueError("You have passed - you cannot perform a strategic action.")
     action_budget.require_free_action(state, player_id)
     if initiative in player.exhausted_strategy_cards:

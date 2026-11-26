@@ -321,6 +321,21 @@ def test_impersonation_with_three_scored_secrets_shuffles_the_draw_back(
 # ====================================================================== Manipulate Investments
 
 
+@ruling(f"{_CARDS}/manipulate-investments/1")
+def test_investments_playable_while_a_card_is_kept_through_political_stability(
+    registry: StaticDataRegistry,
+) -> None:
+    state = misc_h._strategy_state({"p2": ["investments"]})
+    state.players["p1"].strategy_cards = [1]  # kept through Political Stability, not picked
+    assert misc_h._playable(state, registry, "p2", "investments")["playable"]
+    new = misc_h._play(state, registry, "p2", "investments", {"tg_1": 2, "tg_4": 2, "tg_7": 1})
+    assert new.strategy_card_tg[1] == 2  # trade goods may sit on the kept card
+    picker = strategy_phase.next_strategy_picker(new)
+    assert picker is not None and picker != "p1"
+    picked = strategy_phase.pick_strategy_card(new, registry, picker, 4)
+    assert not misc_h._playable(picked, registry, "p2", "investments")["playable"]
+
+
 @ruling(f"{_CARDS}/manipulate-investments/1.1")
 def test_investments_stay_on_a_card_taken_with_imperial_arbiter(
     registry: StaticDataRegistry,
@@ -721,6 +736,24 @@ def test_reverse_engineer_after_play_cancel_hand_limit_or_other_discard(
     assert limit is not None
     over.players["p1"].private.action_cards = [card] * (limit + 1)
     takes(hand_limit.discard_excess(over, "p1", card))
+
+
+@ruling(f"{_CARDS}/reverse-engineer/2")
+def test_reverse_engineer_taken_card_is_public_in_the_activity_feed(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core.activity import derive_activity
+
+    card = misc_h._ACTION_CARD
+    state = misc_h._state({"p1": [card], "p2": ["reverse_engineer", "sabotage"]})
+    state.decks.action_card_deck = ["filler"]
+    played, _ = action_cards.play_action_card(state, registry, "p1", card)
+    taken = misc_h._play(played, registry, "p2", "reverse_engineer")
+    entry = derive_activity("action-card:play:reverse_engineer", played, taken)
+    assert entry is not None
+    facts = [(f.type, f.player_id, f.value) for f in entry.facts if "action_card" in f.type]
+    assert ("action_card_taken", "p2", card) in facts
+    assert "sabotage" not in entry.model_dump_json()  # the rest of the hand stays hidden
 
 
 # ============================================================================ Rise of a Messiah
