@@ -23,7 +23,8 @@ export type FxTarget =
   | "planet" // system planety, do której bohater dołączył kartę (Geoform -> Elysium)
   | "destroyed" // system planety zniszczonej przez Stellar Converter (`tile.destroyedPlanets`)
   | "swapped" // both systems whose tiles swapped places (Singularity Reactor, `run.replaced`)
-  | "token"; // system where a Creuss wormhole token opened (`area` "gain" of the moment)
+  | "token" // system where a Creuss wormhole token opened (`area` "gain" of the moment)
+  | "border"; // both systems of a Void Tether border (`area` "gain" of the moment, RULES.md 62.20)
 
 /** Wygląd efektu w systemie docelowym (każdy bohater ma własny, pasujący do frakcji). */
 export type FxMark =
@@ -47,7 +48,9 @@ export type FxMark =
   | "awaken" // Titans: przebudzenie Elysium
   | "converter" // Stellar Converter: okręty z BOMBARDMENT rozbijają planetę
   | "rift" // Creuss: two wormhole vortices joined by a tether, the tiles fly to trade places
-  | "portal"; // Creuss wormhole token: a vortex opens (and the old one collapses when moved)
+  | "portal" // Creuss wormhole token: a vortex opens (and the old one collapses when moved)
+  | "voideye" // Empyrean: frontier sigils condense from the void, an eye opens where it explores
+  | "tether"; // Empyrean Void Tether: a dark seam seals the border, the two systems recoil
 
 export type HeroFxRecipe = {
   /** Przyciemnienie całej planszy (0–1). */
@@ -354,6 +357,30 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
       { at: 5600, name: "warSunEnter", gain: 0.3, rate: 0.7 },
     ],
   },
+  // Multiverse Shift — Opening the Eye (Conservator Procyon, RULES.md 62.20): the board sinks into
+  // the void (heavy dim + drifting mist); in every planetless system a frontier sigil condenses
+  // out of the dark and the token drops in; where the Empyrean have ships an eye opens over it,
+  // flares (flash) and gazes into the token - the exploration - then closes. Sound: a deep void
+  // hum, a reversed rush as the eyes open, the flare, a fading low tone.
+  empyreanhero: {
+    dim: 0.62,
+    sweep: "mist",
+    area: { self: true, kinds: ["frontier", "explore"] },
+    target: "ships",
+    mark: "voideye",
+    tone: "170 110 255",
+    ms: 7000,
+    flashAt: 3700,
+    quake: [{ at: 3700, px: 3, ms: 700 }],
+    sounds: [
+      { at: 0, name: "warSunEnter", gain: 0.55, rate: 0.42 },
+      { at: 600, name: "fleetEnter", gain: 0.35, rate: 0.45 },
+      { at: 2100, name: "explosionHeavy", gain: 0.55, rate: 0.5, reverse: true, endIn: 1600 },
+      { at: 3700, name: "sunfire", gain: 0.5, rate: 0.45 },
+      { at: 3760, name: "explosionHeavy", gain: 0.45, rate: 0.6 },
+      { at: 5200, name: "warSunEnter", gain: 0.3, rate: 0.35 },
+    ],
+  },
   // Nova Seed: gwiazda systemu puchnie, korona zapada się w punkt, wybuch supernowej (błysk,
   // promienie dyfrakcyjne, rozszerzająca się powłoka gazu, ejekta), potem pulsująca mgławica.
   // Stary kafel znika pod błyskiem (revealAt); dźwięk niski: pomruk, wsysanie, głuchy huk.
@@ -439,6 +466,26 @@ export const TOKEN_BOARD_FX: Record<string, HeroFxRecipe> = {
   whdelta: portal("80 235 205"),
 };
 
+/**
+ * Empyrean Void Tether placed / moved onto a border (RULES.md 62.20) — no portrait: a seam of
+ * darkness is drawn along the shared edge, chains of void lock it, both systems recoil from it
+ * (other players no longer treat them as adjacent); a moved tether's old seam dissolves.
+ */
+export const TETHER_BOARD_FX: HeroFxRecipe = {
+  dim: 0.22,
+  target: "border",
+  mark: "tether",
+  tone: "170 110 255",
+  ms: 3400,
+  area: { self: true, kinds: ["gain"] },
+  sounds: [
+    { at: 0, name: "laser", gain: 0.3, rate: 0.35 },
+    { at: 700, name: "warSunEnter", gain: 0.35, rate: 0.6 },
+    { at: 1350, name: "armorHit", gain: 0.55, rate: 0.55 },
+    { at: 1420, name: "impact", gain: 0.4, rate: 0.5 },
+  ],
+};
+
 const GROUND = new Set(["gf", "mf"]);
 const DEFENSE = new Set(["pd", "mf"]);
 const DOCK = "sd";
@@ -499,6 +546,7 @@ export function fxTargets(
       const swapped = new Set((owner.replaced ?? []).map((r) => r.position));
       return pick((t) => swapped.has(t.position));
     }
+    case "border":
     case "token": {
       const opened = new Set(
         (owner.areas ?? []).filter((a) => a.kind === "gain").map((a) => a.position),

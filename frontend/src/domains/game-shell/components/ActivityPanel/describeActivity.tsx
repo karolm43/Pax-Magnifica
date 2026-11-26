@@ -45,6 +45,7 @@ import { getLeaderById } from "@/entities/lookup/leaders";
 import { promissoryNotes } from "@/entities/data/promissoryNotes";
 import { Named } from "./Named";
 import { isCreussWormholeToken, wormholeTokenName } from "@/entities/lookup/wormholeTokens";
+import { tetherBorder } from "../KeyMoments/keyMoments";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import { getStrategyCardByInitiative } from "@/entities/lookup/strategyCards";
 
@@ -599,6 +600,17 @@ function describeFact(
           </>
         ),
       };
+    case "frontier_tokens":
+      // Multiverse Shift (RULES.md 62.20): one line for every frontier token placed in the entry.
+      return {
+        key,
+        tone: "info",
+        text: (
+          <>
+            {delta} frontier token{delta === 1 ? "" : "s"} placed in systems without planets
+          </>
+        ),
+      };
     case "tg":
       return {
         key,
@@ -996,6 +1008,43 @@ function describeFact(
           ) : (
             <>
               {prefix}placed the {name} in {system(fact.position)}
+            </>
+          ),
+        };
+      }
+      // Empyrean Void Tether (RULES.md 62.20): a token on the BORDER of two systems.
+      const border = tetherBorder(fact);
+      if (border) {
+        const system = (position: string) => (
+          <Named kind="system" id={position} name={ctx.systemName(position)} systemText={ctx.systemHint(position)} />
+        );
+        const between = ([p, q]: [string, string]) => (
+          <>
+            {system(p)} and {system(q)}
+          </>
+        );
+        const other = a.facts.find(
+          (x) =>
+            x !== fact &&
+            x.type === (fact.type === "faction_token" ? "faction_token_removed" : "faction_token") &&
+            tetherBorder(x),
+        );
+        if (fact.type === "faction_token_removed") {
+          // A move is described once, by its "placed" half.
+          if (other) return null;
+          return { key, tone: "bad", text: <>Void Tether removed from the border of {between(border)}</> };
+        }
+        const from = other ? tetherBorder(other) : null;
+        return {
+          key,
+          tone: "info",
+          text: from ? (
+            <>
+              {prefix}moved the Void Tether from the border of {between(from)} to the border of {between(border)}
+            </>
+          ) : (
+            <>
+              {prefix}placed a Void Tether on the border of {between(border)}
             </>
           ),
         };

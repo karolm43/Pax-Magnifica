@@ -1072,5 +1072,6 @@ def deorbit_sustain(state: GameState, player_id: str, ctx: Mapping[str, Any]) ->
             set_damaged(system, planet, owner, base_type,
                         damaged_count(system, planet, owner, base_type) + sustain)
             triggers.fire(state, GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, subject=owner,
-                          ctx={"player": owner, "base_type": base_type, "count": sustain})
+                          ctx={"player": owner, "base_type": base_type, "count": sustain,
+                               "position": system.position, "zone": planet})
         _destroy_ground(state, system, planet, owner, base_type, hits - sustain)

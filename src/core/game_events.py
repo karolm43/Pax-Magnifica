@@ -302,7 +302,9 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
     GameEvent.COMMODITIES_REPLENISHED: EventInfo(
         "Commodities uzupełnione.", ("player",), "economy.replenish_commodities"
     ),
-    GameEvent.COMMODITIES_GIVEN: EventInfo("Commodities oddane innemu graczowi.", ("player", "to")),
+    GameEvent.COMMODITIES_GIVEN: EventInfo(
+        "Commodities oddane innemu graczowi.", ("player", "to"), "economy.give_to_player"
+    ),
     GameEvent.COMMAND_TOKENS_GAINED: EventInfo(
         "Gracz zdobył żetony dowodzenia.", ("player", "amount")
     ),

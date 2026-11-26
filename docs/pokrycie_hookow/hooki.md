@@ -4,12 +4,14 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **467**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **486**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
+| `action_cards.canceller` | PERMIT | unit:empyrean_mech | units:empyrean_mech | Public: a Watcher in / next to the card player's units - the hold window opens. |
 | `action_cards.canceller` | PERMIT | technology:it | technologies:it | Jawne: gotowa technologia i żeton w strategy pool - okno anulowania się otwiera. |
 | `action_cards.forbidden` | FORBID | agenda:censure | agendas:censure | — |
+| `adjacency.cut_for_player` | FORBID | rule:breakthroughs:empyreanbt:cut | breakthroughs:empyreanbt | ...other players do not treat those systems as adjacent to each other unless you allow it |
 | `adjacency.extra_for_player` | FORBID | faction:ghost | abilities:quantum_entanglement | Quantum Entanglement: You treat all systems that contain either an alpha or beta wormhole as |
 | `agenda.planets_ready_limit` | FORBID | effect:agendas:checks:against | agendas:checks | — |
 | `agenda.single_vote` | PERMIT | agenda:rep_govt | agendas:rep_govt | — |
@@ -137,6 +139,7 @@ Razem: **467**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:agenda.outcome_resolved:during` | TRIGGER | agenda:wormhole_research | agendas:wormhole_research | — |
 | `event:agenda.outcome_resolved:during` | TRIGGER | agenda:wormhole_research | agendas:wormhole_research | — |
 | `event:agenda.revealed:after` | TRIGGER | agenda:committee | agendas:committee | — |
+| `event:agenda.votes_cast:after` | TRIGGER | promissory:blood_pact | promissory_notes:blood_pact | Blood Pact: When you and the Empyrean player cast votes for the same outcome, cast 4 |
 | `event:cards.action_played:after` | TRIGGER | effect:action_cards:dp_give | — | — |
 | `event:cards.action_played:when` | TRIGGER | effect:leaders:mentakhero:sleeper | leaders:mentakhero | Mentak zagrywa Direct Hit: statek zniszczony tą kartą zastępuje się OD RAZU, zanim inne |
 | `event:combat.roll:after` | TRIGGER | unit:hacan_flagship | units:hacan_flagship | Wrath of Kenara: After you roll a die during a space combat in this system, you may spend 1 |
@@ -179,6 +182,7 @@ Razem: **467**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.decision:after` | TRIGGER | effect:research:enigmatic_device | explores:ed1 | — |
 | `event:component.decision:after` | TRIGGER | effect:research:f_researched | action_cards:f_researched | — |
 | `event:component.decision:after` | TRIGGER | effect:research:reveal_prototype | action_cards:reveal_prototype | — |
+| `event:component.exhausted:after` | TRIGGER | leader:empyreanagent | — | — |
 | `event:component.exhausted:after` | TRIGGER | leader:sardakkagent | — | — |
 | `event:component.gained:when` | TRIGGER | relic:bookoflatvinia | — | Book of Latvinia: When you gain this card, research up to 2 technologies that have no |
 | `event:component.gained:when` | TRIGGER | breakthrough:cabalbt | breakthroughs:cabalbt | After this card enters play, move up to 2 ingress tokens into systems that contain gravity |
@@ -190,6 +194,7 @@ Razem: **467**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.gained:when` | TRIGGER | relic:shard | — | Shard of the Throne: When you gain this card, gain 1 victory point. |
 | `event:component.gained:when` | TRIGGER | breakthrough:yinbt | breakthroughs:yinbt | Yin Ascendant: When you gain this card ..., gain the alliance ability of a random, unused |
 | `event:component.readied:when` | TRIGGER | effect:agendas:checks:against | agendas:checks | — |
+| `event:economy.commodities_given:after` | TRIGGER | promissory:dark_pact | promissory_notes:dark_pact | Dark Pact: When you give a number of commodities to the Empyrean player equal to your maximum |
 | `event:economy.commodities_replenished:after` | TRIGGER | leader:cabalagent | leaders:cabalagent | The Stillness of Stars: After another player replenishes commodities: You may exhaust this |
 | `event:economy.commodities_replenished:after` | TRIGGER | agenda:minister_commerce | agendas:minister_commerce | — |
 | `event:economy.trade_goods_gained:after` | TRIGGER | faction:mentak | abilities:pillage | Pillage: After 1 of your neighbors gains trade goods ... |
@@ -279,6 +284,8 @@ Razem: **467**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.action:end` | TRIGGER | leader:sardakkagent | leaders:sardakkagent | T'ro: At the end of a player's tactical action: You may exhaust this card: if you do, that |
 | `event:tactical.action:end` | TRIGGER | faction:winnu | abilities:reclamation | Reclamation: After you resolve a tactical action during which you gained control of Mecatol |
 | `event:tactical.action:end` | TRIGGER | unit:winnu_mech | units:winnu_mech | Reclaimer: After you resolve a tactical action where you gained control of this planet, you |
+| `event:tactical.ships_moved:after` | TRIGGER | leader:empyreanagent | leaders:empyreanagent | Acamar: After a player moves ships into a system that does not contain any planets: You may |
+| `event:tactical.ships_moved:after` | TRIGGER | leader:empyreancommander | leaders:empyreancommander | Xuange: After another player moves ships into a system that contains 1 of your command |
 | `event:tactical.ships_moved:after` | TRIGGER | leader:ghostcommander | leaders:ghostcommander | Sai Seravus: After your ships move: For each ship that has a capacity value and moved through |
 | `event:tactical.ships_moved:after` | TRIGGER | effect:leaders:saaragent | — | Wybrany statek ruszył - premia dotyczy tylko jego (1 statek). |
 | `event:tactical.ships_moved:after` | TRIGGER | breakthrough:muaatbt | breakthroughs:muaatbt | After you move one of your war suns out of or through Avernus's system and into a non-home |
@@ -286,13 +293,20 @@ Razem: **467**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.ships_moved:after` | TRIGGER | faction:naalu | abilities:foresight | Foresight: After another player moves ships into a system that contains 1 or more of your |
 | `event:tactical.ships_moved:after` | TRIGGER | unit:saar_spacedock | — | If this unit is blockaded, it is destroyed. |
 | `event:tactical.ships_moved:after` | TRIGGER | unit:saar_spacedock2 | — | If this unit is blockaded, it is destroyed. |
+| `event:tactical.ships_moved:after` | TRIGGER | technology:vw | technologies:vw | Voidwatch: After a player moves ships into a system that contains 1 or more of your units, |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:<color>_an | promissory_notes:<color>_an | — |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:<color>_sftt | promissory_notes:<color>_sftt | — |
 | `event:tactical.system_activated:after` | TRIGGER | unit:arborec_flagship | units:arborec_flagship | Duha Menaimon: After you activate this system, you may produce up to 5 units in this |
 | `event:tactical.system_activated:after` | TRIGGER | leader:arboreccommander | leaders:arboreccommander | Dirzuga Rophal: After another player activates a system that contains 1 or more of your |
 | `event:tactical.system_activated:after` | TRIGGER | breakthrough:argentbt | breakthroughs:argentbt | Wing Transfer: When you activate a system that contains only your units, you may place |
+| `event:tactical.system_activated:after` | TRIGGER | technology:as | technologies:as | Aetherstream: After you or one of your neighbors activates a system that is adjacent to an |
+| `event:tactical.system_activated:after` | TRIGGER | promissory:blood_pact | promissory_notes:blood_pact | If you activate a system that contains 1 or more of the Empyrean player's units, return this |
 | `event:tactical.system_activated:after` | TRIGGER | promissory:convoys | promissory_notes:convoys | If you activate a system that contains 1 or more of the Hacan player's units, return this |
+| `event:tactical.system_activated:after` | TRIGGER | promissory:dark_pact | promissory_notes:dark_pact | If you activate a system that contains 1 or more of the Empyrean player's units, return this |
 | `event:tactical.system_activated:after` | TRIGGER | relic:dominusorb | relics:dominusorb | Dominus Orb: Before you move units during a tactical action, you may purge this card to |
+| `event:tactical.system_activated:after` | TRIGGER | faction:empyrean | abilities:aetherpassage | Aetherpassage: After a player activates a system: You may allow that player to move their |
+| `event:tactical.system_activated:after` | TRIGGER | breakthrough:empyreanbt | breakthroughs:empyreanbt | Void Tether: When you activate a system that contains or is adjacent to a unit or planet you |
+| `event:tactical.system_activated:after` | TRIGGER | breakthrough:empyreanbt | breakthroughs:empyreanbt | ...other players do not treat those systems as adjacent to each other unless you allow it. |
 | `event:tactical.system_activated:after` | TRIGGER | technology:ers | technologies:ers | E-Res Siphons: After another player activates a system that contains 1 or more of your |
 | `event:tactical.system_activated:after` | TRIGGER | unit:ghost_mech | units:ghost_mech | Icarus Drive: After any player activates a system, you may remove this unit from the game |
 | `event:tactical.system_activated:after` | TRIGGER | leader:ghostagent | leaders:ghostagent | Emissary Taivra: After a player activates a system that contains a non-delta wormhole: You |
@@ -353,6 +367,7 @@ Razem: **467**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:unit.placed:after` | TRIGGER | agenda:minister_industry | agendas:minister_industry | — |
 | `event:unit.removed:after` | TRIGGER | effect:leaders:cabalhero:anchor | leaders:cabalhero | Dimensional Anchor: usunięte siły naziemne / myśliwce (nadwyżka ładunku) są przechwycone. |
 | `event:unit.removed:after` | TRIGGER | unit:naaz_voltron | — | When this unit is destroyed or removed, flip this card and return it to your play area. |
+| `event:unit.sustain_damage:after` | TRIGGER | unit:empyrean_flagship | units:empyrean_flagship | Dynamo: After any player's unit in this system or an adjacent system uses SUSTAIN DAMAGE, |
 | `event:unit.sustain_damage:after` | TRIGGER | leader:letnevcommander | leaders:letnevcommander | Rear Admiral Farran: After 1 of your units uses SUSTAIN DAMAGE: You may gain 1 trade good |
 | `event:unit.sustain_damage:after` | TRIGGER | unit:sardakk_mech | units:sardakk_mech | Valkyrie Exoskeleton: After this unit uses its SUSTAIN DAMAGE ability during ground combat, |
 | `exploration.extra_draw` | PERMIT | faction:naaz | abilities:distant_suns | Distant Suns: When you explore a planet that contains 1 of your mechs: You may draw 1 |
@@ -391,8 +406,11 @@ Razem: **467**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.move_value` | MODIFY | technology:gd | technologies:gd | Gravity Drive: po aktywacji +1 do wartości ruchu JEDNEGO statku w tej akcji. |
 | `movement.move_value` | MODIFY | faction:ghost | abilities:slipstream | Slipstream: During your tactical actions: Apply +1 to the move value of each of your ships |
 | `movement.move_value` | MODIFY | effect:planets:tempesta | planets:tempesta | Ionian Fuel Refinery: +1 do wartości ruchu JEDNEGO statku w tej akcji taktycznej. |
+| `movement.move_value` | MODIFY | effect:technologies:as:boost | — | — |
 | `movement.move_value` | MODIFY | breakthrough:winnubt | — | After you activate a system that contains a legendary planet, apply +1 to the move value of 1 |
 | `movement.moves_separately` | PERMIT | unit:ghost_flagship | units:ghost_flagship | During movement, this ship may move before or after your other ships (separate fleet move; |
+| `movement.nebula_ignored` | PERMIT | faction:empyrean | abilities:voidborn | Voidborn: a ship starting in a nebula keeps its move value (also outside the Movement step |
+| `movement.pass_foreign_ships` | PERMIT | effect:abilities:aetherpassage:allowed | — | Only the granting Empyrean player's ships may be flown through (another rival's still |
 | `movement.pass_foreign_ships` | PERMIT | effect:action_cards:silence_space | — | Przelot przez obce statki dotyczy tylko statków startujących z wybranego systemu. |
 | `movement.pass_foreign_ships` | PERMIT | technology:lwd | technologies:lwd | Light/Wave Deflector: statki mogą przechodzić przez systemy z cudzymi statkami. |
 | `movement.pass_foreign_ships` | PERMIT | unit:mentak_cruiser3 | units:mentak_cruiser3 | Corsair: If the active system contains another player's non-fighter ships, this unit can |
@@ -401,6 +419,7 @@ Razem: **467**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.rift_no_roll` | FORBID | unit:cabal_spacedock | units:cabal_spacedock | Dimensional Tear: This system is a gravity rift; your ships do not roll for this gravity |
 | `movement.rift_no_roll` | FORBID | unit:cabal_spacedock2 | technologies:dt2 | Dimensional Tear: This system is a gravity rift; your ships do not roll for this gravity |
 | `movement.single_ship_value` | MODIFY | effect:leaders:saaragent | — | Wartość ruchu wybranego statku (punkt ``movement.single_ship_value``). |
+| `movement.through_nebula` | PERMIT | faction:empyrean | abilities:voidborn | Voidborn: Nebulae do not affect your ships' movement (a nebula may be crossed). |
 | `movement.through_nebula` | PERMIT | agenda:shared_research | agendas:shared_research | — |
 | `movement.through_supernova` | PERMIT | faction:muaat | abilities:gashlai_physiology | Gashlai Physiology: Your ships can move through supernovas (węzeł pośredni trasy). |
 | `movement.wormhole_laws_immune` | PERMIT | faction:ghost | abilities:quantum_entanglement | Game effects cannot prevent you from using this ability (Enforced Travel Ban, Nexus |
@@ -481,6 +500,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `action_cards.forbidden`
 - `action_cards.canceller`
 - `turn.action_started`
+- `adjacency.cut_for_player`
 - `adjacency.extra_for_player`
 - `agenda.single_vote`
 - `agenda.votes_per_planet`
@@ -544,6 +564,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `movement.match_highest`
 - `movement.moves_separately`
 - `movement.move_value`
+- `movement.nebula_ignored`
 - `movement.passage_blocked`
 - `movement.pass_foreign_ships`
 - `movement.rift_extra_bonus`

@@ -235,7 +235,9 @@ def action_units(state: GameState, registry: StaticDataRegistry, player_id: str)
     found: list[str] = []
     for bt in sorted(types):
         unit = resolve_unit_variant(registry, player.faction, player.technologies, bt)
-        if unit is not None and unit.faction and _ACTION.search(unit.ability or ""):
+        if unit is not None and unit.faction and (
+            _ACTION.search(unit.ability or "") or _has_window_use(UNIT, unit.id)
+        ):  # window use of a unit on the board: Watcher cancels an action card (RULES.md 62.20)
             found.append(unit.id)
     return found
 

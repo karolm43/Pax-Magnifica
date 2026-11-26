@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 | Id | Nazwa | Frakcja | Wyzwalacz | Typ | Obszary | Hook | Tekst |
 |---|---|---|---|---|---|:---:|---|
-| `aetherpassage` | Aetherpassage | empyrean | after | TRIGGER (okno reakcji) | ruch | — | You may allow that player to move their ships through systems that contain your ships. |
+| `aetherpassage` | Aetherpassage | empyrean | after | TRIGGER (okno reakcji) | ruch | ✔ | You may allow that player to move their ships through systems that contain your ships. |
 | `amalgamation` | Amalgamation | cabal | when | TRIGGER (okno reakcji) | produkcja, ekonomia i płatności | ✔ | You may return 1 captured unit of that type to produce that unit without spending resources. |
 | `ambush` | Ambush | mentak | at_start | PERMIT (pozwolenie) | walka, produkcja | ✔ | You may roll 1 die for each of up to 2 of your cruisers or destroyers in the system. For each result equal to or greater than that ship's c… |
 | `analytical` | Analytical | jolnar | when | TRIGGER (okno reakcji) | technologie | ✔ | You may ignore 1 prerequisite. |
@@ -19,7 +19,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `council_patronage` | Council Patronage | keleres | at_start | — | ekonomia i płatności | — | Replenish your commodities, then gain 1 trade good. |
 | `crafty` | Crafty | yssaril | — | FORBID (zakaz) | karty | — | You can have any number of action cards in your hand. Game effects cannot prevent you from using this ability. |
 | `creuss_gate` | Creuss Gate | ghost | — | — | — | ✔ | When you create the game board, place the Creuss Gate (tile 17) where your home system would normally be placed. The Creuss Gate system is … |
-| `dark_whispers` | Dark Whispers | empyrean | — | MODIFY (liczba/rzut) | karty | — | During setup, take the additional Empyrean faction promissory note; you have 2 faction promissory notes |
+| `dark_whispers` | Dark Whispers | empyrean | — | MODIFY (liczba/rzut) | karty | ✔ | During setup, take the additional Empyrean faction promissory note; you have 2 faction promissory notes |
 | `devotion` | Devotion | yin | after | TRIGGER (okno reakcji) | walka, produkcja | ✔ | You may destroy 1 of your cruisers or destroyers in the active system to produce 1 hit and assign it to 1 of your opponent's ships in that … |
 | `devour` | Devour | cabal | — | — | walka | ✔ | Capture your opponent's non-structure units that are destroyed during combat. |
 | `distant_suns` | Distant Suns | naaz | when | TRIGGER (okno reakcji) | karty | ✔ | You may draw 1 additional card; choose 1 to resolve and discard the rest. |
@@ -75,5 +75,5 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `the_tribuni` | The Tribunii | keleres | — | — | żetony dowodzenia, planety i eksploracja | — | During setup, choose a Keleres hero that corresponds to an unused faction; take that faction's home system, command tokens, and control tok… |
 | `unrelenting` | Unrelenting | sardakk | — | MODIFY (liczba/rzut) | walka | ✔ | Apply +1 to the result of each of your unit's combat rolls. |
 | `versatile` | Versatile | sol | when | TRIGGER (okno reakcji) | żetony dowodzenia | ✔ | Gain 1 additional command token. |
-| `voidborn` | Voidborn | empyrean | — | — | ruch | — | Nebulae do not affect your ships' movement |
+| `voidborn` | Voidborn | empyrean | — | — | ruch | ✔ | Nebulae do not affect your ships' movement |
 | `zeal` | Zeal | argent | when | TRIGGER (okno reakcji) | agenda i głosowanie | ✔ | You always vote first during the agenda phase. cast 1 additional vote for each player in the game, including you. |

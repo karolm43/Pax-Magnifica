@@ -81,6 +81,19 @@ def _player_extra(
     return found
 
 
+def _player_cuts(
+    state: GameState, grid: HexGrid, presence: dict[str, set[str]]
+) -> dict[tuple[str, str], frozenset[str]]:
+    """``{(player_id, position): systems NOT adjacent for that player}`` (layer 4, Void Tether)."""
+    found: dict[tuple[str, str], frozenset[str]] = {}
+    for position, here in presence.items():
+        for owner in here:
+            cut = board_graph.cut_adjacent_for_player(state, owner, position, grid)
+            if cut:
+                found[(owner, position)] = cut
+    return found
+
+
 def _adjacent(grid: HexGrid, extra: dict[str, frozenset[str]], a: str, b: str) -> bool:
     if grid.are_adjacent(a, b):
         return True
@@ -109,7 +122,11 @@ def neighbors_by_player(
     presence = _players_present(state)
     extra = _extra_map(state, presence)
     own_extra = _player_extra(state, grid, presence)
+    cuts = _player_cuts(state, grid, presence)
     result: dict[str, set[str]] = {pid: set() for pid in state.players}
+
+    def cut(owner: str, pos: str, far: str) -> bool:
+        return far in cuts.get((owner, pos), frozenset())
 
     positions = list(presence.items())
     for i, (pos_a, here_a) in enumerate(positions):
@@ -120,12 +137,15 @@ def neighbors_by_player(
         # Systemy sąsiednie: obecni po obu stronach krawędzi.
         for pos_b, here_b in positions[i + 1 :]:
             if _adjacent(grid, extra, pos_a, pos_b):
+                # Layer 4 (Void Tether): the pair is not neighbours across the cut edge only when
+                # BOTH treat it as cut - the tether's owner keeps the adjacency (void-tether 1.1).
                 for owner in here_a:
-                    if owner in result:
-                        result[owner].update(here_b)
-                for owner in here_b:
-                    if owner in result:
-                        result[owner].update(here_a)
+                    for peer in here_b:
+                        if owner in result and peer in result and not (
+                            cut(owner, pos_a, pos_b) and cut(peer, pos_b, pos_a)
+                        ):
+                            result[owner].add(peer)
+                            result[peer].add(owner)
                 continue
             # Player-dependent adjacency: the owner of the effect and everybody on the other side.
             sides = ((here_a, here_b, pos_a, pos_b), (here_b, here_a, pos_b, pos_a))

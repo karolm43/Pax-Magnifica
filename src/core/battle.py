@@ -1245,7 +1245,8 @@ def _note_sustains(
         if used > 0:
             triggers.fire(
                 state, GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, subject=player_id,
-                ctx={"player": player_id, "base_type": base_type, "count": used},
+                ctx={"player": player_id, "base_type": base_type, "count": used,
+                     "position": combat.position, "zone": units[base_type].zone or zone},
             )
 
 

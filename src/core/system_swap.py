@@ -12,7 +12,7 @@ eliminated player) follows its tile. Functions MUTATE the given state (the calle
 
 from __future__ import annotations
 
-from src.core import board_graph
+from src.core import board_graph, faction_tokens
 from src.core.game_state import GameState
 
 
@@ -31,6 +31,15 @@ def swap_systems(state: GameState, a: str, b: str) -> None:
     second = board_graph.ensure_system(state, b)
     state.systems[a] = second.model_copy(update={"position": a}, deep=True)
     state.systems[b] = first.model_copy(update={"position": b}, deep=True)
+    # Border tokens (Void Tether, RULES.md 62.20) lie on the board's borders, not on a tile: they
+    # stay where they are. ⚠️ ASSUMPTION (RULES.md 62.20).
+    for position, old in ((a, first), (b, second)):
+        new_tokens = state.systems[position].faction_tokens
+        for zone in [z for z in new_tokens if z.startswith(faction_tokens.BORDER_PREFIX)]:
+            del new_tokens[zone]
+        for zone, kinds in old.faction_tokens.items():
+            if zone.startswith(faction_tokens.BORDER_PREFIX):
+                new_tokens[zone] = dict(kinds)
     state.replaced_tiles[a] = tile_b
     state.replaced_tiles[b] = tile_a
     moved = {a: b, b: a}

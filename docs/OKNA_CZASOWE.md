@@ -67,7 +67,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `economy.trade_goods_gained` | Gracz zdobył trade goods. | 2 | after×1, when×1 | abilities×1, leaders×1 | `economy.gain_trade_goods` |
 | `economy.resources_spent` | Gracz wydał zasoby/wpływy. | 3 | when×3 | leaders×2, technologies×1 | — |
 | `economy.commodities_replenished` | Commodities uzupełnione. | 3 | when×2, after×1 | promissory_notes×1, galactic_events×1, leaders×1 | `economy.replenish_commodities` |
-| `economy.commodities_given` | Commodities oddane innemu graczowi. | 0 | — | — | — |
+| `economy.commodities_given` | Commodities oddane innemu graczowi. | 0 | — | — | `economy.give_to_player` |
 | `tokens.gained` | Gracz zdobył żetony dowodzenia. | 0 | — | — | — |
 | `tokens.placed` | Żeton dowodzenia położony w systemie. | 1 | after×1 | leaders×1 | `command_tokens.place_token` |
 | `transaction` | Transakcja (negocjacja/rozstrzygnięcie). | 3 | when×2, after×1 | action_cards×2, abilities×1 | `transaction.resolve_transaction` |
@@ -89,7 +89,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `agenda.law_discarded` | Prawo zdjęte z gry. | 0 | — | — | `agenda_phase.remove_law` |
 | `any_time` | Dowolna chwila („at any time”). | 8 | any×8 | leaders×8 | — |
 
-Zdarzeń zdefiniowanych: **70**, emitowanych przez silnik: **54**. Potrzebne komponentom, a jeszcze nie emitowane: **12**.
+Zdarzeń zdefiniowanych: **70**, emitowanych przez silnik: **55**. Potrzebne komponentom, a jeszcze nie emitowane: **12**.
 
 Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `economy.resources_spent`, `game.faction_in_play`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `unit.coexist`, `unit.galvanized`
 
@@ -105,20 +105,20 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 
 | Okno | ✅ | ⛔ | Brakujące (⛔) |
 |---|---:|---:|---|
-| `tactical.system_activated` · after | 26 | 4 | Aetherpassage, Aetherstream, So Ata, Survival Instinct |
+| `tactical.system_activated` · after | 28 | 2 | So Ata, Survival Instinct |
 | `agenda.revealed` · after | 16 | 1 | Odlynn Myrr |
 | `combat.round` · start | 14 | 2 | Kuuasi Aun Jalatai, Proxima Targeting VI |
 | `combat` · start | 13 | 0 |  |
 | `turn` · start | 8 | 4 | Crimson Legionnaire II, Law's Order, Neural Parasite (Obsidian), Thunder's Paradox |
 | `production.units_produced` · when | 6 | 5 | "A Tall Stranger", Agency Supply Network, Homesick Phantom, Navarch Feng, The Icon |
-| `tactical.ships_moved` · after | 7 | 4 | Acamar, Call of the Void, Voidwatch, Xuange |
+| `tactical.ships_moved` · after | 10 | 1 | Call of the Void |
 | `agenda.revealed` · when | 10 | 0 |  |
 | `component.gained` · when | 8 | 2 | I.I.H.Q. Modernization, Planesplitter (Firmament) |
 | `production.used` · when | 9 | 0 |  |
 | `any_time` · any | 3 | 5 | Aroz Hollow, Captain Aroz, Nip and Tuck, Ssruu, Xander Alexin Victori III |
 | `combat.hits_assigned` · before | 8 | 0 |  |
 | `unit.destroyed` · when | 1 | 6 | ???\_NULL\_REFERENCE\_???, Dame Briar, F.S.S. Orlando, Lyra Keen, Subatomic Splicer, Vos Hollow |
-| `tactical.system_activated` · when | 4 | 2 | Incursion, Void Tether |
+| `tactical.system_activated` · when | 5 | 1 | Incursion |
 | `combat.won` · after | 5 | 0 |  |
 | `combat` · end | 1 | 4 | "Total Mystery", Ahk Siever, Exile II, Phoenix Standard |
 | `phase` · during [phase=action] | 2 | 3 | Data Skimmer, Deepgloom Executable, Nekro Malleon |
@@ -126,7 +126,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `turn` · end | 4 | 1 | Field Marshal Mercer |
 | `unit.sustain_damage` · after | 5 | 0 |  |
 | `cards.action_played` · when | 4 | 0 |  |
-| `game.setup` · during | 0 | 4 | Dark Whispers, Hubris, The Company, The Tribunii |
+| `game.setup` · during | 1 | 3 | Hubris, The Company, The Tribunii |
 | `phase` · start [phase=strategy] | 3 | 1 | Council Patronage |
 | `planet.control_gained` · after | 4 | 0 |  |
 | `planet.control_gained` · when | 3 | 1 | Liberate |

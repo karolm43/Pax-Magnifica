@@ -911,6 +911,9 @@ class ExplorationState(BaseModel):
     # Zdarzenia „po eksploracji planety” czekające na koniec produkcji z karty (Freelancers):
     # eksploracja kończy się dopiero po tej produkcji (F_naaz_rokha pre-fab-arcologies 1).
     deferred_explored: list[dict[str, str]] = Field(default_factory=list)
+    # Systems whose frontier tokens wait to be explored in this window, one after another
+    # (Multiverse Shift, RULES.md 62.20): the next one opens when the current card is resolved.
+    frontier_queue: list[str] = Field(default_factory=list)
 
 
 class GameChronicle(BaseModel):

@@ -186,6 +186,8 @@ def _neighbors_for_move(
     # Player-dependent adjacency (RULES.md 61.7): added AFTER the wormhole-law filter - these are
     # not map wormhole links (F_creuss: Enforced Travel Ban does not affect Quantum Entanglement).
     result |= board_graph.extra_adjacent_for_player(state, player_id, position, grid)
+    # Layer 4 (RULES.md 61.7): edges the player does not treat as adjacent (Void Tether).
+    result -= board_graph.cut_adjacent_for_player(state, player_id, position, grid)
     return result
 
 

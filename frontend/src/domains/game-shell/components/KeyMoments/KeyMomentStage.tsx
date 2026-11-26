@@ -12,10 +12,11 @@ import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { seatColorStyle } from "@/domains/game-shell/components/FactionsInGame/seatColor";
 import { useFactions, type FactionInfo } from "@/api/useNewGame";
 import { FactionPortraitLayer } from "@/domains/setup/FactionBackdrop";
-import { STELLAR_CONVERTER, momentsForEntry, type KeyMoment } from "./keyMoments";
+import { STELLAR_CONVERTER, VOID_TETHER, momentsForEntry, type KeyMoment } from "./keyMoments";
 import {
   HERO_BOARD_FX,
   RELIC_BOARD_FX,
+  TETHER_BOARD_FX,
   TOKEN_BOARD_FX,
   coversForQueue,
   useHeroFx,
@@ -38,6 +39,7 @@ const DURATION: Record<KeyMoment["kind"], number> = {
   custodians: 4200,
   converter: 0, // bez sceny portretu: od razu efekt na planszy
   wormhole: 0, // Creuss wormhole token: board effect only
+  tether: 0, // Empyrean Void Tether: board effect only
 };
 /** Wygaszanie sceny (zgodne z CSS `.leaving`). */
 const LEAVE_MS = 450;
@@ -237,6 +239,31 @@ function WormholeCaption({ moment, player }: { moment: Extract<KeyMoment, { kind
 }
 
 /**
+ * Empyrean Void Tether (RULES.md 62.20): no portrait scene — the seam seals the border on the
+ * board and a small caption names the token and who placed or moved it.
+ */
+function TetherCaption({ moment, player }: { moment: Extract<KeyMoment, { kind: "tether" }>; player: ActivityPlayer | undefined }) {
+  return (
+    <div
+      className={styles.boardCaption}
+      style={player?.color ? seatColorStyle(player.color) : undefined}
+      role="status"
+      aria-live="polite"
+    >
+      <span className={styles.eyebrow}>Empyrean breakthrough</span>
+      <h2 className={styles.captionTitle}>
+        <img src={assetUrl("/borders/void_tether.png")} alt="" width={28} height={28} style={{ verticalAlign: "middle", marginRight: 8 }} />
+        Void Tether
+      </h2>
+      <span className={styles.subline}>
+        {moment.from ? "Moved to a new border" : "Placed on a border"} — other players no longer treat these systems as adjacent
+      </span>
+      <Who player={player} id={moment.player} />
+    </div>
+  );
+}
+
+/**
  * Kluczowe momenty gry (RULES.md 64): użycie bohatera, wejście The Fracture, zdobyty przełom,
  * zdjęcie żetonu Custodians. Każdy NOWY wpis feedu Activity z takim faktem odtwarza krótką
  * scenę u WSZYSTKICH graczy (także u sprawcy). Sceny idą w kolejce; „Skip” / Esc ją pomija.
@@ -304,7 +331,8 @@ export function KeyMomentStage() {
       } else if (busy > 0 && waited < DICE_MAX_WAIT_MS) {
         timer = window.setTimeout(tryStart, Math.min(busy, 400));
       } else {
-        setShown(current.kind === "converter" || current.kind === "wormhole" ? "board" : "on");
+        const boardOnly = current.kind === "converter" || current.kind === "wormhole" || current.kind === "tether";
+        setShown(boardOnly ? "board" : "on");
       }
     };
     tryStart();
@@ -319,7 +347,9 @@ export function KeyMomentStage() {
         ? RELIC_BOARD_FX[STELLAR_CONVERTER]
         : current?.kind === "wormhole"
           ? TOKEN_BOARD_FX[current.token]
-          : undefined;
+          : current?.kind === "tether"
+            ? TETHER_BOARD_FX
+            : undefined;
   const owner = current?.player ? feed?.players[current.player] : undefined;
 
   useEffect(() => {
@@ -365,6 +395,18 @@ export function KeyMomentStage() {
           ...(current.from ? [{ position: current.from, self: true, kind: "loss" as const }] : []),
         ],
       });
+    } else if (current.kind === "tether") {
+      playFx({
+        heroId: VOID_TETHER,
+        recipe,
+        faction: owner?.faction ?? null,
+        color: owner?.color ?? null,
+        areas: [
+          { position: current.a, self: true, kind: "gain" },
+          { position: current.b, self: true, kind: "gain" },
+          ...(current.from ?? []).map((position) => ({ position, self: true, kind: "loss" as const })),
+        ],
+      });
     } else return;
     return () => stopFx();
     // Zależności celowo tylko [shown, current]: jeden start na wejście w „board”.
@@ -396,6 +438,7 @@ export function KeyMomentStage() {
           <ConverterCaption moment={current} player={player} />
         )}
         {current.kind === "wormhole" && <WormholeCaption moment={current} player={player} />}
+        {current.kind === "tether" && <TetherCaption moment={current} player={player} />}
         <button type="button" className={styles.skip} data-board onClick={skip}>
           Skip <IconPlayerTrackNext size={14} />
         </button>
@@ -418,6 +461,7 @@ export function KeyMomentStage() {
       break;
     case "converter":
     case "wormhole":
+    case "tether":
       return null; // od razu plansza (`board`)
   }
   return (

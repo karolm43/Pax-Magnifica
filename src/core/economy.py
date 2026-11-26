@@ -183,3 +183,11 @@ def give_to_player(
     spend_trade_goods(state, giver_id, trade_goods)
     spend_commodities(state, giver_id, commodities)
     gain_trade_goods(state, receiver_id, trade_goods + commodities, cause=cause)
+    if commodities > 0:
+        # "When you give a number of commodities to ..." (Dark Pact, RULES.md 62.20): the ONE
+        # place every commodity hand-over goes through (transactions, Trade Agreement).
+        triggers.fire(
+            state, GameEvent.COMMODITIES_GIVEN, Moment.AFTER, subject=giver_id,
+            ctx={"player": giver_id, "to": receiver_id, "commodities": commodities,
+                 "cause": cause},
+        )

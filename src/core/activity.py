@@ -84,8 +84,10 @@ class ActivityFact(BaseModel):
     # delta, RULES.md 62.19 - appeared in / left a system: player_id = owner, value = wormhole
     # type in lower case, position = system; the ship moved = removed + appeared in one entry).
     # "area" (TYLKO we wpisie z użyciem bohatera: value = pozycja systemu, detail = "gain" / "loss"
-    # jednostek gracza albo "token_removed" jego żetonu dowodzenia — miejsce efektu na planszy,
+    # jednostek gracza albo "token_removed" jego żetonu dowodzenia, "frontier" / "explore" -
+    # frontier token placed / explored by Multiverse Shift — miejsce efektu na planszy,
     # RULES.md 64.4; feed go nie wypisuje).
+    # "frontier_tokens" (delta = frontier tokens placed in this entry, RULES.md 62.20).
     # NOWY skutek gry => dopisz tu fakt i jego opis w ``describeActivity.tsx``.
     type: str
     # Czyj skutek; None dla zdarzeń talii/stołu bez jednego właściciela.
@@ -520,6 +522,21 @@ def _hero_area_facts(
     if not used:
         return []
     out: list[ActivityFact] = []
+    hero_user = next(
+        (f.player_id for f in facts
+         if f.type in ("leader", "attached") and _is_hero_card(f.value) and f.player_id),
+        None,
+    )
+    # Multiverse Shift (RULES.md 62.20): frontier tokens placed / waiting to be explored.
+    for position in _placed_frontier(before, after):
+        out.append(ActivityFact(type="area", player_id=hero_user, value=position,
+                                detail="frontier"))
+    ex = after.exploration
+    if ex is not None and ex.player_id == hero_user:
+        exploring = ([ex.position] if ex.current is not None and not ex.current.planet else [])
+        for position in [*exploring, *ex.frontier_queue]:
+            out.append(ActivityFact(type="area", player_id=hero_user, value=position,
+                                    detail="explore"))
     for position in sorted(set(before.systems) | set(after.systems)):
         old, new = before.systems.get(position), after.systems.get(position)
         for pid in sorted(after.players):
@@ -748,6 +765,7 @@ def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
             if card not in old_cards:
                 facts.append(ActivityFact(type="attached", value=card, detail=planet))
     facts.extend(_faction_token_facts(before, after))
+    facts.extend(_frontier_token_facts(before, after))
     facts.extend(_unit_wormhole_facts(before, after))
     for objective, scorers in after.objectives.scored.items():
         old_scorers = before.objectives.scored.get(objective, [])
@@ -809,6 +827,22 @@ def _table_facts(before: GameState, after: GameState) -> list[ActivityFact]:
                 )
             )
     return facts
+
+
+def _placed_frontier(before: GameState, after: GameState) -> list[str]:
+    """Systems where a frontier token appeared (Multiverse Shift, RULES.md 62.20)."""
+    return sorted(
+        position for position, system in after.systems.items()
+        if system.frontier_token
+        and not (before.systems.get(position) is not None
+                 and before.systems[position].frontier_token)
+    )
+
+
+def _frontier_token_facts(before: GameState, after: GameState) -> list[ActivityFact]:
+    """ONE fact "frontier_tokens" (delta = how many were placed) - not one line per system."""
+    placed = _placed_frontier(before, after)
+    return [ActivityFact(type="frontier_tokens", delta=len(placed))] if placed else []
 
 
 def _faction_token_facts(before: GameState, after: GameState) -> list[ActivityFact]:

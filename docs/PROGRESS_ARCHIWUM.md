@@ -6515,3 +6515,65 @@ PRESENTATION layer (nothing in rules). User writes texts themselves; I provided 
   are shared by ships passing within `SHARED_EFFECT_MS`.
 - QA: frontend tsc (app), eslint (changed), vitest (`entities/replay`, `state`, `domains/map`), build. Skipped:
   backend (no change), e2e (replay layer only, not setup/flow), visual check in a live game.
+
+## Titans: F_ul Ruling Coverage + Terragenesis Move Fix (2026-11-25)
+- New `tests/factions/test_rulings_titans.py`: 12 `@ruling` tests (terragenesis 1, awaken 3/4/6/7, terraform 2.1/5,
+  heltitan 4, geoform 2, hecatoncheires 6, slumberstate-computing 1/4).
+- Fix (F_ul terragenesis 2): Terragenesis may move a placed sleeper token only once all sleeper tokens are on the
+  board — while the pool has tokens the only source is the pool (`titans._terragenesis_sources`; the effect rejects
+  other sources). Slumberstate Computing keeps its own source list. `rules/R62.md` updated.
+- `tests/rulings_status.json`: gaps for awaken 5, coalescence 4 (turn ended by Nullification Field drops the
+  combat), terraform 4 (Fracture planets not explorable with Terraform), hecatoncheires 5 and slumberstate 5
+  (coexistence I4), slumberstate 3.1 (no binding deals).
+- QA: Titans tests + other tests touching Titans/sleepers (206 passed), ruff, mypy on changed files. Skipped: full
+  backend suite, frontend (no change).
+
+## Flight Replay: Fracture Portals, Asteroid Fields, Supernovas (2026-11-25)
+- Fighters unpacking from a carrier turn to their launch heading while still hidden inside it, so they come out
+  nose-first (user: they were "rotating out of ships, not flying out"); the parking turn happens while braking.
+- Ingress/egress (route hop `portal`) is now its own leg kind (`FlightLeg.kind = "portal"`), distinct from a
+  wormhole: `PORTAL_MS` (2 s, quicker than a 2.4 s wormhole), the ship accelerates into the tear stretching along
+  its nose into a streak (`Frame.stretch`), flashes out and shoots out of the egress tear as a streak. Board effect
+  `portalIn` / `portalOut`: a jagged amber-white tear with a crimson glow that rips open and snaps shut.
+- Asteroid field (`ASTEROID_FIELD`, reachable with a tech): slower leg, the ship weaves sideways between the rocks
+  with small nose swings, dusty glow, `asteroidDust` cloud with rock flecks. Supernova (`SUPERNOVA`): hot orange
+  glow, buffeting shake, `supernovaFlare`. Both act in a bell around the system and fade at the chain ends, so
+  launch and landing points stay exact.
+- QA: frontend tsc (app), eslint (changed), vitest (`entities/replay`, `state`, `domains/map`). Skipped: backend
+  (no change: the route already carried `portal` hops and anomaly names), build (no new modules), e2e, visual check.
+
+## Flight Replay: Ships Swallowed by a Gravity Rift (2026-11-25)
+- User request: a ship that fails its gravity rift roll should be shown swallowed by a black hole. Before, the lost
+  ship flew all the way to the destination and faded out there.
+- Backend (presentation only, no rule change): `_resolve_rift_losses` also returns `MoveLoss` entries (unit type,
+  count, rift system `at`) for lost ships and the cargo that went down with them; `MoveRecord.lost` carries them and
+  `tactical.move` emits one `rift_lost` Activity fact each (value = unit, delta = count, detail = rift). Feed line:
+  "lost N <unit> to the gravity rift in <system>".
+- Frontend: `liveMoveFromEntry` reads `rift_lost` (base type -> map unit id); a move whose whole fleet was lost still
+  replays. `resolveFleetMove` splits each moved stack into survivors and `lostAt` units; the planner flies a lost
+  unit with the fleet up to its rift (`swallowLegs`) and a final `swallow` leg (`SWALLOW_MS`): caught, it is dragged
+  into an ever tighter, faster spiral, stretched thin and shrunk to nothing at the rift's center. Own destination
+  key, so arrivals/combat/losses at the real target never count it. Lost cargo boards a doomed carrier and never
+  unpacks (`CargoRide.lost`); surviving cargo rides a carrier that gets through. Board effect `blackHole`: a
+  lightless core in a spinning purple-orange accretion ring that opens before the capture and collapses after.
+- QA: backend ruff + mypy (changed), pytest (`-k move/rift/activity/tactical/transport` + rift-using faction
+  tests); frontend tsc (app), eslint (changed), vitest (`entities/replay`, `state`, `domains/map`, ActivityPanel).
+  Skipped: full backend suite, build (no new modules), e2e, visual check in a live game.
+
+## Timing-window / ordering gaps closed (2026-11-25)
+- Six `gap` entries removed from `tests/rulings_status.json`, each with a `@ruling` test:
+  - `F_ul/awaken/5`, `F_ul/coalescence/4`: Nullification Field no longer drops Awaken's ground combat —
+    `invasion.begin_forced_combat` (`InvasionState.forced_end`) runs only Ground Combat + Establish Control, then ends
+    the action and the turn. Space combat from Coalescence is not covered.
+  - `F_muaat/adjudicator-baal-nova-seed/10`: same-window offers are re-validated after each accepted ability
+    (`triggers._drop_stale_offers`); emptied responders are skipped in the REACTION queue. Nova Seed (active) now
+    kills Foresight's offer.
+  - `F_vuilraith/the-stillness-of-stars/4`: `CardSpec.on_begin` — Trade's +3 TG and replenish run when the card is
+    played, the agent's window opens before `choose_free_players`; `submit_primary_step` blocked until it closes.
+    Old tests that expected the primary effect at the end were updated.
+  - `R_exploration/notes/1`: `accept_offer` refuses "after you gain control" offers while the planet is still queued
+    for / being explored.
+  - `C_technology/assault-cannon/3.1`: Assault Cannon is a separate combat-start stage after all other start offers
+    (`triggers.fire(hook_filter=)`, `battle._assault_cannon_stage`). ⚠️ ASSUMPTION documented in R56.5.
+- QA: ruff (src, tests), mypy (changed files; the only error, `battle.py` `has_planet_ships`, is another session's
+  hunk), pytest timing/ruling coverage + full suite (see report).

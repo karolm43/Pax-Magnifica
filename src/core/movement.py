@@ -188,7 +188,11 @@ def _effective_move_value(
         return None
     # R7 (R_nebula, RULES.md 32.1): statek ZACZYNAJĄCY krok ruchu w mgławicy traktuje swoją
     # wartość ruchu jako 1; inne efekty (Gravity Drive — hook niżej) mogą ją podnieść.
-    if _NEBULA in grid.anomalies_at(from_pos) and not _ignores_anomalies(state, player_id):
+    if (
+        _NEBULA in grid.anomalies_at(from_pos)
+        and not _ignores_anomalies(state, player_id)
+        and not rules_hooks.permits(rules_hooks.POINT_MOVEMENT_NEBULA_IGNORED, state, player_id)
+    ):  # Voidborn (RULES.md 62.20): nebulae do not affect the player's movement
         move_value = 1
     if single:
         # Wartość JEDNEGO statku podniesiona do zadanej (Captain Mendosa, RULES.md 62.14): po

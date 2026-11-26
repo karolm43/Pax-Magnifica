@@ -449,6 +449,7 @@ def assign_bombard_hits(
     chronicle_log.record_fire(
         new_state, new_inv.attacker, defender, "bombardment", battle.losses_of(units, plan)
     )
-    _sustain_events(new_state, defender, battle.sustained_of(plan, sustain))
+    _sustain_events(new_state, defender, battle.sustained_of(plan, sustain),
+                    new_inv.position, planet)
     del new_inv.bombard_pending[key]
     return new_state

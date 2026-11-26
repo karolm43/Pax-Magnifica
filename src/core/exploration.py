@@ -933,6 +933,7 @@ def resolve(
         }
     )
     new_ex.current = None
+    _next_frontier(new_state, registry, new_ex)
     if new_cur.planet:
         # „Po zbadaniu planety” (hooki frakcji/kart); frontier nie ma planety, więc nie emituje.
         explored = {"player": new_ex.player_id, "planet": new_cur.planet, "deck": new_cur.deck,
@@ -950,6 +951,19 @@ def resolve(
 
         new_state = capacity.open_capacity_check(new_state, registry, new_ex.position)
     return new_state
+
+
+def _next_frontier(state: GameState, registry: StaticDataRegistry, ex: ExplorationState) -> None:
+    """Opens the next queued frontier token (Multiverse Shift, RULES.md 62.20) - MUTATES ``state``.
+
+    A token that left meanwhile (an earlier card removed it) is skipped."""
+    while ex.current is None and ex.frontier_queue:
+        position = ex.frontier_queue.pop(0)
+        system = state.systems.get(position)
+        if system is None or not system.frontier_token:
+            continue
+        ex.position = position
+        exploration_frontier.start_frontier(state, registry, ex.player_id, position)
 
 
 def _fire_explored(state: GameState, explored: dict[str, str]) -> None:
@@ -975,7 +989,7 @@ def finish(state: GameState) -> GameState:
     """Zamyka okno eksploracji (dozwolone dopiero, gdy wszystko rozstrzygnięto)."""
     ex = _exp(state)
     _require_no_grant(state)
-    if ex.current is not None or ex.queue:
+    if ex.current is not None or ex.queue or ex.frontier_queue:
         raise ValueError("Finish exploring every planet first.")
     new_state = state.clone()
     new_state.exploration = None

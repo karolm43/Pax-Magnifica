@@ -18,8 +18,37 @@ SPACE = "space"
 CREUSS_WORMHOLES: dict[str, str] = {
     "creussalpha": "ALPHA", "creussbeta": "BETA", "creussgamma": "GAMMA",
 }
-# Liczba żetonów frakcji (AsyncTI4 WebPlayerArea / PlayerAreaGenerator: Sleepers 5).
-SUPPLY: dict[str, int] = {SLEEPER: 5, **dict.fromkeys(CREUSS_WORMHOLES, 1)}
+# Empyrean Void Tether (RULES.md 62.20): a token on the BORDER of two systems, kept in the zone
+# ``border:<other position>`` of the lower position of the pair (``border_zone``).
+VOID_TETHER = "voidtether"
+BORDER_PREFIX = "border:"
+# Liczba żetonów frakcji (AsyncTI4 WebPlayerArea / PlayerAreaGenerator: Sleepers 5; Void Tether 2
+# - VoidTetherService).
+SUPPLY: dict[str, int] = {SLEEPER: 5, VOID_TETHER: 2, **dict.fromkeys(CREUSS_WORMHOLES, 1)}
+
+
+def border_zone(a: str, b: str) -> tuple[str, str]:
+    """``(position, zone)`` that stores a token on the border of systems ``a`` and ``b``."""
+    low, high = sorted((a, b))
+    return low, f"{BORDER_PREFIX}{high}"
+
+
+def border_of(position: str, zone: str) -> tuple[str, str] | None:
+    """The two systems of a border zone (``None`` for a space / planet zone)."""
+    if not zone.startswith(BORDER_PREFIX):
+        return None
+    return position, zone[len(BORDER_PREFIX):]
+
+
+def borders(state: GameState, kind: str) -> list[tuple[str, str, str]]:
+    """``[(a, b, owner)]`` of every border token ``kind`` on the board (sorted)."""
+    found: list[tuple[str, str, str]] = []
+    for position, system in state.systems.items():
+        for zone, kinds in system.faction_tokens.items():
+            pair = border_of(position, zone)
+            if pair is not None and kind in kinds:
+                found.append((pair[0], pair[1], kinds[kind]))
+    return sorted(found)
 
 
 def wormhole_types(kinds: dict[str, str]) -> list[str]:

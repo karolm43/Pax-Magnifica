@@ -25,6 +25,7 @@ emitujemy je puste/domyślne, by viewer działał bez pełnej logiki rundy.
 
 from __future__ import annotations
 
+import functools
 import time
 from typing import Any
 
@@ -33,9 +34,11 @@ from src.api.web_game import _build_game_state, _entity_key_map
 from src.api.web_players import _build_player_data, _build_stat_tile_positions
 from src.api.web_tiles import _build_tile_unit_data, _ring_count
 from src.core import (
+    faction_tokens,
     game_clock,
     initiative_zero,
     peek,
+    positions,
     strategy_phase,
 )
 from src.core.expedition_state import EXPEDITION_SLICES
@@ -295,6 +298,8 @@ def build_web_data(
         "scoreBreakdowns": web_points.build_score_breakdowns(
             projected, registry, grid, entity_keys
         ),
+        # Tokens on system borders (Empyrean Void Tether, RULES.md 62.20) - ``BorderAnomalyLayer``.
+        "borderAnomalies": build_border_anomalies(projected, grid),
         "cardPool": {
             **_empty_card_pool(),
             **web_objectives.card_pool_counts(projected, registry),
@@ -318,3 +323,37 @@ def entity_key_map(state: GameState) -> dict[str, str]:
 
 # Pomocniczo wyeksportowane dla testów/diagnostyki.
 __all__ = ["build_web_data", "entity_key_map", "is_space_unit"]
+
+
+@functools.lru_cache(maxsize=1)
+def _border_directions() -> dict[tuple[int, int, int], int]:
+    """Cube delta between two edge neighbours -> border direction of the first one, clockwise from
+    north (0 = N ... 5 = NW - ``frontend/.../BorderAnomalyLayer``). Read from the AsyncTI4 position
+    table (``core.positions``, the map's orientation): 101 is north of 000, the ring runs
+    clockwise, so ``10<k>`` - ``000`` is direction ``k - 1``."""
+    table = positions.load_positions()
+    centre = table["000"]
+    return {
+        (h.q - centre.q, h.r - centre.r, h.s - centre.s): k - 1
+        for k in range(1, 7)
+        if (h := table.get(f"10{k}")) is not None
+    }
+
+
+def border_direction(grid: HexGrid, a: str, b: str) -> int | None:
+    """Edge of ``a``'s hex that it shares with ``b`` (``None`` = not edge neighbours)."""
+    if a not in grid.positions or b not in grid.positions:
+        return None
+    qa, ra, sa = grid.coordinates(a)
+    qb, rb, sb = grid.coordinates(b)
+    return _border_directions().get((qb - qa, rb - ra, sb - sa))
+
+
+def build_border_anomalies(state: GameState, grid: HexGrid) -> list[dict[str, Any]]:
+    """``[{tile, direction, type}]`` of every border token (Void Tether: ``void_tether``)."""
+    found: list[dict[str, Any]] = []
+    for a, b, _owner in faction_tokens.borders(state, faction_tokens.VOID_TETHER):
+        direction = border_direction(grid, a, b)
+        if direction is not None:
+            found.append({"tile": a, "direction": direction, "type": "void_tether"})
+    return found

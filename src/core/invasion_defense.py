@@ -232,7 +232,8 @@ def assign_defense_hits(
                 new_state, entry.get("defender"), new_inv.attacker, "defense", entry["losses"]
             )
             break
-    _sustain_events(new_state, new_inv.attacker, battle.sustained_of(plan, sustain))
+    _sustain_events(new_state, new_inv.attacker, battle.sustained_of(plan, sustain),
+                    new_inv.position, planet)
     del new_inv.defense_pending[planet]
     new_inv.defense_resolved.append(planet)
     return new_state

@@ -912,10 +912,14 @@ def _sustained_of(combat: ActiveCombat, state: GameState, player_id: str) -> lis
         str(entry["base_type"])
         for entry in combat.sustained_ships
         if entry["player"] == player_id
-        and damage.damaged_count(
-            system, _sustained_zone(combat, player_id, str(entry["base_type"])), player_id,
-            str(entry["base_type"]),
-        ) > 0
+        and (
+            damage.damaged_count(
+                system, _sustained_zone(combat, player_id, str(entry["base_type"])), player_id,
+                str(entry["base_type"]),
+            ) > 0
+            # Repaired in this window (Dynamo): Direct Hit still destroys it (F_empyrean dynamo 3).
+            or bool(entry.get("repaired"))
+        )
         and not _direct_hit_immune(state, player_id, str(entry["base_type"]))
     ]
 
@@ -1027,8 +1031,9 @@ def _register_direct_hit(card_id: str) -> None:
         damaged_before = damage.damaged_count(system, zone, target, base_type)
         _consume_sustain(combat, target, base_type)
         unit_ops.remove_units(state, system, zone, target, base_type, 1, UnitCause.DESTROYED)
-        # Niszczymy właśnie ten, uszkodzony egzemplarz - uszkodzeń ma być o jedno mniej.
-        damage.set_damaged(system, zone, target, base_type, damaged_before - 1)
+        # Niszczymy właśnie ten, uszkodzony egzemplarz - uszkodzeń ma być o jedno mniej (a gdy
+        # Dynamo już go naprawił - ginie nieuszkodzony, F_empyrean dynamo 3).
+        damage.set_damaged(system, zone, target, base_type, max(0, damaged_before - 1))
 
     register_effect(f"action_cards:{card_id}")(effect)
 

@@ -42,6 +42,18 @@ export type KeyMoment =
       token: string;
       position: string;
       from: string | null;
+    }
+  /**
+   * Empyrean Void Tether token placed / moved onto a border (RULES.md 62.20): `a`-`b` = the two
+   * systems it separates; `from` = the border it left when moved.
+   */
+  | {
+      kind: "tether";
+      seq: number;
+      player: string | null;
+      a: string;
+      b: string;
+      from: [string, string] | null;
     };
 
 /** Relic whose purge + `planet_destroyed` fact is the Stellar Converter moment. */
@@ -51,7 +63,12 @@ export const STELLAR_CONVERTER = "stellarconverter";
 export type ReplacedTile = { position: string; from: string };
 
 /** Miejsce działania bohatera: `self` = jednostki/żetony samego bohatera, inaczej rywala. */
-export type HeroArea = { position: string; self: boolean; kind: "gain" | "loss" | "token_removed" };
+export type HeroArea = {
+  position: string;
+  self: boolean;
+  /** `frontier` / `explore`: frontier token placed / explored (Multiverse Shift, RULES.md 62.20). */
+  kind: "gain" | "loss" | "token_removed" | "frontier" | "explore";
+};
 
 /** Rozpoznanie typu lidera (wstrzykiwane — w aplikacji `getLeaderById`). */
 export type IsHero = (leaderId: string) => boolean;
@@ -160,12 +177,43 @@ export function momentsForEntry(entry: ActivityEntry, isHero: IsHero): KeyMoment
       });
     }
   }
+  // Empyrean Void Tether (RULES.md 62.20): a faction token kept in a BORDER zone
+  // (`border:<other system>` of the lower position) - a border effect, not a system one.
+  if (!godmode) {
+    for (const f of a.facts) {
+      const pair = tetherBorder(f);
+      if (f.type !== "faction_token" || !pair) continue;
+      const left = a.facts.find((x) => x.type === "faction_token_removed" && tetherBorder(x));
+      out.push({
+        kind: "tether",
+        seq,
+        player: f.player_id ?? a.actor_id,
+        a: pair[0],
+        b: pair[1],
+        from: left ? tetherBorder(left) : null,
+      });
+    }
+  }
   // Fracture otwiera scenę: jeśli w jednym wpisie jest kilka momentów (przełom -> rzut 1/10),
   // najpierw przełom, potem Fracture.
   return out.sort((x, y) => order(x) - order(y));
 }
 
-const AREA_KINDS = new Set(["gain", "loss", "token_removed"]);
+const AREA_KINDS = new Set(["gain", "loss", "token_removed", "frontier", "explore"]);
+
+/** Void Tether token id (`assets/data/tokens`, backend `faction_tokens.VOID_TETHER`). */
+export const VOID_TETHER = "voidtether";
+const BORDER_PREFIX = "border:";
+
+/** The two systems of a Void Tether fact (`position` + `detail` "border:<other>"), else null. */
+export function tetherBorder(f: {
+  value?: string | null;
+  detail?: string | null;
+  position?: string | null;
+}): [string, string] | null {
+  if (f.value !== VOID_TETHER || !f.position || !f.detail?.startsWith(BORDER_PREFIX)) return null;
+  return [f.position, f.detail.slice(BORDER_PREFIX.length)];
+}
 
 /** Token id of a unit-carried wormhole type (`delta` -> `whdelta`, `assets/data/tokens`). */
 export function unitWormholeToken(type: string): string {

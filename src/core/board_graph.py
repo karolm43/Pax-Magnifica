@@ -12,7 +12,8 @@ Adjacency ≠ traversability: tu liczy się wyłącznie czyste sąsiedztwo grafu
 Player-dependent adjacency (RULES.md 61.7, block I3) also lives here, as the ONE central point:
 ``extra_adjacent_for_player`` reads hook ``adjacency.extra_for_player`` (e.g. Creuss Quantum
 Entanglement) and ``neighbors_for_player`` / ``are_adjacent_for_player`` combine the three layers
-(map graph + tactical-action adjacency + the player's own). The map graph is never mutated.
+(map graph + tactical-action adjacency + the player's own) minus the player's cut edges (layer 4:
+``cut_adjacent_for_player``, Void Tether). The map graph is never mutated.
 """
 
 from __future__ import annotations
@@ -94,6 +95,24 @@ def extra_adjacent_for_player(
     return frozenset(found - {position})
 
 
+def cut_adjacent_for_player(
+    state: GameState, player_id: str, position: str, grid: HexGrid | None = None
+) -> frozenset[str]:
+    """Systems that are NOT adjacent to ``position`` for ``player_id`` (layer 4, RULES.md 61.7).
+
+    Union of hook FORBID ``adjacency.cut_for_player`` (Empyrean Void Tether: "other players do not
+    treat those systems as adjacent to each other unless you allow it"). It removes an edge of
+    every lower layer, even a matching-wormhole link (F_empyrean void-tether 1). Symmetric.
+    """
+    if player_id not in state.players:
+        return frozenset()
+    found = rules_hooks.forbidden(
+        rules_hooks.POINT_ADJACENCY_CUT_FOR_PLAYER, state, player_id,
+        {"position": position, "grid": grid if grid is not None else bound_grid()},
+    )
+    return frozenset(found - {position})
+
+
 def neighbors_for_player(
     state: GameState, grid: HexGrid, player_id: str, position: str
 ) -> set[str]:
@@ -105,6 +124,7 @@ def neighbors_for_player(
     """
     result = action_adjacency.neighbors(state, grid, position)
     result |= extra_adjacent_for_player(state, player_id, position, grid)
+    result -= cut_adjacent_for_player(state, player_id, position, grid)
     result.discard(position)
     return result
 
@@ -115,6 +135,8 @@ def are_adjacent_for_player(
     """Whether systems ``a`` and ``b`` are adjacent for ``player_id`` (all three layers)."""
     if a == b:
         return False
+    if b in cut_adjacent_for_player(state, player_id, a, grid):
+        return False  # layer 4 (Void Tether)
     if action_adjacency.are_adjacent(state, grid, a, b):
         return True
     return b in extra_adjacent_for_player(

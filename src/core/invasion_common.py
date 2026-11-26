@@ -297,11 +297,16 @@ def _ground_units(
     return {u.base_type: u for u in battle.ability_hit_targets(state, player_id, units)}
 
 
-def _sustain_events(state: GameState, player_id: str, used: dict[str, int]) -> None:
-    """``UNIT_SUSTAIN_DAMAGE/AFTER`` dla każdego typu, który użył Sustain Damage (MUTUJE)."""
+def _sustain_events(
+    state: GameState, player_id: str, used: dict[str, int], position: str = "", zone: str = ""
+) -> None:
+    """``UNIT_SUSTAIN_DAMAGE/AFTER`` dla każdego typu, który użył Sustain Damage (MUTUJE).
+
+    ``position`` / ``zone`` = where the units are (Dynamo, RULES.md 62.20)."""
     for base_type, count in used.items():
         if count > 0:
             triggers.fire(
                 state, GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, subject=player_id,
-                ctx={"player": player_id, "base_type": base_type, "count": count},
+                ctx={"player": player_id, "base_type": base_type, "count": count,
+                     "position": position, "zone": zone},
             )

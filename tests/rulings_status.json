@@ -66,12 +66,6 @@
   "F_yin/dannel-of-the-tenth-spinner-overdrive-replaced-by-omega-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Dannel of the Tenth Ω - Quantum Dissemination); ta sekcja opisuje starą kartę z PoK."
   },
-  "F_argent/raid-formation/4.2": {
-    "requires": [
-      "faction:empyrean"
-    ],
-    "reason": "Dynamo (flagowiec Empyrean) nie naprawia statków uszkodzonych przez Raid Formation - frakcja niezaimplementowana."
-  },
   "F_argent/raid-formation/6": {
     "requires": [
       "faction:nekro"
@@ -202,12 +196,6 @@
       "faction:mahact"
     ],
     "reason": "Benediction (bohater Mahact) przesuwa war suna Muaat - wtedy bez Nova Seed."
-  },
-  "F_muaat/adjudicator-baal-nova-seed/8": {
-    "requires": [
-      "faction:empyrean"
-    ],
-    "reason": "Agent Empyrean (Acamar) po Nova Seed na systemie z planetami."
   },
   "F_vuilraith/amalgamation/5": {
     "gap": "Alliance commandera Naalu/Yin (dodatkowy myśliwiec/piechota za 1 zasób) + Amalgamation - kombinacja niezweryfikowana testem; aktywne warianty tych commanderów nie dają darmowej sztuki przy produkcji."
@@ -382,10 +370,7 @@
     "na": "Ships cannot leave the active system in the Move Ships step (it holds the active player's command token), so the engine never moves a ship out and back in during one move step."
   },
   "C_action_cards/reflective-shielding/1.1": {
-    "requires": [
-      "faction:empyrean"
-    ],
-    "reason": "Repair via the Empyrean flagship Dynamo; Empyrean is not implemented."
+    "gap": "Sustain Damage is limited per hit assignment, not per unit and timing window: a unit the Dynamo repaired could sustain again against the Reflective Shielding hits of the same window (no per-unit window record in core/battle.py) - RULES.md 62.20."
   },
   "C_action_cards/rout/2": {
     "requires": [
@@ -410,5 +395,17 @@
       "faction:mahact"
     ],
     "reason": "Mahact Benediction (hero) moving the Creuss ships - Mahact is not implemented; Sai Seravus already answers every SHIPS_MOVED of Creuss (any kind of move)."
+  },
+  "F_empyrean/dynamo/1": {
+    "gap": "Same as C_action_cards/reflective-shielding/1.1: core/battle.py has no per-unit 'already sustained in this window' record, so a unit repaired by the Dynamo is not barred from a second SUSTAIN DAMAGE in the same window (RULES.md 62.20)."
+  },
+  "F_empyrean/watcher/6": {
+    "gap": "Research action cards ask for the technology when they are played (the card form), i.e. before the hold window the Watcher answers; announcing it later is not modelled (RULES.md 62.20)."
+  },
+  "F_empyrean/watcher/7": {
+    "na": "Only the play of a card opens the hold window (core/card_hold.begin); a rider resolving later is not a new play, so nothing can be cancelled then - the ruling holds by construction (RULES.md 62.20)."
+  },
+  "F_empyrean/watcher/8.1": {
+    "gap": "card_hold.cancel_by_component returns the cancelled ACTION card's action (action_budget.unregister_action); ending the turn without the Fleet Logistics second action is the existing End turn path - no dedicated scenario with Fleet Logistics (RULES.md 62.20)."
   }
 }

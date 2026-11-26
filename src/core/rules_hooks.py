@@ -202,6 +202,11 @@ POINT_MOVEMENT_EXTRA_ADJACENT = "movement.extra_adjacent"
 # persistently (ctx: position, grid: HexGrid | None); map graph untouched. Read solely via
 # ``board_graph.extra_adjacent_for_player`` (RULES.md 61.7, e.g. Quantum Entanglement).
 POINT_ADJACENCY_EXTRA_FOR_PLAYER = "adjacency.extra_for_player"
+# FORBID -> positions that are NOT adjacent to ``ctx["position"]`` for this player although the
+# lower layers make them adjacent (layer 4 of RULES.md 61.7: Empyrean Void Tether - "other players
+# do not treat those systems as adjacent"); ctx: position, grid. Read solely via
+# ``board_graph.cut_adjacent_for_player``.
+POINT_ADJACENCY_CUT_FOR_PLAYER = "adjacency.cut_for_player"
 # FORBID -> ``"<position>|<TYPE>"`` wormholes carried by the player's units (Hil Colish: "This
 # ship's system contains a delta wormhole"); read ONLY via ``board_graph.unit_wormholes``
 # (map sync + ``wormholes_at``), RULES.md 62.19.
@@ -249,6 +254,9 @@ POINT_BOMBARDMENT_FORBIDDEN_TRAITS = "bombardment.forbidden_traits"
 POINT_MOVEMENT_WORMHOLES_BLOCKED = "movement.wormholes_blocked"
 # PERMIT -> jednostki mogą przelatywać przez mgławice (Shared Research).
 POINT_MOVEMENT_THROUGH_NEBULA = "movement.through_nebula"
+# PERMIT -> a ship starting its move in a nebula keeps its move value (Empyrean Voidborn:
+# "Nebulae do not affect your ships' movement"); read in ``movement.move_value``.
+POINT_MOVEMENT_NEBULA_IGNORED = "movement.nebula_ignored"
 # MODIFY -> delta liczby myśliwców/piechoty za jeden koszt (ctx: base_type; Regulated Conscription).
 POINT_PRODUCTION_UNITS_PER_COST = "production.units_per_cost"
 # FORBID -> typy jednostek gracza, które tracą SUSTAIN DAMAGE (Publicize Weapon Schematics).

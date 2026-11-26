@@ -10,6 +10,7 @@ from src.core.hooks.factions import (
     arborec,
     argent,
     cabal,
+    empyrean,
     ghost,
     hacan,
     jolnar,
@@ -29,7 +30,8 @@ from src.core.hooks.factions import (
 )
 
 __all__ = [
-    "arborec", "argent", "cabal", "ghost", "hacan", "jolnar", "l1z1x", "letnev", "mentak", "muaat",
+    "arborec", "argent", "cabal", "empyrean", "ghost", "hacan", "jolnar", "l1z1x", "letnev",
+    "mentak", "muaat",
     "naalu", "naaz",
     "saar", "sardakk",
     "sol", "titans",

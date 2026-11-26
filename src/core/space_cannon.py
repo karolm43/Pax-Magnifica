@@ -843,7 +843,8 @@ def assign_hits(
     for base_type, count in used.items():
         triggers.fire(
             new_state, GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, subject=target_id,
-            ctx={"player": target_id, "base_type": base_type, "count": count},
+            ctx={"player": target_id, "base_type": base_type, "count": count,
+                 "position": new_state.active_system, "zone": "space"},
         )
     # Ślad dla Direct Hit („after another player's ship uses SUSTAIN DAMAGE to cancel a hit
     # produced by your units” - także poza walką, ruling C_action_cards; RULES.md 53.5.c).

@@ -16,6 +16,7 @@ import {
 import { Mark, MarkDefs } from "./HeroFxMarks";
 import { StellarConverterDefs, StellarConverterMark } from "./StellarConverterMark";
 import { CreussFxDefs, SingularityRiftMark, WormholePortalMark } from "./CreussFxMarks";
+import { EmpyreanFxDefs, VoidEyeMark, VoidTetherMark } from "./EmpyreanFxMarks";
 import classes from "./HeroBoardFxLayer.module.css";
 
 /**
@@ -273,6 +274,15 @@ export function HeroBoardFxLayer({
   const targets = fxTargets(recipe, tiles, run, gameState?.activeSystem ?? null)
     .map((p) => byPosition.get(p))
     .filter((t): t is Tile => !!t);
+  // Multiverse Shift: systems whose frontier token the eye explores (area "explore").
+  const explored = new Set(
+    (run.areas ?? []).filter((a) => a.kind === "explore").map((a) => a.position),
+  );
+  // Void Tether moved: the border it left dissolves (the moment's two "loss" areas).
+  const tetherLeft = (run.areas ?? [])
+    .filter((a) => a.kind === "loss")
+    .map((a) => byPosition.get(a.position))
+    .filter((t): t is Tile => !!t);
   // Creuss wormhole token moved: the system it left collapses (area "loss" of the moment).
   const closing =
     recipe.mark === "portal"
@@ -322,15 +332,25 @@ export function HeroBoardFxLayer({
           <StellarConverterDefs />
         ) : recipe.mark === "rift" || recipe.mark === "portal" ? (
           <CreussFxDefs />
+        ) : recipe.mark === "voideye" || recipe.mark === "tether" ? (
+          <EmpyreanFxDefs />
         ) : (
           <MarkDefs />
         )}
         {recipe.mark === "rift" && <SingularityRiftMark targets={targets} replaced={run.replaced ?? []} />}
+        {recipe.mark === "tether" && targets.length >= 2 && (
+          <VoidTetherMark a={targets[0]} b={targets[1]} />
+        )}
+        {recipe.mark === "tether" && tetherLeft.length >= 2 && (
+          <VoidTetherMark a={tetherLeft[0]} b={tetherLeft[1]} closing />
+        )}
         {closing.map((tile) => (
           <WormholePortalMark key={`closing-${tile.position}`} tile={tile} token={run.heroId} closing />
         ))}
         {targets.map((tile, index) =>
-          recipe.mark === "rift" ? null : recipe.mark === "portal" ? (
+          recipe.mark === "rift" || recipe.mark === "tether" ? null : recipe.mark === "voideye" ? (
+            <VoidEyeMark key={tile.position} tile={tile} index={index} explore={explored.has(tile.position)} />
+          ) : recipe.mark === "portal" ? (
             <WormholePortalMark key={tile.position} tile={tile} token={run.heroId} />
           ) : recipe.mark === "nova" ? (
             <NovaMark key={tile.position} tile={tile} />

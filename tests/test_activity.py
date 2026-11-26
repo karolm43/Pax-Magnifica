@@ -630,3 +630,42 @@ def test_creuss_wormhole_token_facts_carry_the_system() -> None:
         ("faction_token", "creussalpha", "space", "102"),
         ("faction_token_removed", "creussalpha", "space", "101"),
     }
+
+
+def test_multiverse_shift_frontier_w_feedzie_i_obszar() -> None:
+    """Multiverse Shift (RULES.md 62.20): one counted fact + areas frontier / explore."""
+    from src.core.game_state import ExplorationState, ExploreCurrent
+
+    before = _state()
+    before.players["p1"].leader_states["empyreanhero"] = "unlocked"
+    before.systems["101"] = _system("101")
+    before.systems["102"] = _system("102")
+    before.systems["103"] = SystemState(position="103", system_id="47", frontier_token=True)
+    after = _state()
+    after.players["p1"].leader_states["empyreanhero"] = "purged"
+    after.systems["101"] = SystemState(position="101", system_id="27", frontier_token=True)
+    after.systems["102"] = SystemState(position="102", system_id="27", frontier_token=True)
+    after.systems["103"] = SystemState(position="103", system_id="47")
+    after.exploration = ExplorationState(
+        player_id="p1", position="103", frontier_queue=["102"],
+        current=ExploreCurrent(planet="", deck="frontier", card_id="urf1"),
+    )
+    entry = derive_activity("component-use:leader:empyreanhero:p1", before, after)
+    assert entry is not None
+    assert [f.delta for f in entry.facts if f.type == "frontier_tokens"] == [2]
+    areas = {(f.value, f.detail) for f in entry.facts if f.type == "area"}
+    assert {("101", "frontier"), ("102", "frontier"), ("103", "explore"), ("102", "explore")} <= areas
+
+
+def test_void_tether_na_granicy_w_feedzie() -> None:
+    """A Void Tether is a faction token in the border zone ``border:<other>`` (RULES.md 62.20)."""
+    before = _state()
+    before.systems["101"] = _system("101")
+    after = _state()
+    after.systems["101"] = _system("101")
+    after.systems["101"].faction_tokens = {"border:102": {"voidtether": "p1"}}
+    entry = derive_activity("offers:accept", before, after)
+    assert entry is not None
+    found = [(f.type, f.value, f.detail, f.position) for f in entry.facts
+             if f.type == "faction_token"]
+    assert found == [("faction_token", "voidtether", "border:102", "101")]
