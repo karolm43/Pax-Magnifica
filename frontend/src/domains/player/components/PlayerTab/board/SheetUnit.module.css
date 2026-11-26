@@ -125,6 +125,18 @@
   vertical-align: middle;
 }
 
+/* Keywords and stat bar sit on the floor of the box, so bars line up across a row. */
+.foot {
+  display: grid;
+  gap: 4px;
+  margin-top: auto;
+}
+
+/* No UPGRADE strip (flagship, mech): keep its width so columns line up down the grid. */
+.box:not(:has(.upgrade)) .body {
+  padding-right: 27px;
+}
+
 .keywords {
   display: flex;
   flex-wrap: wrap;
@@ -148,16 +160,34 @@
 
 .stats {
   display: grid;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
-  gap: 3px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
   margin: 0;
+}
+
+/* Every stat has its own column, like the printed bar: Move is always third. */
+.stat[data-label="Cost"] {
+  grid-column: 1;
+}
+
+.stat[data-label="Combat"] {
+  grid-column: 2;
+}
+
+.stat[data-label="Move"] {
+  grid-column: 3;
+}
+
+.stat[data-label="Capacity"] {
+  grid-column: 4;
 }
 
 .stat {
   display: grid;
   justify-items: center;
-  max-width: 52px;
+  width: 100%;
+  max-width: 56px;
+  justify-self: center;
   padding: 2px 0 1px;
   border-top: 2px solid rgb(var(--ti-gold-rgb) / 0.75);
   background: rgb(var(--ti-gold-rgb) / 0.12);
@@ -179,7 +209,8 @@
 }
 
 .stat dt {
-  font-size: 7px;
+  font-size: 7.5px;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--ds-ink-lo);
 }

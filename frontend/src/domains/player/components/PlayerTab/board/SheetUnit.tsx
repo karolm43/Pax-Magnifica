@@ -35,7 +35,7 @@ export function StatBar({ stats }: { stats: StatBox[] }) {
   return (
     <dl className={styles.stats}>
       {stats.map((stat) => (
-        <div key={stat.label} className={styles.stat}>
+        <div key={stat.label} className={styles.stat} data-label={stat.label}>
           <dd>
             {stat.value}
             {stat.times ? <i>×{stat.times}</i> : null}
@@ -168,14 +168,16 @@ export function SheetUnit({ asyncId, player, variant = "unit", subtitle, classNa
               </header>
               <Silhouette asyncId={asyncId} player={player} faction={unit.faction} />
               {unit.ability && <p className={styles.ability}>{unit.ability}</p>}
-              {keywords.length > 0 && (
-                <ul className={styles.keywords}>
-                  {keywords.map((keyword) => (
-                    <li key={keyword}>{keyword}</li>
-                  ))}
-                </ul>
-              )}
-              <StatBar stats={statBoxes(unit, modifiers)} />
+              <div className={styles.foot}>
+                {keywords.length > 0 && (
+                  <ul className={styles.keywords}>
+                    {keywords.map((keyword) => (
+                      <li key={keyword}>{keyword}</li>
+                    ))}
+                  </ul>
+                )}
+                <StatBar stats={statBoxes(unit, modifiers)} />
+              </div>
               <span
                 className={styles.count}
                 data-empty={deployed === cap || undefined}

@@ -28,40 +28,6 @@
   min-width: 0;
 }
 
-.viewTabs {
-  margin-bottom: 8px;
-}
-
-.tabMeta {
-  margin-left: 6px;
-  font-size: 11px;
-  color: var(--ds-ink-lo);
-}
-
-.tabMeta[data-warn] {
-  color: #fbbf24;
-}
-
-.view {
-  display: grid;
-  gap: 12px;
-}
-
-.dockSummary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.dockFlow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 6px;
-}
-
 /* --- Panele --- */
 .panel {
   padding: 10px 12px 12px;

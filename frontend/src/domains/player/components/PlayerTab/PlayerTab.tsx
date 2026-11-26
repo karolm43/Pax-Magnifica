@@ -19,7 +19,7 @@ import styles from "./PlayerTab.module.css";
  * at the top shows anyone else.
  * [seat switcher] [table badges: VP & rank, speaker/tyrant, strategy cards, neighbors, breakthrough]
  * [player zone: leaders & mech | faction sheet | command sheet]
- * [dock tabs: hand & briefing/intel | planets | technologies | objectives & cards]
+ * [below: briefing / opponent intel + empire | hand + army strength]
  * Turn actions live in the control panel on the map - not duplicated here.
  */
 

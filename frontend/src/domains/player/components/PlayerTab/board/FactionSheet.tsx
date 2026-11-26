@@ -62,7 +62,7 @@ function Abilities({ ids }: { ids: string[] }) {
             {data.permanentEffect && <p>{data.permanentEffect}</p>}
             {(data.window || data.windowEffect) && (
               <p>
-                {data.window && <em>{data.window} </em>}
+                {data.window && <em className={styles.abilityWindow}>{data.window}</em>}
                 {data.windowEffect}
               </p>
             )}
