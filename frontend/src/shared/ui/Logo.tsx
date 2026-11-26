@@ -1,27 +1,25 @@
-import { Text } from "@/ds";
 import { useNavigate } from "react-router-dom";
+import styles from "./Logo.module.css";
 
 /**
- * Znak słowny aplikacji w nagłówku (lewy górny róg). Custodian Engine zastępuje
- * oryginalny baner AsyncTI4 — nie mamy własnej grafiki, więc render tekstowy.
+ * App wordmark in the header (top-left). Styled like the main-menu logo
+ * (Ambroise Firmin + TI4 gradient); clicking it returns to the main menu.
  */
 function Logo() {
   const navigate = useNavigate();
   return (
-    <Text
-      component="span"
+    <span
+      role="link"
+      tabIndex={0}
+      className={styles.logo}
       onClick={() => navigate("/")}
-      style={{
-        cursor: "pointer",
-        fontWeight: 700,
-        letterSpacing: "0.08em",
-        whiteSpace: "nowrap",
-        fontSize: 16,
-        lineHeight: 1,
+      onKeyDown={(e) => {
+        if (e.key === "Enter") navigate("/");
       }}
+      title="Main menu"
     >
-      CUSTODIAN ENGINE
-    </Text>
+      Custodian Engine
+    </span>
   );
 }
 

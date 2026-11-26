@@ -1,0 +1,31 @@
+/*
+ * Header wordmark — same treatment as the main-menu logo (`StartScreen.module.css`
+ * `.menuTitle`): Ambroise Firmin Bold, uppercase, vertically stretched, TI4 red→gold
+ * gradient clipped into the glyphs with an ember glow. Scaled down for the 60px bar.
+ */
+.logo {
+  display: inline-block;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: "Ambroise Firmin", var(--ds-font-display), serif;
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  transform: scaleY(1.35);
+  transform-origin: center;
+  background: linear-gradient(180deg, #f24a21 0%, #f6792a 32%, #fca22b 62%, #ffd34a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 0 10px rgb(246 121 42 / 0.45)) drop-shadow(0 1px 3px rgb(0 0 0 / 0.7));
+  transition: filter 0.2s ease;
+}
+
+.logo:hover,
+.logo:focus-visible {
+  filter: drop-shadow(0 0 14px rgb(252 162 43 / 0.75)) drop-shadow(0 1px 3px rgb(0 0 0 / 0.7));
+  outline: none;
+}
