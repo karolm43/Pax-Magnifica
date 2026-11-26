@@ -402,8 +402,10 @@ Older, completed blocks (Phase 1 → blocks up to 2026-11-24) are in `PROGRESS_A
 
 ## Player tab as a physical player zone (frontend only)
 - Layout (`PlayerTab/`): seat switcher + table badges (`TableStrip`), the 3-wing board (`board/PlayerBoard`:
-  `LeaderWing` | `FactionSheet` | `CommandWing`), tabbed lower dock (`EmpireDock`: hand & briefing, planets,
-  technologies, objectives & cards). `CommandBanner` and the telemetry strip are gone.
+  `LeaderWing` | `FactionSheet` | `CommandWing`) on a starfield playmat; command sheet = the printed hexagon
+  (tactic / fleet / strategy / trade goods / reinforcements) with live token piles. Below it `EmpireDock`, no tabs:
+  briefing sorted by urgency, empire + shipyard, hand, army strength (planets/tech/cards stay on the Players tab).
+  `CommandBanner` and the telemetry strip are gone.
 - Unit boxes (`board/SheetUnit` + `sheetUnits.ts`) print stat boxes, keywords and the UPGRADE strip from unit data
   only; live deployed/cap tag. Click opens the shared `UnitCard/UnitDetails`; upgrade modifiers now live in
   `UnitCard/unitModifiers.ts` (used by `UnitCard` too). `PlayerCard` lost the unused `hideHeader`/`sections` props.
