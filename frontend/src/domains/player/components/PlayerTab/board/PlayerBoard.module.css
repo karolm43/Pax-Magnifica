@@ -1,20 +1,45 @@
-/* Three wings side by side; below that the sheet takes the full width and the two wings sit
-   under it; on a phone everything is one column. Measured on the board, not the viewport. */
+/* The playmat: a starfield table surface with the three pieces lying on it (organizer, faction
+   sheet, command mat). The sheet sets the height; the side pieces keep their own size.
+   Below 1240px the side pieces go under the sheet, on a phone everything is one column. */
 .board {
   container-type: inline-size;
+  /* Tiled starfield, shared by the mat, the sheet and the command mat (custom properties inherit). */
+  --stars-img:
+    radial-gradient(1.4px 1.4px at 12px 24px, rgb(255 255 255 / 0.9), transparent),
+    radial-gradient(1px 1px at 87px 61px, rgb(255 255 255 / 0.6), transparent),
+    radial-gradient(1.8px 1.8px at 150px 15px, rgb(200 225 255 / 0.95), transparent),
+    radial-gradient(1px 1px at 41px 140px, rgb(255 255 255 / 0.55), transparent),
+    radial-gradient(1.2px 1.2px at 172px 118px, rgb(255 255 255 / 0.75), transparent),
+    radial-gradient(2px 2px at 230px 210px, rgb(255 236 210 / 0.9), transparent),
+    radial-gradient(1px 1px at 300px 60px, rgb(255 255 255 / 0.65), transparent),
+    radial-gradient(1.2px 1.2px at 95px 280px, rgb(210 230 255 / 0.7), transparent);
+  --stars-size: 190px 190px, 190px 190px, 190px 190px, 190px 190px, 190px 190px, 330px 330px,
+    330px 330px, 330px 330px;
+  padding: 14px;
+  border: 1px solid #1b2232;
+  border-radius: 12px;
+  background-image:
+    var(--stars-img),
+    radial-gradient(60% 50% at 20% 0%, rgb(40 70 130 / 0.35), transparent 70%),
+    radial-gradient(50% 45% at 95% 100%, rgb(100 40 120 / 0.25), transparent 70%),
+    linear-gradient(180deg, #060912, #03050a);
+  background-size: var(--stars-size), auto, auto, auto;
+  box-shadow: inset 0 0 40px rgb(0 0 0 / 0.8);
 }
 
 .wings {
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr) 232px;
+  grid-template-columns: clamp(236px, 13cqi, 300px) minmax(0, 1fr) clamp(300px, 19cqi, 440px);
   grid-template-areas: "leaders sheet command";
-  gap: 8px;
+  align-items: start;
+  gap: 14px;
 }
 
 .leaders {
   grid-area: leaders;
   display: grid;
   min-width: 0;
+  filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.7));
 }
 
 .sheet {
@@ -29,7 +54,7 @@
   min-width: 0;
 }
 
-@container (max-width: 1240px) {
+@container (max-width: 1400px) {
   .wings {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas:
@@ -39,7 +64,7 @@
 
   .command {
     justify-self: center;
-    width: min(100%, 300px);
+    width: min(100%, 360px);
   }
 }
 

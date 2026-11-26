@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { portraitCandidates } from "@/domains/setup/FactionBackdrop";
 import { Ability } from "@/domains/player/components/Ability";
 import { getPlayerCardLayoutFields } from "@/domains/player/components/PlayerCardShared/getPlayerCardLayoutFields";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { getAbility } from "@/entities/lookup/abilities";
 import { lookupUnit } from "@/entities/lookup/units";
-import { getPlanetTileArt, TILE_ART_HEIGHT, TILE_ART_WIDTH } from "@/entities/lookup/planetTileArt";
-import { planets } from "@/entities/data/planets";
 import { attribution, quoted } from "@/entities/lore/typography";
 import type { PlayerData } from "@/entities/data/types";
 import { factionQuote, LoreButton } from "./LoreButton";
@@ -14,8 +12,8 @@ import { SheetUnit } from "./SheetUnit";
 import styles from "./FactionSheet.module.css";
 
 /*
- * Center of the player zone: the faction sheet. Name and emblem over the blended portrait and
- * home planet, the flagship top-left, abilities and commodities on the right, and the unit grid
+ * Center of the player zone: the faction sheet. Name and emblem over the portrait on a
+ * starfield, the flagship top-left, abilities and commodities on the right, and the unit grid
  * in the printed order.
  */
 
@@ -31,25 +29,6 @@ const GRID_UNITS = [
   { asyncId: "gf", area: "gf" },
   { asyncId: "sd", area: "sd" },
 ];
-
-/** Home planet cut out of its map tile (square window around the planet). */
-function HomePlanet({ faction }: { faction: string }) {
-  const art = useMemo(() => {
-    const home = planets.find((p) => p.factionHomeworld === faction);
-    return home ? getPlanetTileArt(home) : null;
-  }, [faction]);
-  if (!art) return null;
-  const size = 300;
-  const scale = size / (art.radius * 2);
-  const style: CSSProperties = {
-    width: size,
-    height: size,
-    backgroundImage: `url("${art.src}")`,
-    backgroundSize: `${TILE_ART_WIDTH * scale}px ${TILE_ART_HEIGHT * scale}px`,
-    backgroundPosition: `${-(art.center.x - art.radius) * scale}px ${-(art.center.y - art.radius) * scale}px`,
-  };
-  return <span className={styles.planet} style={style} />;
-}
 
 /** First portrait source that loads; the icon fallback is skipped (the emblem is already there). */
 function Portrait({ player }: { player: PlayerData }) {
@@ -119,7 +98,6 @@ export function FactionSheet({ player }: { player: PlayerData }) {
     <section className={styles.sheetFrame} aria-label={`${name} faction sheet`}>
       <div className={styles.sheet}>
         <div className={styles.backdrop} aria-hidden="true">
-          <HomePlanet faction={player.faction} />
           <Portrait key={player.faction} player={player} />
         </div>
 

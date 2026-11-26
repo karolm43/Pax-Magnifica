@@ -1,12 +1,13 @@
 /* Organizer wing: dark recessed frames stacked, each with a vertical side tab. */
 .wing {
   display: grid;
-  grid-auto-rows: minmax(120px, 1fr);
+  grid-auto-rows: auto;
   gap: 8px;
   min-width: 0;
   padding: 8px;
-  border: 1px solid var(--ds-h14);
-  background: linear-gradient(180deg, #151923, #0b0d13);
+  /* The organizer: a grey plastic tray with recessed card wells. */
+  background: linear-gradient(180deg, #59616d, #3a4049 45%, #2b3037);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
   clip-path: polygon(var(--ti-cut) 0, 100% 0, 100% 100%, var(--ti-cut) 100%, 0 calc(100% - var(--ti-cut)), 0 var(--ti-cut));
 }
 
@@ -154,6 +155,6 @@
   line-height: 1.3;
   color: var(--ds-ink-lo);
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 7;
-  line-clamp: 7;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
 }

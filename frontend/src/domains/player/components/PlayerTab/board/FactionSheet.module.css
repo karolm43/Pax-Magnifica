@@ -1,8 +1,11 @@
-/* The faction sheet: a dark metal / starfield plate with the printed 4 × 4 grid. The sheet
-   measures itself (container queries): four columns, then two, then one. */
+/* The faction sheet: a printed sheet with a starfield, the faction portrait blended into the
+   stars and the printed 4 × 4 grid. The sheet measures itself (container queries): four
+   columns, then two, then one. */
 .sheetFrame {
   container-type: inline-size;
   min-width: 0;
+  /* The sheet is cut (clip-path), so its shadow comes from the frame. */
+  filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.75));
 }
 
 .sheet {
@@ -15,61 +18,51 @@
     "ws ca    .     abil"
     "dn dd    pd    comm"
     "cv ff    gf    sd";
-  grid-auto-rows: auto;
+  align-content: start;
   gap: 8px;
-  height: 100%;
   padding: 10px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--pc) 45%, rgb(255 255 255 / 0.1));
-  background:
-    radial-gradient(1px 1px at 20% 30%, rgb(255 255 255 / 0.5), transparent 100%),
-    radial-gradient(1px 1px at 70% 65%, rgb(255 255 255 / 0.35), transparent 100%),
-    radial-gradient(1px 1px at 45% 85%, rgb(255 255 255 / 0.3), transparent 100%),
-    radial-gradient(1px 1px at 85% 15%, rgb(255 255 255 / 0.45), transparent 100%),
-    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--pc) 20%, transparent), transparent 70%),
-    linear-gradient(180deg, #141824, #07080d);
+  border: 1px solid #34405a;
+  background-image:
+    var(--stars-img),
+    radial-gradient(45% 40% at 62% 22%, color-mix(in srgb, var(--pc) 16%, transparent), transparent 75%),
+    radial-gradient(60% 45% at 15% 75%, rgb(30 70 140 / 0.22), transparent 75%),
+    linear-gradient(180deg, #0a0f1d, #04060b);
+  background-size: var(--stars-size), auto, auto, auto;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05), inset 0 0 60px rgb(0 0 0 / 0.6);
   clip-path: polygon(var(--ti-cut) 0, calc(100% - var(--ti-cut)) 0, 100% var(--ti-cut), 100% calc(100% - var(--ti-cut)), calc(100% - var(--ti-cut)) 100%, var(--ti-cut) 100%, 0 calc(100% - var(--ti-cut)), 0 var(--ti-cut));
 }
 
-/* Blended artwork behind the upper area, fading into the sheet. */
+/* Portrait behind the upper area, dissolving into the stars. */
 .backdrop {
   position: absolute;
   z-index: -1;
   inset: 0 0 auto;
-  height: 560px;
+  height: 600px;
   overflow: hidden;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent);
-  mask-image: linear-gradient(180deg, #000 55%, transparent);
-}
-
-.planet {
-  position: absolute;
-  top: 34px;
-  left: 20%;
-  border-radius: 50%;
-  opacity: 0.75;
-  box-shadow: 0 0 60px color-mix(in srgb, var(--pc) 45%, transparent);
 }
 
 .portrait {
   position: absolute;
-  top: 40px;
+  top: 30px;
   left: 62%;
-  height: 520px;
+  height: 560px;
   max-width: 55%;
   object-fit: cover;
   object-position: top center;
-  opacity: 0.8;
+  opacity: 0.85;
   transform: translateX(-50%);
-  -webkit-mask-image: radial-gradient(closest-side, #000 60%, transparent);
-  mask-image: radial-gradient(closest-side, #000 60%, transparent);
+  -webkit-mask-image: radial-gradient(closest-side, #000 55%, transparent);
+  mask-image: radial-gradient(closest-side, #000 55%, transparent);
 }
 
 .title {
   grid-area: title;
   align-self: start;
+  min-height: 150px;
   margin: 0;
+  padding-bottom: 6px;
   font-family: var(--ti-font-title);
   font-size: clamp(18px, 3cqi, 34px);
   line-height: 1.15;
@@ -78,7 +71,6 @@
   text-transform: uppercase;
   color: #fff;
   text-shadow: 0 2px 12px #000, 0 0 3px #000;
-  min-height: 150px;
 }
 
 .lore {
@@ -166,8 +158,8 @@
   gap: 8px;
   height: 100%;
   padding: 8px;
-  border: 1px solid rgb(255 255 255 / 0.16);
-  background: rgb(5 6 10 / 0.74);
+  border: 1px solid rgb(148 163 184 / 0.25);
+  background: rgb(4 6 12 / 0.72);
 }
 
 .abilityEntry p {
@@ -178,6 +170,7 @@
   white-space: pre-line;
 }
 
+/* Commodities recess: printed on the sheet's edge, a dark well with the stacked hex icon. */
 .commodities {
   display: flex;
   align-items: center;
@@ -186,8 +179,8 @@
   height: 100%;
   min-height: 90px;
   padding: 8px;
-  border: 1px solid rgb(var(--ti-gold-rgb) / 0.3);
-  background: #090a0f;
+  border: 1px solid rgb(var(--ti-gold-rgb) / 0.35);
+  background: linear-gradient(135deg, #0d0f15, #050609);
   box-shadow: inset 0 3px 14px rgb(0 0 0 / 0.9);
   clip-path: polygon(var(--ti-cut) 0, 100% 0, 100% calc(100% - var(--ti-cut)), calc(100% - var(--ti-cut)) 100%, 0 100%, 0 var(--ti-cut));
 }
