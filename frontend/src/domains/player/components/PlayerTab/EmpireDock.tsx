@@ -9,15 +9,17 @@ import type { PlayerData } from "@/entities/data/types";
 import { useGameData } from "@/state/useGameContext";
 import { useSettingsStore } from "@/state/appStore";
 import type { Tip, TipRef, TipTone } from "./commanderTips";
+import type { CompareRow } from "./empireCompare";
 import type { EmpireStats } from "./empireStats";
 import { EmpirePanel } from "./EmpirePanel";
 import { HandPanel } from "./HandPanel";
+import { CardsInPlayPanel, PlanetsPanel, TechnologiesPanel } from "./TablePanels";
 import styles from "./PlayerTab.module.css";
 
 /*
  * Under the player zone: what the printed pieces cannot say - the briefing (what to do now /
- * opponent intel), the empire overview with the shipyard, and the hand. No tabs: planets,
- * technologies and cards in play are on the Players tab.
+ * opponent intel), the empire overview with the shipyard, the hand, then everything else on the
+ * table: technologies, planets and cards in play. No tabs - all of it is always open.
  */
 
 const TONE_ICON: Record<TipTone, typeof IconBolt> = {
@@ -87,6 +89,7 @@ export function EmpireDock({
   scouting,
   tips,
   empire,
+  compare,
 }: {
   gameId: string;
   player: PlayerData;
@@ -95,6 +98,8 @@ export function EmpireDock({
   scouting: boolean;
   tips: Tip[];
   empire?: EmpireStats;
+  /** The shown player against everyone seated. */
+  compare?: CompareRow[];
 }) {
   const gameData = useGameData();
   const showArmy = useSettingsStore((s) => s.settings.showPlayerAreaArmyStrength);
@@ -117,7 +122,10 @@ export function EmpireDock({
             <p className={styles.hint}>All clear.</p>
           )}
         </section>
-        {empire ? <EmpirePanel player={player} stats={empire} /> : null}
+        {empire ? <EmpirePanel player={player} stats={empire} compare={compare} /> : null}
+        <TechnologiesPanel player={player} empire={empire} />
+        <PlanetsPanel player={player} empire={empire} />
+        <CardsInPlayPanel player={player} />
       </div>
       <div className={styles.column}>
         <HandPanel gameId={gameId} player={player} own={own} />

@@ -8,6 +8,7 @@ import { playerName, playerRgb } from "@/domains/strategy/PlayerChip";
 import { filterPlayersWithAssignedFaction } from "@/entities/game/playerUtils";
 import { PlayerBoard } from "./board/PlayerBoard";
 import { briefingMode, commanderTips, vpRank } from "./commanderTips";
+import { compareEmpires } from "./empireCompare";
 import { EmpireDock } from "./EmpireDock";
 import { empireStats } from "./empireStats";
 import { SeatSwitcher, TableBadges } from "./TableStrip";
@@ -19,7 +20,8 @@ import styles from "./PlayerTab.module.css";
  * at the top shows anyone else.
  * [seat switcher] [table badges: VP & rank, speaker/tyrant, strategy cards, neighbors, breakthrough]
  * [player zone: leaders & mech | faction sheet | command sheet]
- * [below: briefing / opponent intel + empire | hand + army strength]
+ * [below: briefing / opponent intel + empire | hand + army strength; technologies; planets;
+ *  cards in play]
  * Turn actions live in the control panel on the map - not duplicated here.
  */
 
@@ -54,6 +56,11 @@ export function PlayerTab() {
   const empire = useMemo(
     () => (player ? empireStats(player, gameData?.tiles) : undefined),
     [player, gameData?.tiles],
+  );
+
+  const compare = useMemo(
+    () => (player ? compareEmpires(player, players, gameData?.tiles) : []),
+    [player, players, gameData?.tiles],
   );
 
   if (!player) {
@@ -121,7 +128,7 @@ export function PlayerTab() {
         votes={voter ? voter.available + voter.extra : null}
         scouting={scouting}
       />
-      <PlayerBoard player={player} largestFleet={empire ? empire.largestFleet : null} />
+      <PlayerBoard player={player} empire={empire} />
       <EmpireDock
         gameId={gameId}
         player={player}
@@ -129,6 +136,7 @@ export function PlayerTab() {
         scouting={scouting}
         tips={tips}
         empire={empire}
+        compare={compare}
       />
     </div>
   );

@@ -9,6 +9,9 @@ import { searchKey, searchTarget } from "@/domains/search/searchKeys";
 import { getLeaderById } from "@/entities/lookup/leaders";
 import { showLeader } from "@/entities/lookup/showLeader";
 import type { Leader, PlayerData } from "@/entities/data/types";
+import type { EmpireStats } from "../empireStats";
+import { unitProductionTip } from "./productionTips";
+import { RulesText } from "./RulesText";
 import { SheetUnit } from "./SheetUnit";
 import styles from "./LeaderWing.module.css";
 
@@ -43,7 +46,7 @@ function LeaderSlotCard({ leader }: { leader: Leader }) {
   const state = leaderState(leader);
   const name = (twilightsFall && data.tfName) || data.name;
   const text = (twilightsFall && data.tfAbilityText) || data.abilityText;
-  const window = (twilightsFall && data.tfAbilityWindow) || data.abilityWindow;
+  const timing = (twilightsFall && data.tfAbilityWindow) || data.abilityWindow;
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
@@ -81,13 +84,9 @@ function LeaderSlotCard({ leader }: { leader: Leader }) {
               {leader.tgCount > 0 && ` · ${leader.tgCount} TG`}
             </span>
             {state === "locked" ? (
-              <p>
-                <b>Unlock:</b> {data.unlockCondition}
-              </p>
+              <RulesText className={styles.rules} timing="Unlock:" text={data.unlockCondition} />
             ) : (
-              <p>
-                <b>{window}</b> {text}
-              </p>
+              <RulesText className={styles.rules} timing={timing} text={text} />
             )}
           </div>
         </div>
@@ -99,7 +98,15 @@ function LeaderSlotCard({ leader }: { leader: Leader }) {
   );
 }
 
-export function LeaderWing({ player }: { player: PlayerData }) {
+export function LeaderWing({
+  player,
+  empire,
+}: {
+  player: PlayerData;
+  empire?: EmpireStats;
+}) {
+  const mechBuild = empire?.build.find((b) => b.asyncId === "mf");
+  const mechTip = empire && mechBuild ? unitProductionTip(mechBuild, empire) : undefined;
   const leaders = player.leaders ?? [];
   const others = leaders.filter((l) => !(SLOTS as readonly string[]).includes(l.type));
   const slots: { label: string; cards: Leader[] }[] = [
@@ -129,7 +136,13 @@ export function LeaderWing({ player }: { player: PlayerData }) {
           mech
         </span>
         <div className={styles.well}>
-          <SheetUnit asyncId="mf" player={player} variant="mech" />
+          <SheetUnit
+            asyncId="mf"
+            player={player}
+            variant="mech"
+            tip={mechTip}
+            className={styles.mech}
+          />
         </div>
       </div>
     </section>

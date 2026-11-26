@@ -22,15 +22,15 @@
   gap: 8px;
   padding: 10px;
   overflow: hidden;
-  border: 1px solid #34405a;
+  border: var(--piece-border);
   background-image:
     var(--stars-img),
     radial-gradient(45% 40% at 62% 22%, color-mix(in srgb, var(--pc) 16%, transparent), transparent 75%),
     radial-gradient(60% 45% at 15% 75%, rgb(30 70 140 / 0.22), transparent 75%),
     linear-gradient(180deg, #0a0f1d, #04060b);
   background-size: var(--stars-size), auto, auto, auto;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05), inset 0 0 60px rgb(0 0 0 / 0.6);
-  clip-path: polygon(var(--ti-cut) 0, calc(100% - var(--ti-cut)) 0, 100% var(--ti-cut), 100% calc(100% - var(--ti-cut)), calc(100% - var(--ti-cut)) 100%, var(--ti-cut) 100%, 0 calc(100% - var(--ti-cut)), 0 var(--ti-cut));
+  box-shadow: var(--piece-shadow);
+  clip-path: var(--piece-cut);
 }
 
 /* Portrait behind the upper area, dissolving into the stars. */
@@ -83,14 +83,21 @@
   text-align: right;
 }
 
+/* Flavour, not rules: a true book italic (the same face as the Lore window), not the display
+   face - Ambroise Firmin has no italic, so the browser slanted a bold display cut. */
 .quote {
+  max-width: 36ch;
   margin: 0;
-  font-family: var(--ti-font-serif);
+  padding: 8px 10px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
   font-style: italic;
-  font-size: 12.5px;
-  line-height: 1.4;
+  font-weight: 400;
+  line-height: 1.5;
   color: var(--ti-parchment);
-  text-shadow: 0 1px 6px #000, 0 0 2px #000;
+  border-right: 2px solid rgb(var(--ti-gold-rgb) / 0.5);
+  background: linear-gradient(270deg, rgb(4 6 12 / 0.7), rgb(4 6 12 / 0.25));
+  text-shadow: 0 1px 4px #000;
 }
 
 .quote blockquote {
@@ -98,8 +105,13 @@
 }
 
 .quote figcaption {
-  margin-top: 3px;
-  font-weight: 700;
+  margin-top: 6px;
+  font-family: var(--ds-font-text);
+  font-size: 12.5px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ti-gold-hi);
 }
 
 .fs {
@@ -162,18 +174,14 @@
   background: rgb(4 6 12 / 0.72);
 }
 
-.abilityWindow {
-  display: block;
-  font-weight: 600;
-  color: var(--ds-ink-lo);
+.abilityEntry {
+  display: grid;
+  gap: 3px;
 }
 
-.abilityEntry p {
-  margin: 3px 0 0;
-  font-size: 11.5px;
-  line-height: 1.35;
-  color: var(--ds-ink-hi);
-  white-space: pre-line;
+.abilityEntry + .abilityEntry {
+  padding-top: 8px;
+  border-top: 1px solid rgb(148 163 184 / 0.18);
 }
 
 /* Commodities recess: printed on the sheet's edge, a dark well with the stacked hex icon. */
@@ -207,7 +215,8 @@
 .commodityLabel {
   display: grid;
   gap: 3px;
-  font-size: 9px;
+  font-family: var(--ti-font-title);
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -215,6 +224,7 @@
 }
 
 .commodityLabel strong {
+  font-family: var(--ds-font-text);
   font-size: 16px;
   letter-spacing: 0;
   color: var(--ti-gold-hi);

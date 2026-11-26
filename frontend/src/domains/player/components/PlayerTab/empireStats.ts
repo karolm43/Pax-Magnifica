@@ -46,6 +46,8 @@ export type EmpireStats = {
   fleetPool: number;
   /** Najwyższa wartość PRODUCTION w jednym systemie (silnik). */
   maxProduction: number;
+  /** Systems where the player has PRODUCTION (engine value), highest first. */
+  productionSystems: { position: string; label: string; value: number }[];
   /** Zasoby do wydania: gotowe planety + trade goods. */
   budget: number;
   /** Wpływy gotowych planet (silnik: ``influence``) - bez trade goods. */
@@ -99,6 +101,7 @@ export function empireStats(
   let largestFleet = 0;
   let maxProduction = 0;
   let fleetRoom: number | null = null;
+  const productionSystems: EmpireStats["productionSystems"] = [];
   for (const tile of Object.values(tiles ?? {})) {
     const own = tile.unitsByFaction?.[player.faction] ?? [];
     const planets = Object.values(tile.planets ?? {});
@@ -119,7 +122,17 @@ export function empireStats(
     largestFleet = Math.max(largestFleet, fleet);
     const production = tile.productionByColor?.[player.color] ?? 0;
     maxProduction = Math.max(maxProduction, production);
-    if (production > 0) fleetRoom = Math.max(fleetRoom ?? 0, Math.max(0, fleetPool - fleet));
+    if (production > 0) {
+      fleetRoom = Math.max(fleetRoom ?? 0, Math.max(0, fleetPool - fleet));
+      const names = Object.keys(tile.planets ?? {})
+        .map((id) => getPlanetData(id)?.name)
+        .filter((n): n is string => Boolean(n));
+      productionSystems.push({
+        position: tile.position,
+        label: names.length > 0 ? names.join(" / ") : `System ${tile.position}`,
+        value: production,
+      });
+    }
   }
 
   const budget = Math.max(0, Math.floor(player.resources ?? 0)) + (player.tg ?? 0);
@@ -161,6 +174,7 @@ export function empireStats(
     largestFleet,
     fleetPool,
     maxProduction,
+    productionSystems: productionSystems.sort((a, b) => b.value - a.value),
     budget,
     readyInfluence: Math.max(0, Math.floor(player.influence ?? 0)),
     fleetRoom,

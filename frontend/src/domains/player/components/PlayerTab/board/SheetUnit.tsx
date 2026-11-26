@@ -22,12 +22,15 @@ import {
   upgradeStrip,
   type StatBox,
 } from "./sheetUnits";
+import type { ProductionTip } from "./productionTips";
+import { RulesText } from "./RulesText";
 import styles from "./SheetUnit.module.css";
 
 /*
  * One unit box of the faction sheet (also the flagship and the mech slot): printed name,
  * silhouette in the player's colour, ability, keywords, stat bar and UPGRADE strip, plus the
- * live deployed / cap count. Click = the same unit card as everywhere else (`UnitDetails`).
+ * live deployed / cap count and, under the silhouette, what the player could produce right now.
+ * Click = the same unit card as everywhere else (`UnitDetails`).
  */
 
 export function StatBar({ stats }: { stats: StatBox[] }) {
@@ -89,7 +92,7 @@ function LockedWarSun({ player, className }: { player: PlayerData; className?: s
       <div className={styles.body}>
         <h4 className={styles.name}>War Sun</h4>
         <Silhouette asyncId="ws" player={player} />
-        <p className={styles.ability}>
+        <p className={styles.locked}>
           Requires War Sun technology{" "}
           <span className={styles.inlineIcons} title={prerequisiteText(requirements)}>
             <Prerequisites requirements={requirements} />
@@ -106,10 +109,22 @@ type Props = {
   variant?: "unit" | "flagship" | "mech";
   /** Line under the name (flagship: whose it is). */
   subtitle?: string;
+  /** What the player could produce of this unit right now (from `productionTips`). */
+  tip?: ProductionTip;
   className?: string;
 };
 
-export function SheetUnit({ asyncId, player, variant = "unit", subtitle, className }: Props) {
+/** The production line under the silhouette. */
+function TipLine({ tip }: { tip: ProductionTip }) {
+  return (
+    <p className={styles.tip} data-tone={tip.tone} title={tip.detail}>
+      <b>{tip.title}</b>
+      <span>{tip.reason}</span>
+    </p>
+  );
+}
+
+export function SheetUnit({ asyncId, player, variant = "unit", subtitle, tip, className }: Props) {
   const { opened, setOpened, toggle } = useDisclosure(false);
   const showUpgrades = useSettingsStore((s) => s.settings.showPlayerAreaUnitUpgrades);
   const found = lookupUnit(asyncId, player.faction, player);
@@ -167,7 +182,8 @@ export function SheetUnit({ asyncId, player, variant = "unit", subtitle, classNa
                 </span>
               </header>
               <Silhouette asyncId={asyncId} player={player} faction={unit.faction} />
-              {unit.ability && <p className={styles.ability}>{unit.ability}</p>}
+              {tip && <TipLine tip={tip} />}
+              <RulesText text={unit.ability} />
               <div className={styles.foot}>
                 {keywords.length > 0 && (
                   <ul className={styles.keywords}>

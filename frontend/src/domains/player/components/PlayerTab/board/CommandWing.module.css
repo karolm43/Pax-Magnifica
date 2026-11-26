@@ -1,15 +1,24 @@
-/* The command sheet: a blue printed hexagon under a grey plastic frame (like the 3D-printed
-   token tray), with tokens lying in the pools. Sizes scale with the mat (cqi). */
+/* The command sheet: the same printed board as the faction sheet (--piece-* from PlayerBoard),
+   as tall as the sheet. On it the blue hexagon under a grey frame with tokens lying in the
+   pools (sizes scale with the mat, cqi), then the supply tray and the motto at the foot. */
 .wing {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  gap: 10px;
+  height: 100%;
   min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  border: var(--piece-border);
+  background: var(--piece-bg);
+  background-size: var(--piece-bg-size);
+  box-shadow: var(--piece-shadow);
+  clip-path: var(--piece-cut);
 }
 
 .mat {
   position: relative;
+  flex: none;
   width: 100%;
   aspect-ratio: 212 / 185.2;
   container-type: inline-size;
@@ -96,16 +105,16 @@
 
 .label {
   font-family: var(--ti-font-title);
-  font-size: 3.7cqi;
-  letter-spacing: 0.14em;
+  font-size: 4.2cqi;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #e0f2fe;
   text-shadow: 0 0 6px rgb(56 189 248 / 0.9), 0 1px 2px #000;
 }
 
 .pool[data-kind="reinf"] .label {
-  font-size: 2.1cqi;
-  letter-spacing: 0.02em;
+  font-size: 2.7cqi;
+  letter-spacing: 0;
 }
 
 .value {
@@ -119,30 +128,43 @@
   color: #fbbf24;
 }
 
-/* Tokens lying in the pool: a loose, slightly overlapping pile. */
+/* Tokens lying in the pool: a neat overlapping row (two rows when long), slightly fanned. */
 .pile {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  max-width: 24cqi;
-  min-height: 6cqi;
+  max-width: 28cqi;
+  min-height: 9cqi;
+  padding-left: 2.8cqi;
 }
 
-.pile img {
-  width: 7cqi;
-  margin: -0.8cqi -1.2cqi;
-  transform: rotate(calc(var(--i) * 37deg - 20deg));
-  filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.8));
+.pool[data-kind="reinf"] .pile {
+  max-width: 32cqi;
 }
 
-.pile[data-faded] img {
-  opacity: 0.6;
+.token {
+  position: relative;
+  flex: none;
+  width: 9.6cqi;
+  margin: -0.8cqi 0 -0.8cqi -2.8cqi;
+  filter: drop-shadow(0 1.5px 2px rgb(0 0 0 / 0.85));
+}
+
+.tgToken {
+  flex: none;
+  width: 6.4cqi;
+  margin: -0.4cqi 0 -0.4cqi -2cqi;
+  filter: drop-shadow(0 1.5px 2px rgb(0 0 0 / 0.85));
+}
+
+.pile[data-faded] .token {
+  opacity: 0.55;
 }
 
 .more {
-  margin-left: 1.4cqi;
-  font-size: 3cqi;
+  margin-left: 1.2cqi;
+  font-size: 3.6cqi;
   font-weight: 700;
 }
 
@@ -150,7 +172,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.8cqi;
-  font-size: 3cqi;
+  font-size: 3.4cqi;
   color: #bae6fd;
 }
 
@@ -158,8 +180,58 @@
   color: #fbbf24;
 }
 
+/* Supply tray: labelled shelves, the same well as the leader slots. */
+.supply {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+}
+
+.shelf {
+  display: grid;
+  gap: 4px;
+  padding: 6px 8px 8px;
+  border: 1px solid rgb(148 163 184 / 0.25);
+  background: rgb(4 6 12 / 0.55);
+}
+
+.shelfLabel {
+  font-family: var(--ti-font-title);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ti-gold);
+}
+
+.traits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+}
+
+.traits > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 17px;
+  color: var(--ds-ink-hi);
+}
+
+.traits b[data-zero] {
+  font-weight: 400;
+  color: var(--ds-ink-lo);
+}
+
+.traits > .traitNote {
+  margin-left: auto;
+  font-size: 13.5px;
+  color: var(--ds-ink-lo);
+}
+
 .motto {
-  margin: 0;
+  margin: auto 0 0;
   font-family: var(--ti-font-serif);
   font-size: 10px;
   letter-spacing: 0.24em;

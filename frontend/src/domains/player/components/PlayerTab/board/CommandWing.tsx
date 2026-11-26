@@ -1,16 +1,26 @@
 import type { CSSProperties, ReactNode } from "react";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { DebtTokens } from "@/domains/player/components/DebtTokens";
+import { FragmentsPool } from "@/domains/player/components/FragmentsPool";
+import { ReinforcementTokensGroup } from "@/domains/player/components/ReinforcementTokensGroup";
+import { ResourceInfluenceCompact } from "@/domains/player/components/ResourceInfluenceTable";
+import { usePlayerCardComputedData } from "@/domains/player/components/PlayerCardShared/usePlayerCardComputedData";
+import { useSettingsStore } from "@/state/appStore";
+import { PlanetTraitIcon } from "@/shared/ui/PlanetTraitIcon";
+import type { PlanetTrait } from "@/entities/game/planetTraits";
+import { CommandCounter } from "@/domains/map/components/CommandCounter";
 import { useFactionTokenImage } from "@/hooks/useFactionTokenImage";
-import { assetUrl } from "@/shared/assets/resolveAsset";
 import { getColorAlias } from "@/entities/lookup/colors";
 import type { PlayerData } from "@/entities/data/types";
+import type { EmpireStats } from "../empireStats";
 import styles from "./CommandWing.module.css";
 
 /*
  * Right piece of the player zone: the command sheet as printed - a hexagon split by a frame
  * into TACTIC (top), FLEET (upper right), STRATEGY (lower right), TRADE GOODS (bottom left) and
- * the reinforcements (upper left), with the live tokens lying in each pool.
+ * the reinforcements (upper left), with the live tokens lying in each pool. Under the mat, the
+ * supply tray: what the player can spend right now (planets), relic fragments, debts and other
+ * tokens in reinforcements.
  */
 
 const COMMAND_TOKEN_SUPPLY = 16;
@@ -103,13 +113,50 @@ function MatShapes({ warn }: { warn: boolean }) {
   );
 }
 
-/** Up to `PILE_MAX` tokens of one kind, as they would lie in the pool. */
-function Pile({ src, count, faded }: { src: string; count: number; faded?: boolean }) {
+/**
+ * Up to `PILE_MAX` tokens of one kind lying in the pool, in a neat overlapping row - the same
+ * token the map draws (`CommandCounter`: colour triangle + faction emblem; fleet side up in the
+ * fleet pool).
+ */
+function Pile({
+  count,
+  colorAlias,
+  faction,
+  type = "command",
+  faded,
+}: {
+  count: number;
+  colorAlias: string;
+  faction?: string;
+  type?: "command" | "fleet";
+  faded?: boolean;
+}) {
   const shown = Math.min(count, PILE_MAX);
   return (
     <span className={styles.pile} data-faded={faded || undefined} aria-hidden="true">
       {Array.from({ length: shown }, (_, i) => (
-        <img key={i} src={src} alt="" style={{ "--i": i } as CSSProperties} />
+        <CommandCounter
+          key={i}
+          fluid
+          className={styles.token}
+          colorAlias={colorAlias}
+          faction={faction}
+          type={type}
+          style={{ zIndex: i } as CSSProperties}
+        />
+      ))}
+      {count > shown && <span className={styles.more}>+{count - shown}</span>}
+    </span>
+  );
+}
+
+/** A pile of trade goods (no faction mark). */
+function TgPile({ count }: { count: number }) {
+  const shown = Math.min(count, PILE_MAX);
+  return (
+    <span className={styles.pile} aria-hidden="true">
+      {Array.from({ length: shown }, (_, i) => (
+        <img key={i} className={styles.tgToken} src="/tg.png" alt="" />
       ))}
       {count > shown && <span className={styles.more}>+{count - shown}</span>}
     </span>
@@ -148,16 +195,26 @@ function Pool({
   );
 }
 
-export function CommandWing({
-  player,
-  largestFleet,
-}: {
-  player: PlayerData;
-  /** Most non-fighter ships in one system; null while the board is unknown. */
-  largestFleet: number | null;
-}) {
+const TRAITS: PlanetTrait[] = ["cultural", "hazardous", "industrial"];
+
+/** One labelled shelf of the supply tray. */
+function Shelf({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className={styles.shelf} role="group" aria-label={label}>
+      <span className={styles.shelfLabel}>{label}</span>
+      {children}
+    </div>
+  );
+}
+
+export function CommandWing({ player, empire }: { player: PlayerData; empire?: EmpireStats }) {
+  const settings = useSettingsStore((s) => s.settings);
+  const { planetEconomics } = usePlayerCardComputedData(player);
+  // Most non-fighter ships in one system; null while the board is unknown.
+  const largestFleet = empire ? empire.largestFleet : null;
   const factionToken = useFactionTokenImage(player.faction);
-  const token = assetUrl(`/command_token/command_${getColorAlias(player.color)}.png`);
+  const colorAlias = getColorAlias(player.color);
+  const faction = player.faction || undefined;
   const edict = player.mahactEdict?.length ?? 0;
   const fleet = player.fleetCC + edict;
   const fleetFull = largestFleet !== null && fleet > 0 && largestFleet >= fleet;
@@ -181,7 +238,7 @@ export function CommandWing({
           value={player.tacticalCC}
           title={`Tactic pool: ${player.tacticalCC} command tokens`}
         >
-          <Pile src={token} count={player.tacticalCC} />
+          <Pile count={player.tacticalCC} colorAlias={colorAlias} faction={faction} />
         </Pool>
 
         <Pool
@@ -191,7 +248,7 @@ export function CommandWing({
           title={`Fleet pool: ${fleet} command tokens${edict > 0 ? ` (${edict} from Edict)` : ""}`}
           warn={fleetFull}
         >
-          <Pile src={token} count={player.fleetCC} />
+          <Pile count={player.fleetCC} colorAlias={colorAlias} faction={faction} type="fleet" />
           {largestFleet !== null && (
             <span
               className={styles.fleetUse}
@@ -209,11 +266,11 @@ export function CommandWing({
           value={player.strategicCC}
           title={`Strategy pool: ${player.strategicCC} command tokens`}
         >
-          <Pile src={token} count={player.strategicCC} />
+          <Pile count={player.strategicCC} colorAlias={colorAlias} faction={faction} />
         </Pool>
 
         <Pool id="tg" label="Trade goods" value={tg} title={`Trade goods: ${tg}`}>
-          <Pile src="/tg.png" count={tg} />
+          <TgPile count={tg} />
         </Pool>
 
         {reinf !== undefined && (
@@ -223,16 +280,59 @@ export function CommandWing({
             value={reinf}
             title={`Reinforcements: ${reinf} of ${COMMAND_TOKEN_SUPPLY} command tokens`}
           >
-            <Pile src={token} count={reinf} faded />
+            <Pile count={reinf} colorAlias={colorAlias} faction={faction} faded />
           </Pool>
+        )}
+      </div>
+
+      <div className={styles.supply}>
+        <Shelf label="Ready to spend">
+          <ResourceInfluenceCompact
+            planetEconomics={planetEconomics}
+            showTotalSpend={settings.showPlayerAreaTotalSpend}
+          />
+        </Shelf>
+        {empire && (
+          <Shelf label="Planets">
+            <span className={styles.traits}>
+              {TRAITS.map((t) => (
+                <span key={t} title={`${empire.traits[t]} ${t} planets`}>
+                  <PlanetTraitIcon trait={t} size={20} />
+                  <b data-zero={empire.traits[t] === 0 || undefined}>{empire.traits[t]}</b>
+                </span>
+              ))}
+              {empire.planets.legendary > 0 && (
+                <span title={`${empire.planets.legendary} legendary planets`}>
+                  <b>★ {empire.planets.legendary}</b>
+                </span>
+              )}
+              <span className={styles.traitNote}>
+                {empire.planets.ready}/{empire.planets.total} ready
+              </span>
+            </span>
+          </Shelf>
+        )}
+        <Shelf label="Relic fragments">
+          <FragmentsPool fragments={player.fragments ?? []} reserveSpace />
+        </Shelf>
+        {hasDebts && (
+          <Shelf label="Debts">
+            <DebtTokens debts={debts} compact />
+          </Shelf>
+        )}
+        {settings.showPlayerAreaReinforcements && (
+          <ReinforcementTokensGroup
+            breachTokensReinf={player.breachTokensReinf}
+            sleeperTokensReinf={player.sleeperTokensReinf}
+            ghostWormholesReinf={player.ghostWormholesReinf}
+            galvanizeTokensReinf={player.galvanizeTokensReinf}
+          />
         )}
       </div>
 
       <p className={styles.motto} lang="la">
         Pax Magnifica Bellum Gloriosum
       </p>
-
-      {hasDebts && <DebtTokens debts={debts} compact />}
     </section>
   );
 }

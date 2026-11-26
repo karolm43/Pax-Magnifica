@@ -411,3 +411,19 @@ Older, completed blocks (Phase 1 → blocks up to 2026-11-24) are in `PROGRESS_A
   `UnitCard/unitModifiers.ts` (used by `UnitCard` too). `PlayerCard` lost the unused `hideHeader`/`sections` props.
 - Responsive by container queries: wings under the sheet below 1240px, one column on a phone.
 - Tests: `board/PlayerBoard.test.tsx`; checked in a real browser (solo Muaat game, 1920 / 1366 / 420 px).
+
+## Player tab: full-height wings, readable text, production lines, everything below (frontend only)
+- One printed-board chrome for the three pieces (`--piece-*` in `board/PlayerBoard.module.css`); the side pieces
+  stretch to the faction sheet's height (`contain: size`). Leader slots share the height, long text fades out.
+  Command wing: hexagon + supply tray (ready to spend, planet traits, relic fragments, debts, special tokens).
+- Rules text (leaders, faction abilities, unit abilities) = `board/RulesText` in the page's body face, timing window
+  on its own gold line; the faction quote is a book italic (same face as the Lore window), not a slanted display cut.
+- Production line under every silhouette (`board/productionTips.ts`, from `empireStats`: "Build up to N · limit",
+  "Fleet pool full", "Costs X · Y to spend", space dock = PRODUCTION per system, `productionSystems`).
+- Dock: technologies (+ skips, unresearched faction techs/notes), planets and cards in play are back, always open
+  (`TablePanels.tsx`, the Players-tab components); trait counts moved from the Empire panel to the command wing.
+- Pools hold the map's own token (`map/CommandCounter`, new `fluid` size: colour + faction emblem, fleet side up in
+  the fleet pool). Fonts enlarged across the board and dock. Production plate = headline + limit ("Can build 4 /
+  Jol / Nar produce 4", "Can't afford / costs 8 · you have 3"), so units never read as having PRODUCTION.
+- Empire panel: "versus the table" (`empireCompare.ts`) - 14 measures with value, place, leader(s), table/map total.
+- Tests: `board/PlayerBoard.test.tsx` (production lines + tips), `empireCompare.test.ts`; checked in the live game.

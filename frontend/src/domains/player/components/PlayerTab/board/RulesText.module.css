@@ -1,0 +1,19 @@
+/* Rules text of the player zone: the body face of the page (not the display faces), one size. */
+.rules {
+  margin: 0;
+  font-family: var(--ds-font-text);
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #dbe3ee;
+  white-space: pre-line;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.8);
+}
+
+/* Timing window: its own line, bold, in the sheet's gold. */
+.window {
+  display: block;
+  margin-bottom: 1px;
+  font-weight: 600;
+  color: var(--ti-gold-hi);
+}

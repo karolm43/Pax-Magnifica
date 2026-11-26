@@ -1,6 +1,7 @@
 /* The playmat: a starfield table surface with the three pieces lying on it (organizer, faction
-   sheet, command mat). The sheet sets the height; the side pieces keep their own size.
-   Below 1240px the side pieces go under the sheet, on a phone everything is one column. */
+   sheet, command sheet). The sheet sets the height and the side pieces stretch to it; all three
+   share one printed-board chrome (--piece-*). Narrower: the side pieces go under the sheet, on a
+   phone everything is one column. */
 .board {
   container-type: inline-size;
   /* Tiled starfield, shared by the mat, the sheet and the command mat (custom properties inherit). */
@@ -15,6 +16,15 @@
     radial-gradient(1.2px 1.2px at 95px 280px, rgb(210 230 255 / 0.7), transparent);
   --stars-size: 190px 190px, 190px 190px, 190px 190px, 190px 190px, 190px 190px, 330px 330px,
     330px 330px, 330px 330px;
+  /* One printed-board look for the three pieces. */
+  --piece-border: 1px solid #34405a;
+  --piece-bg:
+    var(--stars-img),
+    radial-gradient(60% 45% at 15% 75%, rgb(30 70 140 / 0.22), transparent 75%),
+    linear-gradient(180deg, #0a0f1d, #04060b);
+  --piece-bg-size: var(--stars-size), auto, auto;
+  --piece-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05), inset 0 0 60px rgb(0 0 0 / 0.6);
+  --piece-cut: polygon(var(--ti-cut) 0, calc(100% - var(--ti-cut)) 0, 100% var(--ti-cut), 100% calc(100% - var(--ti-cut)), calc(100% - var(--ti-cut)) 100%, var(--ti-cut) 100%, 0 calc(100% - var(--ti-cut)), 0 var(--ti-cut));
   padding: 14px;
   border: 1px solid #1b2232;
   border-radius: 12px;
@@ -29,9 +39,9 @@
 
 .wings {
   display: grid;
-  grid-template-columns: clamp(236px, 13cqi, 300px) minmax(0, 1fr) clamp(300px, 19cqi, 440px);
+  grid-template-columns: clamp(250px, 14cqi, 330px) minmax(0, 1fr) clamp(300px, 19cqi, 440px);
   grid-template-areas: "leaders sheet command";
-  align-items: start;
+  align-items: stretch;
   gap: 14px;
 }
 
@@ -39,7 +49,9 @@
   grid-area: leaders;
   display: grid;
   min-width: 0;
-  filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.7));
+  /* Side by side with the sheet: the sheet alone sets the height, the wing fills it. */
+  contain: size;
+  filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.75));
 }
 
 .sheet {
@@ -52,6 +64,8 @@
   grid-area: command;
   display: grid;
   min-width: 0;
+  contain: size;
+  filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.75));
 }
 
 @container (max-width: 1400px) {
@@ -62,9 +76,9 @@
       "leaders command";
   }
 
+  .leaders,
   .command {
-    justify-self: center;
-    width: min(100%, 360px);
+    contain: none;
   }
 }
 

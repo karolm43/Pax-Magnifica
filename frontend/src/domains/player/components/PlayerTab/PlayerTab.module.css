@@ -9,6 +9,36 @@
 }
 
 /* --- Dock --- */
+.dockFlow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin-bottom: 8px;
+}
+
+.panelHead .panelTitle,
+.panelHead .hint {
+  margin: 0;
+}
+
+.count {
+  padding: 0 7px;
+  font-family: var(--ds-font-text);
+  font-size: 12px;
+  border-radius: 999px;
+  color: var(--ds-ink-hi);
+  background: rgb(255 255 255 / 0.08);
+}
+
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
@@ -38,13 +68,17 @@
 
 .panelTitle {
   margin: 0 0 6px;
-  font-size: 14px;
+  font-family: var(--ti-font-title);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--ds-ink-hi);
 }
 
 .hint {
   margin: 0 0 8px;
-  font-size: 12px;
+  font-size: 13.5px;
   line-height: 1.35;
   color: var(--ds-ink-lo);
 }
@@ -62,8 +96,8 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 6px 8px;
-  font-size: 12.5px;
+  padding: 7px 10px;
+  font-size: 14px;
   line-height: 1.4;
   color: var(--ds-ink-hi);
   border-left: 3px solid var(--tone, #64748b);
@@ -128,7 +162,7 @@
   align-items: baseline;
   gap: 6px;
   margin: 12px 0 6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -142,49 +176,90 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* --- Imperium: kafelki liczb --- */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-  gap: 6px;
+/* --- Empire versus the table --- */
+.versus {
+  width: 100%;
+  max-width: 980px;
+  margin-bottom: 4px;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: var(--ds-ink-hi);
 }
 
-.stat {
-  display: grid;
-  gap: 1px;
-  padding: 6px 8px;
-  border: 1px solid var(--ds-h14);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
+.versus th,
+.versus td {
+  padding: 5px 10px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid rgb(255 255 255 / 0.06);
 }
 
-.stat small {
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
+.versus thead th {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ds-ink-lo);
 }
 
-.stat b {
-  font-size: 20px;
-  line-height: 1.1;
-  color: var(--ds-ink-hi);
+.versus tbody th {
+  font-weight: 500;
+  color: var(--ds-ink-lo);
+  white-space: nowrap;
 }
 
-.stat b [data-warn] {
-  color: #fbbf24;
+.versus tbody tr:hover {
+  background: rgb(255 255 255 / 0.03);
 }
 
-.stat > span {
-  font-size: 11px;
+.versus small {
+  font-size: 12.5px;
   color: var(--ds-ink-lo);
 }
 
-.iconRow {
+.versus b {
+  font-size: 16px;
+}
+
+.versusValue {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  margin-top: 8px;
+  align-items: center;
+  gap: 10px;
+  min-width: 130px;
+}
+
+.versusValue b {
+  min-width: 2ch;
+}
+
+/* Share of the table's total, in the player's colour. */
+.share {
+  flex: 1;
+  height: 6px;
+  max-width: 120px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+}
+
+.share span {
+  display: block;
+  height: 100%;
+  background: color-mix(in srgb, var(--pc) 80%, #fff);
+}
+
+.place {
+  font-weight: 700;
+}
+
+.versus tr[data-first] .place {
+  color: var(--ti-gold-hi);
+}
+
+.leader {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .iconGroup {
@@ -194,7 +269,7 @@
 }
 
 .iconGroup > small {
-  font-size: 10.5px;
+  font-size: 12px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ds-ink-lo);
@@ -204,7 +279,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ds-ink-hi);
 }
 
@@ -216,7 +291,7 @@
 /* --- Kalkulator budowy --- */
 .build {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
   gap: 6px;
   margin: 0;
   padding: 0;
@@ -266,13 +341,13 @@
 }
 
 .buildText b {
-  font-size: 15px;
+  font-size: 17px;
   color: var(--ds-ink-hi);
 }
 
 .buildText small {
   overflow: hidden;
-  font-size: 11px;
+  font-size: 12.5px;
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--ds-ink-lo);

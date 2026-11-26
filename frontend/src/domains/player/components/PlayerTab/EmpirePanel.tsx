@@ -1,26 +1,23 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
+import { playerName } from "@/domains/strategy/PlayerChip";
+import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { getColorAlias } from "@/entities/lookup/colors";
-import { PlanetTraitIcon } from "@/shared/ui/PlanetTraitIcon";
-import { TechSkipIcon, type TechType } from "@/shared/ui/TechSkipIcon";
 import { Unit } from "@/shared/ui/Unit";
 import type { PlayerData } from "@/entities/data/types";
-import type { PlanetTrait } from "@/entities/game/planetTraits";
+import type { CompareRow } from "./empireCompare";
 import type { BuildOption, EmpireStats } from "./empireStats";
 import styles from "./PlayerTab.module.css";
 
 /*
- * Panel „Empire” zakładki Player: przegląd terytorium i sił (systemy, planety wg cech,
- * specjalizacje, flota vs pula floty) oraz kalkulator „Shipyard” - ile czego da się zbudować
- * za gotowe zasoby + trade goods przy największym PRODUCTION. Ikony to te same assety co na
- * mapie i w strefie gracza (`PlanetTraitIcon`, `TechSkipIcon`, `Unit`).
+ * Empire panel of the Player tab: the player against the table (value, place, who leads, what
+ * is in play in total - `empireCompare`) and the Shipyard calculator: how much of each unit the
+ * ready resources + trade goods buy at the best PRODUCTION. Icons are the map's (`Unit`, emblems).
  */
 
-const TRAITS: PlanetTrait[] = ["cultural", "hazardous", "industrial"];
-const SKIPS: TechType[] = ["biotic", "propulsion", "cybernetic", "warfare"];
 
 const LIMIT_COPY: Record<BuildOption["limitedBy"], string> = {
   resources: "resources",
-  production: "PRODUCTION",
+  production: "dock limit",
   reinforcements: "reinforcements",
   fleetPool: "fleet pool",
 };
@@ -31,13 +28,82 @@ const BLOCKED_COPY: Partial<Record<BuildOption["limitedBy"], string>> = {
   fleetPool: "fleet pool full",
 };
 
-function Stat({ label, value, sub, title }: { label: string; value: ReactNode; sub?: ReactNode; title: string }) {
+function ordinal(n: number): string {
+  const tail = n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th";
+  return `${n}${tail}`;
+}
+
+/** Each measure: value with its share of the total, place, leader(s) and the total. */
+function VersusTable({ rows, shown }: { rows: CompareRow[]; shown: PlayerData }) {
   return (
-    <div className={styles.stat} title={title}>
-      <small>{label}</small>
-      <b>{value}</b>
-      {sub !== undefined && <span>{sub}</span>}
-    </div>
+    <table className={styles.versus} aria-label="Empire versus the table">
+      <thead>
+        <tr>
+          <th scope="col">Measure</th>
+          <th scope="col">{playerName(shown)}</th>
+          <th scope="col">Place</th>
+          <th scope="col">Leader</th>
+          <th scope="col">In game</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => {
+          // Share of the total; for a best-of measure, of the leader's value.
+          const base = row.total ?? row.best;
+          const share = base > 0 ? Math.min(1, row.value / base) : 0;
+          const leads = row.leaders.some((p) => p.color === shown.color);
+          return (
+            <tr key={row.id} title={row.hint} data-first={(row.rank === 1 && row.best > 0) || undefined}>
+              <th scope="row">{row.label}</th>
+              <td className={styles.versusValue}>
+                <b>{row.value}</b>
+                <span className={styles.share} aria-hidden="true">
+                  <span style={{ width: `${share * 100}%` }} />
+                </span>
+              </td>
+              <td>
+                <span className={styles.place}>
+                  {row.best === 0 ? "–" : ordinal(row.rank)}
+                </span>
+                <small> of {row.players}</small>
+              </td>
+              <td>
+                {row.leaders.length === 0 ? (
+                  <small>nobody yet</small>
+                ) : (
+                  <span className={styles.leader}>
+                    {row.leaders.slice(0, 3).map((p) => (
+                      <span key={p.color} title={playerName(p)}>
+                        {p.faction ? <CircularFactionIcon faction={p.faction} size={20} /> : null}
+                      </span>
+                    ))}
+                    <b>{row.best}</b>
+                    <small>
+                      {leads
+                        ? row.leaders.length > 1
+                          ? "you, tied"
+                          : "you"
+                        : row.leaders.length > 1
+                          ? `${row.leaders.length} tied`
+                          : playerName(row.leaders[0])}
+                    </small>
+                  </span>
+                )}
+              </td>
+              <td>
+                {row.total === null ? (
+                  <small>–</small>
+                ) : (
+                  <>
+                    <b>{row.total}</b> <small>{row.totalLabel}</small>
+                  </>
+                )}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
 
@@ -45,84 +111,26 @@ function costLabel(cost: number): string {
   return cost < 1 ? `${cost * 2} for 2` : String(cost);
 }
 
-export function EmpirePanel({ player, stats }: { player: PlayerData; stats: EmpireStats }) {
+export function EmpirePanel({
+  player,
+  stats,
+  compare = [],
+}: {
+  player: PlayerData;
+  stats: EmpireStats;
+  compare?: CompareRow[];
+}) {
   const colorAlias = getColorAlias(player.color);
-  const fleetFull = stats.fleetPool > 0 && stats.largestFleet >= stats.fleetPool;
   return (
     <section className={styles.panel} aria-label="Empire">
       <h3 className={styles.panelTitle}>Empire</h3>
-      <div className={styles.stats}>
-        <Stat
-          label="Systems"
-          value={stats.systems.present}
-          sub={`${stats.systems.controlled} alone`}
-          title={`Units or planets in ${stats.systems.present} systems; in ${stats.systems.controlled} of them no other player is present`}
-        />
-        <Stat
-          label="Planets"
-          value={stats.planets.total}
-          sub={`${stats.planets.ready} ready`}
-          title={`${stats.planets.total} planets controlled, ${stats.planets.ready} ready`}
-        />
-        <Stat
-          label="Ships"
-          value={stats.forces.ships}
-          sub={`+${stats.forces.fighters} fighters`}
-          title="Non-fighter ships and fighters on the board"
-        />
-        <Stat
-          label="Ground"
-          value={stats.forces.ground}
-          title="Infantry and mechs on the board"
-        />
-        <Stat
-          label="Structures"
-          value={stats.forces.docks + stats.forces.pds}
-          sub={`${stats.forces.docks} dock · ${stats.forces.pds} PDS`}
-          title="Space docks and PDS on the board"
-        />
-        <Stat
-          label="Largest fleet"
-          value={
-            <span data-warn={fleetFull || undefined}>
-              {stats.largestFleet}/{stats.fleetPool}
-            </span>
-          }
-          sub="fleet pool"
-          title="Most non-fighter ships you have in one system vs. tokens in your fleet pool"
-        />
-      </div>
-
-      <div className={styles.iconRow}>
-        <span className={styles.iconGroup} aria-label="Planet traits">
-          {TRAITS.map((t) => (
-            <span key={t} className={styles.iconCount} title={`${stats.traits[t]} ${t} planets`}>
-              <PlanetTraitIcon trait={t} size={18} />
-              <b data-zero={stats.traits[t] === 0 || undefined}>{stats.traits[t]}</b>
-            </span>
-          ))}
-          {stats.planets.legendary > 0 && (
-            <span className={styles.iconCount} title="Legendary planets">
-              <b>★ {stats.planets.legendary}</b>
-            </span>
-          )}
-        </span>
-        <span className={styles.iconGroup} aria-label="Tech specialties on ready planets">
-          <small>Skips</small>
-          {SKIPS.map((c) => (
-            <span key={c} className={styles.iconCount} title={`${stats.skips[c]} ready ${c} specialty planets`}>
-              <TechSkipIcon techType={c} size={16} />
-              <b data-zero={stats.skips[c] === 0 || undefined}>{stats.skips[c]}</b>
-            </span>
-          ))}
-        </span>
-      </div>
+      {compare.length > 0 && <VersusTable rows={compare} shown={player} />}
 
       <h4 className={styles.subTitle}>Shipyard</h4>
       <p className={styles.hint}>
         With <b className={styles.budget}>{stats.budget}</b> to spend (ready resources + trade goods),{" "}
-        <b className={styles.budget}>{stats.readyInfluence}</b> ready influence and PRODUCTION up to{" "}
-        {stats.maxProduction} in one system
+        <b className={styles.budget}>{stats.readyInfluence}</b> ready influence, and your best space dock
+        system producing up to {stats.maxProduction} units
         {stats.fleetRoom !== null ? ` (room for ${stats.fleetRoom} more ships under your fleet pool)` : ""}, you
         could build:
       </p>

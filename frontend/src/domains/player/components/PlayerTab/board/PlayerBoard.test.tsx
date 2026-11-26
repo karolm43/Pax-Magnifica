@@ -2,7 +2,10 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { PlayerData } from "@/entities/data/types";
 import { getUnitData } from "@/entities/lookup/units";
+import type { Tile } from "@/entities/game/types";
+import { empireStats } from "../empireStats";
 import { PlayerBoard } from "./PlayerBoard";
+import { dockProductionTip, unitProductionTip } from "./productionTips";
 import { statBoxes, unitKeywords, upgradeStrip } from "./sheetUnits";
 
 vi.mock("@/state/useGameContext", () => ({
@@ -38,8 +41,28 @@ const muaat = (patch: Partial<PlayerData> = {}) =>
     tg: 5,
     commodities: 1,
     commoditiesTotal: 4,
+    planets: [],
+    exhaustedPlanets: [],
+    resources: 0, totResources: 0, influence: 0, totInfluence: 0,
+    optimalResources: 0, totOptimalResources: 0, optimalInfluence: 0, totOptimalInfluence: 0,
+    flexValue: 0, totFlexValue: 0,
     ...patch,
   }) as unknown as PlayerData;
+
+/** Home system: 4 destroyers (fleet pool 4 is full), PRODUCTION 5 for red. */
+const HOME: Record<string, Tile> = {
+  "000": {
+    position: "000",
+    unitsByFaction: { muaat: [{ entityId: "dd", entityType: "unit", count: 4 }] },
+    planets: { muaat: { controlledBy: "muaat", unitsByFaction: {} } },
+    productionByColor: { red: 5 },
+  } as unknown as Tile,
+};
+
+const board = (patch: Partial<PlayerData> = {}, tiles: Record<string, Tile> = HOME) => {
+  const player = muaat(patch);
+  return <PlayerBoard player={player} empire={empireStats(player, tiles)} />;
+};
 
 describe("sheetUnits: what a unit box prints", () => {
   it("keeps only the stat boxes of the printed sheet", () => {
@@ -66,7 +89,7 @@ describe("sheetUnits: what a unit box prints", () => {
 
 describe("PlayerBoard", () => {
   it("lays out leaders with their live state and the mech", () => {
-    render(<PlayerBoard player={muaat()} largestFleet={4} />);
+    render(board());
     const wing = within(screen.getByRole("region", { name: "Leaders and mech" }));
     expect(wing.getByRole("button", { name: "Umbat, agent, exhausted" })).toBeInTheDocument();
     expect(wing.getByRole("button", { name: "Magmus, commander, locked" })).toHaveTextContent(
@@ -77,7 +100,7 @@ describe("PlayerBoard", () => {
   });
 
   it("prints the faction sheet: flagship, units with counts, abilities, commodities", () => {
-    render(<PlayerBoard player={muaat()} largestFleet={4} />);
+    render(board());
     const sheet = within(screen.getByRole("region", { name: /faction sheet$/ }));
     expect(sheet.getByRole("button", { name: "The Inferno, 0 of 1 deployed" })).toBeInTheDocument();
     expect(sheet.getByRole("button", { name: "Infantry I, 4 of 12 deployed" })).toBeInTheDocument();
@@ -87,14 +110,14 @@ describe("PlayerBoard", () => {
   });
 
   it("shows an empty War Sun box when the player has none", () => {
-    render(<PlayerBoard player={muaat({ faction: "sol", unitsOwned: ["carrier"] })} largestFleet={0} />);
+    render(board({ faction: "sol", unitsOwned: ["carrier"] }, {}));
     expect(screen.getByRole("article", { name: "War Sun" })).toHaveTextContent(
       "Requires War Sun technology",
     );
   });
 
   it("shows the command pools, trade goods and a full fleet pool warning", () => {
-    render(<PlayerBoard player={muaat()} largestFleet={4} />);
+    render(board());
     const wing = within(screen.getByRole("region", { name: "Command sheet" }));
     expect(wing.getByRole("group", { name: "Tactic pool: 3 command tokens" })).toBeInTheDocument();
     expect(wing.getByRole("group", { name: "Strategy pool: 2 command tokens" })).toBeInTheDocument();
@@ -103,5 +126,56 @@ describe("PlayerBoard", () => {
       "Largest 4/4",
     );
     expect(wing.getByLabelText("Fleet pool full")).toBeInTheDocument();
+  });
+
+  it("prints under each silhouette what can be produced right now", () => {
+    render(board({ resources: 6, tg: 0, planets: [] }));
+    const sheet = within(screen.getByRole("region", { name: /faction sheet$/ }));
+    // Fleet pool 4 already holds 4 ships at the only dock: ships are blocked, fighters are not.
+    expect(sheet.getByRole("button", { name: /^Dreadnought/ })).toHaveTextContent("Can't buildfleet pool full (4/4)");
+    expect(sheet.getByRole("button", { name: /^Fighter/ })).toHaveTextContent("Can build 5Muaat produces 5");
+    expect(sheet.getByRole("button", { name: /^Space Dock/ })).toHaveTextContent("Produces up to 5in Muaat");
+  });
+
+  it("leaves the production lines out without board data", () => {
+    render(<PlayerBoard player={muaat()} />);
+    expect(screen.queryByText(/Can build|Produces up to/)).not.toBeInTheDocument();
+  });
+});
+
+describe("productionTips", () => {
+  const empire = (patch: Partial<PlayerData> = {}, tiles: Record<string, Tile> = HOME) =>
+    empireStats(muaat(patch), tiles);
+  const option = (e: ReturnType<typeof empire>, id: string) => e.build.find((b) => b.asyncId === id)!;
+
+  it("names the limit when the unit can be built", () => {
+    const e = empire({ resources: 2, tg: 0, planets: [] });
+    expect(unitProductionTip(option(e, "ff"), e)).toMatchObject({
+      tone: "ok",
+      title: "Can build 4",
+      reason: "2 resources to spend",
+    });
+  });
+
+  it("says why a unit cannot be built", () => {
+    const poor = empire({ resources: 0, tg: 1, planets: [] });
+    expect(unitProductionTip(option(poor, "dn"), poor)).toMatchObject({
+      tone: "blocked",
+      title: "Can't afford",
+      reason: "costs 4 · you have 1",
+    });
+    const noDock = empire({ resources: 9 }, {});
+    expect(unitProductionTip(option(noDock, "ff"), noDock).reason).toBe("no space dock on the board");
+    expect(dockProductionTip(noDock).tone).toBe("blocked");
+  });
+
+  it("lists every system with PRODUCTION, best first", () => {
+    const tiles = {
+      ...HOME,
+      "101": { position: "101", unitsByFaction: { muaat: [{ entityId: "sd", entityType: "unit", count: 1 }] }, planets: {}, productionByColor: { red: 2 } } as unknown as Tile,
+    };
+    const tip = dockProductionTip(empire({}, tiles));
+    expect(tip).toMatchObject({ title: "Produces up to 5", reason: "in Muaat · +1 system" });
+    expect(tip.detail).toContain("System 101 2");
   });
 });

@@ -7,7 +7,10 @@ import { getAbility } from "@/entities/lookup/abilities";
 import { lookupUnit } from "@/entities/lookup/units";
 import { attribution, quoted } from "@/entities/lore/typography";
 import type { PlayerData } from "@/entities/data/types";
+import type { EmpireStats } from "../empireStats";
 import { factionQuote, LoreButton } from "./LoreButton";
+import { dockProductionTip, unitProductionTip, type ProductionTip } from "./productionTips";
+import { RulesText } from "./RulesText";
 import { SheetUnit } from "./SheetUnit";
 import styles from "./FactionSheet.module.css";
 
@@ -59,13 +62,8 @@ function Abilities({ ids }: { ids: string[] }) {
         return (
           <div key={id} className={styles.abilityEntry}>
             <Ability id={id} />
-            {data.permanentEffect && <p>{data.permanentEffect}</p>}
-            {(data.window || data.windowEffect) && (
-              <p>
-                {data.window && <em className={styles.abilityWindow}>{data.window}</em>}
-                {data.windowEffect}
-              </p>
-            )}
+            <RulesText text={data.permanentEffect} />
+            <RulesText timing={data.window} text={data.windowEffect} />
           </div>
         );
       })}
@@ -88,7 +86,15 @@ function Commodities({ value, max }: { value: number; max: number }) {
   );
 }
 
-export function FactionSheet({ player }: { player: PlayerData }) {
+/** Production line for one unit box (none for PDS: structures are placed, not produced). */
+function tipFor(asyncId: string, empire?: EmpireStats): ProductionTip | undefined {
+  if (!empire) return undefined;
+  if (asyncId === "sd") return dockProductionTip(empire);
+  const option = empire.build.find((b) => b.asyncId === asyncId);
+  return option ? unitProductionTip(option, empire) : undefined;
+}
+
+export function FactionSheet({ player, empire }: { player: PlayerData; empire?: EmpireStats }) {
   const fields = getPlayerCardLayoutFields(player);
   const name = fields.factionDisplayName;
   const { quote, author } = factionQuote(player.faction);
@@ -119,6 +125,7 @@ export function FactionSheet({ player }: { player: PlayerData }) {
           player={player}
           variant="flagship"
           subtitle={`${name} flagship`}
+          tip={tipFor("fs", empire)}
           className={styles.fs}
         />
 
@@ -130,7 +137,13 @@ export function FactionSheet({ player }: { player: PlayerData }) {
         </div>
 
         {GRID_UNITS.map(({ asyncId, area }) => (
-          <SheetUnit key={asyncId} asyncId={asyncId} player={player} className={styles[area]} />
+          <SheetUnit
+            key={asyncId}
+            asyncId={asyncId}
+            player={player}
+            tip={tipFor(asyncId, empire)}
+            className={styles[area]}
+          />
         ))}
         {monument && <SheetUnit asyncId="monument" player={player} />}
       </div>
