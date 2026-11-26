@@ -66,6 +66,13 @@ def remove_by_key(state: GameState, key: str, *, owner: str | None = None) -> in
     return count
 
 
+def rearm(state: GameState, key: str, *, owner: str, flag: str, scope: Duration) -> None:
+    """Re-arms a player's effects marked as met: drops ``data[flag]`` and restores ``scope``."""
+    for effect in state.active_effects:
+        if effect.key == key and effect.owner == owner and effect.data.pop(flag, None):
+            effect.scope = scope.value
+
+
 def expire(state: GameState, scope: Duration, *, owner: str | None = None) -> list[ActiveEffect]:
     """Wygasza efekty o danym zakresie (``owner`` ogranicza do efektów tego gracza).
 

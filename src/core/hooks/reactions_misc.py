@@ -483,10 +483,9 @@ def _duress_resolve(state: GameState, player_id: str, ctx: Mapping[str, Any]) ->
 def restore_duress(state: GameState, player_id: str) -> None:
     """Akcja strategiczna celu się nie odbyła (Coup d'Etat): Extreme Duress nadal czeka na jego
     następną akcję (C_action_cards). Mutuje ``state``."""
-    for effect in state.active_effects:
-        if effect.key == _key("extremeduress") and effect.owner == player_id:
-            if effect.data.pop(_DURESS_MET, None):
-                effect.scope = Duration.ROUND.value
+    active_effects.rearm(
+        state, _key("extremeduress"), owner=player_id, flag=_DURESS_MET, scope=Duration.ROUND
+    )
 
 
 # ------------------------------------------------------------------------------ Master Plan

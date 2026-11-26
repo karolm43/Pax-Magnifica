@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -53,8 +54,10 @@ def test_load_i_bledy(tmp_path: Path) -> None:
         EffectRegistry.load(bad)
 
 
-def test_poczatkowy_plik_konfiguracyjny_jest_pusty() -> None:
-    assert EffectRegistry.load(config.EFFECTS_STATUS_PATH).statuses == {}
+def test_repository_status_file_loads_every_entry() -> None:
+    raw = json.loads(config.EFFECTS_STATUS_PATH.read_text(encoding="utf-8"))
+    statuses = EffectRegistry.load(config.EFFECTS_STATUS_PATH).statuses
+    assert len(statuses) == len(raw) > 0
 
 
 def test_coverage() -> None:
