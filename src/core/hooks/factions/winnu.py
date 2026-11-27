@@ -14,6 +14,7 @@ from typing import Any
 from src.core import (
     active_effects,
     board_graph,
+    cooperative,
     exhaust,
     faction_components,
     leaders,
@@ -405,6 +406,15 @@ def htp_swapped(state: GameState, player_id: str, _ctx: Mapping[str, Any]) -> se
 
 
 # ----------------------------------------------------------- Berekar Berekon (agent)
+
+
+def _berekar_helps(state: GameState, _owner: str) -> list[str]:
+    producer = _producing(state)
+    return [producer] if producer is not None else []
+
+
+# Cooperative agent (RULES.md 54.15): the producing player's discount - requested, not pushed.
+cooperative.register_pull_component("leader", AGENT, _berekar_helps)
 
 
 @faction_components.window_use("leader", AGENT)

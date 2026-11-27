@@ -302,3 +302,47 @@ Older, completed blocks (Phase 1 → blocks of 2026-11-25) are in `PROGRESS_ARCH
 - Faction scene: portrait, header and lore reveal about twice as fast (`--t-*` in `Step_Faction.module.css`,
   fixed header durations in `FactionBackdrop.module.css`).
 - QA: tsc, eslint, setup vitest, e2e (8 passed). No visual screenshot check.
+
+## Structured wait reasons (who the game waits for and why, RULES.md 44.5)
+
+- `core/actor.describe_wait_reasons(state, registry)` -> `WaitReason(player_id, reason_code, summary, blocking)`;
+  `awaiting` is now derived from it. New relative to the old list: reaction pause / held card (all eligible, passes
+  never read), hand-limit discard, granted production, Space Cannon target / Defense shooters, bombardment defender,
+  per-side combat rolls; nothing is awaited after the game ends. Strategy secondary uses `secondary` (was `respond`).
+- A hand-limit discard blocks only that player (others keep their reasons). After the last pass the last passer
+  "may still end the turn" (non-blocking - the speaker can advance). Checked against bot moves: in 3 fuzz games
+  (1259 moves) every move came from a blocking player, except timer releases of reaction windows (any seat) and
+  that optional end of turn.
+- `web-data.waitReasons`; header chip `TurnStatusChip` shows `PlayerTag` per player, groups equal reasons
+  (`domains/network/waitReasons.ts`, replaces `describeAwaiting`). `web-data.awaiting` kept, unused by the UI.
+- Diagnostics: `format_wait_reasons` in bot runner warnings (rejected, timed out, exception, new "Bot game stalled"
+  check) and in fuzzer failures (`waiting: ...` line, `wait_reasons` in the dump).
+- Tests: `tests/test_wait_reasons.py` (incl. non-interference: changing private data never changes the output),
+  vitest `waitReasons`.
+
+## Faster reactions + Push vs Pull cooperative effects (RULES.md 54.11-54.15, 30.13)
+
+- Reaction windows: default 20 s (max 60). With Quick windows + a bluff range (new UI games: on, 8 s) every
+  engine auto-pass lands at a private random moment (25-100% of the range) and an all-passed window closes
+  at the last one - never at 0.0 s (`reaction_window.bluff_offset` / `schedule_auto_passes`, 54.13).
+- "...unless something changes" pre-passes (54.13): lapse on another player's notable move (`note_change`:
+  card / note played, agent used, retreat, extra hits); a notice says who did what. Optional auto-assignment
+  of combat hits (`core/combat_auto_assign.py`, 54.14) through the normal assignment path (Sustain windows,
+  Direct Hit, the protective pause fire as usual). Queued strategy card secondaries (30.13).
+- Push vs Pull (54.15, `core/cooperative.py`): cooperative agents (Mendosa, Trilossa, Acamar, Taivra, I48S,
+  Garv and Gunn, T'ro, Milor, Z'eu TE, Unlenn, Evelyn, Berekar, Sucaban, Tellurian) no longer open a
+  window on another player's event - a boost is recorded and the beneficiary asks for it ("Boosts" in the
+  hand dock, only while one is available). Owner's terms in the Reactions panel: Ask me / Standing offer
+  (price, free for chosen players) / Self-only, plus "Watch" (this turn / combat). Accepting = payment (a
+  normal transaction) + effect in ONE step; declined / withdrawn / lapsed = nothing paid. Push effects
+  (Sabotage, Direct Hit, Cabal's agent...) unchanged.
+- UI: `ReactionSettings` (notices, "unless something changes", combat hits, `CooperativeSettings`),
+  `BoostsButton`, `SecondaryQueueChip`, deal line on the offer card (`DealLine`), Activity `boost.request`;
+  Settings: 20 s / 60 s, bluff range 0-12 s.
+- Tests: `test_cooperative.py` (23), `test_reaction_bluff.py`, `test_combat_auto_assign.py`,
+  `test_secondary_queue.py`, `test_activity.py` (boost), faction / flow tests moved to the request flow
+  (`tests/boosts.py`, `Flow.request_boost`); vitest `ReactionSettings`, `BoostsButton`, `DealLine`,
+  `describeActivity.boosts`.
+- ⚠️ ASSUMPTIONS for the user: see RULES.md 54.13-54.15 and 30.13 (bluff bounds and defaults, pull list,
+  bot owner accepts a paid request, the owner picks the details on Ask me, price cap 20).
+

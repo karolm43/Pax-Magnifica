@@ -80,7 +80,7 @@ const DEFAULT_SETTINGS: Settings = {
   chessClockEnabled: false,
   chessClockMinutes: 120,
   chessClockIncrementSeconds: 30,
-  reactionWindowSeconds: 5,
+  reactionWindowSeconds: 20,
 };
 
 /** Legacy settings stored a boolean `showControlTokens` instead of the mode. */
@@ -115,8 +115,11 @@ function loadSettingsFromStorage(): Settings {
     ...mergeStoredSettings(stored, DEFAULT_SETTINGS),
     controlTokenDisplayMode: resolveControlTokenDisplayMode(stored),
     gameVariants: resolveGameVariants(stored),
-    // Stary domyślny 4 s zapisany w przeglądarce -> nowy domyślny 5 s (RULES.md 54.11, 2026-11-18).
-    ...(stored?.reactionWindowSeconds === 4 ? { reactionWindowSeconds: 5 } : {}),
+    // Old defaults saved in the browser (4 s, 5 s) -> the new default 20 s (RULES.md 54.11,
+    // user decision 2026-11-27).
+    ...(stored?.reactionWindowSeconds === 4 || stored?.reactionWindowSeconds === 5
+      ? { reactionWindowSeconds: 20 }
+      : {}),
   };
 }
 

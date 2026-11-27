@@ -5,8 +5,7 @@
  * - Brak/nieważny token: zasłona „otwórz grę ze swojego linku" (backend i tak odpowie 401).
  * - Gracz: plakietka „You: <miejsce>". Host: przycisk „Invites" — linki miejsc (kopiuj,
  *   unieważnij) i wybór, czy host sam siedzi przy stole (wtedy widzi tylko swoje).
- * - Status tury (RULES.md 44.5) — `describeAwaiting` stąd, wyświetla go `TurnStatusChip`
- *   w nagłówku (obok „You play").
+ * - Status tury (RULES.md 44.5) pokazuje osobno `TurnStatusChip` w nagłówku.
  * - Odmowa serwera (403 — nie twój ruch / nie host) pokazuje się jako krótki komunikat
  *   zamiast surowego błędu (zdarzenie `FORBIDDEN_EVENT` z `actorIdentity`).
  * Push stanu (WebSocket) włącza się tu, bo tylko gra sieciowa go potrzebuje.
@@ -34,58 +33,6 @@ type SeatInvite = {
 type SeatsResponse = { network: boolean; host_seat: string | null; seats: SeatInvite[] };
 
 const SEATS_KEY = ["network", "seats"] as const;
-
-export type Awaiting = {
-  playerId: string;
-  name: string;
-  faction: string | null;
-  color: string | null;
-  reason: string;
-};
-
-/** Co gracz ma teraz zrobić (kody z `core/actor.awaiting`). */
-const REASON: Record<string, string> = {
-  respond: "respond in the timing window",
-  decide: "make a decision",
-  assign_hits: "assign hits",
-  combat: "resolve combat",
-  invasion: "resolve the invasion",
-  explore: "explore",
-  strategy: "resolve a strategy card",
-  turn: "take a turn",
-  score: "score objectives",
-  redistribute: "place command tokens",
-  vote: "vote on the agenda",
-  speaker: "advance the phase (speaker)",
-  secret: "choose a secret objective",
-  setup: "finish the game setup (speaker)",
-};
-
-/**
- * Tekst chipa tury. ``controlAll`` = host w trybie testowym steruje każdym graczem — wtedy
- * każda czekająca decyzja jest „moja" (nie „Waiting for <gracz, którym właśnie gram>").
- */
-export function describeAwaiting(
-  list: Awaiting[],
-  me: string | null,
-  controlAll = false,
-): {
-  mine: boolean;
-  text: string;
-} {
-  const reason = (a: Awaiting) => REASON[a.reason] ?? a.reason;
-  if (controlAll && list.length > 0) {
-    return {
-      mine: true,
-      text: `Your move - ${list.map((a) => `${a.name}: ${reason(a)}`).join(", ")}`,
-    };
-  }
-  const own = list.find((a) => a.playerId === me);
-  if (own) return { mine: true, text: `Your move - ${reason(own)}` };
-  if (list.length === 0) return { mine: false, text: "" };
-  const who = list.map((a) => `${a.name} (${reason(a)})`).join(", ");
-  return { mine: false, text: `Waiting for ${who}` };
-}
 
 /**
  * Odmowa serwera (403, „nie twój ruch") trafia do wspólnej strefy komunikatów — ten sam panel

@@ -10,11 +10,23 @@ Błąd autoryzacji to ``ActorError`` (``PermissionError``, NIE ``ValueError``), 
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from typing import overload
 
 from src.core import game_setup
-from src.core.game_state import GameState
+from src.core.game_state import (
+    AgendaStep,
+    CombatStep,
+    GameState,
+    InvasionPhase,
+    Phase,
+    SetupStage,
+    StatusStep,
+    WindowType,
+)
+from src.core.registry import StaticDataRegistry
 
 
 class ActorError(PermissionError):
@@ -178,75 +190,334 @@ def production_grantee(state: GameState) -> list[str | None]:
     return [grant.player_id] if grant is not None else turn_player(state)
 
 
-# --- Na kogo czeka gra (UI „czekamy na gracza X", RULES.md 44.5) ---------------------------
+# --- Who the game is waiting for, and why (RULES.md 44.5) -----------------------------------
+#
+# PUBLIC information, identical for every viewer: it is computed from the full state, so it must
+# never read anything private - card ids, ``passed`` / ``auto_pass_at`` / ``extended_by`` of
+# reaction windows, queued secondary decisions, offer labels or contexts. Hand SIZES are public.
 
 
-def awaiting(state: GameState) -> list[tuple[str, str]]:
-    """Gracze, od których decyzji gra teraz zależy: ``[(player_id, powód)]``, pilne pierwsze.
+@dataclass(frozen=True)
+class WaitReason:
+    """One thing the game expects from one player.
 
-    Jawna informacja stołu (kto ma ruch), wyliczana z tych samych pól co uprawnienia aktora:
-    okno czasowe → jego respondent; oferty → ich decydenci; walka (przypisanie trafień) → strony
-    z trafieniami do pokrycia; inwazja / eksploracja / karta strategii → ich prowadzący;
-    w przeciwnym razie gracz z turą (faza akcji/strategii) albo mówca (status/agenda).
-    Powody to stałe kody dla UI: ``respond``, ``decide``, ``assign_hits``, ``combat``,
-    ``invasion``, ``explore``, ``strategy``, ``turn``, ``speaker``, w fazie statusu ``score``
-    (punktowanie celów) i ``redistribute`` (rozdział żetonów), w agendzie ``vote``; w setupie
-    startowym ``secret`` (wybór tajnego celu) i ``setup`` (mówca: Custodians / odkrycie celów).
+    ``reason_code`` is a stable machine code (bot / fuzzer diagnostics), ``summary`` a safe public
+    English text. ``blocking=False`` = the player answers later (e.g. a strategy card secondary
+    after the players before them); the game is not stopped on them yet.
     """
-    found: list[tuple[str, str]] = []
 
-    def add(player_id: str | None, reason: str) -> None:
-        if player_id and player_id in state.players and all(p != player_id for p, _ in found):
-            found.append((player_id, reason))
+    player_id: str
+    reason_code: str
+    summary: str
+    blocking: bool = True
 
-    setup = state.setup
-    if setup is not None:
-        # Setup startowy (RULES.md 45): tajne cele wybierają wszyscy naraz, potem mówca.
-        for player_id in game_setup.pending_choosers(state):
-            add(player_id, "secret")
-        if not found:
-            add(state.speaker_id, "setup")
-        return found
+
+class _Waits:
+    """Collects reasons in urgency order, one per ``(player, code)``; unknown players skipped."""
+
+    def __init__(self, state: GameState, registry: StaticDataRegistry | None) -> None:
+        self.state = state
+        self.registry = registry
+        self.found: list[WaitReason] = []
+
+    def add(self, player_id: str | None, code: str, summary: str, *, blocking: bool = True) -> None:
+        if not player_id or player_id not in self.state.players or self.has(player_id, code):
+            return
+        self.found.append(WaitReason(player_id, code, summary, blocking))
+
+    def has(self, player_id: str, code: str) -> bool:
+        return any(r.player_id == player_id and r.reason_code == code for r in self.found)
+
+    @property
+    def blocked(self) -> bool:
+        return any(r.blocking for r in self.found)
+
+    def card(self, initiative: object) -> str:
+        """``Strategy Card 7 (Technology)``; the name needs the registry."""
+        number = int(str(initiative or 0))
+        if not number:
+            return "a strategy card"
+        if self.registry is not None:
+            for card in self.registry.strategy_card_set():
+                if card.initiative == number:
+                    return f"Strategy Card {number} ({card.name})"
+        return f"Strategy Card {number}"
+
+
+def _hits(count: int, kind: str) -> str:
+    return f"assigning {count} {kind} hit{'' if count == 1 else 's'}"
+
+
+def describe_wait_reasons(
+    state: GameState, registry: StaticDataRegistry | None = None
+) -> list[WaitReason]:
+    """Who the game is waiting for and why, most urgent first (empty once the game is over).
+
+    The order of checks mirrors ``engine/legal.legal_actions``. ``registry`` adds strategy card
+    names and finds the Space Cannon Defense shooters; without it the texts are more generic.
+    """
+    if state.winner_id is not None:
+        return []
+    waits = _Waits(state, registry)
+    if state.setup is not None:
+        _setup_waits(state, waits)
+        return waits.found
+    _window_hold_waits(state, waits)
+    if waits.found:
+        return waits.found
+    # Over the hand limit blocks only that player's own moves (``legal_actions``): listed first,
+    # but the others still get their reasons below.
+    discards = _Waits(state, registry)
+    _discard_waits(state, discards)
+    if state.production_grant is not None:
+        waits.add(state.production_grant.player_id, "produce", "producing units")
+    if state.pending_window is not None:
+        _timing_window_waits(state, waits)
+        _offer_waits(state, waits)
+    elif state.pending_offers:
+        _offer_waits(state, waits)
+    elif state.active_combat is not None:
+        _combat_waits(state, waits)
+    elif state.exploration is not None:
+        waits.add(state.exploration.player_id, "explore", "resolving exploration")
+    elif state.invasion is not None:
+        _invasion_waits(state, waits)
+    elif state.pending_strategy is not None:
+        pending = state.pending_strategy
+        if not waits.has(pending.owner_id, "produce"):
+            card = waits.card(pending.initiative)
+            waits.add(pending.owner_id, "strategy", f"resolving the primary ability of {card}")
+    if not waits.blocked:
+        _phase_waits(state, waits)
+    if not waits.blocked:
+        waits.add(state.speaker_id, "speaker", "advancing the game (speaker)")
+    return discards.found + waits.found
+
+
+def _setup_waits(state: GameState, waits: _Waits) -> None:
+    """Starting setup (RULES.md 45): all pick secret objectives at once, then the speaker."""
+    assert state.setup is not None
+    for player_id in game_setup.pending_choosers(state):
+        waits.add(player_id, "secret", "choosing a secret objective")
+    if waits.found:
+        return
+    step = {
+        SetupStage.CUSTODIANS: "placing the Custodians token",
+        SetupStage.OBJECTIVES: "revealing the first public objectives",
+    }.get(state.setup.stage, "finishing the game setup")
+    waits.add(state.speaker_id, "setup", f"{step} (speaker)")
+
+
+def _window_hold_waits(state: GameState, waits: _Waits) -> None:
+    """Fixed-length reaction windows (RULES.md 54.11). EVERY eligible player is listed: who has
+    already passed is private, so ``passed`` is deliberately not read."""
+    if state.held_play is not None:
+        for player_id in state.held_play.eligible:
+            waits.add(player_id, "react", "may respond to an action card")
+    if state.reaction_pause is not None:
+        for player_id in state.reaction_pause.eligible:
+            waits.add(player_id, "react", f"may react: {state.reaction_pause.label}")
+
+
+def _discard_waits(state: GameState, waits: _Waits) -> None:
+    from src.core import hand_limit  # local: hand_limit pulls in the hooks
+
+    for player_id, excess in hand_limit.players_over_limit(state).items():
+        cards = "card" if excess == 1 else "cards"
+        waits.add(player_id, "discard", f"discarding {excess} action {cards} over the hand limit")
+
+
+def _offer_waits(state: GameState, waits: _Waits) -> None:
+    for offer in state.pending_offers:  # never the label / context: they are the decider's own
+        text = "deciding whether to use an ability"
+        if offer.mandatory:
+            text = "making a required choice"
+        waits.add(offer.player_id, "decide", text)
+
+
+def _timing_window_waits(state: GameState, waits: _Waits) -> None:
     window = state.pending_window
-    if window is not None:
-        add(window.current_responder, "respond")
-    for offer in state.pending_offers:
-        add(offer.player_id, "decide")
+    assert window is not None
+    kind = window.window_type
+    responder = window.current_responder
+    if kind is WindowType.STRATEGY_SECONDARY:
+        _secondary_waits(state, waits)
+    elif kind is WindowType.SPACE_CANNON:
+        from src.core import space_cannon  # local: space_cannon pulls in the combat modules
+
+        pending = space_cannon.pending_hits(state)
+        if pending is not None:  # the target assigns, not the window's current shooter
+            hits = space_cannon.required_hits(state, pending.target, waits.registry)
+            waits.add(pending.target, "assign_hits", _hits(hits, "Space Cannon"))
+        else:
+            waits.add(responder, "space_cannon", "deciding on Space Cannon Offense")
+    elif kind is WindowType.COMBAT_ASSIGN_HITS:
+        combat = state.active_combat
+        pending_hits = combat.pending_hits if combat is not None else {}
+        if responder is not None:
+            count = pending_hits.get(responder, 0)
+            text = _hits(count, "combat") if count else "assigning combat hits"
+            waits.add(responder, "assign_hits", text)
+        for player_id, count in pending_hits.items():
+            if count > 0:
+                waits.add(player_id, "assign_hits", _hits(count, "combat"), blocking=False)
+    elif kind is WindowType.COMBAT_RETREAT:
+        waits.add(responder, "retreat", "deciding whether to announce a retreat")
+    elif kind is WindowType.FLEET_POOL:
+        waits.add(responder, "remove_excess", "removing ships over the fleet pool")
+    elif kind is WindowType.CAPACITY:
+        waits.add(responder, "remove_excess", "removing units over capacity")
+    elif not any(offer.player_id == responder for offer in state.pending_offers):
+        waits.add(responder, "respond", "deciding on a timing window reaction")
+
+
+def _secondary_waits(state: GameState, waits: _Waits) -> None:
+    """The current respondent blocks; later players are listed as not blocking yet. THAT a player
+    has queued a decision is public (RULES.md 30.12), WHAT they queued is never read."""
+    window = state.pending_window
+    assert window is not None
+    responder = window.current_responder
+    card = waits.card(window.context.get("initiative"))
+    if responder is not None and not waits.has(responder, "produce"):
+        waits.add(responder, "secondary", f"following {card}")
+    for player_id in window.queue[window.cursor + 1 :]:
+        if player_id not in state.secondary_queue:
+            waits.add(player_id, "secondary", f"yet to answer {card}", blocking=False)
+
+
+def _combat_waits(state: GameState, waits: _Waits) -> None:
     combat = state.active_combat
-    if combat is not None:
-        pending = [pid for pid, hits in combat.pending_hits.items() if hits > 0]
-        for pid in pending:
-            add(pid, "assign_hits")
-        if not pending:
-            add(combat.attacker, "combat")
-            add(combat.defender, "combat")
-    if state.invasion is not None:
-        add(state.invasion.attacker, "invasion")
-    if state.exploration is not None:
-        add(state.exploration.player_id, "explore")
-    if state.pending_strategy is not None:
-        add(state.pending_strategy.owner_id, "strategy")
-    if not found:
-        _phase_turn(state, add)
-    if not found:
-        add(state.speaker_id, "speaker")
-    return found
+    assert combat is not None
+    for player_id, count in combat.pending_hits.items():
+        if count > 0:
+            waits.add(player_id, "assign_hits", _hits(count, "combat"))
+    if waits.blocked:
+        return
+    sides = [combat.attacker, combat.defender]
+    summary = "resolving combat"
+    if combat.step is CombatStep.ROLL:
+        sides = [pid for pid in sides if pid not in combat.side_rolls]
+        summary = "rolling combat dice"
+    elif combat.step is CombatStep.AFB:
+        summary = "resolving Anti-Fighter Barrage"
+    elif combat.step is CombatStep.RETREAT:
+        sides = list(combat.retreating) or sides
+        summary = "retreating from combat"
+    elif combat.step is CombatStep.DONE:
+        sides = [combat.attacker]
+        summary = "closing the combat"
+    for player_id in sides:
+        waits.add(player_id, "combat", summary)
 
 
-def _phase_turn(state: GameState, add: Callable[[str | None, str], None]) -> None:
-    """Kolej gracza nazwana wg fazy (plan U5/Z13): w statusie/agendzie to nie „tura”."""
-    from src.core.agenda_phase import current_voter  # lokalnie: agenda_phase ciągnie hooki
-    from src.core.game_state import Phase, StatusStep
+def _invasion_waits(state: GameState, waits: _Waits) -> None:
+    from src.core import invasion  # local: invasion pulls in the combat modules
 
+    inv = state.invasion
+    assert inv is not None
+    for key, count in inv.bombard_pending.items():
+        if count > 0:
+            with contextlib.suppress(ValueError):  # God-Mode state without the bombardment log
+                defender = invasion.bombard_defender(inv, key)
+                waits.add(defender, "assign_hits", _hits(count, "bombardment"))
+    if waits.blocked:
+        return
+    if inv.phase is InvasionPhase.SPACE_CANNON_DEFENSE:
+        defense = sum(max(0, n) for n in inv.defense_pending.values())
+        if defense:
+            waits.add(inv.attacker, "assign_hits", _hits(defense, "Space Cannon"))
+            return
+        if waits.registry is not None:
+            for planet in invasion.undefended_open(state, waits.registry):
+                shooters = invasion.defense_shooters(state, waits.registry, planet)
+                for shooter in shooters:
+                    waits.add(shooter.player_id, "space_cannon", "deciding on Space Cannon Defense")
+                if shooters:
+                    return
+    step = {
+        InvasionPhase.BOMBARDMENT: "bombardment",
+        InvasionPhase.COMMIT: "committing ground forces",
+        InvasionPhase.SPACE_CANNON_DEFENSE: "Space Cannon Defense",
+        InvasionPhase.GROUND_COMBAT: "ground combat",
+        InvasionPhase.ESTABLISH: "establishing control",
+    }[inv.phase]
+    waits.add(inv.attacker, "invasion", f"invasion: {step}")
+
+
+def _phase_waits(state: GameState, waits: _Waits) -> None:
+    """Nothing special pending: whose move it is, named by phase (in status/agenda not a "turn")."""
+    from src.core import turn_flow  # local: turn_flow / agenda_phase pull in the hooks
+    from src.core.agenda_phase import current_voter
+
+    active = state.active_player_id
+    if turn_flow.can_advance_phase(state):
+        # Everyone passed; the last passer still holds the turn (a pass does not hand it on) and
+        # MAY end it, but the speaker can advance without that - so it is not blocking.
+        last = state.players.get(active) if active else None
+        if (
+            state.phase is Phase.ACTION
+            and last is not None
+            and last.passed
+            and state.turn_end_window is None
+        ):
+            waits.add(active, "turn", "may still end the turn", blocking=False)
+        waits.add(state.speaker_id, "speaker", "advancing to the next phase (speaker)")
+        return
     if state.phase is Phase.STATUS and state.status is not None:
         if state.status.step is StatusStep.SCORE_OBJECTIVES:
-            add(state.active_player_id, "score")
+            waits.add(active, "score", "status phase scoring")
+            for player_id in state.players:
+                if player_id != active and player_id not in state.status.done:
+                    waits.add(player_id, "score", "yet to score objectives", blocking=False)
         elif state.status.step is StatusStep.REDISTRIBUTE:
             for player_id in state.players:
                 if player_id not in state.status.done:
-                    add(player_id, "redistribute")
+                    waits.add(player_id, "redistribute", "placing command tokens")
         return
     if state.phase is Phase.AGENDA:
-        add(current_voter(state), "vote")
+        voter = current_voter(state)
+        if voter is not None:
+            waits.add(voter, "vote", "voting on the agenda")
+            return
+        step = state.agenda.step if state.agenda is not None else None
+        texts = {
+            AgendaStep.REVEAL: "revealing the next agenda",
+            AgendaStep.TIEBREAK: "breaking the agenda tie",
+            AgendaStep.COUNTED: "confirming the vote result",
+            AgendaStep.RESOLVED: "continuing past the resolved agenda",
+        }
+        text = texts.get(step, "running the agenda phase") if step else "running the agenda phase"
+        waits.add(state.speaker_id, "speaker", f"{text} (speaker)")
         return
-    add(state.active_player_id, "turn")
+    summary = "taking a turn"
+    player = state.players.get(active) if active else None
+    if state.phase is Phase.STRATEGY:
+        summary = "picking a strategy card"
+    elif state.tactical_step is not None:
+        summary = f"tactical action: {state.tactical_step.value.lower().replace('_', ' ')}"
+    elif player is not None and player.took_action_this_turn:
+        summary = "ending the turn"
+    waits.add(active, "turn", summary)
+
+
+def format_wait_reasons(state: GameState, registry: StaticDataRegistry | None = None) -> str:
+    """One diagnostic line for stall / timeout logs (bot runner, fuzzer)."""
+    entries = []
+    for reason in describe_wait_reasons(state, registry):
+        faction = state.players[reason.player_id].faction or "?"
+        later = "" if reason.blocking else ", not blocking"
+        entries.append(
+            f"{reason.player_id} ({faction}) {reason.reason_code}: {reason.summary}{later}"
+        )
+    pending = "; ".join(entries) if entries else "nothing pending"
+    return f"phase {state.phase.value}, round {state.round_number}; {pending}"
+
+
+def awaiting(state: GameState) -> list[tuple[str, str]]:
+    """Players whose decision the game is stopped on: ``[(player_id, reason_code)]``, one entry
+    per player, most urgent first - the blocking part of :func:`describe_wait_reasons`."""
+    found: dict[str, str] = {}
+    for reason in describe_wait_reasons(state):
+        if reason.blocking:
+            found.setdefault(reason.player_id, reason.reason_code)
+    return list(found.items())

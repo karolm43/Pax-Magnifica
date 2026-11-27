@@ -2,18 +2,22 @@ import { useState } from "react";
 import { IconPlayerSkipForward, IconX } from "@tabler/icons-react";
 import { Popover, SegmentedControl, Switch } from "@/ds";
 import type {
+  AutoHitsPolicy,
   PassDuration,
   PlayerData,
   ReactionCategory,
   ReactionPrefsData,
 } from "@/entities/data/types";
 import { postReactionPrefs, type ReactionPrefsChange } from "@/api/useActionCard";
+import { PlayerTag } from "@/shared/ui/PlayerTag";
+import { CooperativeSettings } from "./CooperativeSettings";
 import styles from "./ReactionSettings.module.css";
 
 /*
  * Ustawienia okien reakcji gracza w JEDNYM miejscu - przycisk „Reactions” w nagłówku panelu
- * akcji (RULES.md 54.11-54.12): deklaracje pasu z góry (kategoria + czas), „only when it
- * concerns me” i wyciszone karty/oferty. Ustawienia są prywatne: okna trwają tyle samo.
+ * akcji (RULES.md 54.11-54.15): deklaracje pasu z góry (kategoria + czas, opcjonalnie „unless
+ * something changes”), „only when it concerns me”, auto-przypisanie trafień, agenci
+ * kooperacyjni i wyciszone karty/oferty. Ustawienia są prywatne: okna trwają tyle samo.
  */
 
 type Row = { category: ReactionCategory; label: string; text: string };
@@ -48,6 +52,22 @@ const ROWS: Row[] = [
 
 const OFF = "off";
 
+const HIT_POLICIES: { value: AutoHitsPolicy; label: string }[] = [
+  { value: "off", label: "By hand" },
+  { value: "sustain", label: "Sustain only" },
+  { value: "cheap", label: "Sustain + fodder" },
+];
+
+const HIT_TEXT: Record<AutoHitsPolicy, string> = {
+  off: "You always assign combat hits yourself.",
+  sustain: "Hits go on Sustain Damage automatically; you are asked when a unit would be destroyed.",
+  cheap: "Sustain Damage first, then fighters and infantry; you are asked before anything else dies.",
+};
+
+function categoryLabel(category: ReactionCategory): string {
+  return ROWS.find((r) => r.category === category)?.label ?? category;
+}
+
 function durations(category: ReactionCategory) {
   return [
     { value: OFF, label: "Off" },
@@ -77,19 +97,29 @@ export function reactionSummary(prefs: ReactionPrefsData): string | null {
 export function ReactionSettings({
   player,
   quickWindows,
+  inCombat = false,
+  othersTurn = false,
 }: {
   player: PlayerData;
   /** „Quick windows” hosta (RULES.md 54.12) - informacja w panelu. */
   quickWindows?: boolean;
+  /** A combat is going on ("Watch this combat", RULES.md 54.15). */
+  inCombat?: boolean;
+  /** Another player's turn ("Watch this turn"). */
+  othersTurn?: boolean;
 }) {
   const [opened, setOpened] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // "Unless something changes" (RULES.md 54.13): applies to the declarations made next.
+  const [unlessChanges, setUnlessChanges] = useState(false);
   const prefs = player.reactionPrefs ?? {
     ...EMPTY,
     passes: player.autoPassReactions ? { all: "always" as PassDuration } : {},
   };
   const summary = reactionSummary(prefs);
+  const notices = prefs.notices ?? [];
+  const conditional = new Set(prefs.unlessChanges ?? []);
 
   const change = (body: ReactionPrefsChange) => {
     setBusy(true);
@@ -119,6 +149,24 @@ export function ReactionSettings({
       </Popover.Target>
       <Popover.Dropdown className={styles.panel}>
         <div role="dialog" aria-label="Reaction settings">
+          {notices.length > 0 && (
+            <div className={styles.notice} role="status">
+              {notices.map((n, i) => (
+                <p key={`${n.category}-${i}`}>
+                  Your pass on <b>{categoryLabel(n.category)}</b> was cancelled:{" "}
+                  {n.actor ? <PlayerTag playerId={n.actor} size={14} /> : "someone"} {n.reason}.
+                </p>
+              ))}
+              <button
+                type="button"
+                className={styles.chip}
+                disabled={busy}
+                onClick={() => change({ clear_notices: true })}
+              >
+                Got it
+              </button>
+            </div>
+          )}
           <h4 className={styles.title}>Pass in advance</h4>
           <p className={styles.note}>
             The game already passes for you when you have nothing to play. Here you can also
@@ -128,7 +176,12 @@ export function ReactionSettings({
             {ROWS.map((row) => (
               <div key={row.category} className={styles.row}>
                 <div className={styles.rowText}>
-                  <b>{row.label}</b>
+                  <b>
+                    {row.label}
+                    {conditional.has(row.category) && (
+                      <span className={styles.tag}> · unless something changes</span>
+                    )}
+                  </b>
                   <small>{row.text}</small>
                 </div>
                 <SegmentedControl
@@ -139,11 +192,23 @@ export function ReactionSettings({
                   data={durations(row.category)}
                   value={prefs.passes[row.category] ?? OFF}
                   onChange={(value) =>
-                    change({ declare: { [row.category]: value === OFF ? null : value } })
+                    change({
+                      declare: { [row.category]: value === OFF ? null : value },
+                      ...(unlessChanges && value !== OFF ? { unless_changes: true } : {}),
+                    })
                   }
                 />
               </div>
             ))}
+          </div>
+          <div className={styles.switchRow}>
+            <Switch
+              checked={unlessChanges}
+              disabled={busy}
+              onChange={(event) => setUnlessChanges(event.currentTarget.checked)}
+              label="…unless something changes"
+              description="A pass you set next is cancelled as soon as another player plays a card, uses an agent, retreats or adds hits - the game asks you again."
+            />
           </div>
 
           <div className={styles.switchRow}>
@@ -155,6 +220,26 @@ export function ReactionSettings({
               description="Skip windows about other players: their combats, their Strategy Cards, cards played on someone else. Agendas always concern you."
             />
           </div>
+
+          <div className={styles.row}>
+            <div className={styles.rowText}>
+              <b>Combat hits</b>
+              <small>{HIT_TEXT[prefs.autoHits ?? "off"]}</small>
+            </div>
+            <SegmentedControl
+              aria-label="Assign combat hits"
+              size="xs"
+              fullWidth
+              disabled={busy}
+              data={HIT_POLICIES}
+              value={prefs.autoHits ?? "off"}
+              onChange={(value) => change({ auto_hits: value })}
+            />
+          </div>
+
+          {opened && (
+            <CooperativeSettings player={player} inCombat={inCombat} othersTurn={othersTurn} />
+          )}
 
           {(prefs.mutedCards.length > 0 || prefs.mutedOffers.length > 0) && (
             <>
@@ -194,7 +279,7 @@ export function ReactionSettings({
             Use “Never ask” on a decision or a card prompt to add it here. Windows last the same
             time for everyone, so nobody can tell what you chose.
             {quickWindows &&
-              " The host turned on Quick windows: a window ends as soon as everyone has passed."}
+              " The host turned on Quick windows: once everyone has passed, a window ends a few seconds later, at a random moment."}
           </p>
           {prefs.passes.all && (
             <p className={styles.warn}>You may miss a chance to react. Turn it off any time.</p>

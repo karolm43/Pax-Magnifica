@@ -82,7 +82,7 @@ def test_okno_sabotage_auto_pas_i_skip_all(registry: StaticDataRegistry) -> None
 def test_host_ustawia_dlugosc_w_zakresie(registry: StaticDataRegistry) -> None:
     state = reaction_window.configure(GameState(), 7)
     assert state.reaction_window_seconds == 7
-    for bad in (1, 31):
+    for bad in (1, reaction_window.MAX_SECONDS + 1):
         with pytest.raises(ValueError, match="between"):
             reaction_window.configure(state, bad)
 
@@ -161,7 +161,7 @@ def test_api_okno_sabotage_zwalnia_sie_przy_kolejnym_post(registry: StaticDataRe
     assert client.post("/action-card/held/wait", json={"actor_id": "p2"}).status_code == 200
     clock[0] = NOW + reaction_window.DEFAULT_SECONDS + 1
     assert client.post("/turn/end", json={"player_id": "p1"}).status_code == 422  # +10 s trwa
-    clock[0] = NOW + 15
+    clock[0] = NOW + reaction_window.DEFAULT_SECONDS + reaction_window.WAIT_EXTENSION_SECONDS + 1
     client.post("/turn/end", json={"player_id": "p1"})
     current = service.current_state()  # type: ignore[attr-defined]
     assert current.held_play is None and current.players["p1"].trade_goods == 3

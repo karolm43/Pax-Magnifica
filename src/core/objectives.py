@@ -16,7 +16,7 @@ from __future__ import annotations
 import random
 from collections.abc import Sequence
 
-from src.core import card_draw, rules_hooks, secret_objectives, triggers, variants
+from src.core import card_draw, coexistence, rules_hooks, secret_objectives, triggers, variants
 from src.core.components import ComponentCategory, DeckDef, ObjectiveDef
 from src.core.dice import next_rng
 from src.core.game_events import GameEvent, Moment
@@ -308,8 +308,18 @@ def controls_home_planets(
     faction = registry.factions.get(player.faction)
     if faction is None or not faction.home_planets:
         return True
-    owners = planet_owners(state)
-    return all(owners.get(planet) == player_id for planet in faction.home_planets)
+    # R_coexistence 17.1: coexisting on a home planet (not controlling it) is enough.
+    return all(_controls_for_scoring(state, planet, player_id) for planet in faction.home_planets)
+
+
+def _controls_for_scoring(state: GameState, planet: str, player_id: str) -> bool:
+    """Controls ``planet`` or coexists on it (R_coexistence 17: both count when scoring)."""
+    for position, system in state.systems.items():
+        if planet in system.planet_owners:
+            return system.planet_owners[planet] == player_id or coexistence.is_coexisting(
+                state, position, planet, player_id
+            )
+    return False
 
 
 # Źródła VP spoza kart celów (klucze rejestru ``ObjectivesState.point_sources``).

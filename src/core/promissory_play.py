@@ -30,6 +30,7 @@ from src.core import (
     offer_inputs,
     promissory_notes,
     reaction_cards,
+    reaction_prefs,
     rules_hooks,
     triggers,
 )
@@ -373,6 +374,7 @@ def play(
             agenda_phase.note_reaction_played(new_state, window.as_dict())
     values["__note"] = note_id
     values["__owner"] = owner
+    reaction_prefs.note_change(new_state, player_id, "played a promissory note")  # RULES.md 54.13
     if effect is not None:
         effect(new_state, registry, player_id, values)
     _dispose(new_state, registry, player_id, note_id, template, owner)

@@ -37,6 +37,7 @@ from src.api.routers import (
     audio,
     battle,
     board,
+    boosts,
     bug_report,
     capacity,
     capture,
@@ -86,6 +87,7 @@ from src.api.seats import (
 )
 from src.api.state_service import StateService
 from src.core import card_hold, error_text, reaction_prefs
+from src.core import cooperative as cooperative_rules
 from src.core import reaction_pause as reaction_pause_rules
 from src.core.actor import ActorError
 from src.core.event_store import EventStore
@@ -244,7 +246,7 @@ def create_app(
     # resztę komponentów w trakcie okna odrzuca ``core`` (``faction_components``).
     _held_allowed = re.compile(
         r"(^|/)(action-card|reaction-settings|god-mode|undo|redo|history|game/new|map/load|state|pause"
-        r"|resume|faction-component/play)(/|$)"
+        r"|resume|faction-component/play|boosts/settings|boosts/watch)(/|$)"
     )
 
     @app.middleware("http")
@@ -283,6 +285,11 @@ def create_app(
             if pause is not None and reaction_pause_rules.expired(pause, service.now()):
                 released = reaction_pause_rules.release(service.current_state(), service.now())
                 service.replace_state(released, label="reaction-pause:release")
+            # Unanswered boost requests lapse like a reaction window (RULES.md 54.15).
+            current = service.current_state()
+            lapsed = cooperative_rules.expire(current, service.now())
+            if lapsed is not current:
+                service.replace_state(lapsed, label="boost:expire")
         return await call_next(request)
 
     # Tożsamość (RULES.md 44.2): token miejsca → ``request.state.identity`` + ``current_identity``
@@ -412,6 +419,7 @@ def create_app(
     app.include_router(window.router)
     app.include_router(reaction_pause.router)
     app.include_router(reaction_settings.router)
+    app.include_router(boosts.router)
     app.include_router(rules.router)
     app.include_router(components.router)
     app.include_router(action_cards.router)

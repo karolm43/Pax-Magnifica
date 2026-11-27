@@ -695,3 +695,20 @@ def test_nomad_time_warp_obszar_i_trade_goods_na_agencie() -> None:
     assert [(f.value, f.delta) for f in entry.facts if f.type == "leader_tg"] == [
         ("nomadagentartuno", 3)
     ]
+
+
+def test_boost_request_feed(registry: StaticDataRegistry) -> None:
+    """RULES.md 54.15: a boost request is public table talk - who asked whom, for what, paying."""
+    from src.core import rules_hooks
+    from tests.test_cooperative import _activated, _request
+
+    rules_hooks.bind_registry(registry)
+    before = _activated(registry)
+    after = _request(before, registry, tg=2)
+    boost_id = before.boosts[0].id
+    entry = derive_activity(f"boost:request:p2:{boost_id}:2", before, after)
+    assert entry is not None and entry.action == "boost.request"
+    assert (entry.actor_id, entry.target_id, entry.subject, entry.detail) == (
+        "p2", "p1", "saaragent", "2"
+    )
+    assert derive_activity("boost:request:p2:nope:0", before, before) is None

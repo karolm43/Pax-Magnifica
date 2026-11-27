@@ -21,6 +21,7 @@ from src.core.registry import StaticDataRegistry
 from src.core.state_grid import grid_from_state
 from src.core.transaction import TransactionSide
 from src.core.unit_ops import UnitCause
+from tests import boosts
 from tests.factions.flow_harness import Flow
 from tests.factions.test_flows_yin import _assign, _devotion_ready
 from tests.factions.test_yin import _ground, _planet, _state
@@ -771,6 +772,7 @@ def test_milor_omega_omega_jednostka_statek_i_sila_naziemna(registry: StaticData
     unit_ops.remove_units(
         state, state.systems[PLAIN], "space", "p1", "mech", 1, UnitCause.DESTROYED
     )
+    state = boosts.request(state, registry, "p1", "Brother Milor")
     state = _accept(state, "p2", "Brother Milor")
     offer = _offers(state, "p1", "2 fighters or 2 infantry")
     assert offer, "wybór należy do właściciela zniszczonej jednostki"

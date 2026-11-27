@@ -10,6 +10,27 @@ vi.mock("@/api/useActionCard", () => ({
   postReactionPrefs: (actor: string, change: ReactionPrefsChange) => post(actor, change),
 }));
 
+// Cooperative effects (RULES.md 54.15): the owner's terms come from /boosts.
+const configure = vi.fn(async () => {});
+const watch = vi.fn(async () => {});
+let owned: { source: string; name: string; text: string; kind: string; mode: string; price: number; freeFor: string[] }[] = [];
+vi.mock("@/api/useBoosts", () => ({
+  useBoosts: () => ({ data: { available: [], outgoing: [], owned, watch: null } }),
+  useBoostActions: () => ({ configure, watch, request: vi.fn(), withdraw: vi.fn() }),
+}));
+vi.mock("@/state/useGameContext", () => ({
+  useGameData: () => ({
+    playerData: [
+      { discordId: "p1", color: "red", faction: "saar" },
+      { discordId: "p2", color: "blue", faction: "sol", displayName: "Blue" },
+    ],
+  }),
+}));
+vi.mock("@/shared/ui/PlayerTag", () => ({
+  PlayerTag: ({ playerId }: { playerId: string }) => <span>{playerId}</span>,
+}));
+vi.mock("@/domains/player/components/Leader/LeaderChip", () => ({ LeaderChip: () => null }));
+
 /** Czeka, aż zapis się zakończy (przyciski są wyłączone na czas zapisu). */
 const settle = () => act(async () => {});
 
@@ -31,6 +52,9 @@ describe("ReactionSettings (RULES.md 54.11-54.12)", () => {
   beforeEach(() => {
     post.mockReset();
     post.mockResolvedValue(undefined);
+    configure.mockClear();
+    watch.mockClear();
+    owned = [];
   });
 
   it("deklaracja pasu: kategoria i czas trwania", async () => {
@@ -55,7 +79,7 @@ describe("ReactionSettings (RULES.md 54.11-54.12)", () => {
     fireEvent.click(off!);
     expect(post).toHaveBeenCalledWith("p1", { declare: { combat: null } });
     await settle();
-    fireEvent.click(screen.getByRole("switch"));
+    fireEvent.click(screen.getByRole("switch", { name: /Ask me only when it concerns me/ }));
     expect(post).toHaveBeenLastCalledWith("p1", { only_involved: true });
   });
 
@@ -87,5 +111,57 @@ describe("ReactionSettings (RULES.md 54.11-54.12)", () => {
     expect(screen.getByRole("button", { name: "Reaction settings: Auto-pass" })).toHaveTextContent(
       "Auto-pass",
     );
+  });
+
+  it("unless something changes: the next declaration is conditional (54.13)", async () => {
+    render(<ReactionSettings player={player({ unlessChanges: ["combat"], passes: { combat: "turn" } })} />);
+    fireEvent.click(screen.getByRole("button", { name: /Reaction settings/ }));
+    await screen.findByRole("dialog", { name: "Reaction settings" });
+    expect(screen.getByRole("radiogroup", { name: "Pass on Combat" }).parentElement).toHaveTextContent(
+      "unless something changes",
+    );
+    fireEvent.click(screen.getByRole("switch", { name: /unless something changes/ }));
+    fireEvent.click(screen.getAllByRole("radio", { name: "This agenda" })[0]);
+    expect(post).toHaveBeenCalledWith("p1", { declare: { agenda: "agenda" }, unless_changes: true });
+  });
+
+  it("cancelled pre-pass notice and Got it", async () => {
+    render(
+      <ReactionSettings
+        player={player({ notices: [{ category: "sabotage", actor: "p2", reason: "played an action card" }] })}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Reaction settings/ }));
+    const notice = await screen.findByRole("status");
+    expect(notice).toHaveTextContent("Your pass on Cards played by others was cancelled: p2 played an action card.");
+    fireEvent.click(screen.getByRole("button", { name: "Got it" }));
+    expect(post).toHaveBeenCalledWith("p1", { clear_notices: true });
+  });
+
+  it("combat hits policy (54.14)", async () => {
+    render(<ReactionSettings player={player()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Reaction settings/ }));
+    await screen.findByRole("dialog", { name: "Reaction settings" });
+    fireEvent.click(screen.getByRole("radio", { name: "Sustain + fodder" }));
+    expect(post).toHaveBeenCalledWith("p1", { auto_hits: "cheap" });
+  });
+
+  it("agents & abilities: Ask me / Standing offer / Self-only and Watch (54.15)", async () => {
+    owned = [{ source: "leaders:saaragent", name: "Captain Mendosa", text: "", kind: "Agent", mode: "ask", price: 0, freeFor: [] }];
+    const { rerender } = render(<ReactionSettings player={player()} othersTurn />);
+    fireEvent.click(screen.getByRole("button", { name: /Reaction settings/ }));
+    await screen.findByRole("region", { name: "Agents and abilities" });
+    fireEvent.click(screen.getByRole("radio", { name: "Standing offer" }));
+    expect(configure).toHaveBeenCalledWith("p1", "leaders:saaragent", "standing", 0, []);
+    await settle();
+    const watchGroup = screen.getByRole("radiogroup", { name: "Watch" });
+    fireEvent.click([...watchGroup.querySelectorAll("button")].find((b) => b.textContent === "This turn")!);
+    expect(watch).toHaveBeenCalledWith("p1", "turn");
+    await settle();
+    owned = [{ ...owned[0], mode: "standing", price: 2 }];
+    rerender(<ReactionSettings player={player()} othersTurn />);
+    const allies = await screen.findByRole("group", { name: "Free Captain Mendosa for" });
+    fireEvent.click(allies.querySelector("button")!);
+    expect(configure).toHaveBeenLastCalledWith("p1", "leaders:saaragent", "standing", 2, ["p2"]);
   });
 });

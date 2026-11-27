@@ -12,6 +12,7 @@ from typing import Any
 from src.core import (
     active_effects,
     battle_rerolls,
+    cooperative,
     economy,
     entropic_scar,
     faction_components,
@@ -404,6 +405,10 @@ def agent_inputs(
                 meta = oi.unit_meta(base_type, owner, player.faction, player.color, count)
                 options.append(oi.option(f"{owner}|{base_type}", label, meta=meta))
     return [oi.choice("ship", "Ship that rolls 1 additional die", options, always=True)]
+
+
+# Cooperative agent (RULES.md 54.15): helps "that player" - requested, not pushed.
+cooperative.register_pull(f"leaders:{AGENT}", cooperative.combatants)
 
 
 @on_event(

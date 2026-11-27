@@ -369,7 +369,10 @@ def route_error(
         return "No active system - movement is only allowed during a tactical action (R1)."
     if len(route) < 2 or route[-1] != active:
         return "The route must end at the active system."
-    if len(set(route)) != len(route):
+    # R_movement 2.5: a ship may move out of the ACTIVE system and back into it - the only
+    # system a route may visit twice (as its start and its end).
+    visited = route[1:] if route[0] == active else route
+    if len(set(visited)) != len(visited):
         return "The route cannot visit the same system twice."
     ast = _can_enter_asteroids(state, player_id)
     ignore = _ignores_anomalies(state, player_id)

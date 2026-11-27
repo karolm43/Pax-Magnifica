@@ -22,6 +22,7 @@ from src.core import (
     board_graph,
     card_draw,
     command_tokens,
+    cooperative,
     entropic_scar,
     faction_components,
     initiative_zero,
@@ -484,6 +485,10 @@ def _zeu_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool
         owner in state.players and system is not None and owner in system.command_tokens
         and leaders.is_ready(state, _registry(), player_id, AGENT)
     )
+
+
+# Cooperative agent (RULES.md 54.15): helps "that player" - requested, not pushed.
+cooperative.register_pull(f"leaders:{AGENT}")
 
 
 @on_event(

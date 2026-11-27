@@ -224,8 +224,11 @@ class NewGameRequest(BaseModel):
     agenda_deck: str = "standard"
     # Zegar szachowy (RULES.md 58) — None = gra bez zegara.
     chess_clock: ChessClockConfig | None = None
-    # Stała długość okien reakcji w s (RULES.md 54.11) — None = domyślna (4 s).
-    reaction_window_seconds: int | None = Field(default=None, ge=2, le=30)
+    # Stała długość okien reakcji w s (RULES.md 54.11) — None = domyślna (20 s).
+    reaction_window_seconds: int | None = Field(default=None, ge=2, le=60)
+    # "Quick windows" + bluff auto-pass range in s (RULES.md 54.12-54.13) — None = unchanged.
+    quick_reaction_windows: bool | None = None
+    reaction_bluff_seconds: float | None = Field(default=None, ge=0, le=60)
 
 
 class UnitChange(BaseModel):

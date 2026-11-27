@@ -36,7 +36,7 @@ async def _commit(ctx: AppContext, new_state: GameState, label: str) -> StateEnv
 async def post_window(
     request: ReactionWindowRequest, ctx: AppContext = Depends(get_ctx)
 ) -> StateEnvelope:
-    """Host ustawia stałą długość okien reakcji w trwającej grze (2–30 s)."""
+    """Host ustawia stałą długość okien reakcji w trwającej grze (2–60 s)."""
     try:
         new_state = reaction_window.configure(ctx.service.current_state(), request.seconds)
     except ValueError as exc:
@@ -100,6 +100,9 @@ async def post_prefs(
             mute_cards=request.mute_cards,
             mute_offers=request.mute_offers,
             mute_components=request.mute_components,
+            unless_changes=request.unless_changes,
+            auto_hits=request.auto_hits,
+            clear_notices=request.clear_notices,
         )
         reaction_window.pass_open_windows(new_state, player, ctx.registry)
         new_state = reaction_window.settle_quick(new_state, ctx.registry)

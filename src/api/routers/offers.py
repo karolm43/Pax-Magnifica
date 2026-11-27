@@ -36,6 +36,8 @@ class OfferView(BaseModel):
     source: str = ""
     mandatory: bool
     inputs: list[dict[str, Any]]
+    # Requested cooperative effect (RULES.md 54.15): requester, owner, payment, accepted.
+    deal: dict[str, Any] | None = None
 
 
 class OffersResponse(BaseModel):

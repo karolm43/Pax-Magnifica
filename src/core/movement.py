@@ -883,7 +883,10 @@ def move_fleet(
             pickup_pos = item.from_position or from_pos
             # Pickup po drodze: system musi leżeć na wybranej trasie (R_transport), poza celem.
             # Aktywny system (koniec trasy) też jest punktem poboru, ale tylko z planet.
-            if pickup_pos != from_pos and (route is None or pickup_pos not in route):
+            # The active system is always on the route (its end), with or without a chosen one.
+            if pickup_pos not in (from_pos, active) and (
+                route is None or pickup_pos not in route
+            ):
                 raise ValueError(
                     f"System {pickup_pos} is not on the route - ships cannot pick up units there."
                 )

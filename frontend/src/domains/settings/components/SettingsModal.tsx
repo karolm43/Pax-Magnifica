@@ -241,11 +241,11 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
                 aria-label="Reaction window length in seconds"
                 w={120}
                 min={2}
-                max={30}
+                max={60}
                 value={settings.reactionWindowSeconds}
                 onChange={(value) =>
                   handlers.updateSettings({
-                    reactionWindowSeconds: clampInt(value, 2, 30, 5),
+                    reactionWindowSeconds: clampInt(value, 2, 60, 20),
                   })
                 }
               />
@@ -264,15 +264,15 @@ export function SettingsModal({ opened, onClose, gameId }: SettingsModalProps) {
             {gameId && (
               <SettingRow
                 label="Quick windows"
-                description="End a window as soon as everyone has passed. Faster, but an early end shows that nobody had a fitting card."
+                description="End a window once everyone has passed. With a bluff range the end comes at a random moment, so an early end does not show that nobody had a fitting card. New games start with it on."
               >
                 <CurrentGameQuickWindows gameId={gameId} />
               </SettingRow>
             )}
             {gameId && (
               <SettingRow
-                label="Quick-window jitter"
-                description="With Quick windows on, a window nobody can answer lingers for 0.5-1x this long instead of vanishing, so the fast end doesn't reveal that nobody holds a card."
+                label="Bluff range"
+                description="With Quick windows on, every automatic pass lands at a random private moment between 25% and 100% of this range, and the window ends at the last one - never instantly."
               >
                 <CurrentGameQuickJitter gameId={gameId} />
               </SettingRow>

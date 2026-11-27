@@ -22,7 +22,7 @@ do osobnego słownika ``PlayerState.hidden_card_counts`` (R4.4).
 
 from __future__ import annotations
 
-from .game_state import GameState, PlayerPrivateState, PlayerState
+from .game_state import GameState, PlayerPrivateState, PlayerState, QueuedSecondary
 from .player_fields import PRIVATE_FIELDS
 
 # Nazwy prywatnych list w ``PlayerPrivateState`` — odczytane z modelu, nie
@@ -156,6 +156,18 @@ def redact_reaction_windows(state: GameState, viewer_id: str | None) -> None:
         window.passed = [pid for pid in window.passed if pid == viewer_id]
         # Liczba próśb o czas jest jawna (widać przedłużenie), tożsamość - nie.
         window.extended_by = [pid if pid == viewer_id else "" for pid in window.extended_by]
+        # Bluff auto-pass (54.13): the schedule and the early-close moment are engine secrets.
+        window.auto_pass_at = {}
+        window.closes_after = None
+    # Queued strategy card secondaries (RULES.md 30.13): THAT someone queued is public (the UI
+    # shows who is ready), WHAT they queued stays private until it resolves.
+    state.secondary_queue = {
+        pid: (
+            queued if pid == viewer_id
+            else QueuedSecondary(initiative=queued.initiative, hidden=True)
+        )
+        for pid, queued in state.secondary_queue.items()
+    }
     held = state.held_play
     if held is not None and held.frozen_by != viewer_id:
         held.frozen_by = "" if held.frozen_by else None  # zatrzymanie jawne, kto - prywatne

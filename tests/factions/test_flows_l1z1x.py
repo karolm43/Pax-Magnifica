@@ -185,6 +185,8 @@ def test_i48s_przy_aktywacji_rywala(registry: StaticDataRegistry) -> None:
     flow.space(position, flow.other, {"carrier": 1, "infantry": 2})
     flow.edit(active=flow.other)
     flow.activate(position)
+    assert not flow.has_offer("I48S")  # cooperative: the rival requests it (RULES.md 54.15)
+    flow.request_boost("I48S", flow.other)
     flow.accept("I48S")
     offer = flow.offer("replace your infantry", flow.other)
     values = [o["value"] for o in offer["inputs"][0]["options"]]

@@ -23,6 +23,7 @@ from src.core import (
     hand_limit,
     promissory_play,
     reaction_cards,
+    reaction_prefs,
     rules_hooks,
     triggers,
 )
@@ -226,6 +227,7 @@ def run_reaction(
     window: Mapping[str, Any],
 ) -> bool:
     """Wykonuje zagranie karty reakcji (mutuje ``state``): zdarzenie, efekt, odrzucenie."""
+    reaction_prefs.note_change(state, player_id, "played an action card")  # RULES.md 54.13
     triggers.fire(
         state, GameEvent.ACTION_CARD_PLAYED, Moment.WHEN, subject=player_id,
         ctx={"player": player_id, "card": card_id},
@@ -247,6 +249,7 @@ def _run_action(
     params: Mapping[str, Any],
 ) -> bool:
     """Wykonuje efekt karty ACTION (mutuje ``state``; akcję tury zużył wołający)."""
+    reaction_prefs.note_change(state, player_id, "played an action card")  # RULES.md 54.13
     triggers.fire(
         state, GameEvent.ACTION_CARD_PLAYED, Moment.WHEN, subject=player_id,
         ctx={"player": player_id, "card": card_id},

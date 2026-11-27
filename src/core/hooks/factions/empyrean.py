@@ -24,6 +24,7 @@ from src.core import (
     board_graph,
     card_hold,
     command_tokens,
+    cooperative,
     economy,
     exploration_frontier,
     faction_components,
@@ -347,6 +348,10 @@ def _acamar_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> b
         and _no_planets(state, registry, position)
         and command_tokens.reinforcements(state, mover) > 0
     )
+
+
+# Cooperative agent (RULES.md 54.15): helps "that player" - requested, not pushed.
+cooperative.register_pull(f"leaders:{AGENT}")
 
 
 @on_event(

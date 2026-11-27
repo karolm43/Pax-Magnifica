@@ -1,0 +1,78 @@
+/* "Boosts" (RULES.md 54.15): same tool button and panel as Hold, cyan tone. */
+.count {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: rgba(var(--gd-cyan), 0.25);
+  font-size: 11px;
+  text-align: center;
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-h10);
+  border-radius: 8px;
+  background: var(--ds-deck);
+  font-size: 12px;
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.itemText {
+  display: grid;
+  gap: 2px;
+}
+
+.itemText small {
+  color: var(--ds-ink-lo);
+}
+
+.text {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ds-ink-lo);
+}
+
+.pay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.pay > :global(*) {
+  flex: 0 0 auto;
+}
+
+.note {
+  flex-basis: 100%;
+  color: var(--ds-ink-lo);
+  font-size: 11px;
+}
+
+.waiting {
+  margin: 0;
+  color: rgb(var(--gd-cyan));
+  font-size: 12px;
+}
+
+.error {
+  margin: 8px 0 0;
+  color: rgb(var(--gd-red));
+  font-size: 12px;
+}

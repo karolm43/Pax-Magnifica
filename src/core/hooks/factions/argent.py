@@ -19,6 +19,7 @@ from src.core import (
     active_effects,
     battle,
     command_tokens,
+    cooperative,
     direct_move,
     faction_components,
     leaders,
@@ -313,6 +314,10 @@ def _agent_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bo
         and len(_agent_destinations(state, producer, str(ctx.get("position")))) > 1
         and leaders.is_ready(state, _registry(), player_id, AGENT)
     )
+
+
+# Cooperative agent (RULES.md 54.15): helps "that player" - requested, not pushed.
+cooperative.register_pull(f"leaders:{AGENT}")
 
 
 @on_event(

@@ -116,6 +116,9 @@ def begin(
         raise ValueError("Nobody can respond - the card should resolve immediately.")
     new_state = state.clone()
     card_draw.take_from_hand_to_table(new_state, player_id, card_id)
+    # An action card on the table is a notable move: "unless something changes" pre-passes of
+    # the other players lapse BEFORE the Sabotage window decides their auto-pass (RULES.md 54.13).
+    reaction_prefs.note_change(new_state, player_id, "played an action card")
     new_state.held_play = HeldPlay(
         player_id=player_id,
         card_id=card_id,
@@ -148,7 +151,14 @@ def _auto_pass(state: GameState, registry: StaticDataRegistry) -> None:
     held.passed = reaction_window.auto_passers(
         state, registry, held.eligible, category=reaction_prefs.SABOTAGE, involved=held.involved
     )
+    # Bluff auto-pass (54.13): auto-passes land at random private moments, not at 0.0 s.
+    reaction_window.schedule_auto_passes(state, held, held.passed, hold_key(held))
     reaction_prefs.window_opened(state, held.eligible)
+
+
+def hold_key(held: HeldPlay) -> str:
+    """Klucz okna Sabotage (bluff auto-pass i „Quick windows”)."""
+    return f"{held.player_id}|{held.card_id}|{held.opened_at}"
 
 
 def begin_counter(

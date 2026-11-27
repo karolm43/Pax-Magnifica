@@ -21,6 +21,7 @@ from src.core import (
     extra_dice,
     floating_structures,
     objective_events,
+    reaction_prefs,
     rules_hooks,
     ship_roles,
     timing,
@@ -206,6 +207,12 @@ def _after_start(state: GameState, grid: HexGrid, registry: StaticDataRegistry) 
     return _begin_round(state, grid)
 
 
+def _note_extra_hits(state: GameState, combat: ActiveCombat, against: str) -> None:
+    """Hits beyond the combat roll are a notable move by the other side (RULES.md 54.13)."""
+    actor = combat.attacker if against == combat.defender else combat.defender
+    reaction_prefs.note_change(state, actor, "produced extra hits")
+
+
 def add_start_hits(
     state: GameState,
     against: str,
@@ -226,6 +233,7 @@ def add_start_hits(
     """
     combat = _combat(state)
     if amount > 0:
+        _note_extra_hits(state, combat, against)
         total = combat.start_hits.get(against, 0) + amount
         combat.start_hits = {**combat.start_hits, against: total}
         if only:
@@ -254,6 +262,7 @@ def add_round_end_hits(
     combat = _combat(state)
     if amount <= 0:
         return
+    _note_extra_hits(state, combat, against)
     combat.round_end_hits = {
         **combat.round_end_hits, against: combat.round_end_hits.get(against, 0) + amount
     }
@@ -1488,6 +1497,7 @@ def add_combat_hits(state: GameState, against: str, amount: int) -> None:
     combat = _combat(state)
     if amount <= 0 or combat.step is not CombatStep.ASSIGN:
         return
+    _note_extra_hits(state, combat, against)
     combat.pending_hits[against] = combat.pending_hits.get(against, 0) + amount
     window = state.pending_window
     if window is None and combat.sustain_hold:
@@ -1770,6 +1780,7 @@ def announce_retreat(
         if not retreat_destinations(new_state, grid, combat.position, player_id):
             raise ValueError("There is no eligible system to retreat to.")
         combat.retreating = [*combat.retreating, player_id]
+        reaction_prefs.note_change(new_state, player_id, "announced a retreat")  # RULES.md 54.13
         triggers.fire(
             new_state, GameEvent.RETREAT_DECLARED, Moment.AFTER, subject=player_id,
             ctx={"player": player_id, "position": combat.position},

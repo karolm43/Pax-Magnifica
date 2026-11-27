@@ -29,6 +29,11 @@
   --tk: 251, 176, 64;
 }
 
+/* Boosts (RULES.md 54.15): cooperative agents to ask for. */
+.toolBtn[data-tone="boost"] {
+  --tk: 34, 211, 238;
+}
+
 .toolBtn svg {
   color: rgb(var(--tk));
 }

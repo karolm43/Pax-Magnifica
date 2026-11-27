@@ -48,6 +48,7 @@ from src.core.movement_paths import shortest_legal_path
 from src.core.registry import StaticDataRegistry
 from src.core.state_grid import grid_from_state
 from src.core.strategy_cards import diplomacy
+from tests import boosts
 from tests.factions.completeness import missing_components
 from tests.rulings import ruling
 
@@ -309,6 +310,8 @@ def test_aetherstream_odciete_void_tetherem(registry: StaticDataRegistry) -> Non
 def test_acamar_rywal_zyskuje_zeton(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     _moved(state, "p2", JORD, EMPTY, {"destroyer": 1})
+    assert not _offers(state, "p1", "Acamar")  # cooperative: requested, not pushed (54.15)
+    state = boosts.request(state, registry, "p2", "Acamar")
     state = _accept(state, "p1", "Acamar")
     assert state.players["p1"].leader_states.get("empyreanagent") == "exhausted"
     decision = _offers(state, "p2", "Acamar")[0]
@@ -323,16 +326,16 @@ def test_acamar_rywal_zyskuje_zeton(registry: StaticDataRegistry) -> None:
 def test_acamar_tylko_system_bez_planet(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     _moved(state, "p2", JORD, TARMANN, {"destroyer": 1})
-    assert not _offers(state, "p1", "Acamar")  # Tarmann has a planet
+    assert not boosts.names(state, registry, "p2")  # Tarmann has a planet
     state.systems[TARMANN].destroyed_planets = ["tarmann"]  # Stellar Converter
     _moved(state, "p2", JORD, TARMANN, {"destroyer": 1})
-    assert _offers(state, "p1", "Acamar")
+    assert boosts.names(state, registry, "p2") == ["Acamar"]
     # Nova Seed: the CURRENT tile decides (the supernova has no planets).
     other = _state(registry)
     other.systems[TARMANN].system_id = "81"
     _bind(other, registry)
     _moved(other, "p2", JORD, TARMANN, {"destroyer": 1})
-    assert _offers(other, "p1", "Acamar")
+    assert boosts.names(other, registry, "p2") == ["Acamar"]
 
 
 # =========================================================================== Xuange (commander)

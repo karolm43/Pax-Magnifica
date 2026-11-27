@@ -193,3 +193,55 @@ async def post_strategy_secondary(
     return await _commit(
         ctx, new_state, f"strategy:secondary:{request.player_id}:{decision}"
     )
+
+
+@router.get("/strategy/queue-options")
+def get_strategy_queue_options(
+    request: Request,
+    player_id: str, ctx: AppContext = Depends(get_ctx)
+) -> dict[str, Any] | None:
+    """Secondary choices the player may queue now, ahead of their turn (RULES.md 30.13)."""
+    require_view(request, player_id)  # RULES.md 44.3
+    state = ctx.service.current_state()
+    if player_id not in state.players:
+        raise HTTPException(status_code=404, detail=f"Unknown player: {player_id}")
+    return strategic_action.queue_options(state, ctx.registry, player_id, ctx.current_grid)
+
+
+@router.post("/strategy/secondary/queue", response_model=StateEnvelope)
+async def post_strategy_secondary_queue(
+    actor: ActorId,
+    request: StrategySecondaryRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Queues Follow / Don't follow before the player's turn (RULES.md 30.13).
+
+    The label carries no decision: what was queued stays private until it resolves.
+    """
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Secondary ability"
+    )
+    try:
+        new_state = strategic_action.queue_secondary(
+            ctx.service.current_state(),
+            request.player_id,
+            execute=request.execute,
+            payload=request.payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await _commit(ctx, new_state, f"strategy:queue:{request.player_id}")
+
+
+@router.post("/strategy/secondary/unqueue", response_model=StateEnvelope)
+async def post_strategy_secondary_unqueue(
+    actor: ActorId,
+    request: StrategySecondaryRequest, ctx: AppContext = Depends(get_ctx)
+) -> StateEnvelope:
+    """Withdraws the player's queued secondary decision (RULES.md 30.13)."""
+    actor_rules.check(
+        ctx.service.current_state(), actor, request.player_id, None, "Secondary ability"
+    )
+    new_state = strategic_action.cancel_queued_secondary(
+        ctx.service.current_state(), request.player_id
+    )
+    return await _commit(ctx, new_state, f"strategy:unqueue:{request.player_id}")

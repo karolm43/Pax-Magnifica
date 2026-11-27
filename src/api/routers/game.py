@@ -708,6 +708,11 @@ async def post_new_game(
     if request.reaction_window_seconds is not None:
         # Stała długość okien reakcji ustawiona przez hosta (RULES.md 54.11).
         new_state = reaction_window.configure(new_state, request.reaction_window_seconds)
+    if request.quick_reaction_windows is not None:
+        # Quick windows with bluff auto-pass (RULES.md 54.13).
+        new_state = reaction_window.configure_quick(new_state, request.quick_reaction_windows)
+    if request.reaction_bluff_seconds is not None:
+        new_state = reaction_window.configure_jitter(new_state, request.reaction_bluff_seconds)
     ctx.start_new_save()  # nowa gra = nowy plik zapisu; poprzednia partia zostaje (RULES.md 44.4)
     ctx.set_map(grid)
     ctx.service.replace_state(new_state, label="game:new")

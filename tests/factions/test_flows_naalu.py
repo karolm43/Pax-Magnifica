@@ -57,6 +57,7 @@ def test_zeu_po_aktywacji_rywala(registry: StaticDataRegistry) -> None:
     _other_turn(flow)
     reinf = _state(flow)["players"][flow.other]["cc_reinf"]
     flow.activate(arena)
+    flow.request_boost("Z'eu", flow.other)  # cooperative (RULES.md 54.15)
     flow.accept("Z'eu")
     state = _state(flow)
     assert flow.other not in state["systems"][arena]["command_tokens"]

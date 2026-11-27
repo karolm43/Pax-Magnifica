@@ -238,6 +238,23 @@ class Flow:
             "actor_id": pid or self.me, "offer_id": offer["id"], "params": params or {},
         })
 
+    def boosts(self, pid: str | None = None) -> list[Json]:
+        """Cooperative effects the player may request now (RULES.md 54.15)."""
+        return self.client.get(  # type: ignore[no-any-return]
+            "/boosts", params={"player_id": pid or self.me}
+        ).json()["available"]
+
+    def has_boost(self, name: str, pid: str | None = None) -> bool:
+        return any(name in b["name"] for b in self.boosts(pid))
+
+    def request_boost(self, name: str, pid: str | None = None, trade_goods: int = 0) -> None:
+        """The beneficiary asks for a pull agent (54.15) - the owner then gets the offer."""
+        found = [b for b in self.boosts(pid) if name in b["name"]]
+        assert found, f"No boost '{name}' for {pid or self.me}: {self.boosts(pid)}"
+        self.post("/boosts/request", {
+            "player_id": pid or self.me, "boost_id": found[0]["id"], "trade_goods": trade_goods,
+        })
+
     def decline_all(self) -> None:
         for pid in (self.me, self.other):
             for offer in self.offers(pid):

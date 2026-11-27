@@ -19,7 +19,15 @@ import re
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from src.core import exhaust, leaders, offer_inputs, rules_hooks, triggers
+from src.core import (
+    cooperative,
+    exhaust,
+    leaders,
+    offer_inputs,
+    reaction_prefs,
+    rules_hooks,
+    triggers,
+)
 from src.core.components import ComponentCategory
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
@@ -432,6 +440,9 @@ def available_now(
         for row in playability(state, registry, player_id):
             if row["mode"] != "window" or not row["playable"]:
                 continue
+            key = effect_key(row["kind"], row["component_id"])
+            if cooperative.component_for_others(state, player_id, key):
+                continue  # cooperative effect helping only others: on request (RULES.md 54.15)
             _, text = describe(registry, row["kind"], row["component_id"])
             found.append({
                 "player_id": player_id, "kind": row["kind"],
@@ -620,8 +631,15 @@ def play(
     if reason is not None:
         raise ValueError(reason)
     if info["mode"] == "window":
-        return _use_in_window(state, registry, player_id, kind, component, params, info)
-    new_state = component_action.play_component_action(
-        state, player_id, component_id(kind, component), params=params
-    )
-    return new_state, bool(info["implemented"])
+        new_state, implemented = _use_in_window(
+            state, registry, player_id, kind, component, params, info
+        )
+    else:
+        new_state = component_action.play_component_action(
+            state, player_id, component_id(kind, component), params=params
+        )
+        implemented = bool(info["implemented"])
+    if new_state is not state:
+        # Using an agent / faction component is a notable move (RULES.md 54.13).
+        reaction_prefs.note_change(new_state, player_id, f"used {info['name']}")
+    return new_state, implemented

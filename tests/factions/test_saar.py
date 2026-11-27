@@ -43,6 +43,7 @@ from src.core.registry import StaticDataRegistry
 from src.core.state_grid import grid_from_state
 from src.core.strategy_cards.common import place_structure
 from src.core.unit_ops import UnitCause
+from tests import boosts
 from tests.factions.completeness import missing_components
 from tests.rulings import ruling
 
@@ -372,8 +373,8 @@ def test_dok_ginie_przed_brother_milor(registry: StaticDataRegistry) -> None:
                                        defender="p1")
     unit_ops.remove_units(state, system, "space", "p1", "cruiser", 1, UnitCause.DESTROYED)
     assert not system.space_units.get("p1")  # dok zniszczony natychmiast
-    assert _offers(state, "p2", "Brother Milor")  # agent dopiero teraz
-    after = _accept(state, "p2", "Brother Milor")
+    assert boosts.names(state, registry, "p1") == ["Brother Milor"]  # agent dopiero teraz
+    after = _accept(boosts.request(state, registry, "p1", "Brother Milor"), "p2", "Brother Milor")
     assert after.systems[PLAIN].space_units["p1"] == {"fighter": 2}  # bez doku
 
 
@@ -559,6 +560,8 @@ def _mendosa_state() -> GameState:
 @ruling("leaders:saaragent#1", "F_saar/captain-mendosa/1")
 def test_mendosa_podnosi_ruch_jednego_statku(registry: StaticDataRegistry) -> None:
     state = _activate(_mendosa_state(), registry, FAR, pid="p2")
+    assert not _offers(state, "p1", "Captain Mendosa")  # cooperative: requested (54.15)
+    state = boosts.request(state, registry, "p2", "Captain Mendosa")
     offer = _offers(state, "p1", "Captain Mendosa")[0]
     ship = saar.mendosa_inputs(state, registry, "p1", offer.ctx)[0]["options"][0]["value"]
     assert ship == f"{RIVAL}|dreadnought"
@@ -584,6 +587,7 @@ def test_mendosa_nadpisuje_mglawice(registry: StaticDataRegistry) -> None:
     state.systems["106"] = SystemState(position="106", system_id="42")  # mgławica
     state.systems["106"].space_units = {"p2": {"carrier": 1}}
     state = _activate(state, registry, PLAIN, pid="p2")
+    state = boosts.request(state, registry, "p2", "Captain Mendosa")
     state = _accept(state, "p1", "Captain Mendosa", {"ship": "106|carrier"})
     grid = grid_from_state(state, registry)
     value = movement._effective_move_value(state, grid, registry, "106", "carrier", "p2",
@@ -595,6 +599,7 @@ def test_mendosa_tylko_jeden_statek(registry: StaticDataRegistry) -> None:
     state = _mendosa_state()
     state.systems[RIVAL].space_units = {"p2": {"dreadnought": 2}}
     state = _activate(state, registry, FAR, pid="p2")
+    state = boosts.request(state, registry, "p2", "Captain Mendosa")
     state = _accept(state, "p1", "Captain Mendosa", {"ship": f"{RIVAL}|dreadnought"})
     grid = grid_from_state(state, registry)
     with pytest.raises(ValueError, match="only 1 ship"):

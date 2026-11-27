@@ -86,7 +86,7 @@ export function CurrentGameQuickWindows({ gameId }: { gameId: string }) {
   );
 }
 
-/** „Bluff jitter” W TRWAJĄCEJ grze (RULES.md 54.12): tylko host; działa z „Quick windows”. */
+/** Bluff range of the CURRENT game (RULES.md 54.13): host only; works with Quick windows. */
 export function CurrentGameQuickJitter({ gameId }: { gameId: string }) {
   const { data: gameState } = useGameState(gameId);
   const [busy, setBusy] = useState(false);
@@ -103,7 +103,7 @@ export function CurrentGameQuickJitter({ gameId }: { gameId: string }) {
 
   return (
     <span style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-      {[0, 1, 2].map((seconds) => (
+      {[0, 4, 8, 12].map((seconds) => (
         <Button
           key={seconds}
           size="xs"

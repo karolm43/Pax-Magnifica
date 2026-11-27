@@ -337,6 +337,12 @@ export type ReactionPrefsChange = {
   mute_offers?: Record<string, boolean>;
   /** Klucz komponentu -> zasięg (combat/turn/round/always); null = odwołanie. */
   mute_components?: Record<string, string | null>;
+  /** New declarations lapse when another player makes a move (RULES.md 54.13). */
+  unless_changes?: boolean;
+  /** Combat hit auto-assignment: off / sustain / cheap (RULES.md 54.14). */
+  auto_hits?: string;
+  /** The player read the "pre-pass cancelled" notices. */
+  clear_notices?: boolean;
 };
 
 export async function postReactionPrefs(actorId: string, change: ReactionPrefsChange): Promise<void> {
@@ -368,7 +374,7 @@ export async function postReactionWindowSeconds(seconds: number): Promise<void> 
   if (!response.ok) throw new Error(`Failed to set reaction windows (${response.status}).`);
 }
 
-/** Host ustawia „bluff jitter” (0-2 s) przy „Quick windows” (RULES.md 54.12). */
+/** Host sets the bluff auto-pass range (0-60 s) used with Quick windows (RULES.md 54.13). */
 export async function postReactionJitter(seconds: number): Promise<void> {
   const response = await fetch(`${BOT_ROOT}/reaction-settings/jitter`, {
     method: "POST",

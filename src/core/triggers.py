@@ -6,8 +6,8 @@ tanie), więc emisję można dopinąć do reguł bez zmiany ich zachowania.
 
 Reguły czasu (``docs/rules_tirules/R_abilities.md``, sekcja Timing):
 * zdarzenia „when” rozstrzygają się przed „after” (wołający emituje je w tej kolejności);
-* ta sama chwila w FAZIE AKCJI: kolejność inicjatywy, od gracza aktywnego; w fazie strategii i
-  agendy: od mówcy zgodnie z zegarem;
+* ta sama chwila w FAZIE AKCJI: kolejność inicjatywy, od gracza aktywnego; w fazie statusu:
+  kolejność inicjatywy; w fazie strategii i agendy: od mówcy zgodnie z zegarem;
 * zdolność z komponentu w grze jest OBOWIĄZKOWA, chyba że ma „may” — wtedy powstaje OFERTA
   (``PendingOffer``) i okno REACTION dla graczy z publicznym źródłem. Karty z ręki ofert nie tworzą
   (STOP, RULES.md 43.4), bo samo pytanie zdradzałoby posiadanie karty.
@@ -30,6 +30,7 @@ from typing import Any
 from src.core import (
     ability_notes,
     active_effects,
+    cooperative,
     offer_inputs,
     reaction_prefs,
     rules_hooks,
@@ -73,8 +74,9 @@ class FireResult:
 def resolution_order(state: GameState) -> list[str]:
     """Kolejność rozstrzygania zdolności o tym samym czasie (R_abilities).
 
-    Faza akcji: inicjatywa, zaczynając od gracza aktywnego. Pozostałe fazy: od mówcy zgodnie z
-    zegarem (``seating_order``). Zwraca tylko istniejących graczy.
+    Faza akcji: inicjatywa, zaczynając od gracza aktywnego. Faza statusu: inicjatywa
+    (R_abilities notes 9, RULES.md 54.2). Strategia i agenda: od mówcy zgodnie z zegarem
+    (``seating_order``). Zwraca tylko istniejących graczy.
     """
     if not state.players:
         return []
@@ -84,6 +86,10 @@ def resolution_order(state: GameState) -> list[str]:
         base = turn_flow.turn_order(state)
         start = base.index(state.active_player_id) if state.active_player_id in base else 0
         return base[start:] + base[:start]
+    if state.phase is Phase.STATUS:
+        from src.core import turn_flow  # lokalnie: turn_flow importuje ten moduł
+
+        return turn_flow.turn_order(state)
     seats = [pid for pid in state.seating_order if pid in state.players] or sorted(state.players)
     speaker = state.speaker_id
     start = seats.index(speaker) if speaker in seats else 0
@@ -158,10 +164,17 @@ def fire(
                         continue
                     if hook.optional:
                         # Wyciszona oferta (RULES.md 54.12) = z góry podjęta decyzja „nie”.
-                        if not reaction_prefs.is_offer_muted(state, pid, hook.covers):
-                            result.offers.append(
-                                _new_offer(state, pid, hook, event, moment, context)
-                            )
+                        if reaction_prefs.is_offer_muted(state, pid, hook.covers):
+                            continue
+                        # Cooperative ("pull") effect on another player's event (54.15): a
+                        # boost to request instead of a blocking offer to the owner.
+                        if cooperative.intercept(
+                            state, pid, hook, event, moment, _jsonable(context)
+                        ):
+                            continue
+                        result.offers.append(
+                            _new_offer(state, pid, hook, event, moment, context)
+                        )
                         continue
                     outcome = _run_visible(state, pid, hook, context)
                     result.ran.append(_label(hook))
@@ -377,6 +390,28 @@ def _advance_window(state: GameState, player_id: str) -> None:
         window.cursor += 1
     if window.is_complete:
         state.pending_window = None
+
+
+def add_offer(state: GameState, offer: PendingOffer) -> None:
+    """Adds an offer made outside an event - a requested deal (RULES.md 54.15) - and opens a
+    REACTION window for its decider when nothing else is open (MUTATES)."""
+    state.pending_offers = [*state.pending_offers, offer]
+    if state.pending_window is None:
+        state.pending_window = TimingWindow(
+            window_type=WindowType.REACTION,
+            queue=[offer.player_id],
+            context={"event": offer.event, "moment": offer.moment},
+        )
+
+
+def take_offer(state: GameState, player_id: str, offer_id: str) -> PendingOffer:
+    """Removes the player's offer (MUTATES) - checks as for an answer (deals, 54.15)."""
+    return _take_offer(state, player_id, offer_id)
+
+
+def advance_window(state: GameState, player_id: str) -> None:
+    """Moves the REACTION queue on after the player answered (MUTATES; deals, 54.15)."""
+    _advance_window(state, player_id)
 
 
 def _take_offer(state: GameState, player_id: str, offer_id: str) -> PendingOffer:

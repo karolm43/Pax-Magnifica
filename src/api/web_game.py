@@ -198,6 +198,48 @@ def _window_components(
     ]
 
 
+def _reaction_options(
+    state: GameState, player: PlayerState, registry: StaticDataRegistry
+) -> list[dict[str, str]]:
+    """What the player can actually use in the open reaction window right now (RULES.md 54.13).
+
+    Private (own hand): reaction action cards and promissory notes playable now (not muted) and
+    faction components / agents with a window use. Empty outside a reaction window.
+    """
+    if state.reaction_pause is None and state.held_play is None:
+        return []
+    # local: these modules import the window modules
+    from src.core import action_cards, promissory_play, reaction_window
+
+    prefs = player.private.reaction_prefs
+    options: list[dict[str, str]] = []
+    seen: set[str] = set()
+
+    def add(kind: str, key: str, name: str) -> None:
+        if name not in seen:
+            seen.add(name)
+            options.append({"kind": kind, "key": key, "name": name})
+
+    for entry in action_cards.playability(state, registry, player.player_id):
+        if entry["reaction"] and entry["playable"]:
+            name = reaction_window.card_name(
+                registry, ComponentCategory.ACTION_CARD, entry["card_id"]
+            )
+            if not reaction_prefs.is_card_muted(prefs, name):
+                add("action_card", entry["card_id"], name)
+    for row in promissory_play.playability(state, registry, player.player_id):
+        if row["reaction"] and row["playable"]:
+            name = reaction_window.card_name(
+                registry, ComponentCategory.PROMISSORY_NOTE, row["template"]
+            )
+            if not reaction_prefs.is_card_muted(prefs, name):
+                add("promissory_note", row["template"], name)
+    for component in _window_components(state, player, registry):
+        if not reaction_prefs.is_component_muted(state, player.player_id, component["key"]):
+            add("component", component["key"], component["name"])
+    return options
+
+
 def _reaction_prefs(
     state: GameState, player: PlayerState, registry: StaticDataRegistry
 ) -> dict[str, Any]:
@@ -213,6 +255,17 @@ def _reaction_prefs(
         passes[reaction_prefs.ALL] = reaction_prefs.UNTIL_ALWAYS
     return {
         "passes": passes,
+        # Which live declarations lapse when something changes (RULES.md 54.13).
+        "unlessChanges": sorted(
+            category
+            for category, declaration in prefs.passes.items()
+            if declaration.unless_changes and reaction_prefs.is_live(state, declaration)
+        ),
+        "notices": [
+            {"category": n.category, "actor": n.actor, "reason": n.reason} for n in prefs.notices
+        ],
+        "autoHits": prefs.auto_hits,
+        "options": _reaction_options(state, player, registry),
         "onlyInvolved": prefs.only_involved,
         "mutedCards": list(prefs.muted_cards),
         "afk": reaction_prefs.is_afk(state, player.player_id),
@@ -482,6 +535,16 @@ def _build_game_state(
         "reactionWindowSeconds": state.reaction_window_seconds,
         # „Quick windows” hosta (RULES.md 54.12): okno kończy się, gdy wszyscy spasowali.
         "quickReactionWindows": state.quick_reaction_windows,
+        # Queued strategy card secondaries (RULES.md 30.13): who queued is public, what - only
+        # for the player themselves (the state is already projected).
+        "secondaryQueue": {
+            pid: {
+                "initiative": q.initiative,
+                "hidden": q.hidden,
+                "execute": None if q.hidden else q.execute,
+            }
+            for pid, q in state.secondary_queue.items()
+        },
         "reactionJitterSeconds": state.reaction_jitter_seconds,
         # Stoły transakcji (RULES.md 47.1b): JAWNE tylko pary i Ready; zawartość daje
         # ``GET /transactions/state`` samym stronom.

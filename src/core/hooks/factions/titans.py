@@ -16,6 +16,7 @@ from src.core import (
     board_reinforcements,
     coexistence,
     control,
+    cooperative,
     exhaust,
     exploration,
     faction_components,
@@ -516,6 +517,14 @@ def pending_hit_targets(state: GameState) -> list[tuple[str, str, str]]:
             target = chosen or (owners[0] if owners else inv.attacker)
             found.append((f"bombard:{key}", target, f"Bombardment of {_planet_name(planet)}"))
     return found
+
+
+def _tellurian_helps(state: GameState, _owner: str) -> list[str]:
+    return list(dict.fromkeys(target for _key, target, _what in pending_hit_targets(state)))
+
+
+# Cooperative agent (RULES.md 54.15): cancels a hit on the hit player's units - requested.
+cooperative.register_pull_component("leader", AGENT, _tellurian_helps)
 
 
 @faction_components.window_use("leader", AGENT)

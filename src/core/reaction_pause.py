@@ -151,6 +151,10 @@ def sync(state: GameState, registry: StaticDataRegistry, now: float) -> None:
         state.reaction_pause.passed = reaction_window.auto_passers(
             state, registry, eligible, category=category, involved=involved
         )
+        # Bluff auto-pass (54.13): auto-passes land at random private moments of the window.
+        reaction_window.schedule_auto_passes(
+            state, state.reaction_pause, state.reaction_pause.passed, key
+        )
         reaction_prefs.window_opened(state, eligible)
         if reaction_window.quick_settle(state, state.reaction_pause, key):
             state.reaction_pause = None  # „Quick windows”: nikt nie reaguje - bez pauzy (54.12)

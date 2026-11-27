@@ -11,6 +11,12 @@ Wspólna mechanika pauzy ochronnej (``core/reaction_pause.py``, 54.10) i okna Sa
   prywatna (``visibility.redact_reaction_windows``).
 * **„More time”.** Każdy uprawniony (także ten, za którego silnik spasował) może raz na okno
   przedłużyć je o ``WAIT_EXTENSION_SECONDS`` - prośba nic nie mówi o ręce.
+* **Bluff auto-pass (RULES.md 54.13).** With "Quick windows" and a bluff range > 0 every engine
+  auto-pass "lands" at a random, PRIVATE moment of the window (``auto_pass_at``, drawn from the
+  engine's secret seed). A window where everyone has passed closes at the latest of those
+  moments (``closes_after``, private too) - never at 0.0 s, so an early close looks the same as
+  players who considered a reaction and let it go. The public ``seconds`` never shrinks; clients
+  probe ``release`` and the server decides.
 
 Moduł jest czysty: czas (``now``) podaje wołający, funkcje zwracają nowy stan albo mutują
 przekazany klon (opisane w docstringach).
@@ -19,6 +25,7 @@ przekazany klon (opisane w docstringach).
 from __future__ import annotations
 
 import hashlib
+import secrets
 from collections.abc import Iterable
 from typing import Protocol
 
@@ -27,11 +34,18 @@ from src.core.components import ComponentCategory
 from src.core.game_state import ControlType, GameState
 from src.core.registry import StaticDataRegistry
 
-DEFAULT_SECONDS = 5
+DEFAULT_SECONDS = 20  # user decision 2026-11-27 (was 5)
 MIN_SECONDS = 2
-MAX_SECONDS = 30
+MAX_SECONDS = 60
 WAIT_EXTENSION_SECONDS = 10
-MAX_JITTER_SECONDS = 2.0
+# Bluff auto-pass range (``GameState.reaction_jitter_seconds``): the latest moment an engine
+# auto-pass may land. Capped by the window length itself.
+MAX_JITTER_SECONDS = float(MAX_SECONDS)
+# ⚠️ ASSUMPTION (54.13 a): an engine auto-pass lands between 25% and 100% of the bluff range -
+# never at 0.0 s, which would tell everyone the player held nothing.
+BLUFF_MIN_FRACTION = 0.25
+# Default bluff range for NEW games (Settings → Reaction windows). ⚠️ ASSUMPTION (54.13 b).
+DEFAULT_BLUFF_SECONDS = 8.0
 
 
 class TimedWindow(Protocol):
@@ -43,6 +57,8 @@ class TimedWindow(Protocol):
     passed: list[str]
     extended_by: list[str]
     involved: list[str]
+    auto_pass_at: dict[str, float]
+    closes_after: float | None
 
 
 def window_seconds(state: GameState) -> int:
@@ -66,8 +82,12 @@ def configure(state: GameState, seconds: int) -> GameState:
 
 
 def expired(window: TimedWindow, now: float) -> bool:
-    """Czy minął stały czas okna (z przedłużeniami)."""
-    return now - window.opened_at >= window.seconds
+    """Czy minął stały czas okna (z przedłużeniami) albo prywatny moment wczesnego zamknięcia
+    (bluff auto-pass, 54.13)."""
+    limit = float(window.seconds)
+    if window.closes_after is not None:
+        limit = min(limit, float(window.closes_after))
+    return now - window.opened_at >= limit
 
 
 def has_playable_reaction(
@@ -216,28 +236,61 @@ def closes_early(state: GameState, window: TimedWindow) -> bool:
     return state.quick_reaction_windows and all_passed(window)
 
 
-def quick_delay(state: GameState, key: str) -> float:
-    """Opóźnienie zamknięcia okna z „bluff jitter” (s): deterministyczne z klucza okna, w
-    zakresie 50-100% ``reaction_jitter_seconds`` (0 = natychmiast)."""
+def bluffing(state: GameState) -> bool:
+    """Czy działa bluff auto-pass (54.13): „Quick windows” z zakresem > 0."""
+    return state.quick_reaction_windows and float(state.reaction_jitter_seconds) > 0.0
+
+
+def bluff_offset(state: GameState, key: str, player_id: str) -> float:
+    """Kiedy (s od otwarcia) „ląduje” auto-pas silnika za gracza w oknie ``key`` (54.13).
+
+    Losowe z TAJNEGO ziarna silnika (``rng_seed`` jest redagowane w projekcji), więc inni gracze
+    nie mogą go przewidzieć; deterministyczne dla (ziarno, okno, gracz) - Undo/powtórka dają ten
+    sam wynik i nie zużywa licznika kości. Zakres: ``BLUFF_MIN_FRACTION``..100% zakresu blefu.
+    """
     jitter = max(0.0, float(state.reaction_jitter_seconds))
     if jitter == 0.0:
         return 0.0
-    fraction = int.from_bytes(hashlib.sha256(key.encode()).digest()[:4], "big") / 0xFFFFFFFF
-    return jitter * (0.5 + 0.5 * fraction)
+    digest = hashlib.sha256(f"{state.rng_seed}|{key}|{player_id}".encode()).digest()
+    fraction = int.from_bytes(digest[:4], "big") / 0xFFFFFFFF
+    return jitter * (BLUFF_MIN_FRACTION + (1.0 - BLUFF_MIN_FRACTION) * fraction)
+
+
+def schedule_auto_passes(
+    state: GameState, window: TimedWindow, passers: Iterable[str], key: str
+) -> None:
+    """Rozkłada auto-pasy silnika w czasie okna (MUTUJE ``state`` i ``window``; 54.13).
+
+    Bez blefu nic nie robi (auto-pas jest natychmiastowy jak dotąd). Moment nigdy nie przekracza
+    długości okna - okno i tak kończy się po ``seconds``.
+    """
+    if not bluffing(state):
+        return
+    if state.rng_seed == 0:
+        state.rng_seed = secrets.randbelow(2**31 - 1) + 1  # jak ``dice.next_rng``: leniwe ziarno
+    cap = float(window.seconds)
+    window.auto_pass_at = {
+        **window.auto_pass_at,
+        **{pid: round(min(cap, bluff_offset(state, key, pid)), 2) for pid in passers},
+    }
 
 
 def quick_settle(state: GameState, window: TimedWindow, key: str) -> bool:
     """„Quick windows”: czy okno ma się zamknąć TERAZ, bo wszyscy spasowali (MUTUJE ``window``).
 
-    Bez jittera zwraca ``True``. Z jitterem okno NIE znika natychmiast (tempo zamknięcia nie
-    zdradza, że nikt nie ma reakcji): skraca się do :func:`quick_delay` liczonego od otwarcia
-    i kończy zwykłym upływem czasu.
+    Bez blefu zwraca ``True``. Z blefem (54.13) okno NIE znika natychmiast: dostaje prywatny
+    moment zamknięcia ``closes_after`` = najpóźniejszy zaplanowany auto-pas (od otwarcia) i
+    kończy się po nim zwykłym ``release`` (:func:`expired`). Jawne ``seconds`` się nie zmienia.
     """
+    del key  # klucz okna wybiera już momenty w :func:`schedule_auto_passes`
     if not closes_early(state, window):
         return False
-    if state.reaction_jitter_seconds <= 0:
+    if not bluffing(state):
         return True
-    window.seconds = min(float(window.seconds), quick_delay(state, key))
+    latest = max((float(t) for t in window.auto_pass_at.values()), default=0.0)
+    if latest <= 0.0:
+        return True  # sami ręcznie spasowali - wybór graczy, nic nie zdradza
+    window.closes_after = min(float(window.seconds), latest)
     return False
 
 
@@ -347,7 +400,7 @@ def settle_quick(state: GameState, registry: StaticDataRegistry) -> GameState:
         result = result.clone()
         held = result.held_play
         assert held is not None
-        if quick_settle(result, held, f"{held.player_id}|{held.card_id}|{held.opened_at}"):
+        if quick_settle(result, held, card_hold.hold_key(held)):
             result = card_hold.resolve(result, registry)
     return result
 

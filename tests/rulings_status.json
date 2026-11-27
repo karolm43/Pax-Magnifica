@@ -420,7 +420,37 @@
     ],
     "reason": "Space stations and The Triad are tested (test_rulings_exhaust_ready.py); Deepwrought ocean cards need the Deepwrought faction module."
   },
+  "R_movement/notes/7": {
+  "na": "Binding deals are not modelled in the engine (core/transaction.py has no deal/agreement item), so no deal can grant passage; movement_paths.passage_blocked has no deal exception."
+},
   "F_empyrean/watcher/8.1": {
     "gap": "card_hold.cancel_by_component returns the cancelled ACTION card's action (action_budget.unregister_action); ending the turn without the Fleet Logistics second action is the existing End turn path - no dedicated scenario with Fleet Logistics (RULES.md 62.20)."
-  }
+  },
+
+  "R_abilities/rules-reference/1": {"na": "The engine has one rules source, the LRR dump in docs/rules_tirules/. The Learn to Play booklet is not a source, so there is nothing to override."},
+  "R_abilities/rules-reference/3": {"na": "Describes how abilities are written. Each hook is registered at the (event, moment) window its text names (rules_hooks.on_event, RULES.md 54.1)."},
+  "R_abilities/rules-reference/4": {"na": "Describes card layout. Separate paragraphs are separate hooks or effects (see notes/4)."},
+  "R_abilities/rules-reference/6": {"gap": "No generic 'cannot' arbitration. FORBID hooks are unioned per point (rules_hooks.forbidden), but PERMIT hooks and per-card checks are resolved locally, so nothing guarantees a 'cannot' cannot be overridden."},
+  "R_abilities/rules-reference/6.1": {"gap": "No precedence model between two 'cannot' abilities (persistent over one-time, enabling over cancel). Each conflicting pair is handled, if at all, inside the card hooks."},
+  "R_abilities/rules-reference/9": {"na": "Text-semantics rule applied per component when its effect is implemented (pipeline ARCHITEKTURA_KODU.md §3a). It is verified by that component's own @ruling tests; there is no generic 'and' mechanism to test."},
+  "R_abilities/rules-reference/15": {"na": "Text-semantics rule ('then') applied per component when its effect is implemented (ARCHITEKTURA_KODU.md §3a). It is verified by the component's own @ruling tests; there is no generic mechanism."},
+  "R_abilities/rules-reference/21": {"na": "Agenda outcome effects are registered per outcome (register_effect 'agendas:<id>') and run only from agenda_phase._resolve after the votes are counted (tests/test_agenda_effects.py, test_rulings_agendas*.py)."},
+  "R_abilities/rules-reference/22": {"na": "Describes faction sheets. Faction abilities and flagships are hook sources owned while the faction is in play (rules_hooks.owned_sources)."},
+  "R_abilities/notes/4": {"na": "Text-semantics rule applied per component (each paragraph is its own hook or effect step). It is verified by the component's @ruling sentence tests ('<kind>:<id>#n'); there is no generic paragraph model."},
+  "R_abilities/notes/5": {"gap": "Target pools are built per card (register_effect_inputs). No audit checks that 'a player' wording includes the resolving player and only 'another player' excludes them."},
+  "R_abilities/notes/7": {"gap": "No generic guard against re-triggering an ability inside a window it opened. triggers._MAX_DEPTH only stops runaway recursion."},
+  "R_abilities/notes/8.1": {"gap": "The REACTION window serves one player's offers in a row (RULES.md 54.7a, triggers._advance_window). Interleaving one ability per player happens only through triggers.repeat_offer (Exotrireme II, Devotion)."},
+  "R_abilities/notes/8.2": {"gap": "Same as notes/8.1: the Alice #1, Bob #1, Cheng #1, Alice #2 interleaving is not modelled. Alice resolves all her offers before Bob gets his turn."},
+  "R_abilities/notes/8.4": {"gap": "A declined offer is removed (triggers.decline_offer), and the window never reopens to a player who declined, even when a later player resolves an ability."},
+  "R_abilities/notes/12": {"requires": ["faction:crimson"], "reason": "Granted unit abilities have no separate representation to test against an ability shutdown; the reference case (Quietus) needs the Crimson Rebellion faction module."},
+  "R_abilities/notes/12.1": {"requires": ["faction:crimson"], "reason": "The Quietus (Crimson Rebellion flagship) shutting down granted unit abilities needs the Crimson faction module. The Argent commander combo should be tested together with it."},
+  "R_coexistence/notes/2.2": {"gap": "No effect makes the controller coexist on its own planet. coexistence.choose ignores the controller (ASSUMPTION RULES.md 40.1 I7b), so control never passes to another player this way."},
+  "R_coexistence/notes/3": {"na": "The only 'may choose to coexist' effect in the engine is Slumberstate Computing, resolved by the active Titans player alone in the Awaken window. No window has two players choosing."},
+  "R_coexistence/notes/7": {"gap": "Control is sticky (RULES.md 23). A coexisting player left alone on a planet does not gain control automatically; this is listed as not modelled in RULES.md 40.1 I7b and handled by operator/God-Mode."},
+  "R_coexistence/notes/7.1": {"gap": "Same as notes/7: when the controller moves all its units off the planet outside an invasion, control does not pass immediately to the coexisting player."},
+  "R_coexistence/notes/7.3": {"gap": "Depends on notes/2.2: no effect puts the controller into coexistence when ground forces are committed, so this case cannot arise."},
+  "R_coexistence/notes/7.4": {"gap": "Same as notes/7: there is no control hand-off to the next coexisting player in ability-resolution order (initiative in the action phase, otherwise clockwise)."}
+
+  
+  
 }

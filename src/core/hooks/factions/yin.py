@@ -20,6 +20,7 @@ from src.core import (
     active_effects,
     battle,
     board_graph,
+    cooperative,
     custodians,
     economy,
     faction_components,
@@ -583,6 +584,10 @@ def _milor_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bo
         and _destroyed_in_combat(state, ctx)
         and leaders.is_ready(state, _registry(), player_id, AGENT)
     )
+
+
+# Cooperative agent (RULES.md 54.15): helps "that player" - requested, not pushed.
+cooperative.register_pull(f"leaders:{AGENT}")
 
 
 @on_event(

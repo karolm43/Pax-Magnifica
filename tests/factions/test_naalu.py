@@ -54,6 +54,7 @@ from src.core.hooks.factions import naalu
 from src.core.registry import StaticDataRegistry
 from src.core.state_grid import grid_from_state
 from src.core.strategy_cards import diplomacy, politics
+from tests import boosts
 from tests.factions.completeness import missing_components
 from tests.rulings import ruling
 
@@ -665,8 +666,8 @@ def test_iconoclast_nie_dla_wlasnego_reliktu() -> None:
 def test_zeu_zwraca_zeton_z_aktywacji_i_signal_jamming(registry: StaticDataRegistry) -> None:
     state = _state()
     after = _activate(state, registry, ARENA)  # aktywacja kładzie żeton p2
-    assert _offers(after, "p1", "Z'eu")
-    used = _accept(after, "p1", "Z'eu")
+    assert not _offers(after, "p1", "Z'eu")  # cooperative: requested, not pushed (54.15)
+    used = _accept(boosts.request(after, registry, "p2", "Z'eu"), "p1", "Z'eu")
     assert "p2" not in used.systems[ARENA].command_tokens
     assert used.players["p2"].cc_reinf == 9
     assert used.active_system == ARENA  # system pozostaje aktywowany
@@ -674,16 +675,16 @@ def test_zeu_zwraca_zeton_z_aktywacji_i_signal_jamming(registry: StaticDataRegis
     # Inne położenie żetonu (Signal Jamming: z rezerwy) też otwiera ofertę.
     jam = _state()
     command_tokens.place_on_board_from_reinforcements(jam, jam.systems[EAST], "p2")
-    assert _offers(jam, "p1", "Z'eu")
+    assert boosts.names(jam, registry, "p2") == ["Z'eu"]
 
 
-def test_zeu_w_trakcie_primary_diplomacy_nie_otwiera_okna() -> None:
+def test_zeu_w_trakcie_primary_diplomacy_nie_otwiera_okna(registry: StaticDataRegistry) -> None:
     """Diplomacy kładzie żetony w trakcie primary: oferta Z'eu czeka (okno secondary musi się
     jeszcze otworzyć - regresja fuzz seed 11)."""
     state = _state()
     state.pending_strategy = StrategyResolution(initiative=2, owner_id="p2", step="system")
     command_tokens.place_on_board_from_reinforcements(state, state.systems[EAST], "p2")
-    assert _offers(state, "p1", "Z'eu")
+    assert boosts.names(state, registry, "p2") == ["Z'eu"]
     assert state.pending_window is None
 
 

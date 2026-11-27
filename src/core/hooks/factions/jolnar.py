@@ -12,6 +12,7 @@ from typing import Any
 
 from src.core import (
     active_effects,
+    cooperative,
     economy,
     exhaust,
     faction_components,
@@ -406,6 +407,15 @@ def _sucaban_potential(state: GameState, registry: StaticDataRegistry, payer: st
     if not ready:
         return 0
     return sum(count for _pos, _zone, count in _infantry_spots(state, payer))
+
+
+def _sucaban_helps(state: GameState, _owner: str) -> list[str]:
+    target = _sucaban_target(state)
+    return [target[0]] if target is not None else []
+
+
+# Cooperative agent (RULES.md 54.15): the researching player's discount - requested, not pushed.
+cooperative.register_pull_component("leader", AGENT, _sucaban_helps)
 
 
 @faction_components.window_use("leader", AGENT)

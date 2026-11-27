@@ -141,7 +141,7 @@ def test_awaiting_window_and_offer_come_first() -> None:
     state.pending_offers = [
         PendingOffer(id="o1", player_id="p1", event="e", moment="m", hook_seq=0)
     ]
-    assert actor_rules.awaiting(state) == [("p2", "respond"), ("p1", "decide")]
+    assert actor_rules.awaiting(state) == [("p2", "secondary"), ("p1", "decide")]
 
 
 def test_awaiting_speaker_when_nobody_has_turn() -> None:

@@ -196,6 +196,8 @@ def announce_ingress_placed(state: GameState) -> None:
     fracture = state.fracture
     if not fracture.in_play or fracture.pending or fracture.entered_by is None:
         return
+    if extra_ingress_deferred(state):
+        return  # the final ingress still waits for Thunder's Edge (R_fracture notes/5)
     triggers.fire(
         state, GameEvent.FRACTURE_INGRESS_PLACED, Moment.AFTER, subject=fracture.entered_by,
         ctx={"player": fracture.entered_by, "breakthrough": fracture.breakthrough_id},
@@ -220,6 +222,34 @@ def _settle_pending(state: GameState, registry: StaticDataRegistry, grid: HexGri
                     _log(state, {"type": "ingress", "position": position, "auto": True})
                 pending.remove(choice)
                 changed = True
+
+
+def extra_ingress_deferred(state: GameState) -> bool:
+    """Whether the final ingress token waits for Thunder's Edge to be placed.
+
+    R_fracture notes/5: when The Fracture enters play from the expedition that also places
+    Thunder's Edge, Thunder's Edge is placed first and the final ingress goes into its system.
+    """
+    log = state.fracture.log
+    return (
+        state.fracture.in_play
+        and any(e.get("type") == "extra_deferred" for e in log)
+        and not any(e.get("extra") for e in log)
+    )
+
+
+def place_deferred_extra_ingress(state: GameState, grid: HexGrid) -> None:
+    """Places the deferred final ingress in the Thunder's Edge system - MUTATES ``state``.
+
+    Called right after Thunder's Edge is placed; does nothing when nothing was deferred.
+    """
+    position = state.expeditions.thunders_edge_position
+    if not extra_ingress_deferred(state) or position is None:
+        return
+    if not _ensure_system(state, grid, position).ingress_token:  # never 2 ingress in 1 system
+        _put_ingress(state, grid, position)
+    _log(state, {"type": "ingress", "position": position, "auto": True, "extra": True})
+    announce_ingress_placed(state)
 
 
 def _extra_ingress_position(
@@ -279,7 +309,13 @@ def _enter(
 
     # Dodatkowy ingress (po ingressach z kolorów — kolejność nie ma znaczenia dla wyniku, ale
     # kładziemy go PIERWSZY, by nie liczył się jako kandydat koloru).
-    extra = _extra_ingress_position(state, registry, grid)
+    if state.expeditions.pending_placement is not None:
+        # Sixth expedition: Thunder's Edge is placed first, then the final ingress goes into its
+        # system (R_fracture notes/5) - ``place_deferred_extra_ingress``.
+        _log(state, {"type": "extra_deferred"})
+        extra = None
+    else:
+        extra = _extra_ingress_position(state, registry, grid)
     if extra is not None:
         _put_ingress(state, grid, extra)
         _log(state, {"type": "ingress", "position": extra, "auto": True, "extra": True})

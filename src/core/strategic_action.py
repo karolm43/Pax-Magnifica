@@ -29,7 +29,13 @@ from typing import Any
 
 from src.core import action_budget, command_tokens, exhaust, rules_hooks, timing, triggers
 from src.core.game_events import GameEvent, Moment
-from src.core.game_state import GameState, Phase, StrategyResolution, WindowType
+from src.core.game_state import (
+    GameState,
+    Phase,
+    QueuedSecondary,
+    StrategyResolution,
+    WindowType,
+)
 from src.core.hex_grid import HexGrid
 from src.core.registry import StaticDataRegistry
 from src.core.strategy_cards import CARDS, CardSpec, leadership, trade
@@ -236,6 +242,80 @@ def _finish_primary(
     return _auto_resolve_free(opened, ctx)
 
 
+def queue_order(state: GameState) -> tuple[int, list[str]] | None:
+    """Who may queue a secondary decision now (RULES.md 30.13): ``(initiative, players)``.
+
+    While the primary is being resolved: everyone who will be asked (the clockwise queue, limited
+    by Mathis Mathinus). While the secondary window is open: everyone after the current
+    responder (the current responder answers directly). ``None`` = nothing to queue for.
+    """
+    pending = state.pending_strategy
+    if pending is not None:
+        if pending.no_secondary:
+            return None
+        order = timing.build_response_queue(state, pending.owner_id)
+        if pending.secondary_players is not None:
+            order = [p for p in order if p in pending.secondary_players]
+        return pending.initiative, order
+    window = state.pending_window
+    if window is not None and window.window_type is WindowType.STRATEGY_SECONDARY:
+        return int(window.context.get("initiative", 0)), list(window.queue[window.cursor + 1:])
+    return None
+
+
+def queue_secondary(
+    state: GameState,
+    player_id: str,
+    *,
+    execute: bool,
+    payload: dict[str, Any] | None = None,
+) -> GameState:
+    """Queues a Follow / Don't follow decision ahead of the player's turn (new state; 30.13).
+
+    The decision is applied in the legal clockwise order as soon as the window reaches the
+    player (``_auto_resolve_free``). It is validated only then - if it is no longer legal
+    ("unless something changes": the token is gone, the payload no longer fits), it is dropped
+    and the player is asked normally. Queueing again replaces the previous decision.
+
+    Raises:
+        ValueError: Nothing to queue for, or the player is not waiting for this secondary.
+    """
+    order = queue_order(state)
+    if order is None:
+        raise ValueError("No strategy card secondary is coming up to queue for.")
+    initiative, players = order
+    if player_id not in players:
+        raise ValueError(f"{player_id} is not waiting for this secondary ability.")
+    new_state = state.clone()
+    new_state.secondary_queue = {
+        **new_state.secondary_queue,
+        player_id: QueuedSecondary(
+            initiative=initiative, execute=bool(execute), payload=dict(payload or {})
+        ),
+    }
+    return new_state
+
+
+def cancel_queued_secondary(state: GameState, player_id: str) -> GameState:
+    """Withdraws a queued secondary decision (new state; nothing queued = no change)."""
+    if player_id not in state.secondary_queue:
+        return state
+    new_state = state.clone()
+    new_state.secondary_queue = {
+        p: q for p, q in new_state.secondary_queue.items() if p != player_id
+    }
+    return new_state
+
+
+def _take_queued(state: GameState, player_id: str, initiative: int) -> QueuedSecondary | None:
+    """Pops the player's queued decision for this card (MUTATES ``state``)."""
+    queued = state.secondary_queue.get(player_id)
+    if queued is None:
+        return None
+    state.secondary_queue = {p: q for p, q in state.secondary_queue.items() if p != player_id}
+    return queued if queued.initiative == initiative else None
+
+
 def _auto_resolve_free(state: GameState, ctx: CardContext) -> GameState:
     """Rozstrzyga AUTOMATYCZNIE secondary graczy „free" (Trade), gdy przychodzi ich kolej.
 
@@ -249,9 +329,26 @@ def _auto_resolve_free(state: GameState, ctx: CardContext) -> GameState:
         if window is None or window.window_type is not WindowType.STRATEGY_SECONDARY:
             return current
         responder = window.current_responder
-        if responder is None or responder not in _free_players(window.context):
+        if responder is None:
             return current
-        spec = _spec(int(window.context.get("initiative", 0)))
+        initiative = int(window.context.get("initiative", 0))
+        if responder in current.secondary_queue and not window.context.get(_AWAIT_PRODUCTION_KEY):
+            # Queued decision (RULES.md 30.13): resolved now, in the legal order.
+            current = current.clone()
+            queued = _take_queued(current, responder, initiative)
+            if queued is None:
+                continue
+            if queued.execute or responder not in _free_players(window.context):
+                try:
+                    return resolve_secondary(
+                        current, ctx.registry, responder, execute=queued.execute,
+                        payload=queued.payload, grid=ctx.grid,
+                    )
+                except ValueError:
+                    return current  # no longer legal - the player is asked normally
+        if responder not in _free_players(window.context):
+            return current
+        spec = _spec(initiative)
         current = current.clone()
         if spec.secondary is not None:
             spec.secondary(current, ctx, responder, {})
@@ -306,6 +403,7 @@ def play_strategy_card(
     # (RULES.md 31.7: End turn przestaje być zablokowany „brakiem akcji").
     exhaust.exhaust_strategy_card(new_state, player_id, initiative)
     action_budget.register_action(new_state, player_id, strategic=True)
+    new_state.secondary_queue = {}  # a new strategic action: old queued decisions are stale
 
     spec = _spec(initiative)
     if spec.primary_steps:
@@ -578,6 +676,7 @@ def _advance_window(state: GameState, player_id: str) -> GameState:
     new_state = timing.respond_current(state, player_id)
     if timing.is_window_complete(new_state):
         new_state = timing.close_window(new_state)
+        new_state.secondary_queue = {}  # nothing left to queue for this card (RULES.md 30.13)
         chain = [int(i) for i in str(context.get(CHAIN_KEY, "")).split(",") if i]
         if chain and new_state.pending_window is None:
             begin_strategize_secondary(
@@ -680,3 +779,47 @@ def step_options(
             "options": options,
         }
     return None
+
+
+def queue_options(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    grid: HexGrid | None = None,
+) -> dict[str, Any] | None:
+    """The secondary choices a player may queue now (RULES.md 30.13), or ``None``.
+
+    Same shape as the ``secondary`` prompt of :func:`step_options` plus ``queued`` (the player's
+    own queued decision or ``None``) and ``ahead`` (players answering before them). Options are
+    computed on the current state; the decision is validated again when it is applied.
+    """
+    order = queue_order(state)
+    if order is None:
+        return None
+    initiative, players = order
+    if player_id not in players:
+        return None
+    spec = _spec(initiative)
+    ctx = CardContext(registry, grid)
+    options = spec.options(state, ctx, player_id, None, {}) if spec.options is not None else {}
+    queued = state.secondary_queue.get(player_id)
+    window = state.pending_window
+    ahead: list[str] = []
+    if state.pending_strategy is not None:
+        ahead = players[: players.index(player_id)]
+    elif window is not None and window.current_responder is not None:
+        ahead = [window.current_responder, *players[: players.index(player_id)]]
+    return {
+        "kind": "secondary",
+        "initiative": initiative,
+        "step": None,
+        "draft": {},
+        "options": options,
+        "queued": (
+            {"execute": queued.execute, "payload": dict(queued.payload)}
+            if queued is not None and queued.initiative == initiative
+            else None
+        ),
+        "ahead": ahead,
+        "cost": 1 if spec.secondary_costs_token else 0,
+    }

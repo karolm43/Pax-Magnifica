@@ -21,6 +21,7 @@ from src.core import (
     battle,
     board_graph,
     capacity,
+    cooperative,
     entropic_scar,
     faction_components,
     faction_tokens,
@@ -604,6 +605,10 @@ def _taivra_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> b
         and bool(board_graph.wormholes_at(state, registry, position) - {_DELTA})
         and leaders.is_ready(state, registry, player_id, AGENT)
     )
+
+
+# Cooperative agent (RULES.md 54.15): helps "that player" - requested, not pushed.
+cooperative.register_pull(f"leaders:{AGENT}")
 
 
 @on_event(

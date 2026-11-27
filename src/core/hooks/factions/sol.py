@@ -13,6 +13,7 @@ from typing import Any
 from src.core import (
     active_effects,
     command_tokens,
+    cooperative,
     economy,
     entropic_scar,
     faction_components,
@@ -275,6 +276,10 @@ def agent_inputs(
             meta=meta,
         ))
     return [oi.choice("unit", "Ground force that rolls 1 additional die", options, always=True)]
+
+
+# Cooperative agent (RULES.md 54.15): helps "that player" - requested, not pushed.
+cooperative.register_pull(f"leaders:{AGENT}", cooperative.combatants)
 
 
 @on_event(

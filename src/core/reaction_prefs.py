@@ -24,7 +24,14 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from src.core.game_events import GameEvent
-from src.core.game_state import ControlType, GameState, PassDeclaration, ReactionPrefs
+from src.core.game_state import (
+    ControlType,
+    GameState,
+    PassDeclaration,
+    PrePassNotice,
+    ReactionPrefs,
+    SituationChange,
+)
 
 ALL = "all"
 STRATEGY = "strategy"
@@ -50,6 +57,17 @@ COMPONENT_DURATIONS: tuple[str, ...] = (UNTIL_COMBAT, UNTIL_TURN, UNTIL_ROUND, U
 
 # ⚠️ ZAŁOŻENIE (54.12 e): tyle kolejnych okien bez żadnej reakcji = gracz jest AFK.
 AFK_STRIKES = 2
+
+# "Unless something changes" (RULES.md 54.13): how many notable moves the state remembers and how
+# many cancelled pre-pass notices a player keeps.
+_SITUATION_KEPT = 24
+_NOTICES_KEPT = 4
+
+# Auto-assign combat hits (RULES.md 54.14).
+AUTO_HITS_OFF = "off"
+AUTO_HITS_SUSTAIN = "sustain"
+AUTO_HITS_CHEAP = "cheap"
+AUTO_HITS_POLICIES: tuple[str, ...] = (AUTO_HITS_OFF, AUTO_HITS_SUSTAIN, AUTO_HITS_CHEAP)
 
 # Zdarzenie kluczowego okna pauzy (``reaction_pause.PAUSE_POINTS``) -> kategoria deklaracji.
 _EVENT_CATEGORY: dict[str, str] = {
@@ -89,8 +107,36 @@ def stamp(state: GameState, until: str) -> str:
     return ""
 
 
+def note_change(state: GameState, actor: str, reason: str) -> None:
+    """A notable public move by ``actor`` (RULES.md 54.13) - MUTATES ``state``.
+
+    Called at the central points: an action card or promissory note played, an agent / faction
+    component used, a retreat announced, extra hits produced in combat. Every "unless something
+    changes" pre-pass of ANOTHER player declared before this move lapses (:func:`is_live`).
+    """
+    state.situation_seq += 1
+    state.situation_log = [
+        *state.situation_log, SituationChange(seq=state.situation_seq, actor=actor, reason=reason)
+    ][-_SITUATION_KEPT:]
+
+
+def change_since(state: GameState, declaration: PassDeclaration) -> SituationChange | None:
+    """The first move by someone other than the declaring player after the declaration."""
+    if not declaration.unless_changes:
+        return None
+    for change in state.situation_log:
+        if change.seq > declaration.since and change.actor != declaration.owner:
+            return change
+    if state.situation_log and state.situation_log[0].seq > declaration.since + 1:
+        # Older than the remembered log: something happened that we no longer list.
+        return SituationChange(seq=declaration.since + 1, actor="", reason="the situation changed")
+    return None
+
+
 def is_live(state: GameState, declaration: PassDeclaration) -> bool:
-    """Czy deklaracja nadal obowiązuje."""
+    """Czy deklaracja nadal obowiązuje (54.12; „unless something changes” - 54.13)."""
+    if change_since(state, declaration) is not None:
+        return False
     if declaration.until == UNTIL_ALWAYS:
         return True
     if declaration.until == UNTIL_COMBAT and state.active_combat is None:
@@ -126,9 +172,20 @@ def declares_pass(state: GameState, player_id: str, category: str | None) -> boo
 
 
 def prune(state: GameState) -> None:
-    """Usuwa wygasłe deklaracje wszystkich graczy (MUTUJE; wołane po każdym kroku)."""
+    """Usuwa wygasłe deklaracje wszystkich graczy (MUTUJE; wołane po każdym kroku).
+
+    A pre-pass cancelled because something changed (54.13) leaves a notice for its owner, so the
+    UI can say why the game is asking again.
+    """
     for player in state.players.values():
         prefs = player.private.reaction_prefs
+        for category, declaration in prefs.passes.items():
+            change = change_since(state, declaration)
+            if change is not None:
+                notice = PrePassNotice(
+                    category=category, actor=change.actor, reason=change.reason
+                )
+                prefs.notices = [*prefs.notices, notice][-_NOTICES_KEPT:]
         if any(not is_live(state, d) for d in prefs.passes.values()):
             prefs.passes = {k: d for k, d in prefs.passes.items() if is_live(state, d)}
         if any(not is_live(state, d) for d in prefs.muted_components.values()):
@@ -291,11 +348,17 @@ def update(
     mute_cards: Mapping[str, bool] | None = None,
     mute_offers: Mapping[str, bool] | None = None,
     mute_components: Mapping[str, str | None] | None = None,
+    unless_changes: bool = False,
+    auto_hits: str | None = None,
+    clear_notices: bool = False,
 ) -> GameState:
     """Zmienia preferencje gracza (nowy stan; samo pasowanie w trwających oknach robi wołający).
 
     ``declare``: kategoria -> czas trwania (``None`` = odwołanie). ``mute_cards``/``mute_offers``:
     klucz -> wł./wył. ``mute_components``: ``effect_key`` -> zasięg (``None`` = odwołanie).
+    ``unless_changes``: the new declarations lapse when another player makes a notable move
+    (54.13). ``auto_hits``: combat hit assignment policy (54.14). ``clear_notices``: the player
+    read the "pre-pass cancelled" notices.
 
     Raises:
         ValueError: Nieznany gracz, kategoria albo czas trwania.
@@ -315,7 +378,13 @@ def update(
             player.private.auto_pass_reactions = until == UNTIL_ALWAYS
         passes = {k: d for k, d in prefs.passes.items() if k != category}
         if until is not None and not (category == ALL and until == UNTIL_ALWAYS):
-            passes[category] = PassDeclaration(until=until, stamp=stamp(new_state, until))
+            passes[category] = PassDeclaration(
+                until=until,
+                stamp=stamp(new_state, until),
+                unless_changes=bool(unless_changes) and until != UNTIL_ALWAYS,
+                since=new_state.situation_seq,
+                owner=player_id,
+            )
         prefs.passes = passes
     if only_involved is not None:
         prefs.only_involved = bool(only_involved)
@@ -328,6 +397,12 @@ def update(
         prefs.muted_components = components
     if mute_components:
         prefs.afk_strikes = 0  # świadoma zmiana ustawień = obecność
+    if auto_hits is not None:
+        if auto_hits not in AUTO_HITS_POLICIES:
+            raise ValueError(f"Unknown hit assignment policy: {auto_hits}")
+        prefs.auto_hits = auto_hits
+    if clear_notices:
+        prefs.notices = []
     prefs.muted_cards = _toggle(prefs.muted_cards, mute_cards)
     prefs.muted_offers = _toggle(prefs.muted_offers, mute_offers)
     return new_state

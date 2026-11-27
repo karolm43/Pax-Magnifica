@@ -24,6 +24,8 @@ import {
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import type { PlayerData } from "@/entities/data/types";
 import { HoldControls } from "./HoldControls";
+import { BoostsButton } from "./BoostsButton";
+import { SecondaryQueueChip } from "./SecondaryQueueChip";
 import {
   DRAG_TYPE,
   FRONTIER_DRAG_TYPE,
@@ -355,6 +357,9 @@ export function BottomHandDock() {
         <div className={styles.tools}>
         {active.discordId && <UndoControls playerId={active.discordId} />}
         {active.discordId && <HoldControls playerId={active.discordId} />}
+        {/* Cooperative agents of others, only while one is available (RULES.md 54.15). */}
+        <BoostsButton player={active} />
+        {active.discordId && <SecondaryQueueChip playerId={active.discordId} />}
         <span className={styles.toolsSep} aria-hidden="true" />
 
         <UnstyledButton

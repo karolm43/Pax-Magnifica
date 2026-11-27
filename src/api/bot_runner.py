@@ -29,6 +29,7 @@ from src.api.actor import ACTOR_HEADER
 from src.api.bot_http import request_for
 from src.api.context import AppContext
 from src.api.seats import SEAT_TOKEN_HEADER
+from src.core.actor import describe_wait_reasons, format_wait_reasons
 from src.core.game_state import ControlType, GameState
 from src.core.models import BotConfig
 from src.engine.actions import Action, EngineContext
@@ -108,6 +109,8 @@ class BotRunner:
         self._task: asyncio.Task[None] | None = None
         # (state_seq, bot) z odrzuconymi wszystkimi kandydatami - nie próbujemy w kółko.
         self._stuck: set[tuple[int | None, str]] = set()
+        # state_seq of the last reported stall (one warning per stuck state, not one per tick).
+        self._stalled_seq: int | None = None
         self.moves = 0
 
     # --- Cykl życia -----------------------------------------------------------------------
@@ -141,7 +144,7 @@ class BotRunner:
                 while await self.step():
                     pass
             except Exception:  # błąd bota nie może zabić serwera; gra czeka na człowieka
-                log.exception("Bot runner step failed")
+                log.exception("Bot runner step failed; %s", self._waits())
 
     # --- Jeden ruch -----------------------------------------------------------------------
 
@@ -165,6 +168,11 @@ class BotRunner:
                 continue
             request = self._request(state, obs, legal, pid, seq)
             result = await self.executor.run_async(request)
+            if result.fallback:
+                log.warning(
+                    "Bot %s: decision timed out or failed, using the default move; %s",
+                    pid, self._waits(),
+                )
             if self.config.move_delay_s > 0:
                 await self._sleep(self.config.move_delay_s)
             if service.current_seq() != seq:
@@ -175,9 +183,32 @@ class BotRunner:
                     return True
                 if service.current_seq() != seq:
                     return True
-            log.warning("Bot %s: every candidate rejected at seq %s", pid, seq)
+            log.warning("Bot %s: every candidate rejected at seq %s; %s", pid, seq, self._waits())
             self._stuck.add((seq, pid))
+        self._report_stall(state, seq, bots)
         return False
+
+    def _waits(self) -> str:
+        """Wait reasons for a log line; diagnostics must never break the runner."""
+        try:
+            return format_wait_reasons(self.ctx.service.current_state(), self.ctx.registry)
+        except Exception as exc:  # noqa: BLE001
+            return f"wait reasons unavailable ({exc!r})"
+
+    def _report_stall(self, state: GameState, seq: int | None, bots: list[str]) -> None:
+        """No bot moved although the game waits for bots only (no human, no timed window)."""
+        if seq == self._stalled_seq or state.winner_id is not None:
+            return
+        if state.reaction_pause is not None or state.held_play is not None:
+            return  # ends by itself when its time passes
+        try:
+            reasons = describe_wait_reasons(state, self.ctx.registry)
+        except Exception:  # noqa: BLE001
+            log.exception("Wait reasons failed at seq %s", seq)
+            return
+        if all(r.player_id in bots for r in reasons if r.blocking):
+            self._stalled_seq = seq
+            log.warning("Bot game stalled at seq %s; %s", seq, self._waits())
 
     def _request(
         self,

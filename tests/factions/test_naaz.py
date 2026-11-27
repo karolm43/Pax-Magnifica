@@ -45,6 +45,7 @@ from src.core.hooks.factions import naaz
 from src.core.registry import StaticDataRegistry
 from src.core.state_grid import grid_from_state
 from src.core.unit_ops import UnitCause
+from tests import boosts
 from tests.factions.completeness import missing_components
 from tests.rulings import ruling
 
@@ -415,7 +416,7 @@ def test_zgrav_po_walce_wraca_do_pojemnosci(registry: StaticDataRegistry) -> Non
 def test_garv_and_gunn_inny_gracz_eksploruje(registry: StaticDataRegistry) -> None:
     state = _state()
     triggers.fire(state, GameEvent.TURN, Moment.END, subject="p2", ctx={"player": "p2"})
-    state = _accept(state, "p1", "Garv and Gunn")
+    state = _accept(boosts.request(state, registry, "p2", "Garv and Gunn"), "p1", "Garv and Gunn")
     assert state.players["p1"].leader_states.get("naazagent") == "exhausted"
     offer = _offers(state, "p2", "explore 1 of your planets")
     assert offer, "decyzja gracza, który kończył turę"
@@ -853,7 +854,7 @@ def test_milor_za_zgrav_wlasciciel_wybiera_typ(registry: StaticDataRegistry) -> 
     state.players["p2"].leader_states = {"yinagent": "unlocked"}
     system = state.systems[PLAIN]
     unit_ops.remove_units(state, system, "space", "p1", "mech", 1, UnitCause.DESTROYED)
-    state = _accept(state, "p2", "Brother Milor")
+    state = _accept(boosts.request(state, registry, "p1", "Brother Milor"), "p2", "Brother Milor")
     assert state.players["p2"].leader_states["yinagent"] == "exhausted"
     offer = _offers(state, "p1", "2 fighters or 2 infantry")
     assert offer, "wybór należy do właściciela zniszczonej jednostki"

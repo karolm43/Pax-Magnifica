@@ -185,6 +185,9 @@ export async function createNewGame(request: NewGameRequest): Promise<void> {
       chess_clock: chessClock,
       // Stała długość okien reakcji (RULES.md 54.11) — ustawienie hosta.
       reaction_window_seconds: settings.reactionWindowSeconds,
+      // Quick windows with the bluff auto-pass for new games (RULES.md 54.13, ASSUMPTION b).
+      quick_reaction_windows: true,
+      reaction_bluff_seconds: 8,
       ...request,
     }),
   });

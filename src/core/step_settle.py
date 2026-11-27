@@ -13,6 +13,8 @@ from src.core import (
     battle,
     capture,
     chronicle_log,
+    combat_auto_assign,
+    cooperative,
     game_clock,
     game_end,
     leaders,
@@ -60,6 +62,9 @@ def settle_step(
     after = game_end.apply_victory(nexus.activate_nexus(state.clone()))
     # Deklaracje pasu „do końca tury/rundy/agendy”, których czas minął (RULES.md 54.12).
     reaction_prefs.prune(after)
+    cooperative.prune_watch(after)
+    # Cooperative boosts last only until the game moves on (RULES.md 54.15).
+    cooperative.prune(before, after, label)
     if not label.startswith(LIMITS_EXEMPT_LABELS):
         # Blokada doku przechwytującego oddaje właścicielowi jego jednostki od razu (RULES.md 61.5).
         after = capture.release_blockaded(after)
@@ -74,6 +79,17 @@ def settle_step(
             after = limits.enforce_limits(resumed, registry)
             leaders.refresh_unlocks(after, registry)
             reaction_pause.sync(after, registry, now)
+        # Optional auto-assignment of combat hits (RULES.md 54.14): the normal assignment path, so
+        # SUSTAIN DAMAGE windows and the protective pause behave as after a manual assignment.
+        assigned = combat_auto_assign.settle(after, registry)
+        if assigned is not after:
+            after = limits.enforce_limits(assigned, registry)
+            leaders.refresh_unlocks(after, registry)
+            reaction_pause.sync(after, registry, now)
+            resumed = battle.release_sustain_hold(after, registry)
+            if resumed is not after:
+                after = limits.enforce_limits(resumed, registry)
+                reaction_pause.sync(after, registry, now)
     if before is not None:
         chronicle_log.record_step(before, after, label)
     return game_clock.settle(after, now)

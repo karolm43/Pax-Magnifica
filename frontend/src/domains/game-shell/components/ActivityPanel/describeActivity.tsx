@@ -96,6 +96,7 @@ const ACTION_GLYPH: Record<string, Glyph> = {
   "reactions.wait": IconHourglass,
   "reactions.window": IconHourglass,
   "reactions.quick": IconHourglass,
+  "boost.request": IconBolt,
   "tactical.activate": IconHexagon,
   "objective.score": IconTarget,
   "agenda.reveal": IconGavel,
@@ -253,6 +254,17 @@ function headlineFor(a: Activity, ctx: ActivityContext): ReactNode {
       return <>Someone asked for more time to react</>;
     case "reactions.window":
       return <>Reaction windows now last {a.subject} s</>;
+    case "boost.request": {
+      // Cooperative boost request (RULES.md 54.15): public table talk.
+      const paid = Number(a.detail ?? 0);
+      return (
+        <>
+          {actor} asked {target} for{" "}
+          <Named kind="leader" id={a.subject ?? ""} name={getLeaderById(a.subject ?? "")?.name ?? prettifyId(a.subject ?? "")} />
+          {paid > 0 ? <>, offering {paid}</> : <>, for free</>}
+        </>
+      );
+    }
     case "reactions.quick":
       return a.subject === "on"
         ? <>Quick windows on: a reaction window ends once everyone has passed</>

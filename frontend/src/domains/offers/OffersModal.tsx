@@ -11,6 +11,8 @@ import {
 } from "@/api/useActionCard";
 import { useGameData } from "@/state/useGameContext";
 import { DecisionFrame } from "@/shared/ui/DecisionFrame";
+import { PlayerTag } from "@/shared/ui/PlayerTag";
+import type { OfferDeal } from "@/api/useOffers";
 import { Tech } from "@/domains/player/components/Tech";
 import { getTechData } from "@/entities/lookup/tech";
 import {
@@ -42,6 +44,33 @@ function sourceTech(source: string | undefined): string | null {
 }
 
 /** Przycisk „Use”, a gdy etykieta hooka mówi, co się stanie („…: spend 2 TG …”) — ta treść. */
+/** Terms of a requested cooperative effect on its offer card (RULES.md 54.15). */
+export function DealLine({ deal, decider }: { deal: OfferDeal; decider: string }) {
+  const paid = deal.tradeGoods + deal.commodities;
+  const price =
+    paid === 0
+      ? "for free"
+      : [
+          deal.tradeGoods ? `${deal.tradeGoods} trade good${deal.tradeGoods === 1 ? "" : "s"}` : "",
+          deal.commodities ? `${deal.commodities} commodit${deal.commodities === 1 ? "y" : "ies"}` : "",
+        ]
+          .filter(Boolean)
+          .join(" + ");
+  if (decider === deal.requester) {
+    return (
+      <span data-testid="deal-line">
+        <PlayerTag playerId={deal.owner} size={14} /> agreed - you pay {price} when you use it.
+      </span>
+    );
+  }
+  return (
+    <span data-testid="deal-line">
+      <PlayerTag playerId={deal.requester} size={14} /> asks you to use this
+      {paid === 0 ? ", for free" : `, paying ${price}`}. Paid only if you accept.
+    </span>
+  );
+}
+
 function acceptLabel(offer: OfferView): string {
   const at = offer.label.indexOf(": ");
   const action = at >= 0 ? offer.label.slice(at + 2).trim() : "";
@@ -139,6 +168,7 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
       // Technologia źródłowa = TEN SAM chip co w panelu gracza (pełna karta po kliknięciu)
       // i jest tytułem - bez drugiej, dublującej nazwy obok.
       title={techId ? <Tech techId={techId} /> : offer.name}
+      subtitle={offer.deal ? <DealLine deal={offer.deal} decider={offer.player_id} /> : undefined}
       required={offer.mandatory}
       queued={queued}
       text={offer.text || undefined}
@@ -146,11 +176,19 @@ function OfferDock({ offer, queued }: { offer: OfferView; queued: number }) {
       busy={busy}
       canUse={canUse}
       onUse={use}
-      useLabel={offer.mandatory ? "Confirm" : acceptLabel(offer)}
+      useLabel={
+        offer.deal
+          ? offer.deal.requester === offer.player_id
+            ? "Use and pay"
+            : "Accept deal"
+          : offer.mandatory
+            ? "Confirm"
+            : acceptLabel(offer)
+      }
       onSkip={offer.mandatory ? undefined : skip}
       // „Nie używam” wprost (punkt 6 planu): para do przycisku użycia, zamiast ogólnego „Skip”.
-      skipLabel="Don't use"
-      onNeverAsk={!offer.mandatory && offer.source ? neverAsk : undefined}
+      skipLabel={offer.deal ? (offer.deal.requester === offer.player_id ? "Cancel" : "Decline") : "Don't use"}
+      onNeverAsk={!offer.mandatory && offer.source && !offer.deal ? neverAsk : undefined}
     >
       {graphical && (
         <TransitDiodesPicker

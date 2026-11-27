@@ -23,6 +23,7 @@ from src.core import (
     battle,
     board_reinforcements,
     combat_bombardment,
+    cooperative,
     direct_move,
     exploration,
     extra_dice,
@@ -347,6 +348,10 @@ def _agent_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bo
         and board_reinforcements.can_place(state, activator, "mech")
         and leaders.is_ready(state, _registry(), player_id, AGENT)
     )
+
+
+# Cooperative agent (RULES.md 54.15): helps "that player" - requested, not pushed.
+cooperative.register_pull(f"leaders:{AGENT}")
 
 
 @on_event(

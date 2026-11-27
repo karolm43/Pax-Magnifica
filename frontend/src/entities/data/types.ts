@@ -375,6 +375,20 @@ export type PlayerDataResponse = {
   eventSequence?: number;
   /** Zegar szachowy graczy (RULES.md 58); null, gdy gra jest bez zegara. */
   chessClock?: ChessClockView | null;
+  /** Na kogo czeka gra i dlaczego (RULES.md 44.5); jawne, to samo dla każdego widza. */
+  waitReasons?: WaitReason[];
+};
+
+/** Jedna rzecz, na którą gra czeka od gracza (`core/actor.describe_wait_reasons`). */
+export type WaitReason = {
+  /** `player_id` (jak `playerData[].discordId`). */
+  playerId: string;
+  /** Stały kod maszynowy (diagnostyka botów). */
+  reasonCode: string;
+  /** Bezpieczny publiczny opis, np. „following Strategy Card 7 (Technology)". */
+  summary: string;
+  /** `false` = gracz odpowiada później; gra jeszcze na niego nie czeka. */
+  blocking: boolean;
 };
 
 /** Zegar jednego gracza — wartości aktualne na chwilę zbudowania dokumentu. */
@@ -592,6 +606,8 @@ export type GameState = {
   reactionWindowSeconds?: number;
   /** „Quick windows” hosta (RULES.md 54.12): okno kończy się, gdy wszyscy spasowali. */
   quickReactionWindows?: boolean;
+  /** Who queued a strategy card secondary decision (RULES.md 30.13). */
+  secondaryQueue?: Record<string, QueuedSecondary>;
   /** „Bluff jitter” (s) przy „Quick windows”; 0 = wyłączony. */
   reactionJitterSeconds?: number;
   /** Stoły transakcji (RULES.md 47.1b) — jawne pary, Ready i skrót zawartości (bez treści). */
@@ -1472,7 +1488,21 @@ export type ReactionPrefsData = {
   windowComponents?: { key: string; name: string }[];
   /** Silnik pasuje za gracza po kilku oknach bez reakcji; dowolna akcja go przywraca. */
   afk?: boolean;
+  /** Categories whose pre-pass lapses when another player makes a move (RULES.md 54.13). */
+  unlessChanges?: ReactionCategory[];
+  /** Pre-passes the engine cancelled because something changed (who did what). */
+  notices?: { category: ReactionCategory; actor: string; reason: string }[];
+  /** Combat hit auto-assignment (RULES.md 54.14). */
+  autoHits?: AutoHitsPolicy;
+  /** What the player can play in the open reaction window right now (own hand, private). */
+  options?: { kind: string; key: string; name: string }[];
 };
+
+/** Combat hit auto-assignment policy (RULES.md 54.14). */
+export type AutoHitsPolicy = "off" | "sustain" | "cheap";
+
+/** A queued strategy card secondary decision (RULES.md 30.13); ``execute`` only for oneself. */
+export type QueuedSecondary = { initiative: number; hidden: boolean; execute: boolean | null };
 
 /** Podgląd ukrytych kart (M'aban Naalu) - ``gameState.peek``. */
 export type GamePeek = {

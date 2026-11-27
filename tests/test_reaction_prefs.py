@@ -237,6 +237,7 @@ def test_api_prefs_i_quick(registry: StaticDataRegistry) -> None:
         "passes": {"agenda": "round"}, "onlyInvolved": True,
         "mutedCards": ["Sabotage"], "mutedOffers": [],
         "afk": False, "mutedComponents": {}, "windowComponents": [],
+        "unlessChanges": [], "notices": [], "autoHits": "off", "options": [],
     }
     bad = {"actor_id": "p2", "declare": {"x": "turn"}}
     assert client.post("/reaction-settings/prefs", json=bad).status_code == 422

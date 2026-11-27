@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core import battle, rules_hooks, triggers
+from src.core import battle, cooperative, rules_hooks, triggers
 from src.core.component_text import describe_component
 from src.core.game_state import GameState, PendingOffer
 from src.core.hex_grid import HexGrid
@@ -21,7 +21,11 @@ def offer_view(
     state: GameState, registry: StaticDataRegistry, offer: PendingOffer
 ) -> dict[str, Any]:
     """Opis oferty do UI: nazwa i tekst karty, czy obowiązkowa oraz wejścia formularza."""
-    hook = rules_hooks.hook_by_seq(offer.hook_seq)
+    deal = cooperative.deal_view(offer)
+    hook = (
+        None if offer.hook_seq == cooperative.COMPONENT_HOOK
+        else rules_hooks.hook_by_seq(offer.hook_seq)
+    )
     inputs: list[dict[str, Any]] = []
     name, text, kind = ("", "", "")
     # Źródło („technologies:asc"…) - UI pokazuje kafelek komponentu (np. karta technologii).
@@ -30,6 +34,13 @@ def offer_view(
         name, text, kind = describe_component(registry, hook.covers)
         if hook.inputs is not None:
             inputs = hook.inputs(state, registry, offer.player_id, offer.ctx)
+    elif deal is not None:
+        # Requested window-use component (RULES.md 54.15): the component's own form.
+        source = str(offer.ctx[cooperative.DEAL]["source"])
+        name, text, kind = describe_component(registry, source)
+        inputs_fn = rules_hooks.inputs_for(source)
+        if inputs_fn is not None:
+            inputs = inputs_fn(state, registry, deal["owner"])
     return {
         "id": offer.id,
         "player_id": offer.player_id,
@@ -41,6 +52,8 @@ def offer_view(
         "source": source,
         "mandatory": offer.mandatory,
         "inputs": inputs,
+        # Requested cooperative effect (RULES.md 54.15): who asks and what they pay.
+        "deal": deal,
     }
 
 
@@ -70,7 +83,14 @@ def accept(
     offer_id: str,
     params: dict[str, Any] | None = None,
 ) -> GameState:
-    """Gracz przyjmuje ofertę z wyborami; po niej wznawiamy czekające przepływy."""
+    """Gracz przyjmuje ofertę z wyborami; po niej wznawiamy czekające przepływy.
+
+    A deal (requested cooperative effect, RULES.md 54.15) pays and resolves in the same step.
+    """
+    offer = next((o for o in state.pending_offers if o.id == offer_id), None)
+    if offer is not None and cooperative.is_deal(offer):
+        accepted = cooperative.accept(state, registry, grid, actor_id, offer_id, params)
+        return _resume(accepted, grid, registry)
     return _resume(triggers.accept_offer(state, actor_id, offer_id, params), grid, registry)
 
 
@@ -78,4 +98,7 @@ def decline(
     state: GameState, grid: HexGrid, registry: StaticDataRegistry, actor_id: str, offer_id: str
 ) -> GameState:
     """Gracz odmawia („may"); decyzji obowiązkowej nie można odrzucić."""
+    offer = next((o for o in state.pending_offers if o.id == offer_id), None)
+    if offer is not None and cooperative.is_deal(offer):
+        return _resume(cooperative.decline(state, actor_id, offer_id), grid, registry)
     return _resume(triggers.decline_offer(state, actor_id, offer_id), grid, registry)

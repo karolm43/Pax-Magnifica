@@ -394,6 +394,39 @@ class PassDeclaration(BaseModel):
 
     until: str = "always"
     stamp: str = ""
+    # "Unless something changes" pre-pass (RULES.md 54.13): the declaration lapses as soon as
+    # ANOTHER player makes a notable move (``GameState.situation_log`` entry newer than ``since``).
+    unless_changes: bool = False
+    since: int = 0
+    # Who declared it (an opponent's change cancels it, the owner's own moves do not).
+    owner: str = ""
+
+
+class PrePassNotice(BaseModel):
+    """A pre-pass cancelled because something changed (RULES.md 54.13) - shown once in the UI."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    category: str
+    # Who made the move ("" = unknown / older than the log) and what they did ("played an
+    # action card"); the UI renders the player with ``PlayerTag``.
+    actor: str = ""
+    reason: str
+
+
+class BoostSetting(BaseModel):
+    """How the owner of a cooperative effect lets other players use it (RULES.md 54.15).
+
+    ``ask`` - only when a player requests it, the owner decides each time; ``standing`` - a
+    request paying at least ``price`` (trade goods + commodities) is accepted automatically, free
+    for ``free_for``; ``self`` - never offered to others.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: str = "ask"
+    price: int = 0
+    free_for: list[str] = Field(default_factory=list)
 
 
 class ReactionPrefs(BaseModel):
@@ -419,6 +452,16 @@ class ReactionPrefs(BaseModel):
     # (``reaction_prefs.window_opened`` zeruje, ``mark_active`` ustawia). Chroni przed strajkiem
     # za okno, w ktorym gracz gral, ale nie kliknal Pass.
     responded: bool = False
+    # "Unless something changes" pre-passes the engine cancelled (RULES.md 54.13), newest last.
+    notices: list[PrePassNotice] = Field(default_factory=list)
+    # Auto-assign combat hits (RULES.md 54.14): ``off`` / ``sustain`` / ``cheap``.
+    auto_hits: str = "off"
+    # Cooperative ("pull") effects the player owns (RULES.md 54.15): effect key
+    # (``leaders:saaragent``) -> how other players may get it. Missing = ``ask``.
+    boosts: dict[str, BoostSetting] = Field(default_factory=dict)
+    # "Watch / Hold" (54.15 d): until this lapses (``combat`` / ``turn``) the player is offered
+    # their cooperative effects unprompted on other players' events, as before.
+    watch: PassDeclaration | None = None
 
 
 class PlayerPrivateState(BaseModel):
@@ -1113,7 +1156,7 @@ class HeldPlay(BaseModel):
     # Okno, na które reaguje karta reakcji (``OpenWindow.as_dict()``); None dla kart ACTION.
     window: dict[str, Any] | None = None
     # Stała długość okna w s (RULES.md 54.11): ustawienie hosta w chwili otwarcia + „More time”.
-    seconds: float = 5.0
+    seconds: float = 20.0
     # Kto poprosił o więcej czasu (prywatne - projekcja zostawia tylko patrzącego).
     extended_by: list[str] = Field(default_factory=list)
     # Uprawnieni, których okno DOTYCZY wg informacji jawnej (RULES.md 54.12, „only when involved”).
@@ -1124,6 +1167,10 @@ class HeldPlay(BaseModel):
     # formularz): czas serwera zatrzymania i kto go zatrzymał (``core/card_hold.py``).
     frozen_at: float | None = None
     frozen_by: str | None = None
+    # Bluff auto-pass (RULES.md 54.13): seconds after opening at which each engine auto-pass
+    # "lands", and the private early-close offset once everyone has passed. PRIVATE (redacted).
+    auto_pass_at: dict[str, float] = Field(default_factory=dict)
+    closes_after: float | None = None
 
 
 class ReactionPause(BaseModel):
@@ -1148,10 +1195,60 @@ class ReactionPause(BaseModel):
     # zostawia tylko patrzącego, bo lista zdradzałaby, kto ma kartę.
     passed: list[str] = Field(default_factory=list)
     # Stała długość okna w s (RULES.md 54.11): ustawienie hosta w chwili otwarcia + „More time”.
-    seconds: float = 5.0
+    seconds: float = 20.0
     extended_by: list[str] = Field(default_factory=list)
     # Uprawnieni, których okno DOTYCZY wg informacji jawnej (RULES.md 54.12, „only when involved”).
     involved: list[str] = Field(default_factory=list)
+    # Bluff auto-pass (RULES.md 54.13) - PRIVATE, see ``HeldPlay.auto_pass_at``.
+    auto_pass_at: dict[str, float] = Field(default_factory=dict)
+    closes_after: float | None = None
+
+
+class SituationChange(BaseModel):
+    """A notable public move that cancels "unless something changes" pre-passes (RULES.md 54.13)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    seq: int
+    actor: str
+    reason: str
+
+
+class QueuedSecondary(BaseModel):
+    """A strategy card secondary decision queued ahead of the player's turn (RULES.md 30.13).
+
+    Applied in the legal (clockwise) order when the secondary window reaches the player; dropped
+    (the player is asked normally) when it is no longer legal. The decision is PRIVATE until it
+    resolves - the projection keeps only the fact that something is queued (``hidden``).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    initiative: int
+    execute: bool = False
+    payload: dict[str, Any] = Field(default_factory=dict)
+    hidden: bool = False
+
+
+class BoostOffer(BaseModel):
+    """A cooperative effect another player could use for a beneficiary RIGHT NOW (RULES.md 54.15).
+
+    Created instead of a blocking offer when a "pull" hook fires on another player's event
+    (``cooperative.intercept``). It lives until the game moves on (``cooperative.prune``); a
+    beneficiary requests it (``cooperative.request``), which turns it into a normal offer.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    owner: str
+    covers: str
+    beneficiaries: list[str] = Field(default_factory=list)
+    hook_seq: int
+    event: str
+    moment: str
+    ctx: dict[str, Any] = Field(default_factory=dict)
+    label: str = ""
 
 
 class BonusTurn(BaseModel):
@@ -1366,12 +1463,20 @@ class GameState(BaseModel):
     reaction_pause: ReactionPause | None = None
     reaction_pause_seen: list[str] = Field(default_factory=list)
     # Stała długość okien reakcji w s (pauza ochronna, okno Sabotage); ustawia host (RULES 54.11).
-    reaction_window_seconds: int = 5
+    reaction_window_seconds: int = 20
     # „Quick windows” hosta (RULES.md 54.12): okno kończy się, gdy wszyscy uprawnieni spasowali.
     quick_reaction_windows: bool = False
     # „Bluff jitter” (``reaction_window.quick_settle``): przy „Quick windows” okno, w którym
     # wszyscy spasowali, zamyka się po 50-100% tego czasu (s) zamiast natychmiast; 0 = wyłączone.
     reaction_jitter_seconds: float = 0.0
+    # Notable moves by players (RULES.md 54.13, ``reaction_prefs.note_change``): the last few,
+    # with a running sequence number. "Unless something changes" pre-passes compare against it.
+    situation_seq: int = 0
+    situation_log: list[SituationChange] = Field(default_factory=list)
+    # Queued strategy card secondary decisions: player_id -> decision (RULES.md 30.13).
+    secondary_queue: dict[str, QueuedSecondary] = Field(default_factory=dict)
+    # Cooperative effects available on request right now (RULES.md 54.15, ``core/cooperative``).
+    boosts: list[BoostOffer] = Field(default_factory=list)
     # Ślad Sustain Damage poza walką (Space Cannon Offense): ``{player, base_type, count, by,
     # position}`` - okno Direct Hit trwa do następnego kroku Space Cannon (RULES.md 53.5.c).
     sustain_trace: list[dict[str, Any]] = Field(default_factory=list)

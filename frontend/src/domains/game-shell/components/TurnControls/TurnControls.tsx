@@ -445,7 +445,12 @@ export function TurnControls() {
             <b className={styles.actionWho}>{activeName}</b>
           </span>
           {/* Ustawienia reakcji poza turą - wszystkie w jednym miejscu (RULES.md 54.11-54.12). */}
-          <ReactionSettings player={active} quickWindows={gameState?.quickReactionWindows} />
+          <ReactionSettings
+            player={active}
+            quickWindows={gameState?.quickReactionWindows}
+            inCombat={Boolean(gameState?.activeCombat)}
+            othersTurn={phase === "action" && gameState?.activeTurnPlayer != null && !isTurnPlayer}
+          />
         </header>
 
         <div className={styles.actionBtns}>

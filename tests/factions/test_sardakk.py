@@ -37,6 +37,7 @@ from src.core.hex_grid import HexGrid
 from src.core.hooks import reactions_combat
 from src.core.hooks.factions import sardakk
 from src.core.registry import StaticDataRegistry
+from tests import boosts
 from tests.factions.completeness import missing_components
 from tests.rulings import ruling
 
@@ -255,6 +256,8 @@ def test_agent_tro_daje_piechote_aktywnemu(registry: StaticDataRegistry) -> None
     state.systems["102"].planet_owners["industrex"] = "p2"
     ctx = {"position": "102", "player": "p2"}
     triggers.fire(state, GameEvent.TACTICAL_ACTION, Moment.END, subject="p2", ctx=ctx)
+    assert state.pending_offers == []  # cooperative: requested, not pushed (54.15)
+    state = boosts.request(state, registry, "p2", "T'ro")
     assert [o.player_id for o in state.pending_offers] == ["p1"]
     after = _accept(state, "p1")
     assert leaders.state_of(after, registry, "p1", "sardakkagent") == leaders.EXHAUSTED

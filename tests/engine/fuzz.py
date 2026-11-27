@@ -33,11 +33,11 @@ import sys
 import time
 import traceback
 from collections import Counter, deque
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from src.core import faction_support
+from src.core import actor, faction_support
 from src.core.game_state import GameState, Phase
 from src.core.map_string import random_map_string
 from src.core.registry import StaticDataRegistry
@@ -190,10 +190,28 @@ def run_game(
     result.kinds = report.kinds
     if table_ref:
         result.rounds = table_ref[0].state.round_number
+        if result.failure is not None:
+            # Appended after the first line, so failures still group by signature.
+            result.failure += "\nwaiting: " + _safe_waits(table_ref[0].state, registry)
     result.seconds = time.perf_counter() - started
     if result.failure is not None and out_dir is not None:
         result.failure_file = str(_dump_failure(out_dir, result, probe, table_ref))
     return result
+
+
+def _safe_waits(state: GameState, registry: StaticDataRegistry) -> str:
+    """The state that broke the game may break the diagnostics too - keep the original failure."""
+    try:
+        return actor.format_wait_reasons(state, registry)
+    except Exception as exc:  # noqa: BLE001
+        return f"wait reasons unavailable ({exc!r})"
+
+
+def _wait_entries(state: GameState) -> list[dict[str, Any]]:
+    try:
+        return [asdict(r) for r in actor.describe_wait_reasons(state)]
+    except Exception as exc:  # noqa: BLE001
+        return [{"error": repr(exc)}]
 
 
 def _dump_failure(
@@ -206,6 +224,7 @@ def _dump_failure(
         "factions": result.factions,
         "steps": result.steps,
         "failure": result.failure,
+        "wait_reasons": _wait_entries(table_ref[0].state) if table_ref else [],
         "last_actions": list(probe.history),
         "state": table_ref[0].state.model_dump(mode="json") if table_ref else None,
     }
@@ -259,6 +278,7 @@ def main(argv: list[str] | None = None) -> int:
     for sig, items in sorted(failures.items(), key=lambda kv: -len(kv[1])):
         seeds_txt = ", ".join(str(r.seed) for r in items[:8])
         print(f"\n[{len(items)}x] {sig}\n   seeds: {seeds_txt}\n   file: {items[0].failure_file}")
+        print(f"   first: {items[0].failure.splitlines()[-1] if items[0].failure else ''}")
     return 1 if failures else 0
 
 

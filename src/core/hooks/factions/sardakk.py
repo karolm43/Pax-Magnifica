@@ -15,6 +15,7 @@ from src.core import (
     battle,
     board_graph,
     command_tokens,
+    cooperative,
     faction_components,
     faction_units,
     invasion,
@@ -290,6 +291,10 @@ def _agent_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bo
         and leaders.is_ready(state, _registry(), player_id, AGENT)
         and bool(_agent_planets(state, target, position))
     )
+
+
+# Cooperative agent (RULES.md 54.15): helps "that player" - requested, not pushed.
+cooperative.register_pull(f"leaders:{AGENT}")
 
 
 @on_event(

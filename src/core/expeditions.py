@@ -198,8 +198,9 @@ def perform_expedition(
     _pay(new_state, registry, actor_id, slice_id, pay)
     new_state.expeditions.claims[slice_id] = actor_id
     new_state.expeditions.performed_by = actor_id
-    gain_breakthrough(new_state, registry, grid, actor_id)
 
+    # Thunder's Edge placement is pending BEFORE the breakthrough roll: if The Fracture enters
+    # play now, its final ingress waits for Thunder's Edge (R_fracture notes/5).
     if not free_slices(new_state):
         counts: dict[str, int] = {}
         for owner in new_state.expeditions.claims.values():
@@ -210,6 +211,7 @@ def perform_expedition(
             counts=counts,
             leaders=sorted(p for p, n in counts.items() if n == most),
         )
+    gain_breakthrough(new_state, registry, grid, actor_id)
     return new_state
 
 
@@ -291,4 +293,5 @@ def place_thunders_edge(
     control.set_planet_control(new_state, position, THUNDERS_EDGE_PLANET, infantry_player)
     new_state.expeditions.thunders_edge_position = position
     new_state.expeditions.pending_placement = None
+    fracture.place_deferred_extra_ingress(new_state, grid)
     return new_state

@@ -26,6 +26,7 @@ def _agenda(registry: StaticDataRegistry) -> GameState:
 
 def test_ujawniona_agenda_otwiera_pauze_i_blokuje_glos(registry: StaticDataRegistry) -> None:
     state = _agenda(registry)
+    state.reaction_window_seconds = 5
     reaction_pause.sync(state, registry, now=100.0)
     pause = state.reaction_pause
     assert pause is not None and pause.event == "agenda.revealed"
@@ -103,6 +104,7 @@ def test_api_czas_mija_wg_zegara_serwera(registry: StaticDataRegistry) -> None:
     client = TestClient(app)
     service = app.state.service
     state = _agenda(registry)
+    state.reaction_window_seconds = 5
     service.replace_state(state, label="agenda:reveal")
     assert service.current_state().reaction_pause is not None
     voter = agenda_phase.current_voter(service.current_state())

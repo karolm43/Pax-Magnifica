@@ -273,6 +273,7 @@ def test_quick_without_jitter_closes_immediately(registry: StaticDataRegistry) -
 
 
 def test_quick_with_jitter_shortens_instead_of_closing(registry: StaticDataRegistry) -> None:
+    """Bluff auto-pass (54.13): the window closes at a private moment, the public length stays."""
     state = _agenda(registry, [])
     state.quick_reaction_windows = True
     state.reaction_jitter_seconds = 2.0
@@ -280,8 +281,10 @@ def test_quick_with_jitter_shortens_instead_of_closing(registry: StaticDataRegis
     reaction_pause.sync(state, registry, now=100.0)
     pause = state.reaction_pause
     assert pause is not None and reaction_window.all_passed(pause)
-    assert 1.0 <= pause.seconds <= 2.0
-    assert pause.seconds == reaction_window.quick_delay(state, pause.key)  # deterministic
+    assert pause.seconds == reaction_window.window_seconds(state)  # public length unchanged
+    assert pause.closes_after is not None and 0.5 <= pause.closes_after <= 2.0
+    assert pause.closes_after == pause.auto_pass_at["p1"]
+    assert not reaction_pause.expired(pause, 100.0 + 0.4)
     assert reaction_pause.expired(pause, 100.0 + 2.0)
 
 
@@ -297,7 +300,7 @@ def test_jitter_ignored_without_quick(registry: StaticDataRegistry) -> None:
 def test_jitter_range_is_validated() -> None:
     state = _state([], [])
     assert reaction_window.configure_jitter(state, 1.5).reaction_jitter_seconds == 1.5
-    for bad in (-0.1, 2.5):
+    for bad in (-0.1, reaction_window.MAX_JITTER_SECONDS + 0.5):
         with pytest.raises(ValueError):
             reaction_window.configure_jitter(state, bad)
 
@@ -309,4 +312,5 @@ def test_last_manual_pass_with_jitter_keeps_window(registry: StaticDataRegistry)
     reaction_pause.sync(state, registry, now=100.0)
     assert state.reaction_pause is not None
     state = reaction_pause.pass_pause(state, "p1")
-    assert state.reaction_pause is not None and state.reaction_pause.seconds <= 1.0
+    # Only manual passes: the players' own choice reveals nothing - the window ends at once (54.13).
+    assert state.reaction_pause is None

@@ -18,7 +18,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from src.core import command_tokens, payment, production
+from src.core import coexistence, command_tokens, payment, production
 from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_by_player
@@ -86,7 +86,10 @@ class View:
     pid: str
     player: PlayerState = field(init=False)
     homes: dict[str, str] = field(init=False)  # player_id -> pozycja systemu domowego
-    owned: list[str] = field(init=False)  # planety punktowane (bez stacji kosmicznych)
+    # Planety punktowane (bez stacji kosmicznych): kontrolowane + te, na których gracz koegzystuje
+    # (R_coexistence 17: koegzystujący uważa planetę za kontrolowaną przy punktowaniu celów).
+    owned: list[str] = field(init=False)
+    controlled: list[str] = field(init=False)  # tylko kontrolowane (wydawanie - cele „Spend…”)
     planet_pos: dict[str, str] = field(init=False)
 
     def __post_init__(self) -> None:
@@ -107,10 +110,16 @@ class View:
                     break
         self.planet_pos = {}
         self.owned = []
+        self.controlled = []
         for position, system in self.state.systems.items():
             for planet_id, owner in system.planet_owners.items():
                 self.planet_pos[planet_id] = position
-                if owner == self.pid and self._counts_as_planet(planet_id):
+                if not self._counts_as_planet(planet_id):
+                    continue
+                if owner == self.pid:
+                    self.controlled.append(planet_id)
+                    self.owned.append(planet_id)
+                elif coexistence.is_coexisting(self.state, position, planet_id, self.pid):
                     self.owned.append(planet_id)
 
     def _counts_as_planet(self, planet_id: str) -> bool:
@@ -226,7 +235,7 @@ class View:
     # -- ekonomia --
     def ready_planets(self) -> list[str]:
         exhausted = set(self.player.exhausted_planets)
-        return [p for p in self.owned if p not in exhausted]
+        return [p for p in self.controlled if p not in exhausted]
 
     def planet_value(self, planet_id: str, kind: str) -> int:
         stats = planet_stats(self.state, self.registry, planet_id)
@@ -265,7 +274,8 @@ def _p_push_boundaries(v: View) -> int:
     above = 0
     for other_id in neighbours:
         other = View(v.state, v.registry, v.grid, other_id)
-        if mine > len(other.owned):
+        # R_coexistence 17: I do not count a neighbour coexisting on my planet as controlling it.
+        if mine > len(other.controlled):
             above += 1
     return above
 

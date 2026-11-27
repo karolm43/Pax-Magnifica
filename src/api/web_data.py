@@ -33,6 +33,7 @@ from src.api import web_agenda, web_objectives, web_points, web_setup
 from src.api.web_game import _build_game_state, _entity_key_map
 from src.api.web_players import _build_player_data, _build_stat_tile_positions
 from src.api.web_tiles import _build_tile_unit_data, _ring_count
+from src.core import actor as actor_rules
 from src.core import (
     faction_tokens,
     game_clock,
@@ -194,6 +195,19 @@ def _peek_payload(
     return found
 
 
+def _build_wait_reasons(state: GameState, registry: StaticDataRegistry) -> list[dict[str, Any]]:
+    """``waitReasons`` (RULES.md 44.5): public, the same for every viewer."""
+    return [
+        {
+            "playerId": r.player_id,
+            "reasonCode": r.reason_code,
+            "summary": r.summary,
+            "blocking": r.blocking,
+        }
+        for r in actor_rules.describe_wait_reasons(state, registry)
+    ]
+
+
 def build_web_data(
     grid: HexGrid,
     registry: StaticDataRegistry,
@@ -305,6 +319,9 @@ def build_web_data(
             **web_objectives.card_pool_counts(projected, registry),
         },
         "expeditions": _build_expeditions(projected, entity_keys),
+        # Computed from the FULL state (hand sizes, pending setup choosers); the function reads
+        # public facts only - ``tests/test_wait_reasons.py`` guards that.
+        "waitReasons": _build_wait_reasons(state, registry),
         # Zegar szachowy graczy (RULES.md 58) — None, gdy gra jest bez zegara.
         "chessClock": _build_chess_clock(
             projected, entity_keys, time.time() if now is None else now

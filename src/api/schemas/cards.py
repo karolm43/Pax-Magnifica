@@ -184,6 +184,12 @@ class ReactionPrefsRequest(BaseModel):
     mute_offers: dict[str, bool] | None = None
     # ``effect_key`` komponentu/agenta -> zasięg (combat/turn/round/always; ``None`` = odwołanie).
     mute_components: dict[str, str | None] | None = None
+    # New declarations lapse when another player makes a notable move (RULES.md 54.13).
+    unless_changes: bool = False
+    # Combat hit assignment policy: off / sustain / cheap (RULES.md 54.14).
+    auto_hits: str | None = None
+    # The player read the "pre-pass cancelled" notices.
+    clear_notices: bool = False
 
 
 class ReactionJitterRequest(BaseModel):
@@ -191,7 +197,7 @@ class ReactionJitterRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    seconds: float = Field(ge=0, le=2)
+    seconds: float = Field(ge=0, le=60)
 
 
 class ReactionWindowRequest(BaseModel):
@@ -199,7 +205,7 @@ class ReactionWindowRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    seconds: int = Field(ge=2, le=30)
+    seconds: int = Field(ge=2, le=60)
 
 
 class ActionCardInputsResponse(BaseModel):

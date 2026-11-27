@@ -28,6 +28,19 @@ export type OfferView = {
   /** Decyzji obowiązkowej nie można odrzucić. */
   mandatory: boolean;
   inputs: ActionCardInput[];
+  /** Requested cooperative effect (RULES.md 54.15): who asks, the owner, the payment. */
+  deal?: OfferDeal | null;
+};
+
+/** Terms of a requested cooperative effect - a binding deal (RULES.md 54.15). */
+export type OfferDeal = {
+  requester: string;
+  owner: string;
+  tradeGoods: number;
+  commodities: number;
+  /** A standing offer (or a bot) already accepted: the requester picks the details. */
+  accepted: boolean;
+  at: number;
 };
 
 /** Oferty czekające na decyzję (`enabled` = w stanie gry są jakieś `pendingOffers`). */

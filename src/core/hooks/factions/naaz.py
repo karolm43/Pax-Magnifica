@@ -22,6 +22,7 @@ from src.core import (
     active_effects,
     breakthrough,
     command_tokens,
+    cooperative,
     exhaust,
     exploration,
     faction_components,
@@ -451,6 +452,10 @@ def _garv_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> boo
         and leaders.is_ready(state, _registry(), player_id, AGENT)
         and bool(_explorable_planets(state, target))
     )
+
+
+# Cooperative agent (RULES.md 54.15): helps "that player" - requested, not pushed.
+cooperative.register_pull(f"leaders:{AGENT}")
 
 
 @on_event(GameEvent.TURN, Moment.END, HookSource(SOURCE_LEADER, AGENT), optional=True,

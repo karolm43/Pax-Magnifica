@@ -18,6 +18,7 @@ from dataclasses import dataclass, replace
 from src.core import (
     active_effects,
     capture,
+    coexistence,
     control,
     economy,
     entropic_scar,
@@ -39,6 +40,7 @@ from src.core.planet_stats import influence_of, resources_of
 from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import (
     ASYNC_ID_BY_BASE_TYPE,
+    PLACEMENT_BY_BASE_TYPE,
     UNIT_CAP_BY_ASYNC_ID,
     is_space_unit,
 )
@@ -94,6 +96,8 @@ class Producer:
 
 # Struktury nie są "produkowane" przez PRODUCTION (to Construction) — poza zamówieniami.
 STRUCTURES = {"pds", "spacedock"}
+# Typy statków (producent w koegzystencji ich nie produkuje - R_coexistence 9).
+SHIP_TYPES = tuple(sorted(bt for bt in PLACEMENT_BY_BASE_TYPE if is_space_unit(bt)))
 
 def forbidden_types(state: GameState, player_id: str, producer_type: str) -> tuple[str, ...]:
     """Typy jednostek, których producent danego typu nie może produkować (hooki FORBID).
@@ -399,11 +403,12 @@ def producers(
                 ),
             )
             if pv > 0 and count > 0:
+                forbids = forbidden_types(state, player_id, base_type)
+                if coexistence.is_coexisting(state, position, planet_id, player_id):
+                    # Coexisting units are blockaded: ground forces only (R_coexistence 8-9).
+                    forbids = tuple(sorted({*forbids, *SHIP_TYPES}))
                 result.append(
-                    Producer(
-                        planet_id, base_type, count, pv * count, pv,
-                        forbidden_types(state, player_id, base_type),
-                    )
+                    Producer(planet_id, base_type, count, pv * count, pv, forbids)
                 )
     # Planeta produkująca „jak jednostka” (Aerie Hololattice): osobna zdolność PRODUCTION planety
     # gracza; siły naziemne stawia się na niej samej (F_argent).

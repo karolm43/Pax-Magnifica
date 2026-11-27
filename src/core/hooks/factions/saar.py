@@ -20,6 +20,7 @@ from src.core import (
     active_effects,
     board_graph,
     board_reinforcements,
+    cooperative,
     economy,
     entropic_scar,
     exploration,
@@ -419,6 +420,10 @@ def mendosa_inputs(
         for pos, bt in mendosa_ships(state, registry, activator)
     ]
     return [oi.choice("ship", "Ship whose move value increases", options)]
+
+
+# Cooperative agent (RULES.md 54.15): helps "that player" - requested, not pushed.
+cooperative.register_pull(f"leaders:{AGENT}")
 
 
 @on_event(

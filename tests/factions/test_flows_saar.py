@@ -71,6 +71,8 @@ def test_mendosa_przy_aktywacji_rywala(registry: StaticDataRegistry) -> None:
     flow.space(start, flow.other, {"dreadnought": 1})
     flow.edit(active=flow.other)
     flow.post("/tactical/activate", {"position": target})
+    assert not flow.has_offer("Captain Mendosa")  # cooperative (RULES.md 54.15)
+    flow.request_boost("Captain Mendosa", flow.other, trade_goods=0)
     offer = flow.offer("Captain Mendosa")
     assert offer["player_id"] == flow.me
     flow.accept("Captain Mendosa", {"ship": f"{start}|dreadnought"})

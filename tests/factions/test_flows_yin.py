@@ -220,9 +220,13 @@ def test_yin_spinner_po_produkcji(registry: StaticDataRegistry) -> None:
 def test_brother_milor_po_zniszczeniu_w_walce(registry: StaticDataRegistry) -> None:
     flow = Flow(registry, "yin")
     position = flow.space_combat({"dreadnought": 2}, {"destroyer": 3})
-    flow.fight(stop=lambda: flow.has_offer("Brother Milor"))
+    flow.fight(stop=lambda: (
+        flow.has_offer("Brother Milor") or flow.has_boost("Brother Milor", flow.other)
+    ))
     fighters = flow.state()["systems"][position]["space_units"]
     before = {pid: fighters.get(pid, {}).get("fighter", 0) for pid in (flow.me, flow.other)}
+    if not flow.has_offer("Brother Milor"):
+        flow.request_boost("Brother Milor", flow.other)  # cooperative (RULES.md 54.15)
     flow.accept("Brother Milor")
     state = flow.state()
     assert state["players"][flow.me]["leader_states"]["yinagent"] == "exhausted"
