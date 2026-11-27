@@ -32,16 +32,16 @@
    *   --t-detail-delay / --t-detail-step / --t-detail-dur
    *   --t-pick-delay / --t-pick-dur
    */
-  --t-portrait-delay: 0.25s;
-  --t-portrait-fade: 5.5s;
-  --t-portrait-unblur: 2.2s;
-  --t-portrait-glow: 7s;
+  --t-portrait-delay: 0.2s;
+  --t-portrait-fade: 4s;
+  --t-portrait-unblur: 2s;
+  --t-portrait-glow: 3.5s;
   --t-head-delay: 0.4s;
-  --t-quote-delay: 1.5s;
-  --t-author-delay: 2.8s;
-  --t-lore-delay: 4.2s;
-  --t-lore-step: 230ms;
-  --t-lore-dur: 2.4s;
+  --t-quote-delay: 1s;
+  --t-author-delay: 2s;
+  --t-lore-delay: 3s;
+  --t-lore-step: 210ms;
+  --t-lore-dur: 2.2s;
   --t-detail-delay: 0.1s;
   --t-detail-step: 0.07s;
   --t-detail-dur: 0.45s;

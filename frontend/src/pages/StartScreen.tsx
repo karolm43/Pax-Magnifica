@@ -118,10 +118,8 @@ export default function StartScreen() {
     return () => window.clearTimeout(t);
   }, [bootDataReady, bootGone]);
 
-  // Widok ekranu startowego: "menu" (ekran tytułowy z 3 przyciskami) lub "setup"
-  // (kreator nowej gry). Oba leżą w jednym pionowym „decku" wysokim na dwa ekrany;
-  // zmiana widoku PRZEWIJA deck w pionie (translateY) z animacją, więc klik „Graj"
-  // wygląda jak zjechanie strony w dół do kreatora.
+  // Start screen view: "menu" (title screen) or "setup" (new game wizard). Both stay
+  // mounted on top of each other; changing the view plays the "warp jump" transition.
   const [view, setView] = useState<"menu" | "setup">("menu");
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Biblioteka komponentów (frakcje, talie, technologie, jednostki).
@@ -175,19 +173,12 @@ export default function StartScreen() {
           <BootScreen state="loading" leaving />
         </div>
       )}
-      {/*
-       * Pionowy „deck" wysoki na dwa ekrany. Klasa `deckSetup` przesuwa go w
-       * górę o 50% (translateY) z animacją, odsłaniając ekran konfiguracji —
-       * efekt „strona zjeżdża w dół do kreatora".
-       */}
-      <div
-        className={`${styles.deck} ${
-          view === "setup" ? styles.deckSetup : ""
-        }`}
-      >
+      <div className={styles.deck}>
         {/* ── Ekran tytułowy (menu główne) ──────────────────────────────── */}
         <div
-          className={styles.menuScreen}
+          className={`${styles.menuScreen} ${styles.screen} ${
+            view === "menu" ? styles.screenActive : styles.screenPassed
+          }`}
           aria-hidden={view === "setup"}
           inert={view === "setup"}
         >
@@ -208,7 +199,9 @@ export default function StartScreen() {
 
         {/* ── Ekran konfiguracji nowej gry (Setup_Wizard) ───────────────── */}
         <div
-          className={`${styles.setupScreen} ${styles.setupScreenStage}`}
+          className={`${styles.setupScreen} ${styles.setupScreenStage} ${styles.screen} ${
+            view === "setup" ? styles.screenActive : styles.screenAhead
+          }`}
           aria-hidden={view === "menu"}
           inert={view === "menu"}
         >
@@ -220,6 +213,8 @@ export default function StartScreen() {
           <SetupWizard onExit={isGuest ? () => setView("menu") : leaveLobby} />
         </div>
       </div>
+
+      {view === "setup" && <div className={styles.warp} aria-hidden />}
 
       {/* Ustawienia — ten sam panel co w grze (`SettingsModal`), żeby np. tryb
           administratora (szybkie testy) dało się włączyć JESZCZE przed startem gry,

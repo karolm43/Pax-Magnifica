@@ -17,9 +17,8 @@
  */
 .root {
   /*
-   * Okno na „deck": dokładnie jeden ekran wysokości, reszta decku ukryta.
-   * Deck przesuwa się w pionie, więc tło (grafika menu) zostaje przyklejone do
-   * viewportu (`fixed`) i nie jedzie razem z treścią — efekt parallaxu.
+   * One viewport: menu and setup are stacked on top of each other, and the
+   * zoomed screen is clipped here.
    */
   position: relative;
   height: 100vh;
@@ -52,39 +51,138 @@
   );
 }
 
-/* Treść decku zostaje NAD winietą. */
-.deck {
-  position: relative;
-  z-index: 2;
-}
-
 /*
- * Pionowy „deck" złożony z dwóch pełnoekranowych sekcji (menu nad setupem).
- * Domyślnie pokazuje menu; klasa `.deckSetup` przesuwa go o jeden ekran w górę,
- * odsłaniając konfigurację — stąd wrażenie, że strona zjeżdża w dół do listy.
+ * Menu and setup share one grid cell; switching between them is a "warp jump":
+ * the menu rushes past the camera and blurs out while the setup screen comes
+ * into focus from depth. Going back plays the same move in reverse.
  */
 .deck {
+  position: relative;
+  z-index: 2; /* above the vignette */
   display: grid;
-  grid-auto-rows: 100vh;
-  height: 200vh;
-  transform: translateY(0);
-  /*
-   * Zjazd to NAWIGACJA (nie sama dekoracja), więc animujemy go także przy
-   * `prefers-reduced-motion` — tyle że krócej. Czas trzymamy w zmiennej lokalnej,
-   * którą media-query tylko skraca, zamiast całkiem usuwać ruch.
-   */
-  --deck-dur: 2.1s;
-  transition: transform var(--deck-dur) var(--ds-ease);
-  will-change: transform;
+  height: 100vh;
 }
 
-.deckSetup {
-  transform: translateY(-100vh);
+/* Leaving state (and resting state of the hidden screen). */
+.screen {
+  grid-area: 1 / 1;
+  min-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  filter: blur(18px);
+  transition:
+    opacity 0.45s var(--ds-ease-standard),
+    transform 0.6s cubic-bezier(0.5, 0, 0.9, 0.4),
+    filter 0.45s var(--ds-ease-standard),
+    visibility 0s linear 0.6s;
 }
 
+/* Where a hidden screen waits: the menu behind the camera, setup far ahead. */
+.screenPassed {
+  transform: scale(1.35);
+}
+
+.screenAhead {
+  transform: scale(0.86);
+}
+
+/* Entering state; no transform/filter at rest, so text stays crisp. */
+.screenActive {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  filter: none;
+  transition:
+    opacity 0.6s var(--ds-ease-standard) 0.25s,
+    transform 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.25s,
+    filter 0.6s var(--ds-ease-standard) 0.25s,
+    visibility 0s;
+}
+
+/* The jump itself: a soft bloom and a thin ring of light from the centre. */
+.warp {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.warp::before,
+.warp::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60vmax;
+  height: 60vmax;
+  margin: -30vmax 0 0 -30vmax;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.warp::before {
+  background: radial-gradient(
+    circle,
+    rgb(255 214 140 / 0.24),
+    rgb(252 162 43 / 0.1) 32%,
+    transparent 68%
+  );
+  animation: warpBloom 0.9s var(--ds-ease-standard) both;
+}
+
+.warp::after {
+  border: 1px solid rgb(252 162 43 / 0.45);
+  box-shadow:
+    0 0 28px rgb(246 121 42 / 0.28),
+    inset 0 0 28px rgb(246 121 42 / 0.18);
+  animation: warpRing 0.95s cubic-bezier(0.2, 0.7, 0.3, 1) 0.1s both;
+}
+
+@keyframes warpBloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+
+@keyframes warpRing {
+  0% {
+    opacity: 0;
+    transform: scale(0.05);
+  }
+  25% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+/* Reduced motion: a plain short cross-fade. */
 @media (prefers-reduced-motion: reduce) {
-  .deck {
-    --deck-dur: 0.35s;
+  .screen {
+    transform: none;
+    filter: none;
+    transition:
+      opacity 0.35s linear,
+      visibility 0s linear 0.35s;
+  }
+  .screenActive {
+    transition:
+      opacity 0.35s linear,
+      visibility 0s;
+  }
+  .warp {
+    display: none;
   }
 }
 

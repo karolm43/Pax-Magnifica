@@ -269,7 +269,7 @@
   );
   pointer-events: none;
   /* Płyta pojawia się razem z nazwą (nie sama, przed treścią). */
-  animation: headBoxIn 1.6s cubic-bezier(0.33, 0, 0.2, 1) var(--t-head-delay, 0.4s) both;
+  animation: headBoxIn 0.8s cubic-bezier(0.33, 0, 0.2, 1) var(--t-head-delay, 0.4s) both;
 }
 
 .headInner {
@@ -324,7 +324,7 @@
   /* Jasny odcień koloru frakcji — czytelny na ciemnej płycie, spójny z obrysem. */
   color: color-mix(in oklab, var(--accent, #fca22b) 35%, #ffffff);
   text-shadow: 0 0 14px color-mix(in oklab, var(--accent, #fca22b) 45%, transparent);
-  animation: headIn 1.8s cubic-bezier(0.33, 0, 0.2, 1) calc(var(--t-head-delay, 0.4s) + 0.1s)
+  animation: headIn 0.9s cubic-bezier(0.33, 0, 0.2, 1) calc(var(--t-head-delay, 0.4s) + 0.1s)
     both;
 }
 
@@ -337,7 +337,7 @@
   line-height: 1.3;
   color: color-mix(in oklab, var(--accent, #fca22b) 14%, #f1e7d3);
   /* Bez `text-wrap: balance`: linie wypełniają się do krawędzi, więc box przylega do tekstu. */
-  animation: headIn 2.2s cubic-bezier(0.33, 0, 0.2, 1) var(--t-quote-delay, 1.5s) both;
+  animation: headIn 1.1s cubic-bezier(0.33, 0, 0.2, 1) var(--t-quote-delay, 1.5s) both;
 }
 
 .headAuthor {
@@ -347,7 +347,7 @@
   font-size: clamp(0.72rem, min(0.82vw, 1.45vh), 0.92rem);
   letter-spacing: 0.05em;
   color: var(--accent, #fca22b);
-  animation: headIn 1.6s cubic-bezier(0.33, 0, 0.2, 1) var(--t-author-delay, 2.8s) both;
+  animation: headIn 0.8s cubic-bezier(0.33, 0, 0.2, 1) var(--t-author-delay, 2.8s) both;
 }
 
 @keyframes headBoxIn {
@@ -716,7 +716,7 @@
  */
 @media (prefers-reduced-motion: reduce) {
   .portraitLayer {
-    animation: slowFade 3.4s ease-in-out 0.2s both;
+    animation: slowFade 1.7s ease-in-out 0.1s both;
   }
   .portraitLayer::before,
   .portrait,
@@ -724,27 +724,27 @@
     animation: none;
   }
   .head {
-    animation: slowFade 1.4s ease-in-out 0.3s both;
+    animation: slowFade 0.7s ease-in-out 0.15s both;
   }
   .headName {
-    animation: slowFade 1.6s ease-in-out 0.4s both;
+    animation: slowFade 0.8s ease-in-out 0.2s both;
   }
   .headQuote {
-    animation: slowFade 1.8s ease-in-out 1.2s both;
+    animation: slowFade 0.9s ease-in-out 0.6s both;
   }
   .headAuthor {
-    animation: slowFade 1.4s ease-in-out 2.2s both;
+    animation: slowFade 0.7s ease-in-out 1.1s both;
   }
   .lore::before {
-    animation: slowFade 1.8s ease-in-out 3.2s both;
+    animation: slowFade 0.9s ease-in-out 1.6s both;
   }
   .loreTools,
   .loreParagraph,
   .loreHeading,
   .loreBlockQuote,
   .loreEmpty {
-    animation: slowFade 1.8s ease-in-out both;
-    animation-delay: calc(3.2s + min(var(--i, 0), 18) * 150ms);
+    animation: slowFade 0.9s ease-in-out both;
+    animation-delay: calc(1.6s + min(var(--i, 0), 18) * 75ms);
   }
   .translateBtn,
   .decoding {

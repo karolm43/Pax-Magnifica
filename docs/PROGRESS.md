@@ -294,3 +294,11 @@ Older, completed blocks (Phase 1 → blocks of 2026-11-25) are in `PROGRESS_ARCH
   AFB extra-dice choice (`afb_extra_sources`, RULES.md 62.11). `battle_close` is still for the attacker only.
 - Tests: `tests/engine/test_legal_windows.py` (+3: defender bot rolls its side, attacker bot rolls only its
   side, defender bot fires AFB); fuzz/passive all-bot games green.
+
+## Start screen: warp transition, faster faction reveal (user decision)
+
+- Menu <-> setup no longer scrolls vertically: the screens are stacked and swap with a depth zoom + blur,
+  plus a soft bloom and light ring on the way in (the user rejected a brighter flash). Reduced motion = cross-fade.
+- Faction scene: portrait, header and lore reveal about twice as fast (`--t-*` in `Step_Faction.module.css`,
+  fixed header durations in `FactionBackdrop.module.css`).
+- QA: tsc, eslint, setup vitest, e2e (8 passed). No visual screenshot check.
