@@ -6,6 +6,7 @@ import { IconArrowRight, IconCheck, IconCompass } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
+import { useCanActAsFaction } from "@/domains/network/useNetworkMe";
 import { getTileById } from "@/entities/lookup/systems";
 import { getPlanetData } from "@/entities/lookup/planets";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
@@ -318,13 +319,15 @@ export function ExplorationOverlay() {
   const active =
     gameState?.activeExploration != null && gameState.productionGrant == null;
   const { data: view } = useExploration(active);
+  // Only the exploring player decides - watchers see the result in the Activity feed.
+  const canActAsFaction = useCanActAsFaction();
 
   // Każda zmiana stanu gry odświeża widok eksploracji.
   useEffect(() => {
     if (active) void queryClient.invalidateQueries({ queryKey: ["exploration"] });
   }, [gameState, active, queryClient]);
 
-  if (!active || !view?.active) return null;
+  if (!active || !view?.active || !canActAsFaction(view.player)) return null;
   return <ExplorationWindow key={view.position} view={view} />;
 }
 

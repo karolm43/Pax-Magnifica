@@ -375,6 +375,45 @@ def test_freelancers_opens_one_unit_production_paid_with_influence(
     assert exploration.finish(done).exploration is None
 
 
+def test_freelancers_off_turn_produces_in_the_explored_system_with_influence(
+    registry: StaticDataRegistry,
+) -> None:
+    """Exploration on another player's turn outside the active system (Naaz-Rokha agent):
+    "produce 1 unit in THIS system" still works there, and influence pays for it."""
+    grid = _grid()
+    state = _with_card(_state(planets={_CULT: {"infantry": 1}}), registry, "Freelancers")
+    state.active_player_id = "p2"
+    state.active_system = "999"
+    state.systems["000"].planet_owners[_CULT] = "p1"
+    state.players["p1"].controlled_planets = [_CULT]
+    options = {o.id: o for o in exploration.options_for(state, registry)}
+    assert options["produce"].enabled
+
+    opened = exploration.resolve(state, registry, "produce")
+    grant = opened.production_grant
+    assert grant is not None and grant.free and grant.position == "000"
+    assert production.production_player(opened) == "p1"
+    assert production.production_system(opened) == "000"
+    # Tiamat: 1 resource, 2 influence - alone it pays for a 2-cost cruiser.
+    assert production.pay_value(opened, registry, _CULT, "p1") == 2
+    done = production.produce(
+        opened, grid, registry, "p1",
+        [production.ProductionOrder("cruiser", 1, "space")],
+        production.Spend(planets=(_CULT,), trade_goods=0),
+    )
+    assert done.systems["000"].space_units["p1"]["cruiser"] == 1
+    assert _CULT in done.players["p1"].exhausted_planets
+    assert done.production_grant is None
+
+
+def test_freelancers_in_own_tactical_action_stays_tied_to_active_system(
+    registry: StaticDataRegistry,
+) -> None:
+    state = _with_card(_state(), registry, "Freelancers")
+    grant = exploration.resolve(state, registry, "produce").production_grant
+    assert grant is not None and not grant.free
+
+
 def test_freelancers_can_be_skipped(registry: StaticDataRegistry) -> None:
     state = _with_card(_state(), registry, "Freelancers")
     opened = exploration.resolve(state, registry, "produce")

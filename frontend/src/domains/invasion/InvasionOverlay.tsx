@@ -40,6 +40,7 @@ import { InvasionPlanetCard } from "./InvasionPlanetCard";
 import { usePlayerLook } from "./invasionUi";
 import { useHeroFx } from "@/domains/game-shell/components/KeyMoments/heroBoardFx";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
+import { useCanActAsFaction } from "@/domains/network/useNetworkMe";
 import {
   bombardList,
   bumpStage,
@@ -651,6 +652,20 @@ export function InvasionOverlay() {
   const [skipFailed, setSkipFailed] = useState<string | null>(null);
   const skipKey = `${view?.position}|${view?.phase}`;
   const mine = !!desk && !!view?.attacker && desk.faction === view.attacker;
+  // Network game: only the attacker and the invaded players see the window, not bystanders.
+  const canActAsFaction = useCanActAsFaction();
+  const involved =
+    !!view?.active &&
+    [
+      view.attacker,
+      ...view.planets.flatMap((p) => [
+        p.owner,
+        ...Object.keys(p.forces),
+        ...Object.keys(p.structures),
+      ]),
+      ...view.defense.flatMap((d) => d.shooters.map((s) => s.owner)),
+      ...view.bombard.pending.map((b) => b.defender),
+    ].some((faction) => canActAsFaction(faction));
   const skipSent = useRef<string | null>(null);
   useEffect(() => {
     if (!trivial || stageBusy || !mine || skipFailed === skipKey) return;
@@ -659,7 +674,7 @@ export function InvasionOverlay() {
     actions.next().catch(() => setSkipFailed(skipKey));
   }, [trivial, stageBusy, mine, skipKey, skipFailed]);
 
-  if (!active || !view?.active || view.simple || stageBusy) return null;
+  if (!active || !view?.active || view.simple || stageBusy || !involved) return null;
   if (trivial && skipFailed !== skipKey && mine) return null;
   return <InvasionWindow key={view.position} view={view} />;
 }

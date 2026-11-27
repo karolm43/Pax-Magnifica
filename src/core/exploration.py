@@ -288,16 +288,26 @@ def _apply_mercenary(
 def _opts_freelancers(
     state: GameState, ex: ExplorationState, cur: ExploreCurrent
 ) -> list[ExploreOption]:
-    here = state.active_system == ex.position
+    # "Produce 1 unit in THIS system" = the explored planet's system, not the active one: an
+    # exploration outside the active system or on another player's turn (Naaz-Rokha agent,
+    # Dark Energy Tap...) still produces there (RULES.md 46).
     return [
         ExploreOption(
-            "produce",
-            "Produce 1 unit in this system (influence counts as resources)",
-            here,
-            "" if here else "The explored system is not the active system.",
+            "produce", "Produce 1 unit in this system (influence counts as resources)", True, ""
         ),
         _SKIP,
     ]
+
+
+def _grant_detached(state: GameState, ex: ExplorationState) -> bool:
+    """Whether a card's "produce in this system" runs outside the current tactical action.
+
+    Inside it (the explorer is the active player and the explored system is active) the grant
+    is tied to the active system; otherwise it is a ``free`` grant at the explored system.
+    """
+    return not (
+        state.active_system == ex.position and state.active_player_id == ex.player_id
+    )
 
 
 def _apply_freelancers(
@@ -311,6 +321,7 @@ def _apply_freelancers(
         units=1,
         influence_as_resources=True,
         source="Freelancers",
+        free=_grant_detached(state, ex),
     )
     return "Production opened: 1 unit in this system, influence counts as resources."
 

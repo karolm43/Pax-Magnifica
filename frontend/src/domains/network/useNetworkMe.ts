@@ -3,6 +3,7 @@
  * Tryb lokalny zwraca `network: false` — wtedy UI działa jak dotychczas.
  */
 import { useQuery } from "@tanstack/react-query";
+import { useGameData } from "@/state/useGameContext";
 
 export type NetworkMe = {
   network: boolean;
@@ -54,4 +55,19 @@ export function canActAs(me: NetworkMe | undefined, playerId: string | null | un
 export function useCanActAs(): (playerId: string | null | undefined) => boolean {
   const { data: me } = useNetworkMe();
   return (playerId) => canActAs(me, playerId);
+}
+
+/**
+ * ``canActAs`` for views that name the player by identity key (``playerData[].faction``,
+ * e.g. exploration / invasion views) instead of ``player_id``. Decision windows of another
+ * player are hidden from watchers - the "Waiting for X" status comes from ``TurnStatusChip``.
+ */
+export function useCanActAsFaction(): (faction: string | null | undefined) => boolean {
+  const { data: me } = useNetworkMe();
+  const gameData = useGameData();
+  return (faction) => {
+    if (!faction) return false;
+    const player = gameData?.playerData?.find((p) => p.faction === faction);
+    return canActAs(me, player?.discordId);
+  };
 }

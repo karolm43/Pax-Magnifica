@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useGameState } from "@/api/useGameState";
 import { useGameData } from "@/state/useGameContext";
+import { useCanActAs } from "@/domains/network/useNetworkMe";
 import { useBoardEditor, useCapacity } from "@/api/useBoardEditor";
 import { getTileById } from "@/entities/lookup/systems";
 import { excessFor, remainingCargo, removalStatus } from "./capacityMath";
@@ -30,10 +31,12 @@ export function CapacityModal() {
   const pending =
     !!window && window.windowType === "CAPACITY" && !window.isComplete;
   const { data: view } = useCapacity(pending);
+  // Only the player removing the excess sees the window (network game).
+  const canActAs = useCanActAs();
   // Nadwyżka po walce (np. zniszczony nosiciel) czeka, aż kości wylądują (``diceGate``).
   const ready = useAfterDice(pending && view?.active ? `${view.playerId}@${view.position}` : "");
 
-  if (!pending || !view?.active || !ready) return null;
+  if (!pending || !view?.active || !ready || !canActAs(view.playerId)) return null;
 
   const player = gameData?.playerData?.find((p) => p.faction === view.player);
   const tile = view.position ? gameData?.tiles?.[view.position] : undefined;

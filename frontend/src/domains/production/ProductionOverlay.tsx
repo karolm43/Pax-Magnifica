@@ -23,6 +23,7 @@ import { useBoardEditor } from "@/api/useBoardEditor";
 import { useAppStore } from "@/state/appStore";
 import { getTileById } from "@/entities/lookup/systems";
 import { useGameData } from "@/state/useGameContext";
+import { useCanActAs } from "@/domains/network/useNetworkMe";
 import { Unit } from "@/shared/ui/Unit";
 import { TechSkipIcon, type TechType } from "@/shared/ui/TechSkipIcon";
 import { getTechData } from "@/entities/lookup/tech";
@@ -347,8 +348,15 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
               Cost limit <b>{fmt(cost)}</b> / <b>{fmt(costCap)}</b>
             </span>
           )}
-          <span className={styles.stat} title="Ready resources + trade goods">
-            <b>{readyRes}</b> res +{" "}
+          <span
+            className={styles.stat}
+            title={
+              grant?.influenceAsResources
+                ? "Ready planets (resources or influence, whichever is higher) + trade goods"
+                : "Ready resources + trade goods"
+            }
+          >
+            <b>{readyRes}</b> {grant?.influenceAsResources ? "res/inf" : "res"} +{" "}
             <img className={styles.tgIcon} src="/tg.png" alt="Trade goods" />{" "}
             <b>{tradeGoods}</b>
           </span>
@@ -804,6 +812,8 @@ export function ProductionOverlay() {
   // (Freelancers z eksploracji, RULES.md 46).
   const active = gameState?.tacticalStep === "PRODUCTION" || grantOpen;
   const { data: view } = useProductionView(active);
+  // Only the producing player sees the window (network game) - watchers get "Waiting for X".
+  const canActAs = useCanActAs();
 
   // Zmiana stanu gry (płatność, ruch innego gracza...) odświeża widok produkcji.
   useEffect(() => {
@@ -824,7 +834,7 @@ export function ProductionOverlay() {
     if (!active && !hidden) setHidden(true);
   }, [active, hidden, setHidden]);
 
-  if (!active || !view?.active) return null;
+  if (!active || !view?.active || !canActAs(view.playerId)) return null;
   if (hidden) {
     return createPortal(
       <button

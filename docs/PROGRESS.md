@@ -409,3 +409,14 @@ Older, completed blocks (Phase 1 → early flight-replay blocks of 2026-11-25) a
   are unchanged. They look like any other wormhole connection (no player colour, no dashes), coloured by the destination wormhole. Frontend only; test `WormholeLinkLayer.test.tsx`.
 - Hovering any wormhole now shows the connections of every wormhole in that system (`kindsToShow`;
   ingress / egress stay separate).
+
+## Decision windows only for the deciding player; Freelancers off-turn
+
+- Network game: Production, Exploration, Capacity and Fleet pool windows render only for the player who decides
+  (`useCanActAs` / new `useCanActAsFaction` in `useNetworkMe.ts`); Invasion only for the attacker and the invaded
+  players. Watchers keep the "Waiting for X" status chip and the Activity feed. Local mode / unseated host still see
+  everything. Strategy-card tech windows and offers were already per player.
+- Freelancers (RULES.md 46 X7): "produce in this system" = the explored system. The option is no longer disabled
+  outside the active system; an exploration outside the explorer's own tactical action (another player's turn,
+  Naaz-Rokha agent) opens a `free` grant there, paid with influence as resources. Production header shows
+  "res/inf" for such grants. Tests in `tests/test_exploration.py`.
