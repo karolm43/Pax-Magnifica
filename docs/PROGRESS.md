@@ -401,3 +401,9 @@ Older, completed blocks (Phase 1 → early flight-replay blocks of 2026-11-25) a
   Psychoarchaeology (own planets only).
 - Statuses: Deepwrought ocean cards (`R_exhausted/notes/1.1`, `R_readied/notes/2.1`) `requires faction:deepwrought`.
 - `tests/rulings_debt.json` -2 entries, `GENERAL_DEBT_LIMIT` 101 -> 99. Ruff fix in `tests/test_activity.py:657`.
+
+## Quantum Entanglement hover links: own seat only
+
+- Bug: `WormholeLinkLayer` drew the Creuss dashed alpha <-> beta links for every viewer. They are now drawn only for
+  the desk player (`useDeskPlayer`: my seat in a network game, the turn player locally). Printed wormhole links
+  are unchanged. Frontend only; test `WormholeLinkLayer.test.tsx`.

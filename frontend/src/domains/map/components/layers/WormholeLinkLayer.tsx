@@ -2,7 +2,7 @@ import type { Tile } from "@/entities/game/types";
 import { tileOutline } from "@/entities/geometry/tileOutline";
 import type { CSSProperties } from "react";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
-import { useGameData } from "@/state/useGameContext";
+import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import { linkTargets, playerLinkTargets, useWormholeHoverStore } from "../../wormholeLinks";
 import classes from "./WormholeLinkLayer.module.css";
 
@@ -33,7 +33,7 @@ export function WormholeLinkLayer({
   contentSize: { width: number; height: number };
 }) {
   const hovered = useWormholeHoverStore((s) => s.hovered);
-  const players = useGameData()?.playerData;
+  const viewer = useDeskPlayer();
   if (!hovered) return null;
 
   const byPosition = new Map(tiles.map((t) => [t.position, t]));
@@ -55,9 +55,9 @@ export function WormholeLinkLayer({
   );
 
   // Links only one player has (Quantum Entanglement: alpha <-> beta for Creuss) - dashed, in
-  // that player's colour, so everybody sees where THEY can go.
+  // that player's colour, and shown ONLY to that player (the desk: my seat in a network game).
   const common = new Set(links.map((l) => l.target.position));
-  const own = playerLinkTargets(hovered.position, players ?? [], common).flatMap((link) => {
+  const own = playerLinkTargets(hovered.position, viewer ? [viewer] : [], common).flatMap((link) => {
     const target = byPosition.get(link.position);
     const rgb = resolvePrimaryRgb(link.color);
     return target ? [{ ...link, target, rgb: rgb ? `${rgb.red}, ${rgb.green}, ${rgb.blue}` : undefined }] : [];
