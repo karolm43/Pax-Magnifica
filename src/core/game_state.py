@@ -508,6 +508,9 @@ class PlayerState(BaseModel):
     # Ustawiana przy setupie frakcji; kotwiczy heks stat-area niezależnie od tego,
     # które planety gracz aktualnie kontroluje (po podbojach — patrz RULES.md 4).
     home_position: str | None = None
+    # The seat the player sits at on the board, set only once a system swap has moved the home
+    # tile (Creuss hero): the stat area stays there; ``None`` = same as ``home_position``.
+    seat_position: str | None = None
     # Jednostki piechoty „leżące na karcie" Infantry II (odrodzone rzutem 6+); na początku
     # następnej tury wracają na planetę w systemie domowym (RULES.md 55.8).
     infantry_ii_on_card: int = 0

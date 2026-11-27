@@ -420,3 +420,7 @@ Older, completed blocks (Phase 1 → early flight-replay blocks of 2026-11-25) a
   outside the active system; an exploration outside the explorer's own tactical action (another player's turn,
   Naaz-Rokha agent) opens a `free` grant there, paid with influence as resources. Production header shows
   "res/inf" for such grants. Tests in `tests/test_exploration.py`.
+
+## Home tile swap keeps the stat area in place
+
+- Singularity Reactor on a home tile moved the 3 stat hexes; they now stay at `PlayerState.seat_position`.

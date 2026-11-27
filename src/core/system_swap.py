@@ -7,7 +7,8 @@ command / frontier / faction / wormhole tokens, attached planets) travels with i
 
 The map (``HexGrid``) follows ``GameState.replaced_tiles`` (``tile_swap.sync_grid``, the same
 mechanism as Nova Seed), so Undo restores the layout. A player's ``home_position`` (also of an
-eliminated player) follows its tile. Functions MUTATE the given state (the caller works on a clone).
+eliminated player) follows its tile; the player's seat (``seat_position``) does not.
+Functions MUTATE the given state (the caller works on a clone).
 """
 
 from __future__ import annotations
@@ -45,6 +46,7 @@ def swap_systems(state: GameState, a: str, b: str) -> None:
     moved = {a: b, b: a}
     for player in state.players.values():
         if player.home_position in moved:
+            player.seat_position = player.seat_position or player.home_position
             player.home_position = moved[player.home_position]
     for gone in state.eliminated_players:
         if gone.home_position in moved:

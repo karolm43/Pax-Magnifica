@@ -212,6 +212,8 @@ def _player_breakthrough(
 def _player_home_position(player_id: str, state: GameState) -> str | None:
     """Pozycja slotu domowego gracza (kotwica heksa stat-area).
 
+    A swapped home tile (Creuss hero) does not move the stat area: ``seat_position`` wins.
+
     Priorytet (Bug 9): jawny ``PlayerState.home_position`` z setupu — stabilny
     niezależnie od podbojów. Dopiero gdy go brak (np. gracz utworzony ręcznie
     w God-Mode bez setupu), awaryjnie szukamy pierwszego systemu, w którym gracz
@@ -219,7 +221,7 @@ def _player_home_position(player_id: str, state: GameState) -> str | None:
     """
     player = state.players.get(player_id)
     if player is not None and player.home_position is not None:
-        return player.home_position
+        return player.seat_position or player.home_position
     for position, system in state.systems.items():
         if any(owner == player_id for owner in system.planet_owners.values()):
             return position

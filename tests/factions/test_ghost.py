@@ -16,6 +16,7 @@ from typing import Any
 
 import pytest
 
+from src.api.web_players import _build_stat_tile_positions
 from src.core import (
     action_adjacency,
     board_graph,
@@ -768,6 +769,10 @@ def test_bohater_zamienia_systemy_z_jednostkami(registry: StaticDataRegistry) ->
     assert _tokens(after) == {GAMMA: JORD}
     assert after.systems[LODOR].planet_owners == {"jord": "p2"}
     assert after.players["p2"].home_position == LODOR  # the home tile moved
+    assert after.players["p2"].seat_position == JORD  # ... the player's stat area does not
+    anchors = _build_stat_tile_positions(after, grid_from_state(after, registry), {})
+    before = _build_stat_tile_positions(state, grid_from_state(state, registry), {})
+    assert anchors["p2"] == before["p2"]
     assert after.replaced_tiles == {LODOR: "01", JORD: "26"}
     assert after.players["p1"].leader_states["ghosthero"] == "purged"
     grid = _bind(after, registry)

@@ -32,6 +32,7 @@ PUBLIC_FIELDS: frozenset[str] = frozenset(
         "faction",
         "color",
         "home_position",
+        "seat_position",
         "victory_points",
         "trade_goods",
         "commodities",
