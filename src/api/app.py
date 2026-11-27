@@ -335,7 +335,7 @@ def create_app(
             current = service.current_state()
             active = reaction_prefs.with_presence(current, author)
             if active is not current:
-                service.replace_state(active, label="reaction-settings:presence")
+                service.replace_state(active, label=reaction_prefs.PRESENCE_LABEL)
         reset_author = current_author.set(author)
         try:
             return await call_next(request)

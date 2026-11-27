@@ -425,3 +425,17 @@ Older, completed blocks (Phase 1 → blocks of 2026-11-25) are in `PROGRESS_ARCH
   as cooperative in `faction_components_checklist.md` but a secondary payment is not a pull-able offer.
 - ⚠️ ASSUMPTIONS ("Auto" defaults, own-first fleet token removal, remaining Benediction capacity choice =
   cheapest-first, Crimson Legionnaires stay on the card without a home planet): RULES.md 62.23.
+
+## Fix: 3 pre-existing failing backend tests (RULES.md 44.7)
+
+- Undo vs presence: the identity middleware records "I'm back" (54.12 e) as its own history snapshot
+  (`reaction-settings:presence`) for ANY player's POST - even a rejected one - so another player's click
+  closed both player Undo (`/undo/mine`: "Another player has acted since") and `/tactical/undo-move` (422).
+  Presence snapshots are now transparent to both (`reaction_prefs.PRESENCE_LABEL`), and presence is carried
+  into the restored state like the clock (`reaction_prefs.carry_presence`); undo-move pops the presence
+  snapshots on top together with the move and re-records current presence.
+- `test_kazda_karta_frontier_da_sie_rozstrzygnac_w_oknie_eksploracji`: Mirage chains a cultural exploration
+  from an unpinned deck; Freelancers (intentional `production_grant`) then blocked `finish()`. The test now
+  pins the cultural deck to a relic fragment.
+- Tests: new `test_migawka_obecnosci_innego_gracza_jest_przezroczysta`; targeted undo / exploration /
+  reaction suites (585 passed), ruff, mypy. Full suite and frontend QA skipped (backend-only, targeted scope).

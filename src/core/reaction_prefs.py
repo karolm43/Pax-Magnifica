@@ -33,6 +33,10 @@ from src.core.game_state import (
     SituationChange,
 )
 
+# History label of the "I'm back" bookkeeping snapshot (HTTP middleware). Transparent to
+# player undo and undo move: it only records presence, never a game step.
+PRESENCE_LABEL = "reaction-settings:presence"
+
 ALL = "all"
 STRATEGY = "strategy"
 AGENDA = "agenda"
@@ -320,6 +324,25 @@ def mark_active(state: GameState, player_id: str) -> bool:
     prefs.afk_strikes = 0
     prefs.responded = True
     return True
+
+
+def carry_presence(target: GameState, source: GameState) -> bool:
+    """Copies every player's presence (AFK strikes, ``responded``) from ``source`` (MUTATES).
+
+    Presence is a real-time fact like the chess clock: rewinding history (player undo, undo
+    move) must not erase an "I'm back" recorded after the undone step. Returns whether anything
+    changed.
+    """
+    changed = False
+    for pid, player in target.players.items():
+        other = source.players.get(pid)
+        if other is None:
+            continue
+        prefs, now = player.private.reaction_prefs, other.private.reaction_prefs
+        if (prefs.afk_strikes, prefs.responded) != (now.afk_strikes, now.responded):
+            prefs.afk_strikes, prefs.responded = now.afk_strikes, now.responded
+            changed = True
+    return changed
 
 
 def with_presence(state: GameState, player_id: str) -> GameState:

@@ -17,6 +17,10 @@ Cofnięcie = nowa migawka będąca kopią stanu sprzed kroku (``replace_state(br
 z zegarem szachowym z teraźniejszości (czas rzeczywisty minął). Migawki cofnięcia
 (``UNDO_LABEL_PREFIX``) są przezroczyste: kolejne Undo sięga do kroku przed nimi, więc gracz może
 cofać się krok po kroku przez całą swoją serię odwracalnych kroków w tej turze.
+Presence snapshots (``reaction_prefs.PRESENCE_LABEL``, "I'm back" bookkeeping written by the HTTP
+middleware for ANY player's request) are transparent too, whoever wrote them: they record no game
+step, so another player's click does not close the way back. Presence itself is carried forward
+into the restored state, like the clock.
 
 Moduł jest CZYSTY: dostaje łańcuch ``(seq, label, author, stan)`` od najstarszej do bieżącej.
 """
@@ -26,7 +30,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from src.core import hold_rewind
+from src.core import hold_rewind, reaction_prefs
 from src.core.game_state import GameState
 
 UNDO_LABEL_PREFIX = "player-undo"
@@ -116,7 +120,13 @@ def undo_target(chain: Sequence[Step], player_id: str) -> UndoTarget:
     if current.reaction_pause is not None:
         return UndoTarget(None, reason="Other players may be reacting")
     index = len(chain) - 1
-    while index > 0 and chain[index].label.startswith(UNDO_LABEL_PREFIX):
+    while index > 0:
+        label = chain[index].label
+        if label == reaction_prefs.PRESENCE_LABEL:
+            index -= 1
+            continue
+        if not label.startswith(UNDO_LABEL_PREFIX):
+            break
         if chain[index].author != player_id:
             return UndoTarget(None, reason="Another player has acted since")
         index -= 1
@@ -151,5 +161,6 @@ def undo(chain: Sequence[Step], player_id: str) -> tuple[GameState, int, str]:
         raise ValueError(f"You cannot undo: {target.reason}.")
     restored = next(step.state for step in chain if step.seq == target.seq).clone()
     restored.clock = chain[-1].state.clock.model_copy(deep=True)
+    reaction_prefs.carry_presence(restored, chain[-1].state)
     label = f"{UNDO_LABEL_PREFIX}:{player_id}:{target.label}"
     return restored, target.seq, label

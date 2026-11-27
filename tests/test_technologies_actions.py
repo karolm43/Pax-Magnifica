@@ -238,6 +238,9 @@ def test_kazda_karta_frontier_da_sie_rozstrzygnac_w_oknie_eksploracji(
         state.decks.secret_objective_deck = ["s1", "s2"]
         state.decks.exploration_deck["frontier"] = [card_id]
         state.decks.exploration_discard["frontier"] = []
+        # Mirage chains a cultural exploration; pin a card without a follow-up window
+        # (Freelancers opens a production_grant that must be resolved before finish()).
+        state.decks.exploration_deck["cultural"] = ["crf1"]
         started = tactical.end_tactical_action(state)
         options = exploration.options_for(started, registry)
         option = (

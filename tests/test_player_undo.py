@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from src.api.actor import ACTOR_HEADER
 from src.api.app import create_app
-from src.core import player_undo
+from src.core import player_undo, reaction_prefs
 from src.core.event_store import EventStore
 from src.core.game_state import GameState, Phase, PlayerState, SystemState
 from src.core.player_undo import Step
@@ -87,6 +87,29 @@ def test_kolejne_undo_przechodzi_przez_migawki_cofniec() -> None:
     # cudze Undo nie jest przezroczyste dla mnie
     chain[2] = Step(3, "player-undo:p2:y", "p2", s1)
     assert player_undo.undo_target(chain, "p1").seq is None
+
+
+def test_migawka_obecnosci_innego_gracza_jest_przezroczysta() -> None:
+    """Another player's "I'm back" (presence bookkeeping) is no game step: it neither blocks my
+    undo nor is erased by it - presence is carried into the restored state like the clock."""
+    s0 = _base()
+    s1 = _with_tg(s0, "p1", 3)
+    s2 = s1.clone()
+    s2.players["p2"].private.reaction_prefs.responded = True
+    s2.players["p2"].private.reaction_prefs.afk_strikes = 0
+    s1.players["p2"].private.reaction_prefs.afk_strikes = 2
+    s0.players["p2"].private.reaction_prefs.afk_strikes = 2
+    chain = [
+        Step(1, "initial", None, s0),
+        Step(2, "tg:p1", "p1", s1),
+        Step(3, reaction_prefs.PRESENCE_LABEL, "p2", s2),
+    ]
+    target = player_undo.undo_target(chain, "p1")
+    assert target.seq == 1 and target.label == "tg:p1"
+    restored, branch, _label = player_undo.undo(chain, "p1")
+    assert branch == 1 and restored.players["p1"].trade_goods == 0
+    prefs = restored.players["p2"].private.reaction_prefs
+    assert prefs.responded and prefs.afk_strikes == 0
 
 
 def _client(registry: StaticDataRegistry) -> TestClient:

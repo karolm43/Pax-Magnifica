@@ -48,6 +48,7 @@ from src.core import (
     movement_route,
     player_undo,
     production,
+    reaction_prefs,
     tactical,
 )
 from src.core.combat import PlayerCombat
@@ -204,7 +205,15 @@ async def post_tactical_undo_move(
     """
     state = ctx.service.current_state()
     actor_rules.require(state, actor, [state.active_player_id], "Undo move")
-    label = ctx.service.current_label() or ""
+    # "I'm back" presence snapshots (any player's request) are not game steps: look past them.
+    steps = ctx.service.recent_steps(player_undo.CHAIN_LIMIT)
+    presence_on_top = 0
+    while (
+        presence_on_top < len(steps) - 1
+        and steps[-1 - presence_on_top][1] == reaction_prefs.PRESENCE_LABEL
+    ):
+        presence_on_top += 1
+    label = steps[-1 - presence_on_top][1] if steps else ""
     undo_activation = (
         label.startswith(ACTIVATE_LABEL_PREFIX)
         and state.pending_window is None
@@ -216,10 +225,16 @@ async def post_tactical_undo_move(
             detail="Nothing to undo - the last change was not a ship move or a system activation.",
         )
     tag = player_undo.batch_tag(label)
+    for _ in range(presence_on_top):
+        ctx.service.undo()
     envelope = ctx.service.undo()
     # A flight plan is one declaration (RULES.md 32.4): its legs are undone together.
     while tag is not None and player_undo.batch_tag(ctx.service.current_label() or "") == tag:
         envelope = ctx.service.undo()
+    # Presence is a real-time fact (like the clock): keep what was recorded after the move.
+    restored = ctx.service.current_state().clone()
+    if reaction_prefs.carry_presence(restored, state):
+        envelope = ctx.service.replace_state(restored, label=reaction_prefs.PRESENCE_LABEL)
     await ctx.service.broadcast()
     await ctx.broadcast_map()
     return envelope
