@@ -697,6 +697,35 @@ def test_nomad_time_warp_obszar_i_trade_goods_na_agencie() -> None:
     ]
 
 
+def test_yssaril_kyver_obszar_i_notatka_bez_kart() -> None:
+    """Kyver names every rival home system (``areas`` of its effect - KeyMoment board FX); the
+    looks of So Ata / Mageon Implants are ability notes that never name a card (RULES.md 62.22)."""
+    from src.core import ability_notes, active_effects
+    from src.core.game_events import Duration
+
+    before = _state()
+    before.players["p1"].leader_states["yssarilhero"] = "unlocked"
+    after = _state()
+    after.players["p1"].leader_states["yssarilhero"] = "purged"
+    active_effects.add_effect(after, "leaders:yssarilhero:guild_of_spies", Duration.TURN,
+                              owner="p1", data={"areas": {"104": "kyver"}, "shown": {}})
+    entry = derive_activity("component-use:leader:yssarilhero:p1", before, after)
+    assert entry is not None
+    areas = {(f.player_id, f.value, f.detail) for f in entry.facts if f.type == "area"}
+    assert areas == {("p1", "104", "kyver")}
+    looked = _state()
+    looked.players["p2"].private.action_cards = ["sabotage1"]
+    seen = looked.clone()
+    ability_notes.note(seen, "p1", "leaders:yssarilcommander", "looks at Sol's action cards")
+    entry = derive_activity("offers:accept", looked, seen)
+    assert entry is not None
+    notes = [f for f in entry.facts if f.type == "ability_used"]
+    assert [(f.value, f.detail) for f in notes] == [
+        ("leaders:yssarilcommander", "looks at Sol's action cards")
+    ]
+    assert all("sabotage" not in str(f.model_dump()) for f in entry.facts)
+
+
 def test_boost_request_feed(registry: StaticDataRegistry) -> None:
     """RULES.md 54.15: a boost request is public table talk - who asked whom, for what, paying."""
     from src.core import rules_hooks

@@ -460,9 +460,7 @@ def _lead_reward(
 def _politics_reward(
     state: GameState, _r: StaticDataRegistry, player_id: str, _d: Mapping[str, Any], _o: str
 ) -> None:
-    for _ in range(_POLITICS_RIDER_CARDS):
-        if not card_draw.draw_action_card(state, player_id):
-            break
+    card_draw.draw_action_cards(state, player_id, _POLITICS_RIDER_CARDS)
     strategy_phase.set_speaker(state, player_id)
 
 

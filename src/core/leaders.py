@@ -100,11 +100,23 @@ def default_state(registry: StaticDataRegistry, leader_id: str) -> str:
     return UNLOCKED if leader is not None and leader.type == "agent" else LOCKED
 
 
+def _proxy(state: GameState, player_id: str, leader_id: str) -> str:
+    """The leader whose state stands for ``leader_id`` for this player: a borrowed leader resolves
+    to its proxy (Ssruu for every other player's agent, RULES.md 62.22), any other to itself."""
+    from src.core import rules_hooks  # local: rules_hooks does not import this module
+
+    return rules_hooks.leader_proxy(state, player_id, leader_id)
+
+
 def state_of(
     state: GameState, registry: StaticDataRegistry, player_id: str, leader_id: str
 ) -> str:
-    """Bieżący stan lidera gracza (``locked``/``unlocked``/``exhausted``/``purged``)."""
+    """Bieżący stan lidera gracza (``locked``/``unlocked``/``exhausted``/``purged``).
+
+    A borrowed leader (``rules_hooks.leader_proxy``) has the state of its proxy (RULES.md 62.22).
+    """
     player = state.players[player_id]
+    leader_id = _proxy(state, player_id, leader_id)
     return player.leader_states.get(leader_id, default_state(registry, leader_id))
 
 
@@ -232,8 +244,11 @@ def use_reason(
     if player is None:
         return f"Unknown player: {player_id}"
     leader = registry.leaders.get(leader_id)
-    if leader is None or leader_id not in leaders_of(registry, player):
+    proxied = _proxy(state, player_id, leader_id) != leader_id
+    if leader is None or (leader_id not in leaders_of(registry, player) and not proxied):
         return f"{leader_id} is not one of your leaders."
+    if proxied:  # copied through another card (Ssruu): that card must be ready
+        leader = registry.leaders.get(_proxy(state, player_id, leader_id)) or leader
     current = state_of(state, registry, player_id, leader_id)
     if current == LOCKED:
         return f"{leader.name} is locked. Unlock: {leader.unlock_condition}"
@@ -263,8 +278,10 @@ def pay_usage(
 
 
 def exhaust(state: GameState, player_id: str, leader_id: str) -> None:
-    """Wyczerpuje lidera (stan ``exhausted``); odświeża go status (``ready_all``)."""
+    """Wyczerpuje lidera (stan ``exhausted``); odświeża go status (``ready_all``). A borrowed leader
+    exhausts its proxy (Ssruu, RULES.md 62.22)."""
     player = state.players[player_id]
+    leader_id = _proxy(state, player_id, leader_id)
     player.leader_states = {**player.leader_states, leader_id: EXHAUSTED}
 
 
@@ -278,7 +295,8 @@ def exhaust_announced(
     Raises:
         ValueError: The leader is not ready.
     """
-    if state.players[player_id].leader_states.get(leader_id, "") in (LOCKED, EXHAUSTED, PURGED):
+    own = _proxy(state, player_id, leader_id)
+    if state.players[player_id].leader_states.get(own, "") in (LOCKED, EXHAUSTED, PURGED):
         raise ValueError(f"{leader_id} is not ready.")
     exhaust(state, player_id, leader_id)
     triggers.fire(
@@ -288,8 +306,9 @@ def exhaust_announced(
 
 
 def purge(state: GameState, player_id: str, leader_id: str) -> None:
-    """Usuwa lidera z gry (stan ``purged``) — R_purge: nie wraca do gry."""
+    """Usuwa lidera z gry (stan ``purged``) — R_purge: nie wraca do gry (proxy: RULES.md 62.22)."""
     player = state.players[player_id]
+    leader_id = _proxy(state, player_id, leader_id)
     player.leader_states = {**player.leader_states, leader_id: PURGED}
 
 

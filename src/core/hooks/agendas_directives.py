@@ -747,8 +747,7 @@ def _standardization(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> Non
 def _unconventional(state: GameState, _pid: str, ctx: Mapping[str, Any]) -> None:
     for player in _voted(state, "for"):
         if ctx.get("outcome") == "for":
-            for _ in range(_UNCONVENTIONAL_DRAW):
-                card_draw.draw_action_card(state, player)
+            card_draw.draw_action_cards(state, player, _UNCONVENTIONAL_DRAW)
         else:
             _discard_hand(state, player)
 

@@ -31,25 +31,41 @@ def reshuffle_action_deck_if_empty(state: GameState) -> None:
 
 def draw_action_card(state: GameState, player_id: str) -> bool:
     """Dobiera kartę akcji do ręki gracza (mutuje ``state``); False, gdy talie puste."""
+    return draw_action_cards(state, player_id, 1) == 1
+
+
+def draw_action_cards(state: GameState, player_id: str, count: int) -> int:
+    """Draws ``count`` action cards as ONE draw (mutates ``state``); returns how many were drawn.
+
+    One draw fires one ``ACTION_CARDS_DRAWN`` WHEN/AFTER pair with ``amount`` = the cards drawn:
+    "when you draw 1 or more action cards" happens once per draw (Scheming, RULES.md 62.22).
+    """
+    if count <= 0:
+        return 0
+    reshuffle_action_deck_if_empty(state)
+    if not state.decks.action_card_deck:
+        return 0
+    triggers.fire(
+        state, GameEvent.ACTION_CARDS_DRAWN, Moment.WHEN, subject=player_id,
+        ctx={"player": player_id, "amount": count},
+    )
+    drawn = sum(1 for _ in range(count) if draw_without_event(state, player_id))
+    if drawn:
+        triggers.fire(
+            state, GameEvent.ACTION_CARDS_DRAWN, Moment.AFTER, subject=player_id,
+            ctx={"player": player_id, "amount": drawn},
+        )
+    return drawn
+
+
+def draw_without_event(state: GameState, player_id: str) -> bool:
+    """Moves the top action card into the hand WITHOUT announcing a draw (mutates ``state``): the
+    extra card of an ongoing draw (Scheming's "1 additional" - RULES.md 62.22). False = no cards."""
     decks = state.decks
     reshuffle_action_deck_if_empty(state)
     if not decks.action_card_deck:
         return False
-    triggers.fire(
-        state,
-        GameEvent.ACTION_CARDS_DRAWN,
-        Moment.WHEN,
-        subject=player_id,
-        ctx={"player": player_id, "amount": 1},
-    )
     state.players[player_id].private.action_cards.append(decks.action_card_deck.pop(0))
-    triggers.fire(
-        state,
-        GameEvent.ACTION_CARDS_DRAWN,
-        Moment.AFTER,
-        subject=player_id,
-        ctx={"player": player_id, "amount": 1},
-    )
     return True
 
 
@@ -261,6 +277,22 @@ def take_random_action_card(state: GameState, from_id: str, to_id: str) -> str:
     card = hand.pop(next_rng(state).randrange(len(hand)))
     state.players[to_id].private.action_cards.append(card)
     return card
+
+
+def discard_random_action_cards(state: GameState, player_id: str, count: int) -> list[str]:
+    """Discards ``count`` RANDOM action cards from the hand (all of them if fewer; mutates).
+
+    Seedable engine RNG (Undo/Redo safe) - Kyver, Blade and Key (RULES.md 62.22).
+    """
+    hand = state.players[player_id].private.action_cards
+    rng = next_rng(state)
+    chosen: list[str] = []
+    pool = list(hand)
+    for _ in range(min(count, len(pool))):
+        chosen.append(pool.pop(rng.randrange(len(pool))))
+    if chosen:
+        discard_specific_action_cards(state, player_id, chosen)
+    return chosen
 
 
 def seed_action_deck(state: GameState, cards: list[str]) -> None:

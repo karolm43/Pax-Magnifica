@@ -171,11 +171,19 @@ def research(key: str, label: str, view: dict[str, Any], hint: str = "") -> Inpu
     return {"key": key, "kind": "research", "label": label, "research": view, "hint": hint}
 
 
-def info(key: str, label: str, options: list[dict[str, Any]], hint: str = "") -> Input:
+def info(
+    key: str, label: str, options: list[dict[str, Any]], hint: str = "", *, show: bool = False
+) -> Input:
     """Wejście INFORMACYJNE (bez wyboru): UI pokazuje tylko ``label``/``hint``. ``options`` to
     legalne cele dla bramki zagrywalności (pusta lista = komponentu nie da się teraz zagrać),
-    np. technologie do zbadania, gdy wybór pada dopiero PO zagraniu (Focused Research)."""
-    return {"key": key, "kind": "info", "label": label, "options": options, "hint": hint}
+    np. technologie do zbadania, gdy wybór pada dopiero PO zagraniu (Focused Research).
+
+    ``show=True``: the UI also shows ``options`` as read-only chips (description on click) - the
+    cards a player looks at (So Ata, Kyver - RULES.md 62.22)."""
+    item: Input = {"key": key, "kind": "info", "label": label, "options": options, "hint": hint}
+    if show:
+        item["show"] = True
+    return item
 
 
 def needs_player(inputs: list[Input]) -> bool:

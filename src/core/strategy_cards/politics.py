@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.core import strategy_phase
-from src.core.card_draw import draw_action_card, ensure_agenda_deck, rearrange_agenda_top
+from src.core.card_draw import draw_action_cards, ensure_agenda_deck, rearrange_agenda_top
 from src.core.game_state import GameState
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
 from src.core.strategy_cards.common import str_list
@@ -46,8 +46,7 @@ def _on_step(
         # żeby gracz widział dobrane karty przed decyzją o agendach.
         strategy_phase.set_speaker(state, chosen)
         drawn_before = len(state.players[owner_id].private.action_cards)
-        for _ in range(ACTION_CARDS_DRAWN):
-            draw_action_card(state, owner_id)
+        draw_action_cards(state, owner_id, ACTION_CARDS_DRAWN)  # one draw (RULES.md 62.22)
         hand = state.players[owner_id].private.action_cards
         # Klucz z „_" jest PRYWATNY: nie trafia do publicznego ``pendingStrategy`` (web-data),
         # widzi go tylko właściciel przez opcje kroku.
@@ -80,8 +79,7 @@ def _primary(
 def _secondary(
     state: GameState, _ctx: CardContext, player_id: str, _payload: dict[str, Any]
 ) -> None:
-    for _ in range(ACTION_CARDS_DRAWN):
-        draw_action_card(state, player_id)
+    draw_action_cards(state, player_id, ACTION_CARDS_DRAWN)
 
 
 def _options(

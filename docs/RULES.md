@@ -102,7 +102,7 @@ Read ONLY the section file you need. Add a new rule to its section file (or a ne
 | 59 | [Relics — ownership, "ACTION:" actions, passive and event effects](rules/R59.md) | 24 |
 | 60 | [Legendary planets — ability cards, readying, and abilities](rules/R60.md) | 25 |
 | 61 | [Faction foundations — leaders, promissory notes, abilities, breakthroughs, unit capture (61.5), faction tokens on map (61.6), player-dependent adjacency (61.7)](rules/R61.md) | 53 |
-| 62 | [Factions — faction components (B1: Sardakk N'orr, Barony of Letnev; B2: Jol-Nar; B3: Sol, Arborec, … B7: Yin, B8: Argent, B9: L1Z1X, B10: Muaat, B11: Saar, Naaz-Rokha; B12: Naalu; B13: Vuil'raith Cabal; B14: Titans of Ul; B15: Ghosts of Creuss)](rules/R62.md) | 287 |
+| 62 | [Factions — faction components (B1: Sardakk N'orr, Barony of Letnev; B2: Jol-Nar; B3: Sol, Arborec, … B7: Yin, B8: Argent, B9: L1Z1X, B10: Muaat, B11: Saar, Naaz-Rokha; B12: Naalu; B13: Vuil'raith Cabal; B14: Titans of Ul; B15: Ghosts of Creuss; B16: Empyrean; B18: Nomad; B19: Yssaril)](rules/R62.md) | 287 |
 | 63 | [Empty reserve → unit from board; C_/F_ rulings audit (2026-11-15)](rules/R63.md) | 52 |
 | 64 | [Key game moments — animations for everyone, hero effects on board, phase transitions (2026-11-16)](rules/R64.md) | 58 |
 | 65 | [AI Bot — decision layer design rules (single rules path, information, local compute, budget) (2026-11-16)](rules/R65.md) | 57 |

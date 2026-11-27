@@ -13,7 +13,7 @@ Funkcje MUTUJĄ przekazany ``state`` (KLON roboczy wołającego).
 from __future__ import annotations
 
 from src.core import command_tokens, economy, exploration, secret_objectives
-from src.core.card_draw import draw_action_card
+from src.core.card_draw import draw_action_cards
 from src.core.game_state import ExplorationState, ExploreCurrent, GameState
 from src.core.registry import StaticDataRegistry
 from src.core.relics import draw_relic
@@ -124,7 +124,7 @@ def _lost_crew_options(
 def _lost_crew_apply(
     state: GameState, ex: ExplorationState, cur: ExploreCurrent, option: str, param: str | None
 ) -> str:
-    drawn = sum(1 for _ in range(2) if draw_action_card(state, ex.player_id))
+    drawn = draw_action_cards(state, ex.player_id, 2)
     return f"Drew {drawn} action card(s)."
 
 

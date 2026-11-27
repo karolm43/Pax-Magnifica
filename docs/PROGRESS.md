@@ -346,3 +346,25 @@ Older, completed blocks (Phase 1 → blocks of 2026-11-25) are in `PROGRESS_ARCH
 - ⚠️ ASSUMPTIONS for the user: see RULES.md 54.13-54.15 and 30.13 (bluff bounds and defaults, pull list,
   bot owner accepts a paid request, the owner picks the details on Ask me, price cap 20).
 
+## B19 — The Yssaril Tribes (RULES.md 62.22, 2026-11-27)
+
+- All 14 components (`src/core/hooks/factions/yssaril.py`): Stall Tactics, Scheming, Crafty, Transparasteel
+  Plating, Mageon Implants, Ssruu, So Ata, Kyver (Guild of Spies), Spy Net, Y'sia Y'ssrila, Blackshade
+  Infiltrator, Deepgloom Executable.
+- Core points: leader proxy (`rules_hooks.register_leader_proxy` / `leader_proxy`: every other player's
+  agent is a source of the Yssaril and reads/writes Ssruu's state in `leaders` + `exhaust`; copies listed in
+  `faction_components.owned`, `COMPONENT_EXHAUSTED` carries `proxy`), draw batches
+  (`card_draw.draw_action_cards` - one `ACTION_CARDS_DRAWN` per draw: Politics, status phase, Politics
+  Rider, Unconventional Measures, Lost Crew), `card_draw.draw_without_event`, `discard_random_action_cards`,
+  `hand_limit.unlimited` (PERMIT read before the limit MODIFY), `faction_components.granted_abilities`
+  (`data.abilities` of an effect), `oi.info(show=True)` = read-only card chips in a decision.
+- Cross fixes: Suffi An answers any player's Pillage against another player (Ssruu copy, ssruu 4); Temporal
+  Command Suite readies Ssruu after a copy. Pre-existing guard fix: 6 audited files removed from
+  `tests/rulings_debt.json` (`GENERAL_DEBT_LIMIT` 99 -> 93).
+- Frontend: Kyver board FX `keyhole` (`YssarilFxMarks.tsx`, mist + fronds + keyhole, blade slash at the
+  flash, a card lifted out; area `kyver` = every rival home), sound cues; `DecisionFields` shows `info`
+  inputs with `show` as read-only card chips (So Ata / Kyver looks).
+- Tests: `tests/factions/test_yssaril.py` (35), `test_flows_yssaril.py` (8), `test_activity.py` (Kyver areas,
+  looks never name cards); vitest `yssarilFx`, `YssarilFxMarks`, `describeActivity.yssaril`, `DecisionFields`.
+- Gap: Ssruu cannot copy JR-XS455-O (a relic agent - needs a relic proxy). ⚠️ ASSUMPTIONS ("Auto" defaults,
+  sequential Kyver, Deepgloom grant to the end of the action phase): RULES.md 62.22.

@@ -68,8 +68,17 @@ export type HeroArea = {
   self: boolean;
   /** `frontier` / `explore`: frontier token placed / explored (Multiverse Shift, RULES.md 62.20).
    * `time_warp` / `time_warp_token`: the Nomad flagship's system / a system with a Nomad command
-   * token under Time Warp (RULES.md 62.21). */
-  kind: "gain" | "loss" | "token_removed" | "frontier" | "explore" | "time_warp" | "time_warp_token";
+   * token under Time Warp (RULES.md 62.21). `kyver`: a rival's home system under Kyver's Guild of
+   * Spies (RULES.md 62.22). */
+  kind:
+    | "gain"
+    | "loss"
+    | "token_removed"
+    | "frontier"
+    | "explore"
+    | "time_warp"
+    | "time_warp_token"
+    | "kyver";
 };
 
 /** Rozpoznanie typu lidera (wstrzykiwane — w aplikacji `getLeaderById`). */
@@ -209,6 +218,7 @@ const AREA_KINDS = new Set([
   "explore",
   "time_warp",
   "time_warp_token",
+  "kyver",
 ]);
 
 /** Void Tether token id (`assets/data/tokens`, backend `faction_tokens.VOID_TETHER`). */

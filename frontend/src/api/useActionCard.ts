@@ -49,7 +49,12 @@ export type ActionCardInput =
       meta?: Record<string, unknown>;
     })
   /** Tylko informacja (bez wyboru); ``options`` = legalne cele, pusta lista blokuje zagranie. */
-  | (InputBase & { kind: "info"; options: ActionCardOption[] })
+  | (InputBase & {
+      kind: "info";
+      options: ActionCardOption[];
+      /** Show `options` as read-only chips: cards the player looks at (So Ata, Kyver). */
+      show?: boolean;
+    })
   /** „Zbadaj technologię”: pełne okno badania (``TechnologyOverlay``) z opisem ``research``. */
   | (InputBase & { kind: "research"; research: Record<string, unknown> });
 

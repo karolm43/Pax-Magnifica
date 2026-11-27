@@ -51,7 +51,8 @@ export type FxMark =
   | "portal" // Creuss wormhole token: a vortex opens (and the old one collapses when moved)
   | "voideye" // Empyrean: frontier sigils condense from the void, an eye opens where it explores
   | "tether" // Empyrean Void Tether: a dark seam seals the border, the two systems recoil
-  | "timewarp"; // Nomad: a chronometer rewinds over the flagship, chrono-locks open on its tokens
+  | "timewarp" // Nomad: a chronometer rewinds over the flagship, chrono-locks open on its tokens
+  | "keyhole"; // Yssaril: shadows creep over rival homes, a keyhole is slashed open, a card is lifted
 
 export type HeroFxRecipe = {
   /** Przyciemnienie całej planszy (0–1). */
@@ -380,6 +381,32 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
       { at: 3700, name: "sunfire", gain: 0.5, rate: 0.45 },
       { at: 3760, name: "explosionHeavy", gain: 0.45, rate: 0.6 },
       { at: 5200, name: "warSunEnter", gain: 0.3, rate: 0.35 },
+    ],
+  },
+  // Guild of Spies (Kyver, Blade and Key, RULES.md 62.22): the board sinks into jungle mist; over
+  // EVERY rival's home system shadows and fronds close in, an eye slit opens in the dark and
+  // settles into a glowing keyhole, a key slides in and turns; at the flash a blade slashes the
+  // lock open, a card rises out of the cut and drifts away while torn shards scatter (the card
+  // taken or the 3 random discards). Sound: a low creeping hum, the lock's clicks, the blade's
+  // swish and a soft whoosh of the stolen card.
+  yssarilhero: {
+    dim: 0.65,
+    sweep: "mist",
+    area: { self: true, kinds: ["kyver"] },
+    target: "units",
+    mark: "keyhole",
+    tone: "120 235 150",
+    ms: 6800,
+    flashAt: 3000,
+    quake: [{ at: 3000, px: 2, ms: 300 }],
+    sounds: [
+      { at: 0, name: "fleetEnter", gain: 0.3, rate: 0.4 },
+      { at: 900, name: "mechStep", gain: 0.3, rate: 1.7 },
+      { at: 2000, name: "diceClack", gain: 0.45, rate: 0.5 },
+      { at: 2300, name: "diceClack", gain: 0.4, rate: 0.42 },
+      { at: 2950, name: "laser", gain: 0.45, rate: 1.6 },
+      { at: 3000, name: "impact", gain: 0.3, rate: 1.4 },
+      { at: 3300, name: "retreat", gain: 0.3, rate: 1.4 },
     ],
   },
   // Probability Matrix: Time Warp (Ahk-Syl Siven, RULES.md 62.21): the board flickers like a

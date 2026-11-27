@@ -28,6 +28,7 @@ from src.core.hooks.factions import (
     winnu,
     xxcha,
     yin,
+    yssaril,
 )
 
 __all__ = [
@@ -36,5 +37,5 @@ __all__ = [
     "naalu", "naaz", "nomad",
     "saar", "sardakk",
     "sol", "titans",
-    "winnu", "xxcha", "yin",
+    "winnu", "xxcha", "yin", "yssaril",
 ]

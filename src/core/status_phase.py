@@ -245,11 +245,13 @@ def _draw_action_cards(state: GameState, order: list[str]) -> dict[str, int]:
         wanted = max(
             1, rules_hooks.modify(rules_hooks.POINT_STATUS_ACTION_CARDS, state, player_id, 1)
         )
-        for _ in range(wanted):
-            # draw_action_card tasuje stos odrzuconych, gdy talia jest pusta; False = brak kart.
-            if not card_draw.draw_action_card(state, player_id):
-                return drawn
-            drawn[player_id] = drawn.get(player_id, 0) + 1
+        # One draw of ``wanted`` cards (Scheming once - RULES.md 62.22); the deck reshuffles its
+        # discard pile when empty; fewer cards = the decks ran out.
+        got = card_draw.draw_action_cards(state, player_id, wanted)
+        if got:
+            drawn[player_id] = drawn.get(player_id, 0) + got
+        if got < wanted:
+            return drawn
     return drawn
 
 

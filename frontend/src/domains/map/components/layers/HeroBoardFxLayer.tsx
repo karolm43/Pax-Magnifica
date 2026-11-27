@@ -18,6 +18,7 @@ import { StellarConverterDefs, StellarConverterMark } from "./StellarConverterMa
 import { CreussFxDefs, SingularityRiftMark, WormholePortalMark } from "./CreussFxMarks";
 import { EmpyreanFxDefs, VoidEyeMark, VoidTetherMark } from "./EmpyreanFxMarks";
 import { NomadFxDefs, TimeWarpMark } from "./NomadFxMarks";
+import { KeyholeMark, YssarilFxDefs } from "./YssarilFxMarks";
 import classes from "./HeroBoardFxLayer.module.css";
 
 /**
@@ -341,6 +342,8 @@ export function HeroBoardFxLayer({
           <EmpyreanFxDefs />
         ) : recipe.mark === "timewarp" ? (
           <NomadFxDefs />
+        ) : recipe.mark === "keyhole" ? (
+          <YssarilFxDefs />
         ) : (
           <MarkDefs />
         )}
@@ -357,6 +360,8 @@ export function HeroBoardFxLayer({
         {targets.map((tile, index) =>
           recipe.mark === "rift" || recipe.mark === "tether" ? null : recipe.mark === "voideye" ? (
             <VoidEyeMark key={tile.position} tile={tile} index={index} explore={explored.has(tile.position)} />
+          ) : recipe.mark === "keyhole" ? (
+            <KeyholeMark key={tile.position} tile={tile} index={index} />
           ) : recipe.mark === "timewarp" ? (
             <TimeWarpMark
               key={tile.position}

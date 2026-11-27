@@ -17,7 +17,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `brilliant` | Brilliant | jolnar | when | TRIGGER (okno reakcji) | — | ✔ | You may resolve the primary ability instead. |
 | `coalescence` | Coalescence | titans | — | — | walka, planety i eksploracja | ✔ | If your flagship or your AWAKEN faction ability places your units into the same space area or onto the same planet as another player's unit… |
 | `council_patronage` | Council Patronage | keleres | at_start | — | ekonomia i płatności | — | Replenish your commodities, then gain 1 trade good. |
-| `crafty` | Crafty | yssaril | — | FORBID (zakaz) | karty | — | You can have any number of action cards in your hand. Game effects cannot prevent you from using this ability. |
+| `crafty` | Crafty | yssaril | — | FORBID (zakaz) | karty | ✔ | You can have any number of action cards in your hand. Game effects cannot prevent you from using this ability. |
 | `creuss_gate` | Creuss Gate | ghost | — | — | — | ✔ | When you create the game board, place the Creuss Gate (tile 17) where your home system would normally be placed. The Creuss Gate system is … |
 | `dark_whispers` | Dark Whispers | empyrean | — | MODIFY (liczba/rzut) | karty | ✔ | During setup, take the additional Empyrean faction promissory note; you have 2 faction promissory notes |
 | `devotion` | Devotion | yin | after | TRIGGER (okno reakcji) | walka, produkcja | ✔ | You may destroy 1 of your cruisers or destroyers in the active system to produce 1 hit and assign it to 1 of your opponent's ships in that … |
@@ -61,10 +61,10 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `researchteam` | Research Team | deepwrought | when | TRIGGER (okno reakcji) | technologie, planety i eksploracja | — | If your units on that planet are not already coexisting, you may choose for your units to coexist. |
 | `riftmeld` | Riftmeld | cabal | when | TRIGGER (okno reakcji) | technologie | ✔ | You may return 1 captured unit of that type to ignore all of that technology's prerequisites. |
 | `scavenge` | Scavenge | saar | after | TRIGGER (okno reakcji) | ekonomia i płatności | ✔ | Gain 1 trade good. |
-| `scheming` | Scheming | yssaril | when | TRIGGER (okno reakcji) | karty | — | Draw 1 additional action card. Then, choose and discard 1 action card from your hand. |
+| `scheming` | Scheming | yssaril | when | TRIGGER (okno reakcji) | karty | ✔ | Draw 1 additional action card. Then, choose and discard 1 action card from your hand. |
 | `slipstream` | Slipstream | ghost | during | MODIFY (liczba/rzut) | ruch | ✔ | Apply +1 to the move value of each of your ships that starts its movement in your home system or in a system that contains either an alpha … |
 | `sorrow` | The Sorrow | crimson | — | — | — | — | When you create the game board, place The Sorrow (tile 94) where your home system would be placed, and place an inactive breach in it. The … |
-| `stall_tactics` | Stall Tactics | yssaril | action | — | karty | — | Discard 1 action card from your hand. |
+| `stall_tactics` | Stall Tactics | yssaril | action | — | karty | ✔ | Discard 1 action card from your hand. |
 | `star_forge` | Star Forge | muaat | action | MODIFY (liczba/rzut) | walka, produkcja, ekonomia i płatności, żetony dowodzenia | ✔ | Spend 1 token from your strategy pool to place either 2 fighters or 1 destroyer from your reinforcements in a system that contains 1 or mor… |
 | `sundered` | Sundered | crimson | — | FORBID (zakaz) | ruch, walka | — | You cannot use wormholes other than epsilon wormholes. Other players' units that move or are placed into your home system are destroyed. |
 | `survivalinstinct` | Survival Instinct | ralnel | after | TRIGGER (okno reakcji) | ruch, żetony dowodzenia | — | You may move up to 2 of your ships into the active system from adjacent systems that do not contain your command tokens. |

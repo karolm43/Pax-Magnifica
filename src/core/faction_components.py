@@ -223,7 +223,31 @@ def owned(state: GameState, registry: StaticDataRegistry, player_id: str) -> lis
         if (LEADER, lid) not in rows and _has_window_use(LEADER, lid)
     ]
     rows += [(UNIT, uid) for uid in action_units(state, registry, player_id)]
+    rows += [  # other players' agents copied through a proxy (Ssruu, RULES.md 62.22)
+        (LEADER, lid) for lid in rules_hooks.leader_proxies(state, player_id)
+        if (LEADER, lid) not in rows and (_is_action_leader(registry, lid)
+                                          or _has_window_use(LEADER, lid))
+    ]
+    rows += [
+        (ABILITY, aid) for aid in granted_abilities(state, player_id)
+        if (ABILITY, aid) not in rows and aid in registry.abilities
+    ]
     return rows
+
+
+def _is_action_leader(registry: StaticDataRegistry, leader_id: str) -> bool:
+    leader = registry.leaders.get(leader_id)
+    return leader is not None and bool(_ACTION.search(leader.ability_window or ""))
+
+
+def granted_abilities(state: GameState, player_id: str) -> list[str]:
+    """Another faction's abilities the player may use now, from their active effects
+    (``data.abilities`` - Deepgloom Executable lends Stall Tactics, RULES.md 62.22)."""
+    found: list[str] = []
+    for effect in state.active_effects:
+        if effect.owner == player_id:
+            found.extend(str(a) for a in effect.data.get("abilities") or ())
+    return list(dict.fromkeys(found))
 
 
 def action_units(state: GameState, registry: StaticDataRegistry, player_id: str) -> list[str]:
@@ -532,10 +556,14 @@ def pay_cost(
         exhaust.exhaust_technology(state, player_id, component)
         exhausted = True
     if exhausted:
+        extra: dict[str, Any] = {}
+        proxy = rules_hooks.leader_proxy(state, player_id, component) if kind == LEADER else ""
+        if proxy and proxy != component:  # a copied agent exhausts Ssruu (RULES.md 62.22)
+            extra["proxy"] = effect_key(LEADER, proxy)
         triggers.fire(
             state, GameEvent.COMPONENT_EXHAUSTED, Moment.AFTER, subject=player_id,
             ctx={**dict(ctx or {}), "player": player_id,
-                 "component": effect_key(kind, component)},
+                 "component": effect_key(kind, component), **extra},
         )
 
 

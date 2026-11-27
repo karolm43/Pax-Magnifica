@@ -212,7 +212,8 @@ def _exhausted_agent(
     """``(kind, owner, id)`` of the agent that has just become exhausted, if it still is: a leader
     agent, or a relic that is an agent (JR-XS455-O - C_relics jrxs455o 1.1)."""
     registry = _registry()
-    kind, _, component = str(ctx.get("component") or "").partition(":")
+    # A copied agent (Ssruu, RULES.md 62.22) exhausted its proxy: that card is "that agent".
+    kind, _, component = str(ctx.get("proxy") or ctx.get("component") or "").partition(":")
     if kind == "leaders" and _is_agent(registry, component):
         owner = _agent_owner(state, registry, component)
         if owner is not None and leaders.state_of(

@@ -1,4 +1,9 @@
 {
+  "F_yssaril/mageon-implants/2.1": {"na": "Oral claims are table talk outside the engine; the looked-at cards stay only in the Yssaril's decision (offer inputs are projected to the decider only) - RULES.md 62.22."},
+  "F_yssaril/ssruu/2": {"na": "Captain Mendosa copied by Ssruu is its own offer on the same SYSTEM_ACTIVATED window (saar.captain_mendosa); the move value is read once when the ship moves, so the copy and the Saar's own use may be resolved in either order (RULES.md 62.22)."},
+  "F_yssaril/ssruu/3": {"na": "The Stillness of Stars copied by Ssruu is a separate offer to the Yssaril on the same commodities window (SOURCE_LEADER of the copied agent); offers resolve in window order from the active player and each capture reads the target's reinforcements at that moment (RULES.md 62.22, 61.5)."},
+  "F_yssaril/ssruu/5": {"na": "Trillossa Aun Mirik, Emissary Taivra and Doctor Sucaban grant a permission/effect for that timing window; a second use (the Ssruu copy) in the same window sets the same permission again - the engine has nothing to stack (RULES.md 62.22)."},
+  "F_yssaril/deepgloom-executable/2.1": {"na": "The granted transaction (transaction.grant_pair, Duration.PHASE) works in any phase and needs no active player or neighbours - the Suffi An example in the strategy phase uses the same grant (RULES.md 62.22)."},
   "F_nomad/ahksyl-siven-probability-matrix/1": {"na": "Time Warp is an ActiveEffect with Duration.ROUND, which expires on ROUND/END - fired by turn_flow when the game round ends after the agenda phase (or the status phase while the custodians token is on Mecatol Rex) (RULES.md 62.21)."},
   "F_nomad/future-sight/3": {"na": "Deadly Plot discards the agenda without resolving it (agenda_phase: no AGENDA_OUTCOME_RESOLVED event), so the Future Sight hook never fires (RULES.md 62.21)."},
   "F_nomad/navarch-feng/1.1": {"na": "Navarch Feng only leaves the flagship out of the order's total (production.free_types); Integrated Economy and Umbat read the unit's cost from the data, which stays 8 (RULES.md 62.21)."},
@@ -132,12 +137,7 @@
     ],
     "reason": "Nekro zamiast badania technologii bierze żetony dowodzenia (sześć zamiast dwóch technologii z Book of Latvinia)."
   },
-  "C_relics/jrxs455o/1.2": {
-    "requires": [
-      "faction:yssaril"
-    ],
-    "reason": "Ssruu (agent Yssaril) kopiuje zdolność JR-XS455-O."
-  },
+  "C_relics/jrxs455o/1.2": {"gap": "JR-XS455-O is a relic, not a leader: the leader proxy of Ssruu (rules_hooks.leader_proxy) covers other players' agents from their faction sheets only, so the Yssaril cannot yet copy another player's JR-XS455-O (RULES.md 62.22)."},
   "C_relics/the-prophets-tears/2": {
     "requires": [
       "faction:nekro"
@@ -318,12 +318,6 @@
   "C_agendas/ixthian-artifact/6": {
     "na": "Flavor ruling (voting against or riding on Ixthian Artifact \"is to commit heresy\"); it has no mechanical effect."
   },
-  "C_agendas/minister-of-policy/1.1": {
-    "requires": [
-      "faction:yssaril"
-    ],
-    "reason": "Yssaril's Scheming applies to both Minister of Policy and the Draw Action Cards step. Yssaril is not implemented."
-  },
   "C_agendas/miscount-disclosed/7": {
     "na": "Holy Planet of Ixth, Shard of the Throne and The Crown of Emphidia were removed in Prophecy of Kings; those base-game agendas are not in the active decks."
   },
@@ -351,23 +345,11 @@
   "C_action_cards/sabotage/3.2": {
     "na": "User decision (2026-11-26): the Sabotage window opens immediately when an action card is played, before deciding targets, technologies, or variable costs."
   },
-  "C_action_cards/puppets-on-a-string/2.2": {
-    "requires": [
-      "faction:yssaril"
-    ],
-    "reason": "Transparasteel Plating is a Yssaril technology."
-  },
   "C_action_cards/puppets-on-a-string/6.2": {
     "requires": [
       "faction:keleres"
     ],
     "reason": "Suffi An is the Keleres commander."
-  },
-  "R_action_cards/notes/5.2": {
-    "requires": [
-      "faction:yssaril"
-    ],
-    "reason": "Scheming is a Yssaril ability."
   },
   "C_action_cards/experimental-battlestation/3.2": {
     "na": "Ships cannot leave the active system in the Move Ships step (it holds the active player's command token), so the engine never moves a ship out and back in during one move step."

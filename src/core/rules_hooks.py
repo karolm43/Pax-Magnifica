@@ -241,6 +241,9 @@ POINT_PAYMENT_TRADE_GOOD_VALUE = "payment.trade_good_value"
 POINT_AGENDA_SINGLE_VOTE = "agenda.single_vote"
 # MODIFY -> delta limitu kart akcji w ręce (ctx: base; Executive Sanctions).
 POINT_HAND_LIMIT = "hand_limit.action_cards"
+# PERMIT -> the player has no action card hand limit at all; read BEFORE ``POINT_HAND_LIMIT``, so
+# no game effect can lower it (Crafty, RULES.md 62.22).
+POINT_HAND_LIMIT_UNLIMITED = "hand_limit.unlimited"
 # FORBID -> powody, dla których gracz nie może zagrywać kart akcji (Political Censure).
 POINT_ACTION_CARDS_FORBIDDEN = "action_cards.forbidden"
 # MODIFY -> maks. liczba żetonów w fleet pool (baza 0 = bez limitu; Fleet Regulations).
@@ -924,6 +927,36 @@ def unit_abilities_lost(state: GameState, player_id: str, base_type: str) -> boo
     return base_type in _suppressed_unit_types(state, player_id)
 
 
+# Leader proxies: (state, player) -> {leader id: proxy leader id}. A leader the player does NOT own
+# that they may use as if it were theirs, its state being the proxy's (Ssruu: every other
+# player's agent resolves to ``yssarilagent``, RULES.md 62.22). Registered by hook modules; they
+# read the state directly (no hooks - ``owned_sources`` calls them).
+LeaderProxyFn = Callable[[GameState, str], Mapping[str, str]]
+_LEADER_PROXIES: list[LeaderProxyFn] = []
+
+
+def register_leader_proxy(fn: LeaderProxyFn) -> LeaderProxyFn:
+    """Registers a leader proxy provider (see ``_LEADER_PROXIES``)."""
+    _LEADER_PROXIES.append(fn)
+    return fn
+
+
+def leader_proxies(state: GameState, player_id: str) -> dict[str, str]:
+    """``{borrowed leader id: proxy leader id}`` the player may use (RULES.md 62.22)."""
+    _ensure_loaded()
+    if player_id not in state.players:
+        return {}
+    found: dict[str, str] = {}
+    for fn in _LEADER_PROXIES:
+        found.update(fn(state, player_id))
+    return found
+
+
+def leader_proxy(state: GameState, player_id: str, leader_id: str) -> str:
+    """The leader whose state stands for ``leader_id`` for this player (itself without a proxy)."""
+    return leader_proxies(state, player_id).get(leader_id, leader_id)
+
+
 def _unit_base_type(unit_id: str) -> str:
     registry = _BOUND_REGISTRY
     unit = registry.units.get(unit_id) if registry is not None else None
@@ -1031,6 +1064,7 @@ def owned_sources(state: GameState, player_id: str) -> frozenset[HookSource]:
     sources.update(HookSource(SOURCE_PROMISSORY, n) for n in player.promissory_notes_in_play)
     sources.update(_promissory_sources(state, player_id))
     sources.update(_granted_commanders(state, player_id))
+    sources.update(HookSource(SOURCE_LEADER, lid) for lid in leader_proxies(state, player_id))
     suppressed = _suppressed_unit_types(state, player_id)
     sources.update(
         src for src in _unit_sources(player)

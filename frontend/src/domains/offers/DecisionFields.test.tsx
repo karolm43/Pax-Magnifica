@@ -321,5 +321,29 @@ describe("DecisionFields", () => {
     fireEvent.click(screen.getByRole("button", { name: "Option 21" }));
     expect(values()).toEqual({ big: "o21" });
   });
+  it("cards the player only looks at are read-only card chips (So Ata, RULES.md 62.22)", () => {
+    render(
+      <Harness
+        inputs={[
+          {
+            key: "seen",
+            kind: "info",
+            label: "Sol's action cards",
+            hint: "Only you see these cards.",
+            show: true,
+            options: [
+              { id: "sabotage1", value: "sabotage1", label: "Sabotage", meta: { ref: { kind: "actionCard", id: "sabotage1" } } },
+              { id: "plague1", value: "plague1", label: "Plague", meta: { ref: { kind: "actionCard", id: "plague1" } } },
+            ],
+          },
+        ]}
+      />,
+    );
+    const list = screen.getByRole("list", { name: "Sol's action cards" });
+    expect(list.querySelectorAll("[role='listitem']")).toHaveLength(2);
+    const chip = screen.getByRole("button", { name: /Sabotage/ });
+    expect((chip as HTMLButtonElement).disabled).toBe(true);
+    expect(values()).toEqual({});
+  });
 });
 

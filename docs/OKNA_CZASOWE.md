@@ -105,7 +105,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 
 | Okno | ✅ | ⛔ | Brakujące (⛔) |
 |---|---:|---:|---|
-| `tactical.system_activated` · after | 28 | 2 | So Ata, Survival Instinct |
+| `tactical.system_activated` · after | 29 | 1 | Survival Instinct |
 | `agenda.revealed` · after | 16 | 1 | Odlynn Myrr |
 | `combat.round` · start | 14 | 2 | Kuuasi Aun Jalatai, Proxima Targeting VI |
 | `combat` · start | 13 | 0 |  |
@@ -115,13 +115,13 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `agenda.revealed` · when | 10 | 0 |  |
 | `component.gained` · when | 8 | 2 | I.I.H.Q. Modernization, Planesplitter (Firmament) |
 | `production.used` · when | 9 | 0 |  |
-| `any_time` · any | 3 | 5 | Aroz Hollow, Captain Aroz, Nip and Tuck, Ssruu, Xander Alexin Victori III |
+| `any_time` · any | 4 | 4 | Aroz Hollow, Captain Aroz, Nip and Tuck, Xander Alexin Victori III |
 | `combat.hits_assigned` · before | 8 | 0 |  |
 | `unit.destroyed` · when | 1 | 6 | ???\_NULL\_REFERENCE\_???, Dame Briar, F.S.S. Orlando, Lyra Keen, Subatomic Splicer, Vos Hollow |
 | `tactical.system_activated` · when | 5 | 1 | Incursion |
 | `combat.won` · after | 5 | 0 |  |
 | `combat` · end | 1 | 4 | "Total Mystery", Ahk Siever, Exile II, Phoenix Standard |
-| `phase` · during [phase=action] | 2 | 3 | Data Skimmer, Deepgloom Executable, Nekro Malleon |
+| `phase` · during [phase=action] | 3 | 2 | Data Skimmer, Nekro Malleon |
 | `phase` · start [phase=status] | 1 | 4 | Hydrothermal Mining, Neural Parasite (Firmament), Radical Advancement, The Reaping |
 | `turn` · end | 5 | 0 |  |
 | `unit.sustain_damage` · after | 5 | 0 |  |
@@ -159,7 +159,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `strategy.token_spent` · when [would] | 1 | 1 | Jae Mir Kan |
 | `tactical.action` · during | 1 | 1 | Il Na Viroset |
 | `transaction` · when | 2 | 0 |  |
-| `turn` · during | 1 | 1 | Transparasteel Plating |
+| `turn` · during | 2 | 0 |  |
 | `unit.ability_used` · after [ability=roll] | 2 | 0 |  |
 | `unit.destroyed` · after | 2 | 0 |  |
 | `unit.sustain_damage` · when | 2 | 0 |  |
@@ -168,7 +168,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `agenda.revealed` · after [1/agenda phase] | 0 | 1 | Galactic Threat |
 | `agenda.votes_cast` · after [scope=all] | 0 | 1 | Hidden Agenda |
 | `cards.action_discarded` · after | 1 | 0 |  |
-| `cards.action_drawn` · when | 0 | 1 | Scheming |
+| `cards.action_drawn` · when | 1 | 0 |  |
 | `combat.hits_assigned` · after | 1 | 0 |  |
 | `combat.hits_assigned` · before [would] | 1 | 0 |  |
 | `combat.hits_produced` · when | 1 | 0 |  |

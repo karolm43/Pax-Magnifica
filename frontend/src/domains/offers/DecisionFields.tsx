@@ -127,6 +127,7 @@ export function DecisionField({
 
   // Informacja (np. „technologię wybierzesz po zagraniu”) - bez pola do wyboru.
   if (input.kind === "info") {
+    if (input.show && input.options.length > 0) return <ShownCards input={input} />;
     return (
       <div className={styles.field}>
         <p className={styles.hint}>
@@ -157,6 +158,25 @@ export function DecisionField({
     <div className={styles.field}>
       <AutoButton disabled={disabled} pressed={value === autoId} onClick={() => onChange(autoId)} />
       {field}
+    </div>
+  );
+}
+
+/**
+ * Cards the player only LOOKS at (So Ata, Kyver - RULES.md 62.22): the same chips as a choice,
+ * read-only (nothing to pick), the full card behind ⓘ.
+ */
+function ShownCards({ input }: { input: Extract<ActionCardInput, { kind: "info" }> }) {
+  return (
+    <div className={styles.field}>
+      <FieldHead label={input.label} hint={input.hint} />
+      <div className={styles.tiles} data-rich role="list" aria-label={input.label}>
+        {input.options.map((option) => (
+          <span key={option.id} role="listitem">
+            <Tile option={option} multi={false} selected={false} disabled onClick={() => {}} />
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

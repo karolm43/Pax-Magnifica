@@ -77,9 +77,18 @@ def ready_all_strategy_cards(state: GameState, player_id: str) -> None:
     _player(state, player_id).exhausted_strategy_cards = []
 
 
+def _proxy(state: GameState, player_id: str, leader_id: str) -> str:
+    from src.core import rules_hooks  # local: the hooks package imports this module
+
+    return rules_hooks.leader_proxy(state, player_id, leader_id)
+
+
 def exhaust_leader(state: GameState, player_id: str, leader_id: str) -> None:
-    """Wyczerpuje lidera (stan ``exhausted``). Legalność (lider gotowy) sprawdza wołający."""
+    """Wyczerpuje lidera (stan ``exhausted``). Legalność (lider gotowy) sprawdza wołający.
+
+    A borrowed leader exhausts its proxy (Ssruu, RULES.md 62.22)."""
     player = _player(state, player_id)
+    leader_id = _proxy(state, player_id, leader_id)
     player.leader_states = {**player.leader_states, leader_id: "exhausted"}
 
 
@@ -90,6 +99,7 @@ def ready_leader(state: GameState, player_id: str, leader_id: str) -> None:
     card readies" (Artuno the Betrayer, RULES.md 62.21).
     """
     player = _player(state, player_id)
+    leader_id = _proxy(state, player_id, leader_id)
     if player.leader_states.get(leader_id) == "exhausted":
         player.leader_states = {**player.leader_states, leader_id: "unlocked"}
         _leaders_readied(state, player_id, [leader_id])

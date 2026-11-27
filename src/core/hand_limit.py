@@ -27,6 +27,8 @@ def action_card_limit(state: GameState, player_id: str) -> int | None:
     limit = registry.hand_limits().action_cards
     if limit is None:
         return None
+    if rules_hooks.permits(rules_hooks.POINT_HAND_LIMIT_UNLIMITED, state, player_id):
+        return None  # Crafty: no game effect can impose a limit (RULES.md 62.22)
     # Hook MODIFY (Executive Sanctions: maks. 3 karty - RULES.md 51.6).
     delta = rules_hooks.modify(
         rules_hooks.POINT_HAND_LIMIT, state, player_id, 0, {"base": int(limit)}

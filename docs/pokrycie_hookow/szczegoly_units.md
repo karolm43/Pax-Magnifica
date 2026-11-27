@@ -92,5 +92,5 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `xxcha_mech` | Indomitus | xxcha | — | PERMIT (pozwolenie) | ruch, walka | ✔ | You may use this unit's SPACE CANNON against ships that are in adjacent systems. |
 | `yin_flagship` | Van Hauge | yin | — | — | walka | ✔ | When this ship is destroyed, destroy all ships in this system. |
 | `yin_mech` | Moyin's Ashes | yin | — | REPLACE (instead of) | ekonomia i płatności | ✔ | DEPLOY: When you use your Indoctrination faction ability, you may spend 1 additional influence to replace your opponent's unit with 1 mech … |
-| `yssaril_flagship` | Y'sia Y'ssrila | yssaril | — | PERMIT (pozwolenie) | ruch | — | This ship can move through systems that contain other player's ships. |
-| `yssaril_mech` | Blackshade Infiltrator | yssaril | — | PERMIT (pozwolenie) | planety i eksploracja | — | DEPLOY: After you use your Stall Tactics faction ability, you may place 1 mech on a planet you control. |
+| `yssaril_flagship` | Y'sia Y'ssrila | yssaril | — | PERMIT (pozwolenie) | ruch | ✔ | This ship can move through systems that contain other player's ships. |
+| `yssaril_mech` | Blackshade Infiltrator | yssaril | — | PERMIT (pozwolenie) | planety i eksploracja | ✔ | DEPLOY: After you use your Stall Tactics faction ability, you may place 1 mech on a planet you control. |

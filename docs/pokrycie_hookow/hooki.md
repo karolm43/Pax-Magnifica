@@ -4,13 +4,14 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **501**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
 | `action_cards.canceller` | PERMIT | unit:empyrean_mech | units:empyrean_mech | Public: a Watcher in / next to the card player's units - the hold window opens. |
 | `action_cards.canceller` | PERMIT | technology:it | technologies:it | Jawne: gotowa technologia i żeton w strategy pool - okno anulowania się otwiera. |
 | `action_cards.forbidden` | FORBID | agenda:censure | agendas:censure | — |
+| `action_cards.forbidden` | FORBID | rule:technologies:tp:passed_players | technologies:tp | Transparasteel Plating: During your turn of the action phase, players that have passed |
 | `adjacency.cut_for_player` | FORBID | rule:breakthroughs:empyreanbt:cut | breakthroughs:empyreanbt | ...other players do not treat those systems as adjacent to each other unless you allow it |
 | `adjacency.extra_for_player` | FORBID | faction:ghost | abilities:quantum_entanglement | Quantum Entanglement: You treat all systems that contain either an alpha or beta wormhole as |
 | `agenda.planets_ready_limit` | FORBID | effect:agendas:checks:against | agendas:checks | — |
@@ -143,6 +144,8 @@ Razem: **501**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:agenda.outcome_resolved:during` | TRIGGER | agenda:wormhole_research | agendas:wormhole_research | — |
 | `event:agenda.revealed:after` | TRIGGER | agenda:committee | agendas:committee | — |
 | `event:agenda.votes_cast:after` | TRIGGER | promissory:blood_pact | promissory_notes:blood_pact | Blood Pact: When you and the Empyrean player cast votes for the same outcome, cast 4 |
+| `event:cards.action_drawn:after` | TRIGGER | faction:yssaril | abilities:scheming | Scheming: When you draw 1 or more action cards: Draw 1 additional action card. Then, choose |
+| `event:cards.action_drawn:after` | TRIGGER | breakthrough:yssarilbt | breakthroughs:yssarilbt | Deepgloom Executable: You can allow other players to use your ... SCHEMING faction |
 | `event:cards.action_played:after` | TRIGGER | effect:action_cards:dp_give | — | — |
 | `event:cards.action_played:when` | TRIGGER | effect:leaders:mentakhero:sleeper | leaders:mentakhero | Mentak zagrywa Direct Hit: statek zniszczony tą kartą zastępuje się OD RAZU, zanim inne |
 | `event:combat.roll:after` | TRIGGER | unit:hacan_flagship | units:hacan_flagship | Wrath of Kenara: After you roll a die during a space combat in this system, you may spend 1 |
@@ -226,6 +229,14 @@ Razem: **501**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:faction.ability_used:after` | TRIGGER | unit:sol_mech | units:sol_mech | ZS Thunderbolt M2 — DEPLOY: After you use your Orbital Drop faction ability, you may spend |
 | `event:faction.ability_used:after` | TRIGGER | breakthrough:titansbt | breakthroughs:titansbt | — |
 | `event:faction.ability_used:after` | TRIGGER | faction:yin | unlocks:yincommander | Unlock: Use one of your faction abilities (Indoctrination albo Devotion - F_yin Ω). |
+| `event:faction.ability_used:after` | TRIGGER | faction:yssaril | — | The mandatory discard - nothing else resolves until it is made (scheming 4). |
+| `event:faction.ability_used:after` | TRIGGER | faction:yssaril | — | The Yssaril takes the chosen card (they may not show the hand to anyone - mi 2). |
+| `event:faction.ability_used:after` | TRIGGER | faction:yssaril | — | — |
+| `event:faction.ability_used:after` | TRIGGER | faction:yssaril | — | — |
+| `event:faction.ability_used:after` | TRIGGER | faction:yssaril | — | — |
+| `event:faction.ability_used:after` | TRIGGER | unit:yssaril_mech | units:yssaril_mech | Blackshade Infiltrator: DEPLOY: After you use your Stall Tactics faction ability, you may |
+| `event:faction.ability_used:after` | TRIGGER | breakthrough:yssarilbt | — | The allowed player uses Scheming; when they do, they may make a transaction with the |
+| `event:faction.ability_used:after` | TRIGGER | leader:yssarilcommander | — | Looking changes nothing; the decision only shows the cards to the Yssaril. |
 | `event:fracture.ingress_placed:after` | TRIGGER | breakthrough:cabalbt | breakthroughs:cabalbt | Oferta zaraz po rozłożeniu ingressów (ruling 1.2) - wykonuje :func:`move_ingress`. |
 | `event:objective.revealed:after` | TRIGGER | relic:neuraloop | relics:neuraloop | Neuraloop: When a public objective is revealed, you may purge one of your relics to discard |
 | `event:objective.scored:after` | TRIGGER | breakthrough:yinbt | breakthroughs:yinbt | Yin Ascendant: ... or score a public objective, gain the alliance ability of a random, |
@@ -330,6 +341,7 @@ Razem: **501**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.system_activated:after` | TRIGGER | planet:tempesta | planets:tempesta | Ionian Fuel Refinery: You may exhaust this card after you activate a system to apply +1 to the move value of 1 of your ships during this tactical action. |
 | `event:tactical.system_activated:after` | TRIGGER | faction:titans | abilities:awaken | Awaken: After you activate a system that contains 1 or more of your sleeper tokens: You may |
 | `event:tactical.system_activated:after` | TRIGGER | unit:titans_flagship | units:titans_flagship | Ouranos: DEPLOY: After you activate a system that contains 1 or more of your PDS, you may |
+| `event:tactical.system_activated:after` | TRIGGER | leader:yssarilcommander | leaders:yssarilcommander | So Ata: After another player activates a system that contains your units: You may look at |
 | `event:tactical.system_activated:when` | TRIGGER | technology:md | technologies:md | Magen Defense Grid ΩΩ: aktywacja systemu z Twoimi strukturami → 1 piechota przy każdej. |
 | `event:tactical.system_activated:when` | TRIGGER | faction:titans | — | Migawka chwili aktywacji: żetony sleeper i PDS gracza w systemie. Awaken i Ouranos |
 | `event:tactical.units_committed:after` | TRIGGER | effect:leaders:sardakkhero | — | — |
@@ -388,6 +400,7 @@ Razem: **501**. Opis = pierwsza linia docstringu funkcji hooka.
 | `fleet_pool.token_cap` | MODIFY | agenda:regulations | agendas:regulations | — |
 | `fleet_pool.unlimited` | PERMIT | effect:leaders:letnevhero | — | — |
 | `hand_limit.action_cards` | MODIFY | agenda:sanctions | agendas:sanctions | — |
+| `hand_limit.unlimited` | PERMIT | faction:yssaril | abilities:crafty | Crafty: You can have any number of action cards in your hand. Game effects cannot prevent |
 | `info.peek` | FORBID | leader:naalucommander | leaders:naalucommander | M'aban: At any time: You may look at your neighbors' hands of promissory notes and the top |
 | `invasion.commit_from_planets` | PERMIT | leader:sardakkcommander | — | F_norr: G'hom Sek'kus działa także bez statków w aktywnym systemie - inwazja otwiera |
 | `invasion.ground_force_types` | FORBID | unit:naalu_flagship | units:naalu_flagship | Matriarch: During an invasion in this system, you may commit fighters to planets as if they |
@@ -426,6 +439,7 @@ Razem: **501**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.pass_foreign_ships` | PERMIT | effect:action_cards:silence_space | — | Przelot przez obce statki dotyczy tylko statków startujących z wybranego systemu. |
 | `movement.pass_foreign_ships` | PERMIT | technology:lwd | technologies:lwd | Light/Wave Deflector: statki mogą przechodzić przez systemy z cudzymi statkami. |
 | `movement.pass_foreign_ships` | PERMIT | unit:mentak_cruiser3 | units:mentak_cruiser3 | Corsair: If the active system contains another player's non-fighter ships, this unit can |
+| `movement.pass_foreign_ships` | PERMIT | unit:yssaril_flagship | units:yssaril_flagship | Y'sia Y'ssrila: This ship can move through systems that contain other player's ships |
 | `movement.passage_blocked` | PERMIT | technology:ah | technologies:ah | Aerie Hololattice: Other players cannot move ships through systems that contain your |
 | `movement.rift_extra_bonus` | PERMIT | effect:promissory_notes:crucible | — | — |
 | `movement.rift_no_roll` | FORBID | unit:cabal_spacedock | units:cabal_spacedock | Dimensional Tear: This system is a gravity rift; your ships do not roll for this gravity |
@@ -566,6 +580,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `fleet_pool.token_cap`
 - `fleet_pool.unlimited`
 - `hand_limit.action_cards`
+- `hand_limit.unlimited`
 - `info.peek`
 - `invasion.commit_from_planets`
 - `invasion.ground_force_types`

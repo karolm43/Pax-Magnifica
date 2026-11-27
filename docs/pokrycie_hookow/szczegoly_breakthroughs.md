@@ -34,4 +34,4 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `winnubt` | Imperator | winnu | — | MODIFY (liczba/rzut) | ruch, walka, planety i eksploracja | ✔ | Apply +1 to the results of each of your unit's combat rolls for each "Support for the Throne" in your opponent's play area. After you activ… |
 | `xxchabt` | Archon's Gift | xxcha | — | PERMIT (pozwolenie) | ekonomia i płatności | ✔ | You can spend influence as if it were resources. You can spend resources as if it were influence. |
 | `yinbt` | Yin Ascendant | yin | — | — | cele i punkty | ✔ | When you gain this card or score a public objective, gain the alliance ability of a random, unused faction. |
-| `yssarilbt` | Deepgloom Executable | yssaril | — | PERMIT (pozwolenie) | — | — | You can allow other players to use your STALL TACTICS or SCHEMING faction abilities; when you do, you may resolve a transaction with that p… |
+| `yssarilbt` | Deepgloom Executable | yssaril | — | PERMIT (pozwolenie) | — | ✔ | You can allow other players to use your STALL TACTICS or SCHEMING faction abilities; when you do, you may resolve a transaction with that p… |

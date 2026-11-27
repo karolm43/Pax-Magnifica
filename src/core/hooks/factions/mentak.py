@@ -435,7 +435,13 @@ def salvage_produce(state: GameState, player_id: str, ctx: Mapping[str, Any]) ->
 
 
 def _agent_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
-    return ctx.get("player") == player_id and leaders.is_ready(state, _registry(), player_id, AGENT)
+    """Any player's Pillage against another player: the Yssaril copying Suffi An with Ssruu
+    answers the Mentak's Pillage (F_yssaril ssruu 4, RULES.md 62.22)."""
+    target = ctx.get("target")
+    return (
+        target in state.players and target != player_id
+        and leaders.is_ready(state, _registry(), player_id, AGENT)
+    )
 
 
 @on_event(
