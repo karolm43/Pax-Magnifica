@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **534**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -15,6 +15,7 @@ Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
 | `adjacency.cut_for_player` | FORBID | rule:breakthroughs:empyreanbt:cut | breakthroughs:empyreanbt | ...other players do not treat those systems as adjacent to each other unless you allow it |
 | `adjacency.extra_for_player` | FORBID | faction:ghost | abilities:quantum_entanglement | Quantum Entanglement: You treat all systems that contain either an alpha or beta wormhole as |
 | `agenda.planets_ready_limit` | FORBID | effect:agendas:checks:against | agendas:checks | — |
+| `agenda.required_outcome` | FORBID | effect:technologies:gr:vote | — | — |
 | `agenda.single_vote` | PERMIT | agenda:rep_govt | agendas:rep_govt | — |
 | `agenda.vote_first` | PERMIT | faction:argent | abilities:zeal | Zeal: You always vote first during the agenda phase (także jako mówca - F_argent). |
 | `agenda.vote_modifier` | MODIFY | faction:argent | abilities:zeal | Zeal: When you cast at least 1 vote: cast 1 additional vote for each player in the game |
@@ -61,6 +62,7 @@ Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
 | `combat.roll_modifier` | MODIFY | effect:action_cards:mb4 | — | — |
 | `combat.roll_modifier` | MODIFY | faction:jolnar | abilities:fragile | Fragile: Apply -1 to the result of each of your unit's combat rolls (obowiązkowo). |
 | `combat.roll_modifier` | MODIFY | unit:jolnar_mech | units:jolnar_mech | Shield Paling: Your infantry on this planet are not affected by your Fragile faction |
+| `combat.roll_modifier` | MODIFY | unit:mahact_flagship | units:mahact_flagship | Arvicon Rex: During combat against an opponent whose command token is not in your fleet |
 | `combat.roll_modifier` | MODIFY | effect:promissory_notes:tekklar | — | — |
 | `combat.roll_modifier` | MODIFY | effect:promissory_notes:tekklar:penalty | — | — |
 | `combat.roll_modifier` | MODIFY | agenda:prophecy | agendas:prophecy | — |
@@ -144,6 +146,7 @@ Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:agenda.outcome_resolved:during` | TRIGGER | agenda:wormhole_research | agendas:wormhole_research | — |
 | `event:agenda.revealed:after` | TRIGGER | agenda:committee | agendas:committee | — |
 | `event:agenda.votes_cast:after` | TRIGGER | promissory:blood_pact | promissory_notes:blood_pact | Blood Pact: When you and the Empyrean player cast votes for the same outcome, cast 4 |
+| `event:agenda.votes_cast:before` | TRIGGER | faction:mahact | — | — |
 | `event:cards.action_drawn:after` | TRIGGER | faction:yssaril | abilities:scheming | Scheming: When you draw 1 or more action cards: Draw 1 additional action card. Then, choose |
 | `event:cards.action_drawn:after` | TRIGGER | breakthrough:yssarilbt | breakthroughs:yssarilbt | Deepgloom Executable: You can allow other players to use your ... SCHEMING faction |
 | `event:cards.action_played:after` | TRIGGER | effect:action_cards:dp_give | — | — |
@@ -165,6 +168,7 @@ Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat.round:start` | TRIGGER | leader:solagent | leaders:solagent | Evelyn DeLouis: At the start of a ground combat round: You may exhaust this card to choose 1 |
 | `event:combat.step:start` | TRIGGER | effect:breakthroughs:letnevbt:ship | — | F_letnev gravleash-maneuvers 8: after The Thundarian the Letnev player may assign the bonus |
 | `event:combat.won:after` | TRIGGER | technology:dxa | technologies:dxa | Dacxive Animators: po wygranej walce naziemnej możesz postawić 1 piechotę na tej planecie. |
+| `event:combat.won:after` | TRIGGER | faction:mahact | abilities:edict | Edict: When you win a combat: Place 1 command token from your opponent's reinforcements in |
 | `event:combat.won:after` | TRIGGER | leader:mentakcommander | leaders:mentakcommander | S'ula Mentarion: After you win a space combat: You may force your opponent to give you 1 |
 | `event:combat.won:after` | TRIGGER | breakthrough:sardakkbt | breakthroughs:sardakkbt | N'orr Supremacy: After you win a combat, either gain 1 command token or research a unit |
 | `event:combat.won:after` | TRIGGER | technology:so | technologies:so | Salvage Operations: ... if you won the combat, you may also produce 1 ship in that system of |
@@ -219,6 +223,14 @@ Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:faction.ability_used:after` | TRIGGER | leader:l1z1xagent | — | Aktywny gracz wymienia 1 piechotę na mecha (mech zdjęty z planszy - nieuszkodzony, F_lizix |
 | `event:faction.ability_used:after` | TRIGGER | effect:leaders:naazagent:explore | — | Gracz, któremu Garv and Gunn pozwolili, eksploruje 1 swoją planetę z cechą. |
 | `event:faction.ability_used:after` | TRIGGER | effect:leaders:yinagent:dual | — | Właściciel zniszczonej jednostki-statku-i-siły-naziemnej stawia 2 myśliwce albo 2 piechotę. |
+| `event:faction.ability_used:after` | TRIGGER | faction:mahact | — | — |
+| `event:faction.ability_used:after` | TRIGGER | faction:mahact | — | Fleet Regulations at the cap: the token was added, now 1 token returns (edict 3). |
+| `event:faction.ability_used:after` | TRIGGER | faction:mahact | — | C_agendas armed-forces-standardization 1: the Mahact chooses which fleet tokens leave; |
+| `event:faction.ability_used:after` | TRIGGER | faction:mahact | — | — |
+| `event:faction.ability_used:after` | TRIGGER | faction:mahact | — | — |
+| `event:faction.ability_used:after` | TRIGGER | faction:mahact | — | — |
+| `event:faction.ability_used:after` | TRIGGER | faction:mahact | — | — |
+| `event:faction.ability_used:after` | TRIGGER | leader:mahactcommander | — | Activity: the own-token activation (both tokens return, the turn ends). |
 | `event:faction.ability_used:after` | TRIGGER | leader:mentakagent | leaders:mentakagent | Suffi An: After the Pillage faction ability is used against another player: You may exhaust |
 | `event:faction.ability_used:after` | TRIGGER | leader:mentakcommander | — | Przeciwnik oddaje wybraną notkę z ręki (decyzja obowiązkowa przeciwnika). |
 | `event:faction.ability_used:after` | TRIGGER | unit:muaat_mech | units:muaat_mech | Ember Colossus: When you use your Star Forge faction ability in this system or an adjacent |
@@ -238,6 +250,7 @@ Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:faction.ability_used:after` | TRIGGER | breakthrough:yssarilbt | — | The allowed player uses Scheming; when they do, they may make a transaction with the |
 | `event:faction.ability_used:after` | TRIGGER | leader:yssarilcommander | — | Looking changes nothing; the decision only shows the cards to the Yssaril. |
 | `event:fracture.ingress_placed:after` | TRIGGER | breakthrough:cabalbt | breakthroughs:cabalbt | Oferta zaraz po rozłożeniu ingressów (ruling 1.2) - wykonuje :func:`move_ingress`. |
+| `event:game.setup:during` | TRIGGER | faction:mahact | abilities:hubris | Hubris: During setup, purge your "Alliance" promissory note. |
 | `event:objective.revealed:after` | TRIGGER | relic:neuraloop | relics:neuraloop | Neuraloop: When a public objective is revealed, you may purge one of your relics to discard |
 | `event:objective.scored:after` | TRIGGER | breakthrough:yinbt | breakthroughs:yinbt | Yin Ascendant: ... or score a public objective, gain the alliance ability of a random, |
 | `event:phase:end` | TRIGGER | technology:bio | technologies:bio | Bioplasmosis: At the end of the status phase, you may remove any number of infantry from |
@@ -331,6 +344,7 @@ Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:tactical.system_activated:after` | TRIGGER | unit:ghost_mech | units:ghost_mech | Icarus Drive: After any player activates a system, you may remove this unit from the game |
 | `event:tactical.system_activated:after` | TRIGGER | leader:ghostagent | leaders:ghostagent | Emissary Taivra: After a player activates a system that contains a non-delta wormhole: You |
 | `event:tactical.system_activated:after` | TRIGGER | leader:l1z1xagent | leaders:l1z1xagent | I48S: After a player activates a system: You may exhaust this card to allow that player to |
+| `event:tactical.system_activated:after` | TRIGGER | unit:mahact_mech | units:mahact_mech | Starlancer: After a player whose command token is in your fleet pool activates this |
 | `event:tactical.system_activated:after` | TRIGGER | agenda:minister_peace | agendas:minister_peace | — |
 | `event:tactical.system_activated:after` | TRIGGER | technology:nf | technologies:nf | Nullification Field: After another player activates a system that contains 1 or more of your |
 | `event:tactical.system_activated:after` | TRIGGER | technology:ng | technologies:ng | Neuroglaive: After another player activates a system that contains 1 or more of your ships, |
@@ -365,6 +379,7 @@ Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:turn:end` | TRIGGER | technology:pi | technologies:pi | Predictive Intelligence: na końcu tury wyczerp kartę, by przerozdzielić żetony dowodzenia. |
 | `event:turn:end` | TRIGGER | planet:primor | planets:primor | The Atrament: You may exhaust this card at the end of your turn to place up to 2 infantry from your reinforcements on any planet you control. |
 | `event:turn:end` | TRIGGER | planet:thundersedge | planets:thundersedge | Jupiter Brain: You may exhaust this card at the end of your turn to perform another action. |
+| `event:turn:start` | TRIGGER | technology:cl2 | technologies:cl2 | Crimson Legionnaire II: At the start of your next turn, place each unit that is on this |
 | `event:turn:start` | TRIGGER | technology:cm | technologies:cm | Chaos Mapping: At the start of your turn during the action phase, you may produce 1 unit |
 | `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Każda piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
@@ -380,6 +395,8 @@ Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:unit.destroyed:after` | TRIGGER | technology:inf2 | technologies:inf2 | Infantry II / Spec Ops II: po zniszczeniu piechoty rzuć kością; przy progu+ jednostka |
 | `event:unit.destroyed:after` | TRIGGER | effect:leaders:mentakhero:sleeper | leaders:mentakhero | F_mentak 7.1: po Direct Hit Mentaka statek tego typu staje od razu (może jeszcze w tej |
 | `event:unit.destroyed:after` | TRIGGER | technology:lw2 | technologies:lw2 | Infantry II / Spec Ops II: po zniszczeniu piechoty rzuć kością; przy progu+ jednostka |
+| `event:unit.destroyed:after` | TRIGGER | unit:mahact_infantry | units:mahact_infantry | Crimson Legionnaire I: After this unit is destroyed, gain 1 commodity or convert 1 of your |
+| `event:unit.destroyed:after` | TRIGGER | unit:mahact_infantry2 | units:mahact_infantry2 | Crimson Legionnaire II: After this unit is destroyed, gain 1 commodity or convert 1 of |
 | `event:unit.destroyed:after` | TRIGGER | unit:naaz_voltron | — | When this unit is destroyed or removed, flip this card and return it to your play area. |
 | `event:unit.destroyed:after` | TRIGGER | unit:saar_spacedock | — | If this unit is blockaded, it is destroyed. |
 | `event:unit.destroyed:after` | TRIGGER | unit:saar_spacedock2 | — | If this unit is blockaded, it is destroyed. |
@@ -475,6 +492,7 @@ Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
 | `production.system_value` | MODIFY | technology:mr | technologies:mr | Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability as if |
 | `production.total_value` | MODIFY | effect:action_cards:war_machine | — | — |
 | `production.units_per_cost` | MODIFY | agenda:conscription | agendas:conscription | — |
+| `promissory.cannot_receive` | FORBID | faction:mahact | — | Hubris: Other players cannot give you their "Alliance" promissory notes. |
 | `retreat.anywhere` | PERMIT | technology:det | — | Dark Energy Tap: statki mogą wycofać się do sąsiedniego systemu bez cudzych jednostek. |
 | `space_cannon.defense_immune` | PERMIT | technology:l4 | technologies:l4 | L4 Disruptors: During an invasion, units cannot use SPACE CANNON against your units. |
 | `space_cannon.extra_dice` | MODIFY | leader:argentcommander | leaders:argentcommander | — |
@@ -494,6 +512,7 @@ Razem: **515**. Opis = pierwsza linia docstringu funkcji hooka.
 | `strategy.secondary_free` | PERMIT | faction:hacan | abilities:master_of_trade | Masters of Trade: You do not have to spend a command token to resolve the secondary |
 | `structures.pds_as_mech` | PERMIT | unit:titans_mech | units:titans_mech | Hecatoncheires: DEPLOY: When you would place a PDS on a planet, you may place 1 mech and |
 | `system.action_wormholes` | FORBID | technology:lgf | technologies:lgf | "treat its system as if it has both an α and β wormhole" - the system counts as containing |
+| `tactical.activate_own_token` | PERMIT | leader:mahactcommander | leaders:mahactcommander | Il Na Viroset: During your tactical actions: you can activate systems that contain your |
 | `tactical.activation_blocked` | PERMIT | technology:cm | technologies:cm | Other players cannot activate asteroid fields that contain 1 or more of your ships. |
 | `technology.captured_skip` | PERMIT | faction:cabal | abilities:riftmeld | Riftmeld: When you research a unit upgrade technology: You may return 1 captured unit of |
 | `technology.free_prerequisite_ignores` | MODIFY | faction:jolnar | abilities:analytical | Analytical: When you research a technology that is not a unit upgrade technology: You may |
@@ -531,6 +550,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `turn.action_started`
 - `adjacency.cut_for_player`
 - `adjacency.extra_for_player`
+- `agenda.required_outcome`
 - `agenda.single_vote`
 - `agenda.votes_per_planet`
 - `agenda.vote_first`
@@ -628,6 +648,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `production.total_value`
 - `production.units_per_cost`
 - `production.value`
+- `promissory.cannot_receive`
 - `retreat.anywhere`
 - `objectives.secret_limit`
 - `space_cannon.defense_immune`
@@ -644,6 +665,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `invasion.strips_planetary_shield`
 - `structures.pds_as_mech`
 - `system.action_wormholes`
+- `tactical.activate_own_token`
 - `tactical.activation_blocked`
 - `technology.captured_skip`
 - `technology.free_prerequisite_ignores`

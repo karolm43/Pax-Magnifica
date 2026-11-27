@@ -473,8 +473,8 @@ def _sanction_reward(
     if agenda is None:
         return
     for voter, vote in agenda.votes.items():
-        if vote.outcome == outcome and command_tokens.pool_count(state, voter, "fleet") > 0:
-            command_tokens.spend_to_reinforcements(state, voter, "fleet", 1)
+        if vote.outcome == outcome:
+            command_tokens.remove_fleet_token(state, voter)  # own first (F_mahact edict 2)
 
 
 # Technology Rider - research 1 technology (wybór przy zagraniu karty). C_action_cards: wolno
@@ -777,7 +777,8 @@ def _dp_inputs_players(state: GameState, registry: StaticDataRegistry, player_id
 def _dp_give_inputs(
     state: GameState, registry: StaticDataRegistry, decider: str, _ctx: Mapping[str, Any]
 ) -> list[Input]:
-    hand = state.players[decider].private.promissory_notes
+    # Hubris: only notes the receiver may get (F_mahact hubris 1).
+    hand = promissory_notes.giveable(state, decider, str(_ctx.get("player") or ""))
     options = [_option(n, _note_label(registry, n), f"{n}#{i}") for i, n in enumerate(hand)]
     return [_choice("note", "Promissory note to give", options)]
 

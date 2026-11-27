@@ -245,11 +245,12 @@ def _name(state: GameState, player_id: str) -> str:
 
 
 def _voidwatch_mover(_state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> str:
-    return str(ctx["player"])
+    """"A player moves ships" = the player who moved them (F_mahact benediction 2.1)."""
+    return str(ctx.get("mover") or ctx["player"])
 
 
 def _voidwatch_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
-    mover = str(ctx.get("player") or "")
+    mover = str(ctx.get("mover") or ctx.get("player") or "")
     return (
         bool(mover) and mover != player_id and mover in state.players
         and _has_units(state, player_id, str(ctx.get("position") or ""))

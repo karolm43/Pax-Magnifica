@@ -16,7 +16,11 @@ export type StrategyPrompt = {
   draft: Record<string, unknown>;
   /** Opcje z modułu karty — kształt zależy od karty i kroku. */
   options: Record<string, unknown>;
+  /** Other ways to pay the secondary's token (Jae Mir Kan, RULES.md 62.23): systems on the map. */
+  token_alternatives?: TokenAlternative[];
 };
+
+export type TokenAlternative = { key: string; label: string; systems: string[] };
 
 /** Pola gracza używane przez widoki kart (podzbiór `playerData`). */
 export type PromptPlayer = {

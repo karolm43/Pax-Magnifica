@@ -34,6 +34,9 @@ OWNERS: dict[str, frozenset[str]] = {
     "tactical_cc": frozenset({"core/command_tokens.py", _GOD_MODE}),
     "fleet_cc": frozenset({"core/command_tokens.py", _GOD_MODE}),
     "strategic_cc": frozenset({"core/command_tokens.py", _GOD_MODE}),
+    # Other players' tokens in the fleet pool (Mahact Edict, RULES.md 62.23).
+    "foreign_fleet_tokens": frozenset({"core/command_tokens.py", _GOD_MODE}),
+    "purged_technologies": frozenset({"core/technology.py", _GOD_MODE}),
     "exhausted_planets": frozenset({"core/exhaust.py", "core/nexus.py", _GOD_MODE}),
     "exhausted_technologies": frozenset({"core/exhaust.py", _GOD_MODE}),
     "exhausted_strategy_cards": frozenset({"core/exhaust.py", _GOD_MODE}),
@@ -74,7 +77,8 @@ OWNERS: dict[str, frozenset[str]] = {
     "exploration_deck": frozenset({"core/exploration.py", "core/deck_piles.py", _GOD_MODE}),
     "exploration_discard": frozenset({"core/exploration.py", "core/deck_piles.py", _GOD_MODE}),
     "purged": frozenset(
-        {"core/exploration.py", "core/deck_piles.py", "core/relics.py", _GOD_MODE}
+        {"core/exploration.py", "core/deck_piles.py", "core/relics.py",
+         "core/promissory_notes.py", _GOD_MODE}  # Hubris purges an Alliance note (62.23)
     ),
     "planet_attachments": frozenset({"core/exploration.py", _GOD_MODE}),
     # Przełom frakcji: odblokowanie idzie przez core/breakthrough.py (ekspedycje, RULES.md 50);

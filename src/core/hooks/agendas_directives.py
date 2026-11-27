@@ -409,8 +409,7 @@ def _clandestine_for(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None
 
 @on_outcome("cladenstine", outcome="against", label="Clandestine Operations")
 def _clandestine_against(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> None:
-    if command_tokens.pool_count(state, pid, "fleet") > 0:
-        command_tokens.spend_to_reinforcements(state, pid, "fleet", 1)
+    command_tokens.remove_fleet_token(state, pid)  # own first (F_mahact edict 2)
 
 
 # New Constitution - For: discard all laws; next strategy phase exhaust home planets.
@@ -526,9 +525,9 @@ def _grant(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
     technology.grant_technology(state, pid, tech_id)
     # Za każdy prerekwizyt żeton z fleet pool; przy braku - wszystkie (C_agendas).
     cost = min(sum(technology.prerequisites(definition).values()),
-               command_tokens.pool_count(state, pid, "fleet"))
-    if cost > 0:
-        command_tokens.spend_to_reinforcements(state, pid, "fleet", cost)
+               command_tokens.fleet_pool_count(state, pid))
+    for _ in range(max(0, cost)):
+        command_tokens.remove_fleet_token(state, pid)  # own first (F_mahact edict 2)
 
 
 # Incentive Program - For: reveal a stage I objective; Against: a stage II objective.
@@ -727,11 +726,19 @@ def _seed(state: GameState, _pid: str, ctx: Mapping[str, Any]) -> None:
 # Armed Forces Standardization - 3 tactic / 3 fleet / 2 strategy from reinforcements.
 @on_outcome("standardization", condition=is_elected, label="Armed Forces Standardization")
 def _standardization(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> None:
+    # Other players' tokens in the fleet pool count towards its 3 (Mahact, C_agendas
+    # armed-forces-standardization 1): ⚠️ ASSUMPTION "Auto" = they stay, extra ones (> 3) go back
+    # to their owners; the holder may then swap them for own tokens (STANDARDIZE_FOREIGN).
+    foreign = command_tokens.foreign_fleet_tokens(state, pid)
+    for owner in sorted(foreign)[_STANDARD_POOLS["fleet"]:]:
+        command_tokens.return_foreign_fleet_token(state, pid, owner)
+    kept = len(command_tokens.foreign_fleet_tokens(state, pid))
     current = {p: command_tokens.pool_count(state, pid, p) for p in command_tokens.POOLS}
     available = sum(current.values()) + command_tokens.reinforcements(state, pid)
     target: dict[str, int] = {}
     for pool in command_tokens.POOLS:  # ⚠️ za mało żetonów: pule wypełniane po kolei
-        take = min(_STANDARD_POOLS.get(pool, 0), available)
+        wanted = _STANDARD_POOLS.get(pool, 0) - (kept if pool == "fleet" else 0)
+        take = min(wanted, available)
         target[pool] = take
         available -= take
     delta = sum(target.values()) - sum(current.values())
@@ -740,6 +747,16 @@ def _standardization(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> Non
     elif delta < 0:
         command_tokens.return_to_reinforcements(state, pid, -delta)
     command_tokens.set_pools(state, pid, target)
+    if kept:
+        from src.core import triggers  # local: triggers imports the hooks
+
+        triggers.fire(state, GameEvent.FACTION_ABILITY_USED, Moment.AFTER, subject=pid,
+                      ctx={"player": pid, "ability": STANDARDIZE_FOREIGN, "target": pid})
+
+
+# ``FACTION_ABILITY_USED`` ability: the holder of other players' fleet tokens chooses which of
+# them leave (Armed Forces Standardization, RULES.md 62.23) - decision in the holder's module.
+STANDARDIZE_FOREIGN = "agendas:standardization:foreign_fleet_tokens"
 
 
 # Unconventional Measures - For: voters "For" draw 2 AC; Against: voters "For" discard all AC.
@@ -877,9 +894,9 @@ def _regulations(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
     if ctx.get("outcome") == "for":
         from src.core.hooks.agendas_laws import FLEET_REGULATIONS_CAP
 
-        excess = command_tokens.pool_count(state, pid, "fleet") - FLEET_REGULATIONS_CAP
-        if excess > 0:
-            command_tokens.spend_to_reinforcements(state, pid, "fleet", excess)
+        excess = command_tokens.fleet_pool_count(state, pid) - FLEET_REGULATIONS_CAP
+        for _ in range(max(0, excess)):
+            command_tokens.remove_fleet_token(state, pid)  # own first (F_mahact edict 2)
     elif command_tokens.reinforcements(state, pid) > 0:
         command_tokens.gain_from_reinforcements(state, pid, {"fleet": 1})
 

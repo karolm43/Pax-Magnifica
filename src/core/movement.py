@@ -1107,6 +1107,8 @@ def fire_ships_moved(
     *,
     route: list[str] | None = None,
     kind: str = "tactical",
+    mover: str | None = None,
+    open_window: bool = True,
 ) -> None:
     """JEDYNE miejsce emisji ``SHIPS_MOVED/AFTER`` (MUTUJE ``state``): statki gracza weszły do
     systemu ``position``.
@@ -1123,5 +1125,9 @@ def fire_ships_moved(
         "player": player_id, "position": position, "from": from_pos,
         "base_type": next(iter(moved)), "ships": moved, "kind": kind,
         "route": list(route) if route else [from_pos, position],
+        # Who moved the ships (another player's component - Benediction, RULES.md 62.23):
+        # "after you move ..." abilities of the owner do not trigger then (F_mahact 2.3, 7).
+        "mover": mover or player_id,
     }
-    triggers.fire(state, GameEvent.SHIPS_MOVED, Moment.AFTER, subject=player_id, ctx=ctx)
+    triggers.fire(state, GameEvent.SHIPS_MOVED, Moment.AFTER, subject=player_id, ctx=ctx,
+                  open_window=open_window)

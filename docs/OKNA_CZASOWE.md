@@ -109,7 +109,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `agenda.revealed` · after | 16 | 1 | Odlynn Myrr |
 | `combat.round` · start | 14 | 2 | Kuuasi Aun Jalatai, Proxima Targeting VI |
 | `combat` · start | 13 | 0 |  |
-| `turn` · start | 9 | 3 | Crimson Legionnaire II, Law's Order, Neural Parasite (Obsidian) |
+| `turn` · start | 10 | 2 | Law's Order, Neural Parasite (Obsidian) |
 | `production.units_produced` · when | 7 | 4 | "A Tall Stranger", Agency Supply Network, Homesick Phantom, The Icon |
 | `tactical.ships_moved` · after | 10 | 1 | Call of the Void |
 | `agenda.revealed` · when | 10 | 0 |  |
@@ -126,7 +126,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `turn` · end | 5 | 0 |  |
 | `unit.sustain_damage` · after | 5 | 0 |  |
 | `cards.action_played` · when | 4 | 0 |  |
-| `game.setup` · during | 2 | 2 | Hubris, The Tribunii |
+| `game.setup` · during | 3 | 1 | The Tribunii |
 | `phase` · start [phase=strategy] | 3 | 1 | Council Patronage |
 | `planet.control_gained` · after | 4 | 0 |  |
 | `planet.control_gained` · when | 3 | 1 | Liberate |
@@ -156,8 +156,8 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `planet.explored` · after | 2 | 0 |  |
 | `status.step` · when [step=gain_command_tokens] | 2 | 0 |  |
 | `strategy.action` · when [would] | 2 | 0 |  |
-| `strategy.token_spent` · when [would] | 1 | 1 | Jae Mir Kan |
-| `tactical.action` · during | 1 | 1 | Il Na Viroset |
+| `strategy.token_spent` · when [would] | 2 | 0 |  |
+| `tactical.action` · during | 2 | 0 |  |
 | `transaction` · when | 2 | 0 |  |
 | `turn` · during | 2 | 0 |  |
 | `unit.ability_used` · after [ability=roll] | 2 | 0 |  |
@@ -179,7 +179,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `combat.step` · after [step=roll_dice] | 1 | 0 |  |
 | `combat.step` · during [step=anti_fighter_barrage] | 1 | 0 |  |
 | `combat.step` · start [step=announce_retreats] | 1 | 0 |  |
-| `combat.won` · when | 0 | 1 | Edict |
+| `combat.won` · when | 1 | 0 |  |
 | `combat` · during | 1 | 0 |  |
 | `component.exhausted` · after | 1 | 0 |  |
 | `component.gained` · after | 1 | 0 |  |

@@ -57,3 +57,17 @@ def test_l1z1x_system_docelowy(registry: StaticDataRegistry) -> None:
     areas = _areas(flow)
     assert (flow.me, position, "gain") in areas
     assert (flow.me, flow.home, "loss") in areas
+
+
+def test_mahact_benediction_zrodlo_i_walka(registry: StaticDataRegistry) -> None:
+    """Benediction names its origin and its combat system (RULES.md 62.23) - the board FX draws
+    the chain between them."""
+    flow = Flow(registry, "mahact")
+    source, dest = flow.plain_pair()
+    flow.space(source, flow.me, {"cruiser": 2})
+    flow.space(dest, flow.other, {"destroyer": 1})
+    flow.player(lambda p: p["leader_states"].update(mahacthero="unlocked"))
+    flow.use("leader", "mahacthero", {"source": source, "destination": dest})
+    areas = _areas(flow)
+    assert (flow.me, source, "benediction_origin") in areas
+    assert (flow.me, dest, "benediction") in areas

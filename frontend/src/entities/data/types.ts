@@ -844,6 +844,8 @@ export type AgendaVoter = {
   predictive: { owned: boolean; ready: boolean; votes: number };
   /** Representative Government: dokładnie 1 głos, bez planet i dodatkowych głosów. */
   singleVote?: boolean;
+  /** Genetic Recombination (RULES.md 62.23): the outcome this voter must vote for. */
+  requiredOutcome?: string | null;
 };
 
 /** Rider zagrany na bieżącą agendę: kto, jaką kartą i NA JAKI wynik (jawne). */
@@ -1176,6 +1178,10 @@ export type PlayerData = {
 
   // mahact-specific properties
   mahactEdict?: string[];
+  // Il Na Viroset (RULES.md 62.23): the player may activate systems holding their own token.
+  canActivateOwnTokens?: boolean;
+  // Technologies purged from the game (Vaults of the Heir).
+  purgedTechs?: string[];
 
   // nekro-specific properties (Thunder's Edge)
   valefarZTargets?: string[];

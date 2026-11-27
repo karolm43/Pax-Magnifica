@@ -251,6 +251,16 @@ def require_no_agenda_decisions(state: GameState) -> None:
         )
 
 
+def required_outcomes(state: GameState, player_id: str) -> frozenset[str]:
+    """Outcomes the player MUST vote for (hook FORBID ``agenda.required_outcome`` - Genetic
+    Recombination, RULES.md 62.23); empty = free vote."""
+    agenda = state.agenda
+    return rules_hooks.forbidden(
+        rules_hooks.POINT_AGENDA_REQUIRED_OUTCOME, state, player_id,
+        {"agenda": agenda.agenda_id if agenda is not None else ""},
+    )
+
+
 def single_vote(state: GameState, player_id: str) -> bool:
     """Representative Government: 1 głos bez wyczerpywania planet i bez dodatkowych głosów."""
     return rules_hooks.permits(rules_hooks.POINT_AGENDA_SINGLE_VOTE, state, player_id)
@@ -509,6 +519,11 @@ def cast_vote(
     if votes <= 0:
         raise ValueError("Casting zero votes is the same as abstaining - abstain instead.")
     chosen = _normalise_outcome(agenda, outcome)
+    required = required_outcomes(state, player_id)
+    if required and chosen not in required:
+        raise ValueError(
+            f"You must cast your votes for {sorted(required)[0]} (Genetic Recombination)."
+        )
     work = state.clone()
     assert work.agenda is not None
     vote_ctx = {
@@ -538,6 +553,10 @@ def abstain(state: GameState, registry: StaticDataRegistry, player_id: str) -> G
     timing.require_no_reaction_pause(state)  # pauza ochronna (RULES.md 54.10)
     _require_agenda(state, AgendaStep.VOTE)
     _require_votable(state, player_id)
+    if required_outcomes(state, player_id):
+        raise ValueError(
+            "You must cast at least 1 vote for the chosen outcome (Genetic Recombination)."
+        )
     work = state.clone()
     assert work.agenda is not None
     work.agenda.abstained.append(player_id)

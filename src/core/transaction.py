@@ -538,6 +538,11 @@ def validate_side(
     """Pełna walidacja jednej strony: posiadanie, planety (Pride of Kenara), karty akcji /
     relikty / cele (Arbiters, Black Market Dealings — efekt którejkolwiek strony wystarcza)."""
     validate_own_side(state, giver_id, side, who)
+    note = side.promissory_note
+    if note is not None and not promissory_notes.can_receive(state, partner_id, note):
+        raise ValueError(  # Hubris (RULES.md 62.23)
+            "That player cannot be given this promissory note (they purge their Alliance)."
+        )
     _validate_planets(state, giver_id, side, who)
     _validate_captured(state, giver_id, partner_id, side, who)
     _validate_extras(

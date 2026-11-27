@@ -91,6 +91,8 @@ def apply_moves(
     *,
     fighters_free: bool,
     carriers: tuple[str, ...] | None = None,
+    mover: str | None = None,
+    open_window: bool = True,
 ) -> None:
     """Przenosi jednostki (MUTUJE): rzut szczeliny grawitacyjnej przy wyjściu.
 
@@ -128,4 +130,5 @@ def apply_moves(
             for bt, n in lost.items():
                 unit_ops.remove_units(state, target, SPACE, player_id, bt, n, UnitCause.DESTROYED)
             arrived = {bt: n - lost.get(bt, 0) for bt, n in ships.items()}
-            movement.fire_ships_moved(state, player_id, dest, source, arrived, kind="direct")
+            movement.fire_ships_moved(state, player_id, dest, source, arrived, kind="direct",
+                                      mover=mover, open_window=open_window)

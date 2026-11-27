@@ -346,7 +346,7 @@ def _neuroglaive_applies(state: GameState, player_id: str, ctx: Mapping[str, Any
     return (
         activator is not None and activator != player_id and activator in state.players
         and bool(_ships(state.systems.get(str(ctx.get("position") or "")), player_id))
-        and state.players[str(activator)].fleet_cc > 0
+        and command_tokens.fleet_pool_count(state, str(activator)) > 0
     )
 
 
@@ -361,7 +361,7 @@ def neuroglaive(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> No
     Nadwyżkę puli floty w każdym systemie otwiera ``limits.enforce_limits``, a ruch czeka na jej
     usunięcie (F_naalu neuroglaive 1)."""
     activator = str(ctx["player"])
-    command_tokens.spend_to_reinforcements(state, activator, "fleet")
+    command_tokens.remove_fleet_token(state, activator)  # own first (F_mahact edict 2)
     ability_notes.note(state, activator, f"technologies:{NEUROGLAIVE}",
                        "1 token removed from the fleet pool")
 

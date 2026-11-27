@@ -23,7 +23,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `devotion` | Devotion | yin | after | TRIGGER (okno reakcji) | walka, produkcja | ✔ | You may destroy 1 of your cruisers or destroyers in the active system to produce 1 hit and assign it to 1 of your opponent's ships in that … |
 | `devour` | Devour | cabal | — | — | walka | ✔ | Capture your opponent's non-structure units that are destroyed during combat. |
 | `distant_suns` | Distant Suns | naaz | when | TRIGGER (okno reakcji) | karty | ✔ | You may draw 1 additional card; choose 1 to resolve and discard the rest. |
-| `edict` | Edict | mahact | when | TRIGGER (okno reakcji) | produkcja, żetony dowodzenia | — | Other players' tokens in your fleet pool increase your fleet limit but cannot be redistributed. Place 1 command token from your opponent's … |
+| `edict` | Edict | mahact | when | TRIGGER (okno reakcji) | produkcja, żetony dowodzenia | ✔ | Other players' tokens in your fleet pool increase your fleet limit but cannot be redistributed. Place 1 command token from your opponent's … |
 | `fabrication` | Fabrication | naaz | action | — | żetony dowodzenia, planety i eksploracja | ✔ | Either purge 2 of your relic fragments of the same type to gain 1 relic or purge 1 of your relic fragments to gain 1 command token. |
 | `foresight` | Foresight | naalu | after | TRIGGER (okno reakcji) | ruch, żetony dowodzenia | ✔ | You may place 1 token from your strategy pool in an adjacent system that does not contain another player's ships; move your ships from the … |
 | `fragile` | Fragile | jolnar | — | MODIFY (liczba/rzut) | walka | ✔ | Apply -1 to the result of each of your unit's combat rolls. |
@@ -33,8 +33,8 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `gashlai_physiology` | Gashlai Physiology | muaat | — | PERMIT (pozwolenie) | ruch | ✔ | Your ships can move through supernovas. |
 | `guild_ships` | Guild Ships | hacan | — | PERMIT (pozwolenie) | — | ✔ | You can negotiate transactions with players who are not your neighbor. |
 | `harrow` | Harrow | l1z1x | at_end | PERMIT (pozwolenie) | walka, planety i eksploracja | ✔ | Your ships in the active system may use their BOMBARDMENT abilities against your opponent's ground forces on the planet. |
-| `hubris` | Hubris | mahact | — | FORBID (zakaz) | karty | — | During setup, purge your "Alliance" promissory note. Other players cannot give you their "Alliance" promissory notes. |
-| `imperia` | Imperia | mahact | — | PERMIT (pozwolenie) | żetony dowodzenia | — | While another player's command token is in your fleet pool, you can use the ability of that player's commander, if it is unlocked. |
+| `hubris` | Hubris | mahact | — | FORBID (zakaz) | karty | ✔ | During setup, purge your "Alliance" promissory note. Other players cannot give you their "Alliance" promissory notes. |
+| `imperia` | Imperia | mahact | — | PERMIT (pozwolenie) | żetony dowodzenia | ✔ | While another player's command token is in your fleet pool, you can use the ability of that player's commander, if it is unlocked. |
 | `incursion` | Incursion | crimson | — | PERMIT (pozwolenie) | ruch, status i odświeżanie | — | When you activate a system that contains a breach, you may flip that breach; systems that contain active breaches are adjacent. At the end … |
 | `indoctrination` | Indoctrination | yin | at_start | PERMIT (pozwolenie) | produkcja, ekonomia i płatności | ✔ | You may spend 2 influence to replace 1 of your opponent's participating infantry with 1 infantry from your reinforcements. |
 | `laws_order` | Law's Order | keleres | at_start | PERMIT (pozwolenie) | ekonomia i płatności | — | You may spend 1 trade good or 1 commodity to treat all laws as blank until the end of that turn. |

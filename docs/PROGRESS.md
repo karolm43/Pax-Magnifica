@@ -391,3 +391,37 @@ Older, completed blocks (Phase 1 → blocks of 2026-11-25) are in `PROGRESS_ARCH
   `test_technologies_actions::test_kazda_karta_frontier_da_sie_rozstrzygnac_w_oknie_eksploracji`.
 - ⚠️ ASSUMPTIONS: RULES.md 54.15 e (which effects are mutual / owner_picks; Watcher for third
   players; the Creuss picks the token's system).
+
+## B20: The Mahact Gene-Sorcerers (RULES.md 62.23, 2026-11-27)
+
+- All 14 components in `core/hooks/factions/mahact.py`. Central points: other players' tokens in the
+  fleet pool (`PlayerState.foreign_fleet_tokens`; `command_tokens.fleet_pool_count` is THE fleet pool
+  size - fleet report, Fleet Regulations cap; `remove_fleet_token` = own first, a foreign token goes to
+  its owner - agendas, Neuroglaive, action cards routed through it), commander provider
+  (`rules_hooks.register_commander_provider`, Imperia), PERMIT `tactical.activate_own_token`
+  (Il Na Viroset: both tokens return, turn ends, only PN return conditions fire), FORBID
+  `agenda.required_outcome` (Genetic Recombination, enforced in `cast_vote` / `abstain`), FORBID
+  `promissory.cannot_receive` + `promissory_notes.giveable` / `purge_from_hand` (Hubris),
+  `command_tokens.register_secondary_alternative` (Jae Mir Kan pays a secondary with the active
+  player's board token), component space combat `battle.start_combat(source=, position=, attacker=,
+  no_retreat=)` + `retreat_destinations` honouring `no_retreat` (Benediction), `technology.purge_technology`
+  + `purged_technologies` (Vaults of the Heir; war suns leave with their upgrade).
+- Cross fixes: `SHIPS_MOVED` carries `mover` (Voidwatch asks the mover, Nova Seed needs mover = owner)
+  and can fire without its own window (`open_window=False` - Sai Seravus waits in the combat's start
+  triggers); Armed Forces Standardization counts foreign fleet tokens (holder keeps / returns each);
+  S'ula Mentarion / Diplomatic Pressure only offer receivable notes; `tactical_pn_owners` cleared for a
+  component combat (no Betray a Friend).
+- Frontend: Benediction board FX `benediction` (`MahactFxMarks.tsx`: gene-sigil over the origin, chain of
+  command dragging the fleet, six binding links + crown at the combat system; areas `benediction_origin`
+  / `benediction`), sounds; web data `mahactEdict` (existing command-sheet/map token UI), `canActivateOwnTokens`
+  (tile menu "Activate again (Il Na Viroset...)"), `requiredOutcome` (vote panel note, preselected outcome,
+  no abstain); secondary window: Jae Mir Kan switch + system picked on the map
+  (`SecondaryTokenAlternatives`); unit keys (`units:...`) resolve to full unit names in the feed.
+- Tests: `tests/factions/test_mahact.py` (53), `test_flows_mahact.py` (6), hero area feed; 7 cross-faction
+  rulings waiting on the Mahact closed (Neuroglaive 1, Yin Ascendant 1.1, Nova Seed 1.1, AFS 1, Fleet
+  Regulations 3, Rout 2, Sai Seravus 2.2); vitest `mahactFx`, `MahactFxMarks`, `describeActivity.mahact`.
+- Gaps: Benediction "when you move your own ships" abilities other than Nova Seed are not filtered by
+  `mover` (F_mahact benediction 2/2.1/2.3 tested only for Voidwatch / Nova Seed); Jae Mir Kan is ticked
+  as cooperative in `faction_components_checklist.md` but a secondary payment is not a pull-able offer.
+- ⚠️ ASSUMPTIONS ("Auto" defaults, own-first fleet token removal, remaining Benediction capacity choice =
+  cheapest-first, Crimson Legionnaires stay on the card without a home planet): RULES.md 62.23.

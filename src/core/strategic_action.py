@@ -623,7 +623,13 @@ def resolve_secondary(
 
     new_state = state.clone()
     if execute:
-        if (
+        alternative = (payload or {}).get("token_alt")
+        if spec.secondary_costs_token and not is_free and not no_cost and alternative:
+            # Jae Mir Kan (RULES.md 62.23): the active player's token from the board instead.
+            command_tokens.spend_secondary_alternative(
+                new_state, player_id, alternative, (payload or {}).get("token_alt_system")
+            )
+        elif (
             spec.secondary_costs_token and not is_free and not no_cost
             and window.context.get(TOKEN_FROM_KEY) == FROM_REINFORCEMENTS
         ):
@@ -777,6 +783,11 @@ def step_options(
             "step": None,
             "draft": {},
             "options": options,
+            # Other ways to pay the token (Jae Mir Kan - RULES.md 62.23).
+            "token_alternatives": (
+                command_tokens.secondary_token_alternatives(state, player_id)
+                if spec.secondary_costs_token else []
+            ),
         }
     return None
 

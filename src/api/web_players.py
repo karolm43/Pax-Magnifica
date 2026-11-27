@@ -28,6 +28,7 @@ from src.core import (
     legendary_planets,
     planet_abilities,
     rules_hooks,
+    tactical,
     tech_effects,
 )
 from src.core.army_strength import ArmyStrength, army_strength_by_player
@@ -466,6 +467,15 @@ def _build_player_data(
                 # Żetony dowodzenia (CC) — panele gracza + heks stat-area.
                 "tacticalCC": player.tactical_cc,
                 "fleetCC": player.fleet_cc,
+                # Other players' tokens in the fleet pool (Mahact Edict, RULES.md 62.23): their
+                # colours; counted in the fleet pool, never redistributed.
+                "mahactEdict": [
+                    state.players[o].color for o in player.foreign_fleet_tokens
+                    if o in state.players
+                ],
+                # Il Na Viroset: the map lets this player activate systems with own tokens.
+                "canActivateOwnTokens": tactical.can_activate_own_token(state, player_id, ""),
+                "purgedTechs": list(player.purged_technologies),
                 "strategicCC": player.strategic_cc,
                 "ccReinf": player.cc_reinf,
                 "totalVps": player.victory_points,

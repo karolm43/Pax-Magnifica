@@ -332,6 +332,16 @@ POINT_UNIT_FLOATING_STRUCTURE = "units.floating_structure"
 # PERMIT -> gracz-właściciel hooka zabrania INNEMU graczowi (``ctx["activator"]``) aktywować system
 # ``ctx["position"]`` (Chaos Mapping) - sprawdzane w ``tactical.activate_system``.
 POINT_TACTICAL_ACTIVATION_BLOCKED = "tactical.activation_blocked"
+# --- Mahact Gene-Sorcerers (RULES.md 62.23) ---
+# PERMIT -> the active player may activate a system that already holds their own command token
+# (Il Na Viroset; ctx: position) - ``tactical.activate_system`` returns both tokens, ends the turn.
+POINT_TACTICAL_ACTIVATE_OWN_TOKEN = "tactical.activate_own_token"
+# FORBID -> outcomes the player must vote for (Genetic Recombination; ctx: agenda) - checked in
+# ``agenda_phase.cast_vote`` / ``abstain``.
+POINT_AGENDA_REQUIRED_OUTCOME = "agenda.required_outcome"
+# FORBID -> promissory note templates the player cannot receive (Hubris: "_an") - checked in
+# ``promissory_notes.transfer`` / ``giveable``.
+POINT_PROMISSORY_CANNOT_RECEIVE = "promissory.cannot_receive"
 # MODIFY -> docelowa wartość ruchu JEDNEGO statku (``ctx``: ``from``, ``base_type``); 0 = brak.
 # Silnik bierze max(własna, docelowa) po regule mgławicy, przed premiami (Captain Mendosa).
 POINT_MOVEMENT_SINGLE_SHIP_VALUE = "movement.single_ship_value"
@@ -1016,6 +1026,20 @@ def _promissory_sources(state: GameState, player_id: str) -> set[HookSource]:
     return sources
 
 
+# Commander providers: (state, player) -> other factions' commander ids the player may use as if
+# unlocked for them (Imperia: the owners of tokens in the Mahact fleet pool, RULES.md 62.23).
+# Registered by hook modules; they read the state directly (no hooks - ``owned_sources`` calls
+# them).
+CommanderProviderFn = Callable[[GameState, str], list[str]]
+_COMMANDER_PROVIDERS: list[CommanderProviderFn] = []
+
+
+def register_commander_provider(fn: CommanderProviderFn) -> CommanderProviderFn:
+    """Registers a borrowed-commander provider (see ``_COMMANDER_PROVIDERS``)."""
+    _COMMANDER_PROVIDERS.append(fn)
+    return fn
+
+
 def granted_commanders(state: GameState, player_id: str) -> list[str]:
     """Id commanderów innych frakcji z efektów trwałych gracza (Yin Ascendant) - dla widoku."""
     return sorted({src.component_id for src in _granted_commanders(state, player_id)})
@@ -1024,12 +1048,16 @@ def granted_commanders(state: GameState, player_id: str) -> list[str]:
 def _granted_commanders(state: GameState, player_id: str) -> set[HookSource]:
     """Commanderzy innych frakcji z efektów trwałych gracza (``data.commanders``) — działają „tak,
     jakby byli odblokowani” (Yin Ascendant, RULES.md 62.10)."""
-    return {
+    found = {
         HookSource(SOURCE_LEADER, str(leader_id))
         for effect in state.active_effects
         if effect.owner == player_id
         for leader_id in effect.data.get("commanders") or ()
     }
+    _ensure_loaded()
+    for fn in _COMMANDER_PROVIDERS:
+        found.update(HookSource(SOURCE_LEADER, lid) for lid in fn(state, player_id))
+    return found
 
 
 def _legendary_sources(player: Any) -> set[HookSource]:

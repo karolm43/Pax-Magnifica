@@ -27,6 +27,10 @@ def transfer(state: GameState, giver_id: str, receiver_id: str, note_id: str) ->
     giver_hand = state.players[giver_id].private.promissory_notes
     if note_id not in giver_hand:
         raise ValueError(f"Player {giver_id} does not hold the promissory note '{note_id}'.")
+    if not can_receive(state, receiver_id, note_id):
+        raise ValueError(
+            "That player cannot be given this promissory note (Hubris: no Alliance notes)."
+        )
     giver_hand.remove(note_id)
     state.players[receiver_id].private.promissory_notes.append(note_id)
     triggers.fire(
@@ -37,6 +41,45 @@ def transfer(state: GameState, giver_id: str, receiver_id: str, note_id: str) ->
     from src.core import promissory_play  # lokalnie: promissory_play importuje ten moduł
 
     promissory_play.on_received(state, receiver_id, note_id)
+
+
+def can_receive(state: GameState, receiver_id: str, note_id: str) -> bool:
+    """Whether ``receiver_id`` may be given ``note_id`` - hook FORBID ``promissory.cannot_receive``
+    (templates; Hubris forbids other players' Alliance notes, RULES.md 62.23)."""
+    from src.core import promissory_play, rules_hooks  # local: both import this module
+
+    registry = rules_hooks.bound_registry()
+    if registry is None:
+        return True
+    try:
+        template, owner = promissory_play.resolve(state, registry, note_id)
+    except ValueError:
+        return True
+    forbidden = rules_hooks.forbidden(
+        rules_hooks.POINT_PROMISSORY_CANNOT_RECEIVE, state, receiver_id,
+        {"note": note_id, "owner": owner or ""},
+    )
+    return template not in forbidden
+
+
+def giveable(state: GameState, giver_id: str, receiver_id: str) -> list[str]:
+    """Notes of ``giver_id``'s hand that ``receiver_id`` may be given (forced gives - F_mahact
+    hubris 1: only an Alliance left = nothing to give)."""
+    hand = state.players[giver_id].private.promissory_notes
+    return [n for n in hand if can_receive(state, receiver_id, n)]
+
+
+def purge_from_hand(state: GameState, holder_id: str, note_id: str) -> None:
+    """The note leaves the hand for the purge pile (Hubris: "purge your Alliance", 62.23).
+
+    Raises:
+        ValueError: The player does not hold the note.
+    """
+    hand = state.players[holder_id].private.promissory_notes
+    if note_id not in hand:
+        raise ValueError(f"Player {holder_id} does not hold the promissory note '{note_id}'.")
+    hand.remove(note_id)
+    state.decks.purged.append(note_id)
 
 
 def place_in_play(state: GameState, holder_id: str, note_id: str) -> None:

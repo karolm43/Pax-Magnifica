@@ -124,9 +124,12 @@ def activate_system(
                 "a system."
             )
 
-    # R: nie można aktywować systemu z własnym żetonem dowodzenia.
+    # R: nie można aktywować systemu z własnym żetonem dowodzenia - chyba że hook na to pozwala
+    # (Il Na Viroset, RULES.md 62.23: oba żetony wracają do rezerwy, tura się kończy).
     existing = state.systems.get(position)
     if not free and existing is not None and active_id in existing.command_tokens:
+        if can_activate_own_token(state, active_id, position):
+            return _activate_own_token(state, position)
         raise ValueError(
             "Cannot activate a system that already contains your command token."
         )
@@ -199,6 +202,56 @@ def activate_system(
         ctx={"player": active_id, "position": position},
     )
     return new_state
+
+
+def can_activate_own_token(state: GameState, player_id: str, position: str) -> bool:
+    """Whether the player may activate ``position`` although it holds their own token (hook
+    PERMIT ``tactical.activate_own_token`` - Il Na Viroset, RULES.md 62.23)."""
+    return rules_hooks.permits(
+        rules_hooks.POINT_TACTICAL_ACTIVATE_OWN_TOKEN, state, player_id, {"position": position}
+    )
+
+
+def _activate_own_token(state: GameState, position: str) -> GameState:
+    """Activation of a system with the player's own token (Il Na Viroset, RULES.md 62.23).
+
+    A tactic token is spent as a second token in the system; both tokens go back to the
+    reinforcements and the turn ends. No "when/after you activate" windows (F_mahact
+    il-na-viroset 1, 1.1, 3, 4) - only the promissory-note return conditions resolve (1.2).
+
+    Raises:
+        ValueError: Same refusals as a normal activation (tactic pool, pass, action budget).
+    """
+    from src.core import turn_flow  # local: turn_flow imports tactical
+
+    active_id = str(state.active_player_id)
+    player0 = state.players[active_id]
+    if player0.tactical_cc <= 0:
+        raise ValueError("No token in the tactical pool - cannot activate a system.")
+    if action_budget.blocked_by_pass(state, active_id):
+        raise ValueError("You have passed - you cannot perform a tactical action.")
+    action_budget.require_free_action(state, active_id)
+    new_state = state.clone()
+    system = new_state.systems[position]
+    command_tokens.spend_to_reinforcements(new_state, active_id, "tactical")
+    command_tokens.remove_from_board(new_state, system, active_id)
+    action_budget.register_action(new_state, active_id)
+    triggers.fire(
+        new_state, GameEvent.SYSTEM_ACTIVATED, Moment.AFTER, subject=active_id,
+        ctx={"player": active_id, "position": position, "own_token": True},
+        hook_filter=lambda h: h.source.kind == rules_hooks.SOURCE_PROMISSORY,
+    )
+    triggers.fire(
+        new_state, GameEvent.FACTION_ABILITY_USED, Moment.AFTER, subject=active_id,
+        ctx={"player": active_id, "ability": OWN_TOKEN_ACTIVATION, "position": position},
+    )
+    return turn_flow.end_turn(
+        new_state, active_id, registry=rules_hooks.bound_registry(), forced=True
+    )
+
+
+# ``FACTION_ABILITY_USED`` ability of an own-token activation (Activity + hook modules).
+OWN_TOKEN_ACTIVATION = "tactical:own_token_activation"
 
 
 def _without_forced_excess(state: GameState, registry: StaticDataRegistry | None) -> GameState:

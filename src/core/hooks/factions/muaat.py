@@ -539,7 +539,8 @@ def nova_seed_target(state: GameState, player_id: str, ctx: Mapping[str, Any]) -
 
 def _hero_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
     return (
-        nova_seed_target(state, player_id, ctx) is not None
+        ctx.get("mover", player_id) == player_id  # "after YOU move" (F_mahact benediction 7)
+        and nova_seed_target(state, player_id, ctx) is not None
         and leaders.is_ready(state, _registry(), player_id, HERO)
     )
 

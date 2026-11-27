@@ -119,6 +119,9 @@ def retreat_destinations(
     wycofać się do sąsiedniego systemu, w którym nie ma jednostek żadnego innego gracza
     (statków, sił naziemnych ani struktur).
     """
+    combat = state.active_combat
+    if combat is not None and combat.no_retreat and combat.position == position:
+        return []  # Benediction: "neither player can retreat" (RULES.md 62.23)
     can_enter_asteroids = _can_enter_asteroids(state, player_id)
     anywhere = rules_hooks.permits(rules_hooks.POINT_RETREAT_ANYWHERE, state, player_id)
     result: list[str] = []

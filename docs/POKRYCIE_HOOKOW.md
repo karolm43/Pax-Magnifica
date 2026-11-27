@@ -3,7 +3,7 @@
 Wygenerowano: `uv run python -m src.audit.hook_coverage --write`. Zasady: `RULES.md` 43.
 Obszary reguł i typ hooka to HEURYSTYKA po słowach kluczowych (priorytetyzacja, nie decyzja).
 
-Zarejestrowanych hooków: **515** (lista: `pokrycie_hookow/hooki.md`).
+Zarejestrowanych hooków: **534** (lista: `pokrycie_hookow/hooki.md`).
 
 ## 2. Pokrycie per kategoria
 
@@ -13,14 +13,14 @@ Zarejestrowanych hooków: **515** (lista: `pokrycie_hookow/hooki.md`).
 | agendas | 63 | 50 | 79.4 |
 | explores | 80 | 4 | 5.0 |
 | relics | 24 | 23 | 95.8 |
-| promissory_notes | 40 | 28 | 70.0 |
+| promissory_notes | 40 | 29 | 72.5 |
 | galactic_events | 20 | 0 | 0.0 |
 | planets | 19 | 19 | 100.0 |
-| leaders | 102 | 68 | 66.7 |
-| abilities | 73 | 49 | 67.1 |
-| technologies | 102 | 80 | 78.4 |
-| breakthroughs | 31 | 22 | 71.0 |
-| units | 90 | 55 | 61.1 |
+| leaders | 102 | 71 | 69.6 |
+| abilities | 73 | 52 | 71.2 |
+| technologies | 102 | 82 | 80.4 |
+| breakthroughs | 31 | 23 | 74.2 |
+| units | 90 | 59 | 65.6 |
 
 ## 3. Rodzaj wyzwalacza (komponenty z oknem czasowym)
 
@@ -41,16 +41,16 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 252 | 115 |
-| walka (combat.*, space_cannon, bombardment) | 236 | 62 |
-| produkcja (production.*) | 178 | 37 |
-| ekonomia i płatności (economy, payment) | 159 | 73 |
-| status i odświeżanie (status_phase) | 148 | 47 |
-| ruch (movement.*) | 142 | 33 |
-| karty (card_draw, promissory) | 117 | 35 |
-| żetony dowodzenia (command_tokens) | 96 | 31 |
-| technologie (technology) | 68 | 34 |
-| agenda i głosowanie (agenda_phase) | 49 | 12 |
+| planety i eksploracja (control, exploration) | 252 | 112 |
+| walka (combat.*, space_cannon, bombardment) | 236 | 57 |
+| produkcja (production.*) | 178 | 33 |
+| ekonomia i płatności (economy, payment) | 159 | 69 |
+| status i odświeżanie (status_phase) | 148 | 44 |
+| ruch (movement.*) | 142 | 32 |
+| karty (card_draw, promissory) | 117 | 34 |
+| żetony dowodzenia (command_tokens) | 96 | 24 |
+| technologie (technology) | 68 | 33 |
+| agenda i głosowanie (agenda_phase) | 49 | 11 |
 | cele i punkty (objectives) | 36 | 11 |
 | karty strategii i inicjatywa | 27 | 1 |
 
@@ -90,7 +90,7 @@ Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisa
 | The Council Keleres - Mentak (`keleres`) | 3 | 3 | 5 | 1 | 4 | 2 | 0 / 18 | agenda i głosowanie, ekonomia i płatności, karty, planety i eksploracja, produkcja, ruch, status i odświeżanie, walka, żetony dowodzenia |
 | The L1Z1X Mindnet (`l1z1x`) | 2 | 2 | 3 | 1 | 1 | 3 | 12 / 12 | ekonomia i płatności, karty, planety i eksploracja, produkcja, ruch, status i odświeżanie, technologie, walka, żetony dowodzenia |
 | The Barony of Letnev (`letnev`) | 2 | 2 | 3 | 1 | 1 | 2 | 11 / 11 | ekonomia i płatności, ruch, status i odświeżanie, walka, żetony dowodzenia |
-| The Mahact Gene-Sorcerers (`mahact`) | 3 | 2 | 3 | 1 | 1 | 4 | 0 / 14 | agenda i głosowanie, ekonomia i płatności, karty, planety i eksploracja, produkcja, ruch, status i odświeżanie, technologie, walka, żetony dowodzenia |
+| The Mahact Gene-Sorcerers (`mahact`) | 3 | 2 | 3 | 1 | 1 | 4 | 14 / 14 | agenda i głosowanie, ekonomia i płatności, karty, planety i eksploracja, produkcja, ruch, status i odświeżanie, technologie, walka, żetony dowodzenia |
 | The Mentak Coalition (`mentak`) | 2 | 2 | 3 | 1 | 1 | 3 | 12 / 12 | ekonomia i płatności, karty, planety i eksploracja, produkcja, ruch, status i odświeżanie, technologie, walka |
 | The Embers of Muaat (`muaat`) | 2 | 2 | 3 | 1 | 1 | 4 | 13 / 13 | ekonomia i płatności, planety i eksploracja, produkcja, ruch, status i odświeżanie, technologie, walka, żetony dowodzenia |
 | The Naalu Collective (`naalu`) | 2 | 2 | 4 | 1 | 1 | 5 | 12 / 15 | agenda i głosowanie, ekonomia i płatności, karty, karty strategii i inicjatywa, planety i eksploracja, produkcja, ruch, status i odświeżanie, walka, żetony dowodzenia |
@@ -117,11 +117,11 @@ Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisa
 - [`pokrycie_hookow/szczegoly_agendas.md`](pokrycie_hookow/szczegoly_agendas.md) — sekcja 8: agendas (50 / 63 z hookiem).
 - [`pokrycie_hookow/szczegoly_explores.md`](pokrycie_hookow/szczegoly_explores.md) — sekcja 8: explores (4 / 80 z hookiem).
 - [`pokrycie_hookow/szczegoly_relics.md`](pokrycie_hookow/szczegoly_relics.md) — sekcja 8: relics (23 / 24 z hookiem).
-- [`pokrycie_hookow/szczegoly_promissory_notes.md`](pokrycie_hookow/szczegoly_promissory_notes.md) — sekcja 8: promissory_notes (28 / 40 z hookiem).
+- [`pokrycie_hookow/szczegoly_promissory_notes.md`](pokrycie_hookow/szczegoly_promissory_notes.md) — sekcja 8: promissory_notes (29 / 40 z hookiem).
 - [`pokrycie_hookow/szczegoly_galactic_events.md`](pokrycie_hookow/szczegoly_galactic_events.md) — sekcja 8: galactic_events (0 / 20 z hookiem).
 - [`pokrycie_hookow/szczegoly_planets.md`](pokrycie_hookow/szczegoly_planets.md) — sekcja 8: planets (19 / 19 z hookiem).
-- [`pokrycie_hookow/szczegoly_leaders.md`](pokrycie_hookow/szczegoly_leaders.md) — sekcja 8: leaders (68 / 102 z hookiem).
-- [`pokrycie_hookow/szczegoly_abilities.md`](pokrycie_hookow/szczegoly_abilities.md) — sekcja 8: abilities (49 / 73 z hookiem).
-- [`pokrycie_hookow/szczegoly_technologies.md`](pokrycie_hookow/szczegoly_technologies.md) — sekcja 8: technologies (80 / 102 z hookiem).
-- [`pokrycie_hookow/szczegoly_breakthroughs.md`](pokrycie_hookow/szczegoly_breakthroughs.md) — sekcja 8: breakthroughs (22 / 31 z hookiem).
-- [`pokrycie_hookow/szczegoly_units.md`](pokrycie_hookow/szczegoly_units.md) — sekcja 8: units (55 / 90 z hookiem).
+- [`pokrycie_hookow/szczegoly_leaders.md`](pokrycie_hookow/szczegoly_leaders.md) — sekcja 8: leaders (71 / 102 z hookiem).
+- [`pokrycie_hookow/szczegoly_abilities.md`](pokrycie_hookow/szczegoly_abilities.md) — sekcja 8: abilities (52 / 73 z hookiem).
+- [`pokrycie_hookow/szczegoly_technologies.md`](pokrycie_hookow/szczegoly_technologies.md) — sekcja 8: technologies (82 / 102 z hookiem).
+- [`pokrycie_hookow/szczegoly_breakthroughs.md`](pokrycie_hookow/szczegoly_breakthroughs.md) — sekcja 8: breakthroughs (23 / 31 z hookiem).
+- [`pokrycie_hookow/szczegoly_units.md`](pokrycie_hookow/szczegoly_units.md) — sekcja 8: units (59 / 90 z hookiem).

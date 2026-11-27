@@ -881,6 +881,7 @@ function Ballot({
   const predictive = voter?.predictive;
   const predictiveVotes = usePredictive && predictive?.ready ? predictive.votes : 0;
   const single = voter?.singleVote === true;
+  const required = voter?.requiredOutcome ?? null;
   const votes = single
     ? 1
     : planets.filter((p) => picked.includes(p.planet)).reduce((n, p) => n + p.influence, 0) +
@@ -892,6 +893,10 @@ function Ballot({
     setPicked([]);
     setUsePredictive(false);
   }, [voterId, agenda.agendaNumber, agenda.step]);
+  // Genetic Recombination: the bound voter's outcome is preselected on the podium.
+  useEffect(() => {
+    if (required) onSelect(required);
+  }, [required, onSelect]);
 
   const speakerLook = lookOf(speaker);
   const head = (
@@ -941,7 +946,8 @@ function Ballot({
   if (agenda.step === "VOTE" && voterId && voter) {
     const look = lookOf(voterId);
     const ready = planets.filter((p) => !p.exhausted);
-    const canCast = selected != null && selected !== "" && votes > 0 && !busy;
+    const canCast =
+      selected != null && selected !== "" && votes > 0 && !busy && (!required || selected === required);
     return (
       <>
         <div className={styles.ballotHead} style={{ "--seat-rgb": look.rgb } as CSSProperties}>
@@ -964,6 +970,12 @@ function Ballot({
             </>
           )}
         </p>
+        {required ? (
+          <p className={styles.note} role="status">
+            Genetic Recombination: cast at least 1 vote for{" "}
+            <b>{outcomeLabel(agenda, required, lookOf)}</b> (no abstaining).
+          </p>
+        ) : null}
         <div className={styles.votesBig}>
           <b>{votes}</b>
           <span>
@@ -1049,7 +1061,7 @@ function Ballot({
         <button
           type="button"
           className={styles.ghostBtn}
-          disabled={busy}
+          disabled={busy || !!required}
           onClick={() =>
             run(async () => {
               await api.agendaAbstain(voterId);

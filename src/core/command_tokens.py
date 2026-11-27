@@ -24,6 +24,9 @@ Funkcje operują na przekazanym ``state`` (KLON roboczy wołającego) i same go 
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
 from src.core.game_state import GameState, PlayerState, SystemState
 
 POOLS: tuple[str, ...] = ("tactical", "fleet", "strategic")
@@ -211,11 +214,77 @@ def fleet_token_cap(state: GameState, player_id: str) -> int | None:
     return cap if cap > 0 else None
 
 
+def foreign_fleet_tokens(state: GameState, player_id: str) -> list[str]:
+    """Owners of the other players' tokens in this player's fleet pool (Edict, RULES.md 62.23)."""
+    return list(_player(state, player_id).foreign_fleet_tokens)
+
+
+def fleet_pool_count(state: GameState, player_id: str) -> int:
+    """THE size of the fleet pool: own tokens + other players' tokens (Edict, RULES.md 62.23)."""
+    player = _player(state, player_id)
+    return int(player.fleet_cc) + len(player.foreign_fleet_tokens)
+
+
+def add_foreign_fleet_token(state: GameState, holder_id: str, owner_id: str) -> None:
+    """Puts 1 of ``owner_id``'s tokens (taken by the caller) in ``holder_id``'s fleet pool.
+
+    Fleet Regulations does not stop it (F_mahact edict 3 - the holder then returns a token).
+
+    Raises:
+        ValueError: The pool already holds a token of that owner, or owner == holder.
+    """
+    holder = _player(state, holder_id)
+    _player(state, owner_id)
+    if owner_id == holder_id:
+        raise ValueError("Your own tokens go to your fleet pool as fleet tokens.")
+    if owner_id in holder.foreign_fleet_tokens:
+        raise ValueError(f"The fleet pool already holds a token of {owner_id}.")
+    holder.foreign_fleet_tokens = [*holder.foreign_fleet_tokens, owner_id]
+
+
+def take_foreign_fleet_token(state: GameState, holder_id: str, owner_id: str) -> None:
+    """Takes ``owner_id``'s token out of ``holder_id``'s fleet pool (the caller places it).
+
+    Raises:
+        ValueError: The pool holds no token of that owner.
+    """
+    holder = _player(state, holder_id)
+    if owner_id not in holder.foreign_fleet_tokens:
+        raise ValueError(f"Your fleet pool holds no command token of {owner_id}.")
+    holder.foreign_fleet_tokens = [p for p in holder.foreign_fleet_tokens if p != owner_id]
+
+
+def return_foreign_fleet_token(state: GameState, holder_id: str, owner_id: str) -> None:
+    """Returns ``owner_id``'s token from the fleet pool to the OWNER's reinforcements."""
+    take_foreign_fleet_token(state, holder_id, owner_id)
+    return_to_reinforcements(state, owner_id, 1)
+
+
+def remove_fleet_token(state: GameState, player_id: str) -> str | None:
+    """"Remove 1 token from your fleet pool and return it to the reinforcements" - THE point.
+
+    Own token first; another player's token only when the pool holds no own token, and it goes
+    back to its owner's reinforcements (F_mahact edict 2). Returns the owner of the removed
+    token (``None`` = the pool was empty, nothing happens).
+    """
+    player = _player(state, player_id)
+    if player.fleet_cc > 0:
+        spend_to_reinforcements(state, player_id, "fleet")
+        return player_id
+    if player.foreign_fleet_tokens:
+        owner = sorted(player.foreign_fleet_tokens)[0]
+        return_foreign_fleet_token(state, player_id, owner)
+        return owner
+    return None
+
+
 def _check_fleet_cap(state: GameState, player_id: str, pool: str, new_value: int) -> None:
     if pool != "fleet":
         return
     cap = fleet_token_cap(state, player_id)
-    if cap is not None and new_value > cap and new_value > pool_count(state, player_id, "fleet"):
+    foreign = len(_player(state, player_id).foreign_fleet_tokens)
+    new_value += foreign  # other players' tokens count against the cap (F_mahact edict 3)
+    if cap is not None and new_value > cap and new_value > fleet_pool_count(state, player_id):
         raise ValueError(f"Fleet Regulations: you cannot have more than {cap} tokens in your "
                          "fleet pool.")
 
@@ -247,6 +316,55 @@ def set_pools(state: GameState, player_id: str, pools: dict[str, int]) -> None:
     _check_fleet_cap(state, player_id, "fleet", pools["fleet"])
     for pool, amount in pools.items():
         setattr(player, _attr(pool), amount)
+
+
+# Alternatives to paying a secondary ability's command token (Jae Mir Kan: "remove 1 of the
+# active player's command tokens from the board and use it instead", RULES.md 62.23).
+# key -> (systems the player may take a token from now - empty = unavailable, spend fn).
+SecondaryTargets = Callable[[GameState, str], list[str]]
+SecondarySpend = Callable[[GameState, str, str], None]
+_SECONDARY_ALTERNATIVES: dict[str, tuple[str, SecondaryTargets, SecondarySpend]] = {}
+
+
+def register_secondary_alternative(
+    key: str, label: str, targets: SecondaryTargets, spend: SecondarySpend
+) -> None:
+    """Registers a way to pay a secondary's token otherwise (hook modules, at import)."""
+    _SECONDARY_ALTERNATIVES[key] = (label, targets, spend)
+
+
+def secondary_token_alternatives(state: GameState, player_id: str) -> list[dict[str, Any]]:
+    """``[{key, label, systems}]`` usable by the player for the current secondary's token."""
+    from src.core import rules_hooks  # local: rules_hooks -> hooks -> command_tokens
+
+    rules_hooks.all_hooks()  # loads the hook modules (they register the alternatives)
+    found: list[dict[str, Any]] = []
+    for key, (label, targets, _spend) in sorted(_SECONDARY_ALTERNATIVES.items()):
+        systems = targets(state, player_id)
+        if systems:
+            found.append({"key": key, "label": label, "systems": systems})
+    return found
+
+
+def spend_secondary_alternative(
+    state: GameState, player_id: str, key: object, system: object
+) -> None:
+    """Pays the secondary's token through alternative ``key`` from ``system`` (MUTATES).
+
+    Raises:
+        ValueError: Unknown / unavailable alternative or a system it cannot use.
+    """
+    entry = _SECONDARY_ALTERNATIVES.get(str(key))
+    if entry is None:
+        raise ValueError(f"Unknown way to pay the command token: {key}.")
+    _label, targets, spend = entry
+    systems = targets(state, player_id)
+    if not systems:
+        raise ValueError("You cannot use that ability to pay the command token now.")
+    where = str(system) if system else systems[0]  # "Auto" = the first system (RULES.md 62.23)
+    if where not in systems:
+        raise ValueError("Choose a system that holds one of the active player's tokens.")
+    spend(state, player_id, where)
 
 
 # Źródło żetonu wydawanego „z puli strategicznej" (parametr ``token_source`` efektów).

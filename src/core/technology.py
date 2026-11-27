@@ -94,6 +94,9 @@ def tech_pool(
     replaced = {t.base_upgrade for t in own.values() if t.base_upgrade}
     pool = {k: v for k, v in generic_pool(registry).items() if k not in replaced}
     pool.update(own)
+    player = state.players.get(player_id)
+    for purged in player.purged_technologies if player is not None else ():
+        pool.pop(purged, None)  # purged for the rest of the game (F_mahact vaults 2)
     return pool
 
 
@@ -652,6 +655,8 @@ def grant_technology(state: GameState, player_id: str, tech_id: str) -> None:
     player = state.players.get(player_id)
     if player is None:
         raise ValueError(f"Unknown player: {player_id}")
+    if tech_id in player.purged_technologies:
+        raise ValueError("That technology was purged - it cannot be gained again.")
     if tech_id not in player.technologies:
         tech_ctx = {"player": player_id, "technology": tech_id}
         triggers.fire(
@@ -687,6 +692,44 @@ def return_technology(state: GameState, player_id: str, tech_id: str) -> None:
         raise ValueError(f"You do not own the technology {tech_id}.")
     player.technologies = [t for t in player.technologies if t != tech_id]
     exhaust.ready_technology(state, player_id, tech_id)
+
+
+def purge_technology(state: GameState, player_id: str, tech_id: str) -> None:
+    """Purges an owned technology (Vaults of the Heir, RULES.md 62.23) - out of the game for good.
+
+    The card leaves the play area (exhausted ones too - F_mahact vaults 1.1) and joins
+    ``purged_technologies``, so it is never gained again (2). Purging a unit upgrade that the
+    unit needs to exist (War Sun) removes those units from the board (4).
+
+    Raises:
+        ValueError: Unknown player or the player does not own the technology.
+    """
+    player = state.players.get(player_id)
+    if player is None:
+        raise ValueError(f"Unknown player: {player_id}")
+    if tech_id not in player.technologies:
+        raise ValueError(f"You do not own the technology {tech_id}.")
+    player.technologies = [t for t in player.technologies if t != tech_id]
+    exhaust.ready_technology(state, player_id, tech_id)
+    if tech_id not in player.purged_technologies:
+        player.purged_technologies = [*player.purged_technologies, tech_id]
+    registry = rules_hooks.bound_registry()
+    if registry is None:
+        return
+    from src.core import unit_ops  # local: unit_ops -> triggers -> hooks -> technology
+    from src.core.unit_ops import UnitCause
+
+    needs_tech = {
+        unit.base_type for unit in registry.units.values()
+        if unit.base_type == "warsun" and unit.required_tech_id == tech_id
+    }
+    for base_type in sorted(needs_tech):
+        for system in state.systems.values():
+            count = system.space_units.get(player_id, {}).get(base_type, 0)
+            if count > 0:
+                unit_ops.remove_units(
+                    state, system, "space", player_id, base_type, count, UnitCause.REMOVED
+                )
 
 
 def _unit_upgrade_flag(tech_id: str) -> str:

@@ -68,6 +68,9 @@ for (const unit of units) {
   }
 }
 
+// Faction units by id (``units:mahact_infantry`` -> "Crimson Legionnaire I", never the raw id).
+const unitById = new Map(units.map((u) => [u.id, u]));
+
 // Klucz efektu trwałego ``<kategoria>:<id>[:dopisek]`` (np. ``leaders:letnevhero``,
 // ``leaders:letnevagent:die``) -> nazwa komponentu z danych zamiast surowego id.
 const EFFECT_LOOKUPS: Record<string, (id: string) => Named | undefined> = {
@@ -79,6 +82,7 @@ const EFFECT_LOOKUPS: Record<string, (id: string) => Named | undefined> = {
   action_cards: getActionCard,
   promissory_notes: (id) => promissoryById.get(id),
   agendas: (id) => agendasById.get(id),
+  units: (id) => unitById.get(id),
 };
 
 export function resolveEffectName(key: string): string {

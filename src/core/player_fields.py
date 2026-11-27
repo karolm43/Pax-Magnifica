@@ -41,6 +41,8 @@ PUBLIC_FIELDS: frozenset[str] = frozenset(
         "fleet_cc",
         "strategic_cc",
         "cc_reinf",
+        "foreign_fleet_tokens",
+        "purged_technologies",
         "passed",
         "took_action_this_turn",
         "transacted_with",

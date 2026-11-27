@@ -1,4 +1,8 @@
 {
+  "F_mahact/airo-shir-aur-benediction/5.1": {"na": "Benediction leaves a gravity rift through direct_move.apply_moves -> movement.roll_rift_exit(position=source), which already skips the Vuil'raith's own Dimensional Tear (RULES.md 62.17, tested in test_cabal) - RULES.md 62.23."},
+  "F_mahact/airo-shir-aur-benediction/9.1": {"na": "The Mahact is the active player of its component action; every combat window prompts players in order starting after the active player and the Mahact answers its own offers at any time, so no attacker/defender ordering is applied (RULES.md 54, 62.23)."},
+  "F_mahact/airo-shir-aur-benediction/12": {"na": "Combat secret objectives are checked by objective_events.on_combat_end for the combat's attacker and defender, whatever started the combat; Benediction uses the same battle engine (RULES.md 62.23)."},
+  "F_mahact/airo-shir-aur-benediction/12.1": {"na": "objective_events.on_combat_end only scores for the two sides of the combat; a Mahact that moved two other players' fleets is neither side (RULES.md 62.23)."},
   "F_yssaril/mageon-implants/2.1": {"na": "Oral claims are table talk outside the engine; the looked-at cards stay only in the Yssaril's decision (offer inputs are projected to the decider only) - RULES.md 62.22."},
   "F_yssaril/ssruu/2": {"na": "Captain Mendosa copied by Ssruu is its own offer on the same SYSTEM_ACTIVATED window (saar.captain_mendosa); the move value is read once when the ship moves, so the copy and the Saar's own use may be resolved in either order (RULES.md 62.22)."},
   "F_yssaril/ssruu/3": {"na": "The Stillness of Stars copied by Ssruu is a separate offer to the Yssaril on the same commodities window (SOURCE_LEADER of the copied agent); offers resolve in window order from the active player and each capture reads the target's reinforcements at that moment (RULES.md 62.22, 61.5)."},
@@ -21,12 +25,6 @@
   "F_nomad/the-thundarian/4.4": {"na": "War Funding returns to Letnev when played (promissory_play._dispose); its rerolls change the roll entries the rewind discards (RULES.md 62.21)."},
   "F_ul/slumberstate-computing/3.1": {
     "gap": "Binding deals are not modelled in the engine (core/transaction.py has no deal/agreement item) - a sleeper placement cannot be part of a binding deal."
-  },
-  "F_naalu/neuroglaive/1": {
-    "requires": [
-      "faction:mahact"
-    ],
-    "reason": "Żetony innych graczy w puli floty Mahact (Edict) - frakcja Mahact niezaimplementowana."
   },
   "F_naalu/zeu-replaced-by-omega/*": {
     "na": "Nieaktywny wariant agenta: grą gra Z'eu z Thunder's Edge (naaluagent-te = rulingi Z'eu ΩΩ, RULES.md 62.16)."
@@ -58,12 +56,6 @@
   },
   "F_arborec/stymie-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko Stymie Ω („After another player moves ships into a system…”, karta wraca od razu); ta sekcja opisuje starą kartę leżącą w strefie gry."
-  },
-  "F_yin/yin-ascendant/1.1": {
-    "requires": [
-      "faction:mahact"
-    ],
-    "reason": "Mahact alliance card (Il Na Viroset commander ability via Yin Ascendant) - Mahact faction not implemented."
   },
   "F_yin/yin-ascendant/2": {
     "requires": [
@@ -194,12 +186,6 @@
     ],
     "reason": "Jednoczesne punktowanie Lead From the Front i Form a Spy Network przed Pillage (Suffi An) - wymaga punktowania kilku celów naraz."
   },
-  "F_muaat/adjudicator-baal-nova-seed/1.1": {
-    "requires": [
-      "faction:mahact"
-    ],
-    "reason": "Benediction (bohater Mahact) przesuwa war suna Muaat - wtedy bez Nova Seed."
-  },
   "F_vuilraith/amalgamation/5": {
     "gap": "Alliance commandera Naalu/Yin (dodatkowy myśliwiec/piechota za 1 zasób) + Amalgamation - kombinacja niezweryfikowana testem; aktywne warianty tych commanderów nie dają darmowej sztuki przy produkcji."
   },
@@ -267,12 +253,6 @@
     ],
     "reason": "Valefar Assimilator (Nekro) is not implemented - nothing copies a faction technology, so there is no token to keep on a technology replaced by Genetic Memory. Test after Nekro lands."
   },
-  "C_agendas/armed-forces-standardization/1": {
-    "requires": [
-      "faction:mahact"
-    ],
-    "reason": "The ruling is about a Mahact player electing themselves and choosing which fleet-pool command tokens to remove. Mahact is not implemented."
-  },
   "C_agendas/committee-formation/3": {
     "requires": [
       "faction:nekro"
@@ -308,12 +288,6 @@
       "faction:firmament"
     ],
     "reason": "The Firmament control token on the elected secret objective. Firmament is not implemented."
-  },
-  "C_agendas/fleet-regulations/3": {
-    "requires": [
-      "faction:mahact"
-    ],
-    "reason": "Mahact's Edict adds a fifth fleet token under Fleet Regulations and returns one. Mahact is not implemented."
   },
   "C_agendas/ixthian-artifact/6": {
     "na": "Flavor ruling (voting against or riding on Ixthian Artifact \"is to commit heresy\"); it has no mechanical effect."
@@ -357,12 +331,6 @@
   "C_action_cards/reflective-shielding/1.1": {
     "gap": "Sustain Damage is limited per hit assignment, not per unit and timing window: a unit the Dynamo repaired could sustain again against the Reflective Shielding hits of the same window (no per-unit window record in core/battle.py) - RULES.md 62.20."
   },
-  "C_action_cards/rout/2": {
-    "requires": [
-      "faction:mahact"
-    ],
-    "reason": "Space combat started by the Mahact hero Benediction; Mahact is not implemented."
-  },
   "F_creuss/creuss-iff/2": {
     "gap": "Binding deals are not modelled in the engine (core/transaction.py has no deal/agreement item) - a promise about where a wormhole token goes is table talk, never enforced (RULES.md 62.19)."
   },
@@ -374,12 +342,6 @@
   },
   "F_creuss/hil-colish/6": {
     "na": "A retreat moves all retreating ships of the player together to one chosen system (core/retreat.py) - the only outcome the ruling allows (the flagship cannot leave the others unable to reach the same system)."
-  },
-  "F_creuss/sai-seravus/2.2": {
-    "requires": [
-      "faction:mahact"
-    ],
-    "reason": "Mahact Benediction (hero) moving the Creuss ships - Mahact is not implemented; Sai Seravus already answers every SHIPS_MOVED of Creuss (any kind of move)."
   },
   "F_empyrean/dynamo/1": {
     "gap": "Same as C_action_cards/reflective-shielding/1.1: core/battle.py has no per-unit 'already sustained in this window' record, so a unit repaired by the Dynamo is not barred from a second SUSTAIN DAMAGE in the same window (RULES.md 62.20)."

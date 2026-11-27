@@ -64,8 +64,17 @@ def start_combat(
     grid: HexGrid,
     registry: StaticDataRegistry,
     planet: str | None = None,
+    *,
+    position: str | None = None,
+    attacker: str | None = None,
+    source: str = "",
+    no_retreat: bool = False,
 ) -> GameState:
     """Rozpoczyna walkę w aktywnym systemie: kosmiczną (``planet`` None) albo naziemną.
+
+    ``source`` (z ``position`` i ``attacker``) = walka kosmiczna komponentu POZA akcją taktyczną
+    (Benediction, RULES.md 62.23): system staje się aktywnym na czas walki (F_mahact 8), krok
+    akcji taktycznej nie jest wymagany; ``no_retreat`` = żadna strona nie może się wycofać.
 
     Raises:
         ValueError: Zły krok akcji, trwa okno/walka, brak dokładnie dwóch stron (W1–W3).
@@ -78,9 +87,15 @@ def start_combat(
     # Inwazja komponentu (Quantum Dissemination, RULES.md 62.10): walka naziemna w systemie
     # inwazji, poza akcją taktyczną (system nie jest aktywowany).
     component = kind == "ground" and state.invasion is not None and bool(state.invasion.source)
-    if component and state.invasion is not None:
-        active: str | None = state.invasion.position
-        attacker: str | None = state.invasion.attacker
+    active: str | None
+    if source:
+        if kind != "space" or position is None or attacker is None:
+            raise ValueError("A component combat needs a space area, a system and an attacker.")
+        component = True
+        active = position
+    elif component and state.invasion is not None:
+        active = state.invasion.position
+        attacker = state.invasion.attacker
     else:
         active = state.active_system
         attacker = state.active_player_id
@@ -125,9 +140,14 @@ def start_combat(
 
     new_state = state.clone()
     combat = ActiveCombat(
-        kind=kind, position=active, planet=planet, attacker=attacker, defender=defender
+        kind=kind, position=active, planet=planet, attacker=attacker, defender=defender,
+        source=source, no_retreat=no_retreat,
     )
     new_state.active_combat = combat
+    if source:
+        new_state.active_system = active  # the active system during that combat (F_mahact 8)
+        # Not a tactical action: no "Betray a Friend" snapshot of an earlier action (F_mahact 12.2).
+        new_state.tactical_pn_owners = []
     # Assault Cannon dopiero PO pozostałych zdolnościach startu walki (osobny etap niżej).
     triggers.fire(
         new_state, GameEvent.COMBAT, Moment.START, subject=attacker,
@@ -1868,6 +1888,8 @@ def close_combat(state: GameState) -> GameState:
         )
     new_state = state.clone()
     new_state.active_combat = None
+    if combat.source:
+        new_state.active_system = None  # component combat outside a tactical action (62.23)
     # Wynik walki naziemnej zapamiętujemy w inwazji — Establish Control potrzebuje wiedzieć,
     # czy był remis (obrońca zachowuje kontrolę — RULES.md 40.1 I8).
     if combat.kind == "ground" and combat.planet and new_state.invasion is not None:

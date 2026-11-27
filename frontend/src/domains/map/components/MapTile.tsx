@@ -161,14 +161,21 @@ export const MapTile = React.memo<Props>(
     // Czy jest aktywny gracz — aktywacja kładzie jego żeton dowodzenia. Bez
     // aktywnego gracza backend zwróciłby 422, więc pozycję wtedy blokujemy.
     const activePlayer = gameData?.playerData?.find((p) => p.active);
+    // Il Na Viroset (RULES.md 62.23): activating a system with your own token returns both
+    // tokens and ends your turn - the menu says so before the click.
+    const ownTokenActivation =
+      !!activePlayer?.canActivateOwnTokens &&
+      mapTile.commandCounters.some((c) => c === activePlayer.faction || c === activePlayer.color);
     // Menu lewego kliku: aktywacja systemu + okno systemu (to samo, co prawy klik).
     const tileMenuItems =
       dossierEligible && !isHyperlane
         ? [
             {
-              label: activePlayer
-                ? "Activate system"
-                : "Activate system (no active player)",
+              label: !activePlayer
+                ? "Activate system (no active player)"
+                : ownTokenActivation
+                  ? "Activate again (Il Na Viroset: both tokens return, your turn ends)"
+                  : "Activate system",
               icon: <IconTarget size={14} />,
               disabled: !activePlayer,
               onSelect: () => void activateSystem(mapTile.position),

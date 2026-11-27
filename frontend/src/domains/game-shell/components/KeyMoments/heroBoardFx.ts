@@ -52,7 +52,8 @@ export type FxMark =
   | "voideye" // Empyrean: frontier sigils condense from the void, an eye opens where it explores
   | "tether" // Empyrean Void Tether: a dark seam seals the border, the two systems recoil
   | "timewarp" // Nomad: a chronometer rewinds over the flagship, chrono-locks open on its tokens
-  | "keyhole"; // Yssaril: shadows creep over rival homes, a keyhole is slashed open, a card is lifted
+  | "keyhole" // Yssaril: shadows creep over rival homes, a keyhole is slashed open, a card is lifted
+  | "benediction"; // Mahact: a gene-sigil seizes a fleet, a chain drags it, binding links lock the combat
 
 export type HeroFxRecipe = {
   /** Przyciemnienie całej planszy (0–1). */
@@ -407,6 +408,33 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
       { at: 2950, name: "laser", gain: 0.45, rate: 1.6 },
       { at: 3000, name: "impact", gain: 0.3, rate: 1.4 },
       { at: 3300, name: "retreat", gain: 0.3, rate: 1.4 },
+    ],
+  },
+  // Benediction (Airo Shir Aur, RULES.md 62.23): the board darkens to crimson; over the ORIGIN a
+  // gene-sigil unfolds (two counter-rotating rune rings, a double helix twisting tighter) and
+  // seizes the fleet; a golden chain of command whips to the adjacent COMBAT system and drags the
+  // ships along it as glowing motes; at the flash six chain links slam shut around the combat
+  // system (neither side may retreat), the Mahact crown flares and a shockwave rolls out. Sound: a
+  // low choir-like hum, the fleet surging, chain clinks, the slam of the lock and a heavy boom.
+  mahacthero: {
+    dim: 0.6,
+    sweep: "mist",
+    area: { self: true, kinds: ["benediction_origin", "benediction"] },
+    target: "ships",
+    mark: "benediction",
+    tone: "230 50 70",
+    ms: 7200,
+    flashAt: 3400,
+    quake: [{ at: 3400, px: 5, ms: 700 }],
+    sounds: [
+      { at: 0, name: "warSunEnter", gain: 0.5, rate: 0.5 },
+      { at: 900, name: "explosionHeavy", gain: 0.4, rate: 0.55, reverse: true, endIn: 1400 },
+      { at: 1600, name: "fleetEnter", gain: 0.6, rate: 0.8 },
+      { at: 2300, name: "diceClack", gain: 0.45, rate: 0.45 },
+      { at: 2600, name: "diceClack", gain: 0.4, rate: 0.38 },
+      { at: 3400, name: "armorHit", gain: 0.6, rate: 0.55 },
+      { at: 3450, name: "explosionHeavy", gain: 0.6, rate: 0.6 },
+      { at: 4600, name: "warSunEnter", gain: 0.3, rate: 0.4 },
     ],
   },
   // Probability Matrix: Time Warp (Ahk-Syl Siven, RULES.md 62.21): the board flickers like a

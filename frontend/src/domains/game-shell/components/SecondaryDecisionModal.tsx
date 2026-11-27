@@ -21,6 +21,7 @@ import {
   type GameStatePlayer,
 } from "./gameStatePlayers";
 import { StrategyPrimaryStepModal } from "./StrategyPrimaryStepModal";
+import { SecondaryTokenAlternatives, type TokenAltChoice } from "./SecondaryTokenAlternatives";
 import { SECONDARY_MODE, SECONDARY_VIEWS } from "@/domains/strategy/cards";
 import { DrawnActionCards } from "@/domains/strategy/cards/Politics";
 import { PromptDock } from "@/domains/strategy/PromptDock";
@@ -107,6 +108,8 @@ export function SecondaryDecisionModal() {
   const [useScepter, setUseScepter] = useState(false);
   // Perfect Synthesis (Naaz-Rokha): przy pustej rezerwie żeton z wybranej puli arkusza.
   const [tokenPool, setTokenPool] = useState<string | null>(null);
+  // Jae Mir Kan (RULES.md 62.23): the active player's token from the board instead of yours.
+  const [tokenAlt, setTokenAlt] = useState<TokenAltChoice | null>(null);
 
   const window = gameState?.pendingWindow ?? null;
   const canActAs = useCanActAs();
@@ -168,6 +171,9 @@ export function SecondaryDecisionModal() {
     if (!id || busy) return;
     if (execute && useScepter && needsToken) payload = { ...payload, scepter: true };
     if (execute && sheetNeeded && tokenPool) payload = { ...payload, token_pool: tokenPool };
+    if (execute && needsToken && tokenAlt) {
+      payload = { ...payload, token_alt: tokenAlt.key, token_alt_system: tokenAlt.system };
+    }
     setBusy(true);
     // Karty dobierające karty akcji (Politics): pokaż respondentowi, co dobrał - różnica
     // ręki przed/po (ręka jest prywatna, więc pytamy tylko o jego własną).
@@ -245,7 +251,7 @@ export function SecondaryDecisionModal() {
     !isFree && typeof followBlockedRaw === "string" && followBlockedRaw ? followBlockedRaw : null;
   const cannotAfford = fromReinforcements
     ? sheetNeeded && !tokenPool
-    : needsToken && (poolTokens ?? 1) < 1 && !(scepterReady && useScepter);
+    : needsToken && (poolTokens ?? 1) < 1 && !(scepterReady && useScepter) && !tokenAlt;
 
   // Wybór na mapie (Construction): widok wyborów w nieblokującym doku zamiast modala.
   const secondaryMode = initiative != null ? SECONDARY_MODE[initiative] : undefined;
@@ -415,6 +421,14 @@ export function SecondaryDecisionModal() {
               </Button>
             ))}
           </Group>
+        )}
+
+        {needsToken && (
+          <SecondaryTokenAlternatives
+            alternatives={prompt?.token_alternatives ?? []}
+            value={tokenAlt}
+            onChange={setTokenAlt}
+          />
         )}
 
         {scepterReady && (

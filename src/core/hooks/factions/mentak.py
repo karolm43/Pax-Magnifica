@@ -488,7 +488,8 @@ def _commander_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -
         return False
     other = ctx.get("defender") if ctx.get("attacker") == player_id else ctx.get("attacker")
     victim = state.players.get(str(other))
-    return victim is not None and bool(victim.private.promissory_notes)
+    # Hubris: only notes the Mentak may receive (F_mahact hubris 1).
+    return victim is not None and bool(promissory_notes.giveable(state, str(other), player_id))
 
 
 @on_event(
@@ -516,7 +517,7 @@ def _note_label(state: GameState, registry: Any, note_id: str) -> str:
 def note_choice_inputs(
     state: GameState, registry: Any, decider: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    hand = state.players[decider].private.promissory_notes
+    hand = promissory_notes.giveable(state, decider, str(_ctx.get("player") or ""))
     options = [
         oi.option(n, _note_label(state, registry, n), f"{n}#{i}") for i, n in enumerate(hand)
     ]

@@ -460,7 +460,7 @@ export function MarkDefs() {
 // Own components in the layer: Nova Seed, Stellar Converter, Creuss (`CreussFxMarks`), Empyrean
 // (`EmpyreanFxMarks`), Nomad (`NomadFxMarks`), Yssaril (`YssarilFxMarks`).
 const DRAW: Record<
-  Exclude<FxMark, "nova" | "maw" | "converter" | "rift" | "portal" | "voideye" | "tether" | "timewarp" | "keyhole">,
+  Exclude<FxMark, "nova" | "maw" | "converter" | "rift" | "portal" | "voideye" | "tether" | "timewarp" | "keyhole" | "benediction">,
   () => ReactNode
 > = {
   bloom: Bloom,
@@ -488,7 +488,7 @@ export function Mark({
   index,
   neighbors = [],
 }: {
-  mark: Exclude<FxMark, "nova" | "converter" | "rift" | "portal" | "voideye" | "tether" | "timewarp" | "keyhole">;
+  mark: Exclude<FxMark, "nova" | "converter" | "rift" | "portal" | "voideye" | "tether" | "timewarp" | "keyhole" | "benediction">;
   tile: Tile;
   index: number;
   /** Sąsiednie kafle (Cabal: macki sięgają do nich). */

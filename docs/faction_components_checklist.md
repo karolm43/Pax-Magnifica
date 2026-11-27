@@ -389,7 +389,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 ### Jednostki frakcyjne (Flagship / Mech / Unikalne)
 - [ ] **[mech] Mordred** (nekro_mech) — During combat against an opponent who has an "X" or "Y" token on 1 or more of their technologies, apply +2 to the result of each of this unit's combat rolls.
 
-## The Mahact Gene-Sorcerers (mahact) [NIEZAIMPLEMENTOWANA]
+## The Mahact Gene-Sorcerers (mahact)
 
 ### Umiejętności (Abilities)
 - [ ] **Edict** (edict) — Other players' tokens in your fleet pool increase your fleet limit but cannot be redistributed.

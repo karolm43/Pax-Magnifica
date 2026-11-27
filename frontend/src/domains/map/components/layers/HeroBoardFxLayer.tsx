@@ -19,6 +19,7 @@ import { CreussFxDefs, SingularityRiftMark, WormholePortalMark } from "./CreussF
 import { EmpyreanFxDefs, VoidEyeMark, VoidTetherMark } from "./EmpyreanFxMarks";
 import { NomadFxDefs, TimeWarpMark } from "./NomadFxMarks";
 import { KeyholeMark, YssarilFxDefs } from "./YssarilFxMarks";
+import { BenedictionMark, MahactFxDefs } from "./MahactFxMarks";
 import classes from "./HeroBoardFxLayer.module.css";
 
 /**
@@ -280,6 +281,15 @@ export function HeroBoardFxLayer({
   const explored = new Set(
     (run.areas ?? []).filter((a) => a.kind === "explore").map((a) => a.position),
   );
+  // Benediction: the origin and the combat system (their own area kinds, RULES.md 62.23).
+  const areaTile = (kind: string) => {
+    const position = (run.areas ?? []).find((a) => a.kind === kind)?.position;
+    return position ? byPosition.get(position) : undefined;
+  };
+  const benedictionFrom = areaTile("benediction_origin");
+  const benedictionTo = areaTile("benediction");
+  const benediction =
+    benedictionFrom && benedictionTo ? { from: benedictionFrom, to: benedictionTo } : null;
   // Time Warp: systems with a Nomad command token (the rest = the flagship's chronometer).
   const tokenWarps = new Set(
     (run.areas ?? []).filter((a) => a.kind === "time_warp_token").map((a) => a.position),
@@ -344,8 +354,13 @@ export function HeroBoardFxLayer({
           <NomadFxDefs />
         ) : recipe.mark === "keyhole" ? (
           <YssarilFxDefs />
+        ) : recipe.mark === "benediction" ? (
+          <MahactFxDefs />
         ) : (
           <MarkDefs />
+        )}
+        {recipe.mark === "benediction" && benediction && (
+          <BenedictionMark from={benediction.from} to={benediction.to} />
         )}
         {recipe.mark === "rift" && <SingularityRiftMark targets={targets} replaced={run.replaced ?? []} />}
         {recipe.mark === "tether" && targets.length >= 2 && (
@@ -358,7 +373,7 @@ export function HeroBoardFxLayer({
           <WormholePortalMark key={`closing-${tile.position}`} tile={tile} token={run.heroId} closing />
         ))}
         {targets.map((tile, index) =>
-          recipe.mark === "rift" || recipe.mark === "tether" ? null : recipe.mark === "voideye" ? (
+          recipe.mark === "rift" || recipe.mark === "tether" || recipe.mark === "benediction" ? null : recipe.mark === "voideye" ? (
             <VoidEyeMark key={tile.position} tile={tile} index={index} explore={explored.has(tile.position)} />
           ) : recipe.mark === "keyhole" ? (
             <KeyholeMark key={tile.position} tile={tile} index={index} />

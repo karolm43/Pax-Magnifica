@@ -398,8 +398,7 @@ def exchange_program(
         raise ValueError("State whether the players reached an agreement ('agreed').")
     if not agreed:
         for pid in (player_id, partner):
-            if command_tokens.pool_count(state, pid, "fleet") > 0:
-                command_tokens.spend_to_reinforcements(state, pid, "fleet", 1)
+            command_tokens.remove_fleet_token(state, pid)  # own first (F_mahact edict 2)
         return
     theirs = exchange_planets(state, partner)
     mine = exchange_planets(state, player_id)

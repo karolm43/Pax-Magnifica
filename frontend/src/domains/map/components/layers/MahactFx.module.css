@@ -1,0 +1,203 @@
+/*
+ * The Mahact board effect (RULES.md 62.23, 64.4). Tone from --tone (layer).
+ * Airo Shir Aur — Benediction (HERO_BOARD_FX.mahacthero, 7.2 s): the gene-sigil over the origin
+ * unfolds 0–1.2 s, its helix twists tighter until 2.4 s; the chain of command whips across
+ * 1.6–2.6 s and the seized-ship motes ride it 1.9–3.4 s; the board flash at 3.4 s = the six
+ * binding links slam shut around the combat system, the crown flares, a shockwave rolls out;
+ * the chains glow on and everything fades by 7.0 s.
+ */
+.benediction rect,
+.benediction path,
+.benediction circle {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.origin {
+  opacity: 0;
+  animation: mahOrigin 7000ms ease-in-out both;
+}
+
+.sigilGlow {
+  opacity: 0.6;
+  animation: mahPulse 700ms ease-in-out infinite alternate;
+}
+
+.ring {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 4;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+}
+
+/* The rune rings rotate around the system centre (the group origin). */
+.ringOuter,
+.ringInner {
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+
+.ringOuter {
+  animation: mahSpin 7000ms linear both;
+}
+
+.ringInner {
+  animation: mahSpin 7000ms linear reverse both;
+}
+
+.rune {
+  fill: rgb(255 214 120);
+  filter: drop-shadow(0 0 6px rgb(255 190 90));
+}
+
+.helix {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  animation: mahTwist 2400ms cubic-bezier(0.5, 0, 0.6, 1) both;
+}
+
+.strand,
+.strandB {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.strand {
+  stroke: rgb(var(--tone));
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+}
+
+.strandB {
+  stroke: rgb(255 214 120);
+  filter: drop-shadow(0 0 8px rgb(255 190 90));
+}
+
+.chain {
+  fill: none;
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 12px rgb(255 190 90));
+  animation: mahWhip 1000ms cubic-bezier(0.2, 0.9, 0.3, 1) 1600ms forwards,
+    mahFade 1600ms ease-in 5400ms forwards;
+}
+
+.mote {
+  fill: #fff;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  offset-distance: 0%;
+  offset-rotate: 0deg;
+  opacity: 0;
+  animation: mahRide 1500ms ease-in calc(1900ms + var(--lag)) both;
+}
+
+.target {
+  opacity: 0;
+  animation: mahTarget 3800ms ease-out 3200ms both;
+}
+
+.shock {
+  fill: none;
+  stroke: rgb(255 214 120);
+  stroke-width: 6;
+  opacity: 0;
+  animation: mahShock 1100ms ease-out 200ms both;
+}
+
+.link {
+  fill: none;
+  stroke: url(#fxCommandChain);
+  stroke-width: 9;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+  scale: 2.4;
+  opacity: 0;
+  animation: mahLock 600ms cubic-bezier(0.7, 0, 0.9, 1.4) calc(120ms + var(--k) * 40ms) forwards;
+}
+
+.crown {
+  fill: rgb(255 214 120);
+  stroke: rgb(var(--tone));
+  stroke-width: 3;
+  filter: drop-shadow(0 0 16px rgb(255 190 90));
+  translate: 0 -40px;
+  opacity: 0;
+  animation: mahCrown 2400ms ease-out 300ms both;
+}
+
+@keyframes mahOrigin {
+  0% { opacity: 0; scale: 0.6; }
+  15% { opacity: 1; scale: 1; }
+  55% { opacity: 1; }
+  100% { opacity: 0; scale: 0.9; }
+}
+
+@keyframes mahPulse {
+  from { opacity: 0.45; }
+  to { opacity: 0.85; }
+}
+
+@keyframes mahSpin {
+  from { rotate: 0deg; }
+  to { rotate: 240deg; }
+}
+
+@keyframes mahTwist {
+  0% { rotate: 0deg; scale: 1 0.2; }
+  40% { scale: 1 1; }
+  100% { rotate: 540deg; scale: 0.6 1.1; }
+}
+
+@keyframes mahWhip {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes mahFade {
+  to { opacity: 0; }
+}
+
+@keyframes mahRide {
+  0% { offset-distance: 0%; opacity: 0; }
+  15% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+@keyframes mahTarget {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes mahShock {
+  0% { opacity: 0.9; scale: 0.4; }
+  100% { opacity: 0; scale: 4; }
+}
+
+@keyframes mahLock {
+  0% { opacity: 0; scale: 2.4; }
+  70% { opacity: 1; scale: 0.9; }
+  100% { opacity: 1; scale: 1; }
+}
+
+@keyframes mahCrown {
+  0% { opacity: 0; translate: 0 -10px; scale: 0.6; }
+  25% { opacity: 1; translate: 0 -40px; scale: 1.15; }
+  100% { opacity: 0.9; translate: 0 -46px; scale: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .origin,
+  .chain,
+  .mote,
+  .target,
+  .link,
+  .crown,
+  .helix,
+  .ringOuter,
+  .ringInner {
+    animation-duration: 1ms;
+  }
+}

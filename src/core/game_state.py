@@ -576,6 +576,10 @@ class PlayerState(BaseModel):
     fleet_cc: int = 3
     strategic_cc: int = 2
     cc_reinf: int = 8
+    # Other players' command tokens in this player's fleet pool (owners' ids, at most one each):
+    # Mahact Edict (RULES.md 62.23). Counted by ``command_tokens.fleet_pool_count``; never
+    # redistributed. Changed only in ``core/command_tokens.py``.
+    foreign_fleet_tokens: list[str] = Field(default_factory=list)
 
     # Czy gracz spasował w fazie akcji.
     passed: bool = False
@@ -608,6 +612,8 @@ class PlayerState(BaseModel):
     exhausted_planets: list[str] = Field(default_factory=list)
     # Technologie posiadane przez gracza (identyfikatory technologii).
     technologies: list[str] = Field(default_factory=list)
+    # Technologies purged from the game (Vaults of the Heir, RULES.md 62.23): never gained again.
+    purged_technologies: list[str] = Field(default_factory=list)
     # Technologie WYCZERPANE (exhausted) — np. część technologii jednostkowych/akcji.
     # Gotowe = posiadane, których tu nie ma. Odświeżane w fazie statusu.
     exhausted_technologies: list[str] = Field(default_factory=list)
@@ -802,6 +808,11 @@ class ActiveCombat(BaseModel):
     stepwise_assign: list[str] = Field(default_factory=list)
     # Przypisanie strat po AFB z Waylay: krok ASSIGN traktowany jak koniec kroku AFB.
     afb_assign: bool = False
+    # Combat started by a component outside a tactical action (Benediction, RULES.md 62.23):
+    # the component key; the active system is cleared when the combat closes.
+    source: str = ""
+    # Neither side may retreat (Benediction: "neither player can retreat").
+    no_retreat: bool = False
     # Gracze, którzy w tej walce użyją nadanego AFB (Metali Void Armaments: „you may resolve AFB
     # 6 (x3)"): zgoda z oferty na starcie walki; rzut dopisuje ``battle.resolve_afb``.
     afb_extra: list[str] = Field(default_factory=list)

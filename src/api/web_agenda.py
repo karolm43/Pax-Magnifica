@@ -174,6 +174,8 @@ def build_agenda_payload(state: GameState, registry: StaticDataRegistry) -> dict
             "extra": agenda_phase.extra_votes(state, registry, pid),
             # Representative Government: dokładnie 1 głos, bez planet i dodatkowych głosów.
             "singleVote": agenda_phase.single_vote(state, pid),
+            # Genetic Recombination (RULES.md 62.23): the outcome this voter must vote for.
+            "requiredOutcome": next(iter(sorted(agenda_phase.required_outcomes(state, pid))), None),
             # Predictive Intelligence: posiadana / gotowa (opcjonalne +3 głosy, decyzja gracza).
             "predictive": {
                 "owned": agenda_phase.PREDICTIVE_INTELLIGENCE in state.players[pid].technologies,

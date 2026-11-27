@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from src.core import capacity, timing, unit_ops
+from src.core import capacity, command_tokens, timing, unit_ops
 from src.core.combat import resolve_unit_variant
 from src.core.game_state import GameState, WindowType
 from src.core.neutral import NEUTRAL_PLAYER_ID
@@ -123,7 +123,10 @@ def fleet_report(
     Z Fighter II do ``ships`` wchodzą też myśliwce ponad capacity (klucz ``fighter``).
     """
     player = state.players.get(player_id)
-    report = FleetReport(pool=player.fleet_cc if player is not None else 0)
+    # Other players' tokens count too (Mahact Edict, RULES.md 62.23).
+    report = FleetReport(
+        pool=command_tokens.fleet_pool_count(state, player_id) if player is not None else 0
+    )
     # Hooki: Armada (+2 w każdym systemie), Darktalon Treilla (bez limitu) — RULES.md 62.2.
     from src.core import rules_hooks  # lokalnie: unika cyklu importów
 
