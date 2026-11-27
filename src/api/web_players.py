@@ -482,7 +482,7 @@ def _build_player_data(
                 # frakcyjne są w ``techs`` (trafiają do racka techów).
                 "abilities": abilities,
                 # Wormholes linked ONLY for this player (Quantum Entanglement: alpha <-> beta,
-                # RULES.md 61.7): hovering a wormhole draws these links in the player's colour.
+                # RULES.md 61.7): hovering a wormhole draws these links for that player only.
                 "wormholeLinks": _player_wormhole_links(state, grid, player_id),
                 "factionTechs": faction_techs,
                 "notResearchedFactionTechs": not_researched_ft,

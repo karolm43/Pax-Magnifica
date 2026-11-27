@@ -1,7 +1,5 @@
 import type { Tile } from "@/entities/game/types";
 import { tileOutline } from "@/entities/geometry/tileOutline";
-import type { CSSProperties } from "react";
-import { resolvePrimaryRgb } from "@/entities/lookup/colors";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
 import { linkTargets, playerLinkTargets, useWormholeHoverStore } from "../../wormholeLinks";
 import classes from "./WormholeLinkLayer.module.css";
@@ -47,22 +45,19 @@ export function WormholeLinkLayer({
   };
   const from = center(source);
 
-  const links = hovered.kinds.flatMap((kind) =>
-    linkTargets(kind, hovered.position, tiles).flatMap((position) => {
-      const target = byPosition.get(position);
-      return target ? [{ kind, target }] : [];
-    }),
+  const printed = hovered.kinds.flatMap((kind) =>
+    linkTargets(kind, hovered.position, tiles).map((position) => ({ kind, position })),
   );
-
-  // Links only one player has (Quantum Entanglement: alpha <-> beta for Creuss) - dashed, in
-  // that player's colour, and shown ONLY to that player (the desk: my seat in a network game).
-  const common = new Set(links.map((l) => l.target.position));
-  const own = playerLinkTargets(hovered.position, viewer ? [viewer] : [], common).flatMap((link) => {
-    const target = byPosition.get(link.position);
-    const rgb = resolvePrimaryRgb(link.color);
-    return target ? [{ ...link, target, rgb: rgb ? `${rgb.red}, ${rgb.green}, ${rgb.blue}` : undefined }] : [];
+  // Links only one player has (Quantum Entanglement: alpha <-> beta for Creuss) look like any
+  // other wormhole connection, and are shown ONLY to that player (the desk: my seat online).
+  const kind = hovered.kinds.find((k) => k === "ALPHA" || k === "BETA") ?? hovered.kinds[0];
+  const common = new Set(printed.map((l) => l.position));
+  const own = playerLinkTargets(hovered.position, viewer, common).map((position) => ({ kind, position }));
+  const links = [...printed, ...own].flatMap(({ kind, position }) => {
+    const target = byPosition.get(position);
+    return target ? [{ kind, target }] : [];
   });
-  if (links.length === 0 && own.length === 0) return null;
+  if (links.length === 0) return null;
 
   return (
     <div
@@ -90,27 +85,6 @@ export function WormholeLinkLayer({
               <path className={classes.line} d={d} pathLength={100} />
               <path className={classes.comet} d={d} pathLength={100} />
               <circle className={classes.pulse} cx={to.x} cy={to.y} r={40} />
-              <circle className={classes.dot} cx={to.x} cy={to.y} r={14} />
-            </g>
-          );
-        })}
-        {own.map(({ target, faction, rgb }) => {
-          const to = center(target);
-          const d = arc(from, to);
-          return (
-            <g
-              key={`own-${faction}-${target.position}`}
-              data-kind="PLAYER"
-              data-faction={faction}
-              style={rgb ? ({ "--link-rgb": rgb } as CSSProperties) : undefined}
-            >
-              <path
-                className={classes.targetHex}
-                d={tileOutline(target.systemId).path}
-                transform={`translate(${target.properties.x} ${target.properties.y})`}
-              />
-              <path className={classes.shadow} d={d} />
-              <path className={`${classes.line} ${classes.ownLine}`} d={d} pathLength={100} />
               <circle className={classes.dot} cx={to.x} cy={to.y} r={14} />
             </g>
           );

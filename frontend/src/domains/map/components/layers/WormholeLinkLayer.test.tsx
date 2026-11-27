@@ -22,15 +22,15 @@ function ownLinks() {
       contentSize={{ width: 800, height: 400 }}
     />,
   );
-  return container.querySelectorAll('[data-kind="PLAYER"]');
+  return container.querySelectorAll('g[data-kind="ALPHA"]');
 }
 
 describe("WormholeLinkLayer: Quantum Entanglement links (RULES.md 61.7)", () => {
   beforeEach(() => {
-    useWormholeHoverStore.getState().setHovered({ position: "102", kinds: [] });
+    useWormholeHoverStore.getState().setHovered({ position: "102", kinds: ["ALPHA"] });
   });
 
-  it("draws them for the player who has them", () => {
+  it("draws them like a normal wormhole link for the player who has them", () => {
     desk = creuss;
     expect(ownLinks()).toHaveLength(1);
   });

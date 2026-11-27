@@ -406,4 +406,4 @@ Older, completed blocks (Phase 1 → early flight-replay blocks of 2026-11-25) a
 
 - Bug: `WormholeLinkLayer` drew the Creuss dashed alpha <-> beta links for every viewer. They are now drawn only for
   the desk player (`useDeskPlayer`: my seat in a network game, the turn player locally). Printed wormhole links
-  are unchanged. Frontend only; test `WormholeLinkLayer.test.tsx`.
+  are unchanged. They look like any other wormhole connection (no player colour, no dashes). Frontend only; test `WormholeLinkLayer.test.tsx`.

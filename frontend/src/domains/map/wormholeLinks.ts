@@ -55,23 +55,15 @@ export function linkTargets(
   return linkedPositions(kind, position, tiles);
 }
 
-/** A link that exists only for one player (Quantum Entanglement: alpha <-> beta for Creuss). */
-export type PlayerLink = { position: string; color: string; faction: string };
-
 /**
- * Systems linked to ``position`` only for some players (web-data ``wormholeLinks``, the engine's
- * ``adjacency.extra_for_player`` layer, RULES.md 61.7) - minus those every player reaches
- * through the hovered wormhole anyway (``common``).
+ * Systems linked to ``position`` only for ``player`` (web-data ``wormholeLinks``, the engine's
+ * ``adjacency.extra_for_player`` layer, RULES.md 61.7 - Quantum Entanglement: alpha <-> beta for
+ * Creuss) - minus those every player reaches through the hovered wormhole anyway (``common``).
  */
 export function playerLinkTargets(
   position: string,
-  players: { color: string; faction: string; wormholeLinks?: Record<string, string[]> }[],
+  player: { wormholeLinks?: Record<string, string[]> } | undefined,
   common: Set<string>,
-): PlayerLink[] {
-  return players.flatMap((player) =>
-    (player.wormholeLinks?.[position] ?? [])
-      .filter((target) => !common.has(target))
-      .map((target) => ({ position: target, color: player.color, faction: player.faction })),
-  );
+): string[] {
+  return (player?.wormholeLinks?.[position] ?? []).filter((target) => !common.has(target));
 }
-
