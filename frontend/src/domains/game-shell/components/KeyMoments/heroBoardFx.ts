@@ -50,7 +50,8 @@ export type FxMark =
   | "rift" // Creuss: two wormhole vortices joined by a tether, the tiles fly to trade places
   | "portal" // Creuss wormhole token: a vortex opens (and the old one collapses when moved)
   | "voideye" // Empyrean: frontier sigils condense from the void, an eye opens where it explores
-  | "tether"; // Empyrean Void Tether: a dark seam seals the border, the two systems recoil
+  | "tether" // Empyrean Void Tether: a dark seam seals the border, the two systems recoil
+  | "timewarp"; // Nomad: a chronometer rewinds over the flagship, chrono-locks open on its tokens
 
 export type HeroFxRecipe = {
   /** Przyciemnienie całej planszy (0–1). */
@@ -379,6 +380,33 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
       { at: 3700, name: "sunfire", gain: 0.5, rate: 0.45 },
       { at: 3760, name: "explosionHeavy", gain: 0.45, rate: 0.6 },
       { at: 5200, name: "warSunEnter", gain: 0.3, rate: 0.35 },
+    ],
+  },
+  // Probability Matrix: Time Warp (Ahk-Syl Siven, RULES.md 62.21): the board flickers like a
+  // broken recording (static); over the flagship a chronometer unfolds, its hands spin backwards
+  // ever faster while ghost hexes of other probabilities peel away; at the flash the dial bursts
+  // into time ripples. Over every system with a Nomad command token an hourglass runs upward and
+  // its chrono-lock splits open - the flagship may leave those systems this round. Sound: a low
+  // temporal hum, a long reversed rush (time running back), the snap of the flash, a fading tick.
+  nomadhero: {
+    dim: 0.5,
+    sweep: "static",
+    area: { self: true, kinds: ["time_warp", "time_warp_token"] },
+    target: "ships",
+    mark: "timewarp",
+    tone: "110 225 255",
+    ms: 7200,
+    flashAt: 3600,
+    quake: [{ at: 3600, px: 4, ms: 800 }],
+    sounds: [
+      { at: 0, name: "warSunEnter", gain: 0.55, rate: 0.6 },
+      { at: 700, name: "explosionHeavy", gain: 0.6, rate: 0.55, reverse: true, endIn: 2900 },
+      { at: 1500, name: "laser", gain: 0.3, rate: 0.4, reverse: true },
+      { at: 3600, name: "sunfire", gain: 0.55, rate: 0.7 },
+      { at: 3650, name: "explosionHeavy", gain: 0.5, rate: 0.75 },
+      { at: 4300, name: "armorHit", gain: 0.45, rate: 0.6 },
+      { at: 5400, name: "diceClack", gain: 0.35, rate: 0.7 },
+      { at: 5900, name: "diceClack", gain: 0.25, rate: 0.6 },
     ],
   },
   // Nova Seed: gwiazda systemu puchnie, korona zapada się w punkt, wybuch supernowej (błysk,

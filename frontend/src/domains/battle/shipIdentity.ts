@@ -114,7 +114,9 @@ export function reconcileShips(
     for (const s of ships) {
       const canSustain = unit.sustain && !s.damaged && whole < unit.sustainable;
       if (!s.damaged) whole += 1;
-      out.push({ ...s, unit, name: unit.name, asyncId: unit.asyncId, canSustain });
+      out.push({
+        ...s, unit, name: unit.name, asyncId: unit.asyncId, canSustain, shield: !!unit.shield,
+      });
     }
   }
   return out;

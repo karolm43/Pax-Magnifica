@@ -180,6 +180,7 @@ def activate_system(
         action_budget.register_action(new_state, active_id)
 
     new_state.active_system = position
+    new_state.turn_active_system = position  # "the active system" until the turn ends (62.21)
     new_state.tactical_step = TacticalStep.MOVEMENT
     new_state.production_used = 0
     new_state.gravity_drive_used = False

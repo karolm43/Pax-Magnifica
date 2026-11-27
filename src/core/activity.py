@@ -88,6 +88,11 @@ class ActivityFact(BaseModel):
     # frontier token placed / explored by Multiverse Shift — miejsce efektu na planszy,
     # RULES.md 64.4; feed go nie wypisuje).
     # "frontier_tokens" (delta = frontier tokens placed in this entry, RULES.md 62.20).
+    # "leader_tg" (trade goods put on / taken off a leader card - Artuno the Betrayer: value =
+    # leader id, delta = change of the card's trade goods, RULES.md 62.21).
+    # "area" with detail = an effect's own word (``ActiveEffect.data["areas"]`` = {position:
+    # detail} of a hero effect that moves nothing: Ahk-Syl Siven's "time_warp" on the flagship's
+    # system and "time_warp_token" on systems with the Nomad's command tokens, RULES.md 62.21).
     # NOWY skutek gry => dopisz tu fakt i jego opis w ``describeActivity.tsx``.
     type: str
     # Czyj skutek; None dla zdarzeń talii/stołu bez jednego właściciela.
@@ -527,6 +532,17 @@ def _hero_area_facts(
          if f.type in ("leader", "attached") and _is_hero_card(f.value) and f.player_id),
         None,
     )
+    # A hero effect that changes no units names its systems itself (Time Warp, RULES.md 62.21).
+    known = {effect.id for effect in before.active_effects}
+    for effect in after.active_effects:
+        if effect.id in known:
+            continue
+        areas = effect.data.get("areas") or {}  # {position: what happens there}
+        for position, detail in sorted(dict(areas).items()):
+            out.append(ActivityFact(
+                type="area", player_id=effect.owner or hero_user, value=str(position),
+                detail=str(detail or "effect"),
+            ))
     # Multiverse Shift (RULES.md 62.20): frontier tokens placed / waiting to be explored.
     for position in _placed_frontier(before, after):
         out.append(ActivityFact(type="area", player_id=hero_user, value=position,
@@ -605,6 +621,12 @@ def _resource_facts(before: GameState, after: GameState) -> list[ActivityFact]:
         for leader, state in new.leader_states.items():
             if old.leader_states.get(leader) != state:
                 facts.append(ActivityFact(type="leader", player_id=pid, value=leader, detail=state))
+        for leader in sorted(set(new.leader_trade_goods) | set(old.leader_trade_goods)):
+            diff = new.leader_trade_goods.get(leader, 0) - old.leader_trade_goods.get(leader, 0)
+            if diff:
+                facts.append(
+                    ActivityFact(type="leader_tg", player_id=pid, value=leader, delta=diff)
+                )
         if new.breakthrough_unlocked and not old.breakthrough_unlocked:
             facts.append(ActivityFact(type="breakthrough_unlocked", player_id=pid))
         for number in new.strategy_cards:

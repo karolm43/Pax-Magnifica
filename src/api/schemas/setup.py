@@ -311,6 +311,8 @@ class PlayerEditRequest(BaseModel):
     exhausted_technologies: list[str] | None = None
     # Stan liderów: {leader_id: "locked"|"unlocked"|"exhausted"}.
     leader_states: dict[str, str] | None = None
+    # Trade goods on leader cards (Artuno the Betrayer, RULES.md 62.21): {leader_id: TG}.
+    leader_trade_goods: dict[str, int] | None = None
     # Przełom frakcji (Thunder's Edge): odblokowany / wyczerpany / odłożone TG.
     breakthrough_unlocked: bool | None = None
     breakthrough_exhausted: bool | None = None

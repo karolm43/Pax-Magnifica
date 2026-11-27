@@ -295,7 +295,12 @@ def end_turn(
     bonus = new_state.bonus_turn
     if bonus is not None and bonus.player == current:
         return _finish_bonus_turn(new_state, current)
-    triggers.fire(new_state, GameEvent.TURN, Moment.END, subject=current, ctx={"player": current})
+    # ``position`` = the system activated during this turn ("the active system" at its end - Field
+    # Marshal Mercer, RULES.md 62.21); empty when the turn activated nothing.
+    triggers.fire(
+        new_state, GameEvent.TURN, Moment.END, subject=current,
+        ctx={"player": current, "position": new_state.turn_active_system or ""},
+    )
     # Eliminacja (R_elimination): sprawdzana na końcu każdej tury - po walkach, inwazjach i
     # efektach tej tury. Kolejność po wyeliminowanym aktywnym liczona sprzed eliminacji.
     order_before = turn_order(new_state)
@@ -321,6 +326,7 @@ def end_turn(
         new_state.active_player_id = nxt
     # Nowa tura: limit „jedna ekspedycja na turę" (RULES.md 50) zaczyna się od nowa.
     new_state.expeditions.performed_by = None
+    new_state.turn_active_system = None  # a new turn has activated nothing yet
     # Nowa tura dla następnego aktywnego gracza — zeruj jego znacznik „akcja w turze".
     nxt_id = new_state.active_player_id
     if nxt_id is not None and nxt_id in new_state.players:
@@ -406,6 +412,7 @@ def skip_next_turn(state: GameState) -> None:
     state.active_player_id = nxt
     action_budget.reset_turn(state, nxt)
     state.players[nxt].transacted_with = []
+    state.turn_active_system = None
     triggers.fire(state, GameEvent.TURN, Moment.START, subject=nxt, ctx={"player": nxt})
     state.turn_end_window = TurnEndWindow(
         ended_player=window.ended_player, ended_passed=window.ended_passed, next_player=nxt
@@ -597,6 +604,7 @@ def next_phase(state: GameState) -> GameState:
         action_budget.reset_turn(new_state, player_id)
         player.transacted_with = []
     new_state.expeditions.performed_by = None
+    new_state.turn_active_system = None  # a new turn has activated nothing yet
     new_state.bonus_turn = None
     # Faza statusu (RULES.md 41): wejście inicjuje kroki (punktowanie → ... → zwrot kart);
     # naprawa jednostek to krok 7 (``status_phase``), nie samo wejście w fazę. Poza statusem

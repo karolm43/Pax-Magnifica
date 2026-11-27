@@ -28,12 +28,16 @@ def _player(state: GameState, player_id: str) -> PlayerState:
     return player
 
 
-def gain_trade_goods(state: GameState, player_id: str, amount: int, *, cause: str = "") -> None:
+def gain_trade_goods(
+    state: GameState, player_id: str, amount: int, *, cause: str = "", from_supply: bool = True
+) -> None:
     """Gracz zdobywa ``amount`` trade goods (R_trade_goods).
 
     ``cause`` trafia do zdarzenia ``TRADE_GOODS_GAINED``: ``"transaction"`` (TG z transakcji -
     Pillage reaguje raz na samą transakcję), ``"convert"`` (zamiana commodities - to nie jest
     „zdobycie” dla Pillage, F_mentak), ``"pillage"`` (RULES.md 62.8).
+    ``from_supply=False``: the trade goods come from another player, a strategy card or a leader
+    card - not from the supply (Artuno the Betrayer reacts only to the supply, RULES.md 62.21).
     """
     if amount < 0:
         raise ValueError("The amount of trade goods to gain cannot be negative.")
@@ -41,8 +45,38 @@ def gain_trade_goods(state: GameState, player_id: str, amount: int, *, cause: st
     if amount > 0:
         triggers.fire(
             state, GameEvent.TRADE_GOODS_GAINED, Moment.AFTER, subject=player_id,
-            ctx={"player": player_id, "amount": amount, "cause": cause},
+            ctx={"player": player_id, "amount": amount, "cause": cause,
+                 "from_supply": from_supply and cause != "convert"},
         )
+
+
+def stash_on_leader(state: GameState, player_id: str, leader_id: str, amount: int) -> None:
+    """Moves ``amount`` of the player's trade goods onto their leader card (Artuno the Betrayer:
+    "place an equal number of trade goods on this card", RULES.md 62.21). Not a spend."""
+    if amount < 0:
+        raise ValueError("The amount of trade goods to place cannot be negative.")
+    player = _player(state, player_id)
+    if amount > player.trade_goods:
+        raise ValueError(f"Not enough trade goods: {amount} > {player.trade_goods}.")
+    player.trade_goods -= amount
+    player.leader_trade_goods = {
+        **player.leader_trade_goods,
+        leader_id: player.leader_trade_goods.get(leader_id, 0) + amount,
+    }
+
+
+def release_from_leader(state: GameState, player_id: str, leader_id: str) -> int:
+    """The player gains every trade good lying on their leader card (not from the supply -
+    F_nomad artuno 3). Returns the amount."""
+    player = _player(state, player_id)
+    amount = player.leader_trade_goods.get(leader_id, 0)
+    if amount <= 0:
+        return 0
+    player.leader_trade_goods = {
+        k: v for k, v in player.leader_trade_goods.items() if k != leader_id
+    }
+    gain_trade_goods(state, player_id, amount, cause="leader_card", from_supply=False)
+    return amount
 
 
 def spend_trade_goods(state: GameState, player_id: str, amount: int) -> None:
@@ -182,7 +216,9 @@ def give_to_player(
     """
     spend_trade_goods(state, giver_id, trade_goods)
     spend_commodities(state, giver_id, commodities)
-    gain_trade_goods(state, receiver_id, trade_goods + commodities, cause=cause)
+    gain_trade_goods(
+        state, receiver_id, trade_goods + commodities, cause=cause, from_supply=False
+    )
     if commodities > 0:
         # "When you give a number of commodities to ..." (Dark Pact, RULES.md 62.20): the ONE
         # place every commodity hand-over goes through (transactions, Trade Agreement).

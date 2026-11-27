@@ -1,4 +1,19 @@
 {
+  "F_nomad/ahksyl-siven-probability-matrix/1": {"na": "Time Warp is an ActiveEffect with Duration.ROUND, which expires on ROUND/END - fired by turn_flow when the game round ends after the agenda phase (or the status phase while the custodians token is on Mecatol Rex) (RULES.md 62.21)."},
+  "F_nomad/future-sight/3": {"na": "Deadly Plot discards the agenda without resolving it (agenda_phase: no AGENDA_OUTCOME_RESOLVED event), so the Future Sight hook never fires (RULES.md 62.21)."},
+  "F_nomad/navarch-feng/1.1": {"na": "Navarch Feng only leaves the flagship out of the order's total (production.free_types); Integrated Economy and Umbat read the unit's cost from the data, which stays 8 (RULES.md 62.21)."},
+  "F_nomad/navarch-feng/1.2": {"na": "Scuttle reads the unit's cost from the data (8); Navarch Feng does not change it (RULES.md 62.21)."},
+  "F_nomad/navarch-feng/2.1": {"na": "The unlock reads PlayerState.scored_secrets; a secret made public by Classified Document Leaks is not a scored secret, and a discarded law changes nothing there (RULES.md 62.21)."},
+  "F_nomad/quantum-manipulator/1.1": {"na": "Effects that destroy a ship directly (Assault Cannon, Direct Hit) never create hits in the assignment, so there is nothing the hit shield could cancel (RULES.md 62.21)."},
+  "F_nomad/the-cavalry/2.2": {"na": "The status phase repairs every damaged unit (damage.repair_all), whatever its abilities (RULES.md 62.21)."},
+  "F_nomad/the-cavalry/2.3": {"na": "Duranium Armor repairs any damaged unit of the group (damage counts per group); without The Cavalry a cruiser has no SUSTAIN DAMAGE, so it cannot be damaged again (battle_units.sustainable) (RULES.md 62.21)."},
+  "F_nomad/the-cavalry/2.4": {"gap": "Emergency Repairs repairs every damaged unit in the active system (reactions_combat._damaged_units), not only units that currently have SUSTAIN DAMAGE - a ship damaged under The Cavalry is repaired by it after the combat (RULES.md 62.21)."},
+  "F_nomad/the-thundarian/2.1": {"na": "Magen Defense Grid, Fighter Prototype, Morale Boost, Munitions Reserves, Supercharge, War Funding and the round-long agents are ActiveEffects with Duration.COMBAT_ROUND; battle.rewind_roll_step keeps the round number, so they stay (RULES.md 62.21)."},
+  "F_nomad/the-thundarian/3.1": {"na": "battle.rewind_roll_step returns to step ROLL of the same round without _open_round: no COMBAT_ROUND/START window is replayed, and round-end windows only open after the next assignment (RULES.md 62.21)."},
+  "F_nomad/the-thundarian/4.1": {"na": "The Thundarian is a window use available only in the assignment step after the 'after roll' decisions (battle.roll_step_open); the rewind discards the boosted dice, the trade goods spent on Wrath of Kenara are not refunded and a new Kenara offer comes with the new roll (RULES.md 62.21)."},
+  "F_nomad/the-thundarian/4.2": {"na": "The Crown of Thalnos reroll is applied to the roll entries that battle.rewind_roll_step discards; destroyed units stay destroyed, the +1 is gone with the old roll (RULES.md 62.21)."},
+  "F_nomad/the-thundarian/4.3": {"na": "Fire Team is discarded when played (action_cards) and its reroll changes the roll entries that the rewind discards - it has no effect on the new roll (RULES.md 62.21)."},
+  "F_nomad/the-thundarian/4.4": {"na": "War Funding returns to Letnev when played (promissory_play._dispose); its rerolls change the roll entries the rewind discards (RULES.md 62.21)."},
   "F_ul/slumberstate-computing/3.1": {
     "gap": "Binding deals are not modelled in the engine (core/transaction.py has no deal/agreement item) - a sleeper placement cannot be part of a binding deal."
   },
@@ -102,12 +117,6 @@
   "F_letnev/arc-secundus/2": {
     "na": "Nieaktywny wariant: w grze jest tylko Magen Defense Grid ΩΩ (md, codex4) - md_base jest zastąpiony (technologies_combat.declare_superseded); ruling 3.1 ma test."
   },
-  "F_letnev/gravleash-maneuvers/8": {
-    "requires": [
-      "faction:nomad"
-    ],
-    "reason": "The Thundarian (Nomad agent) is not implemented; once it is, moving the bonus to another ship needs the same mechanism as gravleash-maneuvers/7."
-  },
   "F_winnu/acquiescence-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko Acquiescence Ω („When the Winnu player resolves a strategic action: You do not have to spend or place a command token…”); ta sekcja opisuje starą notkę z zamianą kart strategii."
   },
@@ -122,12 +131,6 @@
       "faction:nekro"
     ],
     "reason": "Nekro zamiast badania technologii bierze żetony dowodzenia (sześć zamiast dwóch technologii z Book of Latvinia)."
-  },
-  "C_relics/jrxs455o/1.1": {
-    "requires": [
-      "faction:nomad"
-    ],
-    "reason": "Temporal Command Suite (Nomad) odświeża JR-XS455-O jak agenta."
   },
   "C_relics/jrxs455o/1.2": {
     "requires": [

@@ -403,6 +403,8 @@ def _dispose(
         promissory_notes.place_in_play(state, holder, note_id)
     elif _PURGE_SELF.search(text) or owner is None:
         promissory_notes.discard_from_hand(state, holder, note_id)
+    elif note_id in state.players[holder].promissory_notes_in_play:
+        pass  # the effect laid it in the play area until its return condition (The Cavalry)
     else:
         promissory_notes.return_from_hand(state, holder, owner, note_id)
 

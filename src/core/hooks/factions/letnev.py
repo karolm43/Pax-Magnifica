@@ -625,6 +625,30 @@ def reassign_gravleash(
     effect.data = {**effect.data, "base_type": ship}
 
 
+def _gravleash_again(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
+    return bool(ctx.get("rewound")) and len(_ship_types(
+        state, player_id, str(ctx.get("position"))
+    )) > 1 and _gravleash_effect(state, player_id) is not None
+
+
+def _gravleash_again_inputs(
+    state: GameState, registry: Any, player_id: str, _ctx: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    return _gravleash_reassign_inputs(state, registry, player_id)
+
+
+@on_event(
+    GameEvent.COMBAT_STEP, Moment.START, HookSource(SOURCE_EFFECT, GRAVLEASH),
+    where={"step": "roll_dice"}, condition=_gravleash_again, decide=True,
+    inputs=_gravleash_again_inputs, label="Gravleash Maneuvers: ship for the new roll",
+)
+def gravleash_again(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
+    """F_letnev gravleash-maneuvers 8: after The Thundarian the Letnev player may assign the bonus
+    to a different ship; the original ship loses it (no dice on the table yet)."""
+    ship = str((ctx.get("params") or {}).get("gravleash_ship") or "")
+    reassign_gravleash(state, rules_hooks.bound_registry(), player_id, ship)
+
+
 @register(POINT_COMBAT_SINGLE_UNIT_BONUS, HookSource(SOURCE_EFFECT, GRAVLEASH), HookKind.MODIFY)
 def gravleash_bonus(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> int:
     if ctx.get("kind") != "space":

@@ -158,12 +158,14 @@ def wormhole_link_blocked(
 
 
 def _neighbors_for_move(
-    grid: HexGrid, state: GameState, position: str, player_id: str
+    grid: HexGrid, state: GameState, position: str, player_id: str, base_type: str = ""
 ) -> set[str]:
     """Sąsiedzi systemu na potrzeby RUCHU gracza: graf mapy + efekty tej akcji.
 
     Lost Star Chart (hook PERMIT): systemy z wormholem alpha i beta sąsiadują ze sobą w tej
     akcji. Graf mapy (czyste sąsiedztwo) zostaje nietknięty - to osobna warstwa (RULES.md 1/3).
+    ``base_type`` = the moving unit: a unit-only layer (Memoria, RULES.md 62.21) adds the systems
+    that unit treats as adjacent - never for other ships.
     """
     result = {
         n for n in grid.neighbors(position)
@@ -188,12 +190,24 @@ def _neighbors_for_move(
     result |= board_graph.extra_adjacent_for_player(state, player_id, position, grid)
     # Layer 4 (RULES.md 61.7): edges the player does not treat as adjacent (Void Tether).
     result -= board_graph.cut_adjacent_for_player(state, player_id, position, grid)
+    if base_type:
+        # One unit treats these systems as adjacent (Memoria: systems with your mechs, 62.21).
+        result |= set(rules_hooks.forbidden(
+            rules_hooks.POINT_MOVEMENT_UNIT_EXTRA_ADJACENT, state, player_id,
+            {"position": position, "base_type": base_type},
+        )) - {position}
     return result
 
 
-def _ignores_own_command_token(state: GameState, player_id: str) -> bool:
-    """Czy gracz może ruszać i transportować jednostki z systemów ze SWOIM żetonem (Dominus Orb)."""
-    return rules_hooks.permits(rules_hooks.POINT_MOVEMENT_IGNORE_OWN_CC, state, player_id)
+def _ignores_own_command_token(state: GameState, player_id: str, base_type: str = "") -> bool:
+    """Czy gracz może ruszać i transportować jednostki z systemów ze SWOIM żetonem (Dominus Orb).
+
+    ``base_type`` = the moving ship (or the carrier of a pickup): Ahk-Syl Siven lets only the
+    flagship and the units it transports leave such systems (RULES.md 62.21).
+    """
+    return rules_hooks.permits(
+        rules_hooks.POINT_MOVEMENT_IGNORE_OWN_CC, state, player_id, {"base_type": base_type}
+    )
 
 
 def _ignores_anomalies(state: GameState, player_id: str) -> bool:
@@ -253,7 +267,7 @@ def shortest_legal_path(
     queue: deque[str] = deque([from_pos])
     while queue:
         pos = queue.popleft()
-        for neighbor in sorted(_neighbors_for_move(grid, state, pos, player_id)):
+        for neighbor in sorted(_neighbors_for_move(grid, state, pos, player_id, base_type)):
             if neighbor in visited:
                 continue
             if neighbor == to_pos:
@@ -360,7 +374,7 @@ def route_error(
     ast = _can_enter_asteroids(state, player_id)
     ignore = _ignores_anomalies(state, player_id)
     for start, end in zip(route, route[1:], strict=False):
-        if end not in _neighbors_for_move(grid, state, start, player_id):
+        if end not in _neighbors_for_move(grid, state, start, player_id, base_type):
             return f"Systems {start} and {end} are not adjacent (R4)."
     for node in route[1:-1]:
         if not _node_passable_intermediate(
@@ -413,7 +427,9 @@ def legal_routes(
     def walk(path: list[str]) -> None:
         if len(found) >= cap:
             return
-        for neighbor in sorted(_neighbors_for_move(grid, state, path[-1], player_id)):
+        for neighbor in sorted(
+            _neighbors_for_move(grid, state, path[-1], player_id, base_type)
+        ):
             if neighbor in path:
                 continue
             if neighbor == active:

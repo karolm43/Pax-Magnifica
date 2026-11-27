@@ -4,7 +4,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 
 ## 1. Zarejestrowane hooki
 
-Razem: **486**. Opis = pierwsza linia docstringu funkcji hooka.
+Razem: **501**. Opis = pierwsza linia docstringu funkcji hooka.
 
 | Punkt zaczepienia | Rodzaj | Źródło | Komponent | Co robi |
 |---|---|---|---|---|
@@ -43,11 +43,13 @@ Razem: **486**. Opis = pierwsza linia docstringu funkcji hooka.
 | `combat.afb_raid` | PERMIT | faction:argent | abilities:raid_formation | Raid Formation: When 1 or more of your units uses ANTI-FIGHTER BARRAGE: for each hit |
 | `combat.bonus_dice` | MODIFY | effect:leaders:letnevagent:die | — | — |
 | `combat.bonus_dice` | MODIFY | effect:leaders:solagent:die | — | — |
+| `combat.champion` | FORBID | effect:promissory_notes:cavalry:ship | promissory_notes:cavalry | — |
 | `combat.extra_dice` | MODIFY | unit:naaz_flagship | units:naaz_flagship | Visz El Vir: Your mechs in this system roll 1 additional die during combat (każdy mech, |
 | `combat.extra_dice` | MODIFY | unit:winnu_flagship | units:winnu_flagship | Salai Sai Corian: When this unit makes a combat roll, it rolls a number of dice (hit on a 7) |
 | `combat.extra_hits` | MODIFY | technology:vpw | technologies:vpw | Valkyrie Particle Weave: After making combat rolls during a round of ground combat, if your |
 | `combat.granted_sustain` | PERMIT | relic:metalivoidshielding | relics:metalivoidshielding | Metali Void Shielding: Each time hits are produced against 1 or more of your non-fighter |
 | `combat.hit_multiplier` | MODIFY | technology:x89c4 | technologies:x89c4 | X-89 ΩΩ: podwaja trafienia z bombardowania i z rzutów w walce NAZIEMNEJ. |
+| `combat.hit_shields` | FORBID | unit:nomad_mech | units:nomad_mech | Quantum Manipulator: While this unit is in a space area during combat, you may use its |
 | `combat.hits_to_non_fighters` | FORBID | unit:l1z1x_flagship | units:l1z1x_flagship | [0.0.1]: During a space combat, hits produced by this ship and by your dreadnoughts in this |
 | `combat.natural_extra_hits` | MODIFY | unit:jolnar_flagship | units:jolnar_flagship | J.N.S. Hylarim: When making a combat roll for this ship, each result of 9 or 10, before |
 | `combat.reroll_plus_one` | PERMIT | relic:thalnos | relics:thalnos | The Crown of Thalnos: During each combat round, this card's owner may reroll any number of |
@@ -95,6 +97,7 @@ Razem: **486**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:agendas:redistribution:choose | agendas:redistribution | — |
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:agendas:secret:return | agendas:secret | — |
 | `event:agenda.outcome_resolved:after` | TRIGGER | effect:agendas:warrant:return | agendas:warrant | — |
+| `event:agenda.outcome_resolved:after` | TRIGGER | faction:nomad | abilities:future_sight | Future Sight: During the Agenda phase, after an outcome that you voted for or predicted is |
 | `event:agenda.outcome_resolved:after` | TRIGGER | agenda:wormhole_research | agendas:wormhole_research | — |
 | `event:agenda.outcome_resolved:during` | TRIGGER | agenda:abolishment | agendas:abolishment | — |
 | `event:agenda.outcome_resolved:during` | TRIGGER | agenda:arms_reduction | agendas:arms_reduction | — |
@@ -157,12 +160,14 @@ Razem: **486**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:combat.round:start` | TRIGGER | unit:naaz_voltron | — | Repair it at the start of every combat round. |
 | `event:combat.round:start` | TRIGGER | technology:sc | technologies:sc | Supercharge: At the start of a combat round, you may exhaust this card to apply +1 to the |
 | `event:combat.round:start` | TRIGGER | leader:solagent | leaders:solagent | Evelyn DeLouis: At the start of a ground combat round: You may exhaust this card to choose 1 |
+| `event:combat.step:start` | TRIGGER | effect:breakthroughs:letnevbt:ship | — | F_letnev gravleash-maneuvers 8: after The Thundarian the Letnev player may assign the bonus |
 | `event:combat.won:after` | TRIGGER | technology:dxa | technologies:dxa | Dacxive Animators: po wygranej walce naziemnej możesz postawić 1 piechotę na tej planecie. |
 | `event:combat.won:after` | TRIGGER | leader:mentakcommander | leaders:mentakcommander | S'ula Mentarion: After you win a space combat: You may force your opponent to give you 1 |
 | `event:combat.won:after` | TRIGGER | breakthrough:sardakkbt | breakthroughs:sardakkbt | N'orr Supremacy: After you win a combat, either gain 1 command token or research a unit |
 | `event:combat.won:after` | TRIGGER | technology:so | technologies:so | Salvage Operations: ... if you won the combat, you may also produce 1 ship in that system of |
 | `event:combat:end` | TRIGGER | unit:naalu_flagship | — | After combat, return those units to the space area (tylko z planety tej walki; reszta - |
 | `event:combat:end` | TRIGGER | unit:naaz_mech | units:naaz_mech_space | Z-Grav Eidolon: At the end of a space battle in the active system, flip this card (mechy |
+| `event:combat:end` | TRIGGER | effect:promissory_notes:cavalry:ship | — | Return this card to the Nomad player at the end of the combat (also after a retreat). |
 | `event:combat:end` | TRIGGER | unit:saar_spacedock | — | If this unit is blockaded, it is destroyed. |
 | `event:combat:end` | TRIGGER | unit:saar_spacedock2 | — | If this unit is blockaded, it is destroyed. |
 | `event:combat:end` | TRIGGER | technology:so | technologies:so | Salvage Operations: After you win or lose a space combat, gain 1 trade good (remis = nic, |
@@ -183,7 +188,9 @@ Razem: **486**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.decision:after` | TRIGGER | effect:research:f_researched | action_cards:f_researched | — |
 | `event:component.decision:after` | TRIGGER | effect:research:reveal_prototype | action_cards:reveal_prototype | — |
 | `event:component.exhausted:after` | TRIGGER | leader:empyreanagent | — | — |
+| `event:component.exhausted:after` | TRIGGER | leader:nomadagentmercer | — | The player Mercer helped moves up to 2 ground forces onto planets they control in the |
 | `event:component.exhausted:after` | TRIGGER | leader:sardakkagent | — | — |
+| `event:component.exhausted:after` | TRIGGER | technology:tcs | technologies:tcs | Temporal Command Suite: After any player's agent becomes exhausted, you may exhaust this |
 | `event:component.gained:when` | TRIGGER | relic:bookoflatvinia | — | Book of Latvinia: When you gain this card, research up to 2 technologies that have no |
 | `event:component.gained:when` | TRIGGER | breakthrough:cabalbt | breakthroughs:cabalbt | After this card enters play, move up to 2 ingress tokens into systems that contain gravity |
 | `event:component.gained:when` | TRIGGER | breakthrough:muaatbt | breakthroughs:muaatbt | Stellar Genesis: When you gain this card, place the Avernus planet token into a non-home |
@@ -193,11 +200,13 @@ Razem: **486**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:component.gained:when` | TRIGGER | relic:quantumcore | relics:quantumcore | The Quantumcore: When you gain this card, gain your breakthrough. |
 | `event:component.gained:when` | TRIGGER | relic:shard | — | Shard of the Throne: When you gain this card, gain 1 victory point. |
 | `event:component.gained:when` | TRIGGER | breakthrough:yinbt | breakthroughs:yinbt | Yin Ascendant: When you gain this card ..., gain the alliance ability of a random, unused |
+| `event:component.readied:after` | TRIGGER | leader:nomadagentartuno | leaders:nomadagentartuno | When this card readies, gain the trade goods on this card (not from the supply - 3). |
 | `event:component.readied:when` | TRIGGER | effect:agendas:checks:against | agendas:checks | — |
 | `event:economy.commodities_given:after` | TRIGGER | promissory:dark_pact | promissory_notes:dark_pact | Dark Pact: When you give a number of commodities to the Empyrean player equal to your maximum |
 | `event:economy.commodities_replenished:after` | TRIGGER | leader:cabalagent | leaders:cabalagent | The Stillness of Stars: After another player replenishes commodities: You may exhaust this |
 | `event:economy.commodities_replenished:after` | TRIGGER | agenda:minister_commerce | agendas:minister_commerce | — |
 | `event:economy.trade_goods_gained:after` | TRIGGER | faction:mentak | abilities:pillage | Pillage: After 1 of your neighbors gains trade goods ... |
+| `event:economy.trade_goods_gained:after` | TRIGGER | leader:nomadagentartuno | leaders:nomadagentartuno | Artuno the Betrayer: When you gain trade goods from the supply: You may exhaust this card to |
 | `event:faction.ability_used:after` | TRIGGER | effect:agendas:redistribution:place | agendas:redistribution | — |
 | `event:faction.ability_used:after` | TRIGGER | faction:arborec | — | — |
 | `event:faction.ability_used:after` | TRIGGER | leader:arborecagent | leaders:arborecagent | Zamieniany statek nie jest niszczony, nowy nie jest produkowany (F_arborec). |
@@ -339,6 +348,7 @@ Razem: **486**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:turn:end` | TRIGGER | planet:mirage | planets:mirage | Flight Academy: You may exhaust this card at the end of your turn to place up to 2 fighters from your reinforcements in any system that contains 1 or more of your ships. |
 | `event:turn:end` | TRIGGER | planet:mrte | planets:mrte | The Galactic Council: You may exhaust this card at the end of your turn and discard 1 secret objective to draw 1 secret objective. |
 | `event:turn:end` | TRIGGER | leader:naazagent | leaders:naazagent | Garv and Gunn: At the end of a player's turn: You may exhaust this card to allow that player |
+| `event:turn:end` | TRIGGER | leader:nomadagentmercer | leaders:nomadagentmercer | Field Marshal Mercer: At the end of a player's turn: You may exhaust this card to allow that |
 | `event:turn:end` | TRIGGER | planet:phantasm | planets:phantasm | Flight Academy: You may exhaust this card at the end of your turn to place up to 2 fighters from your reinforcements in any system that contains 1 or more of your ships. |
 | `event:turn:end` | TRIGGER | technology:pi | technologies:pi | Predictive Intelligence: na końcu tury wyczerp kartę, by przerozdzielić żetony dowodzenia. |
 | `event:turn:end` | TRIGGER | planet:primor | planets:primor | The Atrament: You may exhaust this card at the end of your turn to place up to 2 infantry from your reinforcements on any planet you control. |
@@ -348,6 +358,7 @@ Razem: **486**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:turn:start` | TRIGGER | technology:inf2 | technologies:inf2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:turn:start` | TRIGGER | technology:lw2 | technologies:lw2 | Każda piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:turn:start` | TRIGGER | technology:lw2 | technologies:lw2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
+| `event:turn:start` | TRIGGER | breakthrough:nomadbt | breakthroughs:nomadbt | Thunder's Paradox: At the start of any player's turn, you may exhaust 1 of your agents to |
 | `event:turn:start` | TRIGGER | technology:so2 | technologies:so2 | Każda piechota z karty Infantry II trafia na wybraną planetę w systemie domowym. |
 | `event:turn:start` | TRIGGER | technology:so2 | technologies:so2 | Bez kontrolowanej planety w systemie domowym piechota z karty wraca do rezerwy |
 | `event:turn:start` | TRIGGER | technology:td | — | Transit Diodes: na początku Twojej tury w fazie akcji wyczerp kartę i przenieś do 4 sił |
@@ -395,6 +406,7 @@ Razem: **486**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.extra_adjacent` | FORBID | effect:technologies:scc | — | Aktywny system sąsiaduje ze wszystkimi systemami z jednostkami gracza (i odwrotnie). |
 | `movement.ignore_anomalies` | PERMIT | effect:action_cards:nav_suite | — | — |
 | `movement.ignore_anomalies_keep_rift` | PERMIT | relic:circletofthevoid | relics:circletofthevoid | Circlet of the Void: Your units do not roll for gravity rifts, and you ignore the effects |
+| `movement.ignore_own_command_token` | PERMIT | effect:leaders:nomadhero:time_warp | — | Only the flagship (and the units it transports - the move passes it as the carrier). |
 | `movement.ignore_own_command_token` | PERMIT | effect:relics:dominusorb | — | — |
 | `movement.into_supernova` | PERMIT | technology:mr | technologies:mr | Magmus Reactor: Your ships can move into supernovas (cel ruchu i odwrót - R_space_combat). |
 | `movement.match_highest` | PERMIT | breakthrough:letnevbt | — | Gravleash Maneuvers: During movement, your non-fighter ships' move values are equal to the |
@@ -422,6 +434,8 @@ Razem: **486**. Opis = pierwsza linia docstringu funkcji hooka.
 | `movement.through_nebula` | PERMIT | faction:empyrean | abilities:voidborn | Voidborn: Nebulae do not affect your ships' movement (a nebula may be crossed). |
 | `movement.through_nebula` | PERMIT | agenda:shared_research | agendas:shared_research | — |
 | `movement.through_supernova` | PERMIT | faction:muaat | abilities:gashlai_physiology | Gashlai Physiology: Your ships can move through supernovas (węzeł pośredni trasy). |
+| `movement.unit_extra_adjacent` | FORBID | unit:nomad_flagship | units:nomad_flagship | You may treat this unit as if it were adjacent to systems that contain 1 or more of your |
+| `movement.unit_extra_adjacent` | FORBID | unit:nomad_flagship2 | units:nomad_flagship2 | You may treat this unit as if it were adjacent to systems that contain 1 or more of your |
 | `movement.wormhole_laws_immune` | PERMIT | faction:ghost | abilities:quantum_entanglement | Game effects cannot prevent you from using this ability (Enforced Travel Ban, Nexus |
 | `movement.wormholes_blocked` | FORBID | agenda:nexus | agendas:nexus | — |
 | `movement.wormholes_blocked` | FORBID | agenda:travel_ban | agendas:travel_ban | — |
@@ -440,6 +454,7 @@ Razem: **486**. Opis = pierwsza linia docstringu funkcji hooka.
 | `production.free` | PERMIT | effect:leaders:hacanhero:free | — | — |
 | `production.free_cargo` | PERMIT | breakthrough:solbt | breakthroughs:solbt | Bellum Gloriosum: When you produce a ship that has capacity, you may also produce any |
 | `production.free_small_units` | MODIFY | leader:cabalcommander | leaders:cabalcommander | That Which Molds Flesh: When you produce fighter or infantry units: Up to 2 of those units |
+| `production.free_types` | FORBID | leader:nomadcommander | leaders:nomadcommander | Navarch Feng: When you produce: You can produce your flagship without spending resources |
 | `production.gain_trade_good` | PERMIT | leader:titanscommander | leaders:titanscommander | Tungstantus: When 1 or more of your units use PRODUCTION: You may gain 1 trade good. |
 | `production.planet_value` | MODIFY | technology:ah | technologies:ah | Aerie Hololattice: Each planet that contains 1 or more of your structures gains the |
 | `production.system_value` | MODIFY | breakthrough:ghostbt | breakthroughs:ghostbt | Each wormhole in a system that contains your ships gains PRODUCTION 1 as if it were a unit |
@@ -524,11 +539,13 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `combat.afb_infantry_kill`
 - `combat.afb_raid`
 - `combat.bonus_dice`
+- `combat.champion`
 - `combat.extra_dice`
 - `combat.extra_hits`
 - `combat.granted_sustain`
 - `combat.hits_to_non_fighters`
 - `combat.hit_multiplier`
+- `combat.hit_shields`
 - `combat.natural_extra_hits`
 - `combat.reroll_misses`
 - `combat.reroll_plus_one`
@@ -572,6 +589,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `movement.single_ship_value`
 - `movement.through_nebula`
 - `movement.through_supernova`
+- `movement.unit_extra_adjacent`
 - `movement.wormholes_blocked`
 - `movement.wormhole_laws_immune`
 - `objectives.ignore_home_control`
@@ -588,6 +606,7 @@ Dostępne punkty zaczepienia (stałe `POINT_*` w `core/rules_hooks.py`):
 - `production.free`
 - `production.free_cargo`
 - `production.free_small_units`
+- `production.free_types`
 - `production.gain_trade_good`
 - `production.planet_value`
 - `production.system_value`

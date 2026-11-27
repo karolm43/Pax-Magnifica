@@ -268,6 +268,25 @@ def exhaust(state: GameState, player_id: str, leader_id: str) -> None:
     player.leader_states = {**player.leader_states, leader_id: EXHAUSTED}
 
 
+def exhaust_announced(
+    state: GameState, player_id: str, leader_id: str, ctx: dict[str, object] | None = None
+) -> None:
+    """Exhausts a leader WITHOUT using its ability and announces it like a use does
+    (``COMPONENT_EXHAUSTED/AFTER``): "exhaust 1 of your agents" (Thunder's Paradox) makes an agent
+    "become exhausted" (Temporal Command Suite, RULES.md 62.21). MUTATES ``state``.
+
+    Raises:
+        ValueError: The leader is not ready.
+    """
+    if state.players[player_id].leader_states.get(leader_id, "") in (LOCKED, EXHAUSTED, PURGED):
+        raise ValueError(f"{leader_id} is not ready.")
+    exhaust(state, player_id, leader_id)
+    triggers.fire(
+        state, GameEvent.COMPONENT_EXHAUSTED, Moment.AFTER, subject=player_id,
+        ctx={**dict(ctx or {}), "player": player_id, "component": f"leaders:{leader_id}"},
+    )
+
+
 def purge(state: GameState, player_id: str, leader_id: str) -> None:
     """Usuwa lidera z gry (stan ``purged``) — R_purge: nie wraca do gry."""
     player = state.players[player_id]

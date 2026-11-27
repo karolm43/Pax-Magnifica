@@ -17,6 +17,7 @@ import { Mark, MarkDefs } from "./HeroFxMarks";
 import { StellarConverterDefs, StellarConverterMark } from "./StellarConverterMark";
 import { CreussFxDefs, SingularityRiftMark, WormholePortalMark } from "./CreussFxMarks";
 import { EmpyreanFxDefs, VoidEyeMark, VoidTetherMark } from "./EmpyreanFxMarks";
+import { NomadFxDefs, TimeWarpMark } from "./NomadFxMarks";
 import classes from "./HeroBoardFxLayer.module.css";
 
 /**
@@ -278,6 +279,10 @@ export function HeroBoardFxLayer({
   const explored = new Set(
     (run.areas ?? []).filter((a) => a.kind === "explore").map((a) => a.position),
   );
+  // Time Warp: systems with a Nomad command token (the rest = the flagship's chronometer).
+  const tokenWarps = new Set(
+    (run.areas ?? []).filter((a) => a.kind === "time_warp_token").map((a) => a.position),
+  );
   // Void Tether moved: the border it left dissolves (the moment's two "loss" areas).
   const tetherLeft = (run.areas ?? [])
     .filter((a) => a.kind === "loss")
@@ -334,6 +339,8 @@ export function HeroBoardFxLayer({
           <CreussFxDefs />
         ) : recipe.mark === "voideye" || recipe.mark === "tether" ? (
           <EmpyreanFxDefs />
+        ) : recipe.mark === "timewarp" ? (
+          <NomadFxDefs />
         ) : (
           <MarkDefs />
         )}
@@ -350,6 +357,13 @@ export function HeroBoardFxLayer({
         {targets.map((tile, index) =>
           recipe.mark === "rift" || recipe.mark === "tether" ? null : recipe.mark === "voideye" ? (
             <VoidEyeMark key={tile.position} tile={tile} index={index} explore={explored.has(tile.position)} />
+          ) : recipe.mark === "timewarp" ? (
+            <TimeWarpMark
+              key={tile.position}
+              tile={tile}
+              index={index}
+              kind={tokenWarps.has(tile.position) ? "token" : "flagship"}
+            />
           ) : recipe.mark === "portal" ? (
             <WormholePortalMark key={tile.position} tile={tile} token={run.heroId} />
           ) : recipe.mark === "nova" ? (

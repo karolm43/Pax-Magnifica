@@ -1,0 +1,291 @@
+/*
+ * The Nomad board effect (RULES.md 62.21, 64.4). Tone from --tone (layer).
+ * Time Warp (HERO_BOARD_FX.nomadhero, 7.2 s): the dial unfolds 0.2–1.1 s, ghost hexes of other
+ * probabilities peel away 0.5–3.4 s, the hands spin backwards faster and faster 0.8–3.6 s; the
+ * board flash at 3.6 s bursts the dial into two time ripples and a faint halo keeps turning until
+ * 7.2 s. Command-token systems (`data-kind="token"`): the hourglass appears 0.6 s (+90 ms per
+ * system), its sand rises, the chrono-lock splits open at 3.7–4.6 s, everything fades by 7 s.
+ */
+.warp rect,
+.warp path,
+.warp circle {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* ----------------------------------------------------------------- flagship chronometer */
+
+.dial {
+  opacity: 0;
+  animation:
+    timeDial 900ms cubic-bezier(0.2, 0.9, 0.3, 1.2) 200ms both,
+    timeBurst 500ms ease-in 3600ms forwards;
+}
+
+.dialRim {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 5;
+  filter: drop-shadow(0 0 12px rgb(var(--tone)));
+}
+
+.dialInner {
+  fill: none;
+  stroke: rgb(var(--tone) / 0.5);
+  stroke-width: 2;
+  stroke-dasharray: 4 7;
+  animation: timeCounter 5000ms linear infinite;
+}
+
+.tick {
+  fill: rgb(var(--tone) / 0.7);
+}
+
+.tick[data-long] {
+  fill: #fff;
+  filter: drop-shadow(0 0 4px rgb(var(--tone)));
+}
+
+.hand {
+  fill: #fff;
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+}
+
+/* Hands pivot on the dial's centre (the group's origin), not on their own box. */
+.handHour,
+.handMinute {
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+
+.handHour {
+  animation: timeRewindSlow 2800ms cubic-bezier(0.5, 0, 0.9, 0.6) 800ms both;
+}
+
+.handMinute {
+  animation: timeRewindFast 2800ms cubic-bezier(0.5, 0, 0.9, 0.6) 800ms both;
+}
+
+.echo {
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 0 0;
+  animation: timeEcho 2200ms ease-out var(--lag) both;
+}
+
+.echoHex {
+  fill: rgb(var(--tone) / 0.08);
+  stroke: rgb(var(--tone) / 0.7);
+  stroke-width: 3;
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+
+.ripple {
+  opacity: 0;
+  animation: timeRipple 1400ms ease-out 3600ms both;
+}
+
+.ripple[data-late] {
+  animation-delay: 3850ms;
+}
+
+.halo {
+  opacity: 0;
+  animation: timeHalo 3400ms ease-in-out 3800ms both;
+}
+
+.haloRing {
+  fill: none;
+  stroke: rgb(var(--tone) / 0.6);
+  stroke-width: 3;
+  stroke-dasharray: 14 6;
+  animation: timeCounter 4000ms linear infinite;
+}
+
+/* ------------------------------------------------------------- command-token chrono-lock */
+
+.glass {
+  opacity: 0;
+  animation:
+    timeGlass 700ms cubic-bezier(0.3, 1.4, 0.5, 1) calc(600ms + var(--i) * 90ms) both,
+    timeFade 900ms ease-in 6100ms forwards;
+}
+
+.glassBody {
+  fill: rgb(6 16 34 / 0.75);
+  stroke: rgb(var(--tone));
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  animation: timeFlip 1200ms ease-in-out 2400ms both;
+}
+
+.grain {
+  fill: rgb(var(--tone));
+  opacity: 0;
+  animation: timeGrain 1100ms ease-in var(--lag) 3 both;
+}
+
+.lock {
+  opacity: 0;
+  animation:
+    timeGlass 700ms ease-out calc(800ms + var(--i) * 90ms) both,
+    timeFade 900ms ease-in 6100ms forwards;
+}
+
+.lockArc {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 8;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+  transform-box: view-box;
+  transform-origin: 0 0;
+  animation: timeUnlockUp 900ms cubic-bezier(0.3, 0, 0.2, 1) 3700ms both;
+}
+
+.lockArc[data-lower] {
+  animation-name: timeUnlockDown;
+}
+
+/* ------------------------------------------------------------------------- keyframes */
+
+@keyframes timeDial {
+  from {
+    opacity: 0;
+    transform: scale(0.3) rotate(40deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes timeBurst {
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes timeRewindSlow {
+  from {
+    rotate: 0deg;
+  }
+  to {
+    rotate: -1080deg;
+  }
+}
+
+@keyframes timeRewindFast {
+  from {
+    rotate: 0deg;
+  }
+  to {
+    rotate: -4320deg;
+  }
+}
+
+@keyframes timeCounter {
+  to {
+    rotate: -360deg;
+  }
+}
+
+@keyframes timeEcho {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(0deg) scale(0.92);
+  }
+  25% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--dist))) rotate(var(--turn)) scale(0.7);
+  }
+}
+
+@keyframes timeRipple {
+  from {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@keyframes timeHalo {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes timeGlass {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes timeFlip {
+  from {
+    rotate: 0deg;
+  }
+  to {
+    rotate: 180deg;
+  }
+}
+
+@keyframes timeGrain {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-80px);
+  }
+}
+
+@keyframes timeUnlockUp {
+  to {
+    transform: translateY(-46px) rotate(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes timeUnlockDown {
+  to {
+    transform: translateY(46px) rotate(18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes timeFade {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .warp * {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

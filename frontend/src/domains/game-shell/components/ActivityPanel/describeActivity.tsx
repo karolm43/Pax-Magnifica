@@ -896,6 +896,26 @@ function describeFact(
           </>
         ),
       };
+    case "leader_tg": {
+      // Trade goods put on / taken off a leader card (Artuno the Betrayer, RULES.md 62.21).
+      const leader = (
+        <Named kind="leader" id={fact.value ?? ""} name={getLeaderById(fact.value ?? "")?.name ?? prettifyId(fact.value ?? "")} />
+      );
+      return {
+        key,
+        tone: "info",
+        text:
+          delta > 0 ? (
+            <>
+              {prefix}placed {delta} trade good{delta === 1 ? "" : "s"} on {leader}
+            </>
+          ) : (
+            <>
+              {prefix}took {-delta} trade good{delta === -1 ? "" : "s"} off {leader}
+            </>
+          ),
+      };
+    }
     case "leader": {
       if (a.action === "leader.state" && fact.value === a.subject) return null;
       return {

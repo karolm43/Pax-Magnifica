@@ -169,13 +169,14 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
     ),
     GameEvent.COMPONENT_EXHAUSTED: EventInfo(
         "Komponent (np. agent) wyczerpany.", ("player", "component"),
-        "faction_components.pay_cost",
+        "faction_components.pay_cost, leaders.exhaust_announced",
     ),
     GameEvent.COMBAT_HITS_PRODUCED: EventInfo(
         "Trafienia wyprodukowane przeciw graczowi.", ("player", "amount")
     ),
     GameEvent.COMPONENT_READIED: EventInfo(
-        "Komponent odświeżony.", ("player", "component"), "agenda_phase._ready_all_planets"
+        "Komponent odświeżony.", ("player", "component"),
+        "agenda_phase._ready_all_planets, exhaust.ready_leader",
     ),
     GameEvent.FACTION_IN_PLAY: EventInfo(
         "Frakcja wchodzi do gry (setup, flip Obsidian).", ("faction",)
@@ -240,7 +241,9 @@ EVENT_INFO: dict[GameEvent, EventInfo] = {
     GameEvent.COMBAT_ROUND: EventInfo(
         "Początek/koniec rundy walki.", ("kind", "round"), "battle.roll_round"
     ),
-    GameEvent.COMBAT_STEP: EventInfo("Nazwany krok walki.", ("step", "kind")),
+    GameEvent.COMBAT_STEP: EventInfo(
+        "Nazwany krok walki.", ("step", "kind"), "battle.rewind_roll_step"
+    ),
     GameEvent.COMBAT_ROLL: EventInfo(
         "Rzut (combat, AFB, space cannon, bombardment).", ("kind", "player"), "battle.roll_round"
     ),

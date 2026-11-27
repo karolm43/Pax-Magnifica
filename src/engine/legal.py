@@ -234,31 +234,35 @@ def research_payloads(options: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _assign_hits(s: GameState, ctx: EngineContext, pid: str) -> list[Action]:
     """Pokrycie trafień: najpierw Sustain Damage, potem najsłabsze jednostki (⚠️ ZAŁOŻENIE)."""
-    units = battle.side_units(s, ctx.grid, ctx.registry, pid)
+    # Hit shields (Quantum Manipulator, RULES.md 62.21) only cancel - they are used first.
+    units = battle.assign_units(s, ctx.grid, ctx.registry, pid)
     required = battle.required_hits(s, ctx.grid, ctx.registry, pid)
     cancels = battle.sustain_cancels(s, pid)
     # Wymagany cel trafień (Impulse Core, Devotion - RULES.md 62.10): te typy przyjmują pierwsze.
     combat = s.active_combat
     targets = set((combat.hit_targets.get(pid) or {}).get("types", [])) if combat else set()
-    units = sorted(units, key=lambda u: u.base_type not in targets)
+    units = sorted(units, key=lambda u: (not u.shield, u.base_type not in targets))
     candidates: list[Action] = []
     for use_sustain in (True, False):
         left = required
         sustain: dict[str, int] = {}
         destroy: dict[str, int] = {}
         destroy_damaged: dict[str, int] = {}
-        if use_sustain:
-            for unit in units:
-                if left <= 0:
-                    break
-                if unit.sustain and unit.sustainable > 0:
-                    uses = min(unit.sustainable, -(-left // cancels))
-                    sustain[unit.base_type] = uses
-                    left -= uses * cancels
+        for unit in units:
+            if left <= 0:
+                break
+            if (use_sustain or unit.shield) and unit.sustainable > 0 and (
+                unit.sustain or unit.champion_sustain
+            ):
+                uses = min(unit.sustainable, -(-left // cancels))
+                sustain[unit.base_type] = uses
+                left -= uses * cancels
         # Najgorszy próg trafienia (wyższa liczba) ginie pierwszy.
         for unit in sorted(units, key=lambda u: (u.base_type not in targets, -u.hits_on)):
             if left <= 0:
                 break
+            if unit.shield:
+                continue
             damaged = unit.damaged + sustain.get(unit.base_type, 0)
             healthy = unit.count - damaged
             take = min(healthy, left)

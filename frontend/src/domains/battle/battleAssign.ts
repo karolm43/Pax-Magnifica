@@ -23,6 +23,8 @@ export type ShipEntity = {
   damaged: boolean;
   /** Może jeszcze użyć Sustain Damage (ma zdolność i nie jest uszkodzony). */
   canSustain: boolean;
+  /** Hit shield (Quantum Manipulator): it may only cancel a hit with Sustain Damage. */
+  shield?: boolean;
   unit: BattleUnit;
 };
 
@@ -53,6 +55,7 @@ export function expandShips(side: BattleSide | null): ShipEntity[] {
         // Sustain nadany komponentem (Void Shielding) ma tylko ``sustainable`` egzemplarzy.
         canSustain:
           unit.sustain && !damaged && i - unit.damaged < unit.sustainable,
+        shield: !!unit.shield,
         unit,
       });
     }
@@ -65,6 +68,8 @@ export function nextMark(
   ship: ShipEntity,
   current: Mark | undefined,
 ): Mark | undefined {
+  // A hit shield is not a ship: Sustain Damage or nothing (RULES.md 62.21).
+  if (ship.shield) return current === undefined && ship.canSustain ? "sustain" : undefined;
   if (ship.canSustain) {
     if (current === undefined) return "sustain";
     if (current === "sustain") return "destroy";
@@ -179,14 +184,16 @@ export function autoMarks(
 ): Record<string, Mark> {
   const marks: Record<string, Mark> = {};
   let left = required;
-  for (const ship of ships) {
+  // Hit shields cancel first: they are never lost to a hit (Quantum Manipulator).
+  const shieldsFirst = [...ships].sort((a, b) => Number(!!b.shield) - Number(!!a.shield));
+  for (const ship of shieldsFirst) {
     if (left <= 0) break;
     if (ship.canSustain) {
       marks[ship.id] = "sustain";
       left -= cancels;
     }
   }
-  const weakestFirst = [...ships].sort(
+  const weakestFirst = [...ships].filter((s) => !s.shield).sort(
     (a, b) =>
       b.unit.baseHitsOn - a.unit.baseHitsOn ||
       Number(b.damaged) - Number(a.damaged),
@@ -218,6 +225,8 @@ export function assignableShips(
   required: number,
 ): ShipEntity[] {
   if (!target || target.count < required) return ships;
+  // A hit shield may cancel any of these hits, directed or not (F_nomad quantum-manipulator 1).
+  const shields = ships.filter((s) => s.shield);
   const ofType = ships.filter((s) => target.types.includes(s.baseType));
   let damaged = target.damaged;
   if (damaged === true && !ofType.some((s) => s.damaged)) damaged = false;
@@ -225,7 +234,7 @@ export function assignableShips(
     damaged === null ? ofType : ofType.filter((s) => s.damaged === damaged);
   if (hit.length === 0) return ships;
   // Wskazany jeden statek: wystarczy jeden egzemplarz (wszystkie tego stanu są równoważne).
-  return target.chooser && damaged !== null ? hit.slice(0, target.count) : hit;
+  return [...(target.chooser && damaged !== null ? hit.slice(0, target.count) : hit), ...shields];
 }
 
 /**

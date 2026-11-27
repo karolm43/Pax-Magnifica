@@ -32,12 +32,14 @@ from src.core import (
     relics,
     strategy_phase,
     technology,
+    triggers,
     unit_ops,
 )
 from src.core import offer_inputs as oi
 from src.core.components import ComponentCategory
 from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.fleet_pool import unit_name
+from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState
 from src.core.hooks import card_labels
 from src.core.hooks import card_targets_economy as targets
@@ -523,6 +525,12 @@ def jr_xs455_o(
         raise ValueError("Choose a player at the table ('player').")
     placement = _text(params, "placement", "Choose their answer.")
     exhaust.exhaust_relic(state, player_id, "titanprototype")
+    # "JR-XS455-O is an agent" (C_relics): its exhaustion is an agent becoming exhausted
+    # (Temporal Command Suite may ready it - jrxs455o 1.1, RULES.md 62.21).
+    triggers.fire(
+        state, GameEvent.COMPONENT_EXHAUSTED, Moment.AFTER, subject=player_id,
+        ctx={"player": player_id, "component": "relics:titanprototype", "agent": True},
+    )
     if placement == _DECLINE:
         economy.gain_trade_goods(state, target, 1)
         return

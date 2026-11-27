@@ -51,6 +51,7 @@ PUBLIC_FIELDS: frozenset[str] = frozenset(
         "technologies",
         "exhausted_technologies",
         "leader_states",
+        "leader_trade_goods",
         "breakthrough_unlocked",
         "breakthrough_exhausted",
         "breakthrough_tg",

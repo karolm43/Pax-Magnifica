@@ -93,6 +93,8 @@ export type ProductionBody = {
   costReduction?: number;
   /** Źródła zniżki (nazwa karty z danych + ile zdejmuje) - podpis przy koszcie. */
   costReductionSources?: { name: string; amount: number }[];
+  /** Unit types produced without spending resources (Navarch Feng: the flagship). */
+  freeTypes?: { baseType: string; name: string }[];
   /** AI Development Algorithm: gotowy i ile kosztu zdejmie (tylko gdy gracz go wyczerpie). */
   aida?: { ready: boolean; discount: number };
   playerId: string;

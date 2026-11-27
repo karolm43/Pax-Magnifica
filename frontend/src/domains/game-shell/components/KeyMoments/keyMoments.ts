@@ -66,8 +66,10 @@ export type ReplacedTile = { position: string; from: string };
 export type HeroArea = {
   position: string;
   self: boolean;
-  /** `frontier` / `explore`: frontier token placed / explored (Multiverse Shift, RULES.md 62.20). */
-  kind: "gain" | "loss" | "token_removed" | "frontier" | "explore";
+  /** `frontier` / `explore`: frontier token placed / explored (Multiverse Shift, RULES.md 62.20).
+   * `time_warp` / `time_warp_token`: the Nomad flagship's system / a system with a Nomad command
+   * token under Time Warp (RULES.md 62.21). */
+  kind: "gain" | "loss" | "token_removed" | "frontier" | "explore" | "time_warp" | "time_warp_token";
 };
 
 /** Rozpoznanie typu lidera (wstrzykiwane — w aplikacji `getLeaderById`). */
@@ -199,7 +201,15 @@ export function momentsForEntry(entry: ActivityEntry, isHero: IsHero): KeyMoment
   return out.sort((x, y) => order(x) - order(y));
 }
 
-const AREA_KINDS = new Set(["gain", "loss", "token_removed", "frontier", "explore"]);
+const AREA_KINDS = new Set([
+  "gain",
+  "loss",
+  "token_removed",
+  "frontier",
+  "explore",
+  "time_warp",
+  "time_warp_token",
+]);
 
 /** Void Tether token id (`assets/data/tokens`, backend `faction_tokens.VOID_TETHER`). */
 export const VOID_TETHER = "voidtether";

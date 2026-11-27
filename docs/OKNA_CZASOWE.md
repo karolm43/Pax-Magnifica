@@ -41,7 +41,7 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `component.decision` | Decyzja gracza otwarta przez efekt komponentu (okno badania). | 0 | — | — | `research_offer.begin` |
 | `combat` | Początek/koniec walki. | 19 | start×13, end×5, during×1 | promissory_notes×5, leaders×5, technologies×5, abilities×3, action_cards×1 | `battle.start_combat / battle._after_losses` |
 | `combat.round` | Początek/koniec rundy walki. | 21 | start×16, after×3, during×1, end×1 | action_cards×10, technologies×4, abilities×3, leaders×3, relics×1 | `battle.roll_round` |
-| `combat.step` | Nazwany krok walki. | 3 | start×1, during×1, after×1 | action_cards×1, relics×1, leaders×1 | — |
+| `combat.step` | Nazwany krok walki. | 3 | start×1, during×1, after×1 | action_cards×1, relics×1, leaders×1 | `battle.rewind_roll_step` |
 | `combat.roll` | Rzut (combat, AFB, space cannon, bombardment). | 5 | after×3, before×2 | action_cards×2, relics×1, promissory_notes×1, breakthroughs×1 | `battle.roll_round` |
 | `combat.hits_assigned` | Przypisanie trafień. | 10 | before×9, after×1 | action_cards×8, leaders×1, technologies×1 | `battle.assign_combat_hits` |
 | `unit.sustain_damage` | Jednostka użyła Sustain Damage. | 7 | after×5, when×2 | action_cards×5, leaders×1, technologies×1 | `battle.assign_combat_hits` |
@@ -53,8 +53,8 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `unit.ability_used` | Jednostka użyła zdolności (AFB, bombardment, space cannon). | 8 | when×5, after×3 | technologies×3, leaders×2, action_cards×1, promissory_notes×1, abilities×1 | `battle / invasion / space_cannon` |
 | `faction.ability_used` | Zdolność frakcji użyta (np. Pillage przeciw graczowi). | 1 | after×1 | leaders×1 | `faction_components.ability_used` |
 | `unit.placed` | Struktura/jednostka postawiona. | 0 | — | — | `unit_ops.place_units` |
-| `component.readied` | Komponent odświeżony. | 0 | — | — | `agenda_phase._ready_all_planets` |
-| `component.exhausted` | Komponent (np. agent) wyczerpany. | 1 | after×1 | technologies×1 | `faction_components.pay_cost` |
+| `component.readied` | Komponent odświeżony. | 0 | — | — | `agenda_phase._ready_all_planets, exhaust.ready_leader` |
+| `component.exhausted` | Komponent (np. agent) wyczerpany. | 1 | after×1 | technologies×1 | `faction_components.pay_cost, leaders.exhaust_announced` |
 | `combat.hits_produced` | Trafienia wyprodukowane przeciw graczowi. | 1 | when×1 | relics×1 | — |
 | `unit.galvanized` | Jednostka galvanize. | 1 | when×1 | abilities×1 | — |
 | `unit.coexist` | Jednostki zaczynają współistnieć na planecie. | 1 | when×1 | abilities×1 | — |
@@ -89,9 +89,9 @@ Klasyfikacja to HEURYSTYKA po słowach kluczowych; wszystko, co nie dostało zda
 | `agenda.law_discarded` | Prawo zdjęte z gry. | 0 | — | — | `agenda_phase.remove_law` |
 | `any_time` | Dowolna chwila („at any time”). | 8 | any×8 | leaders×8 | — |
 
-Zdarzeń zdefiniowanych: **70**, emitowanych przez silnik: **55**. Potrzebne komponentom, a jeszcze nie emitowane: **12**.
+Zdarzeń zdefiniowanych: **70**, emitowanych przez silnik: **56**. Potrzebne komponentom, a jeszcze nie emitowane: **11**.
 
-Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `combat.step`, `economy.resources_spent`, `game.faction_in_play`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `unit.coexist`, `unit.galvanized`
+Nieemitowane, ale potrzebne: `agenda.elected`, `any_time`, `combat.hits_produced`, `economy.resources_spent`, `game.faction_in_play`, `planet.exhausted`, `state.condition`, `status.step`, `strategy.cards_returned`, `unit.coexist`, `unit.galvanized`
 
 ## 2a. Osiągalność: czy komponent wyskakuje graczowi
 
@@ -109,8 +109,8 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `agenda.revealed` · after | 16 | 1 | Odlynn Myrr |
 | `combat.round` · start | 14 | 2 | Kuuasi Aun Jalatai, Proxima Targeting VI |
 | `combat` · start | 13 | 0 |  |
-| `turn` · start | 8 | 4 | Crimson Legionnaire II, Law's Order, Neural Parasite (Obsidian), Thunder's Paradox |
-| `production.units_produced` · when | 6 | 5 | "A Tall Stranger", Agency Supply Network, Homesick Phantom, Navarch Feng, The Icon |
+| `turn` · start | 9 | 3 | Crimson Legionnaire II, Law's Order, Neural Parasite (Obsidian) |
+| `production.units_produced` · when | 7 | 4 | "A Tall Stranger", Agency Supply Network, Homesick Phantom, The Icon |
 | `tactical.ships_moved` · after | 10 | 1 | Call of the Void |
 | `agenda.revealed` · when | 10 | 0 |  |
 | `component.gained` · when | 8 | 2 | I.I.H.Q. Modernization, Planesplitter (Firmament) |
@@ -123,10 +123,10 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `combat` · end | 1 | 4 | "Total Mystery", Ahk Siever, Exile II, Phoenix Standard |
 | `phase` · during [phase=action] | 2 | 3 | Data Skimmer, Deepgloom Executable, Nekro Malleon |
 | `phase` · start [phase=status] | 1 | 4 | Hydrothermal Mining, Neural Parasite (Firmament), Radical Advancement, The Reaping |
-| `turn` · end | 4 | 1 | Field Marshal Mercer |
+| `turn` · end | 5 | 0 |  |
 | `unit.sustain_damage` · after | 5 | 0 |  |
 | `cards.action_played` · when | 4 | 0 |  |
-| `game.setup` · during | 1 | 3 | Hubris, The Company, The Tribunii |
+| `game.setup` · during | 2 | 2 | Hubris, The Tribunii |
 | `phase` · start [phase=strategy] | 3 | 1 | Council Patronage |
 | `planet.control_gained` · after | 4 | 0 |  |
 | `planet.control_gained` · when | 3 | 1 | Liberate |
@@ -163,7 +163,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `unit.ability_used` · after [ability=roll] | 2 | 0 |  |
 | `unit.destroyed` · after | 2 | 0 |  |
 | `unit.sustain_damage` · when | 2 | 0 |  |
-| `agenda.outcome_resolved` · after | 0 | 1 | Future Sight |
+| `agenda.outcome_resolved` · after | 1 | 0 |  |
 | `agenda.outcome_resolved` · during [would] | 1 | 0 |  |
 | `agenda.revealed` · after [1/agenda phase] | 0 | 1 | Galactic Threat |
 | `agenda.votes_cast` · after [scope=all] | 0 | 1 | Hidden Agenda |
@@ -176,16 +176,16 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `combat.retreat` · when | 0 | 1 | Watchful Ojz |
 | `combat.round` · during | 1 | 0 |  |
 | `combat.round` · end | 1 | 0 |  |
-| `combat.step` · after [step=roll_dice] | 0 | 1 | The Thundarian |
+| `combat.step` · after [step=roll_dice] | 1 | 0 |  |
 | `combat.step` · during [step=anti_fighter_barrage] | 1 | 0 |  |
 | `combat.step` · start [step=announce_retreats] | 1 | 0 |  |
 | `combat.won` · when | 0 | 1 | Edict |
 | `combat` · during | 1 | 0 |  |
-| `component.exhausted` · after | 0 | 1 | Temporal Command Suite |
+| `component.exhausted` · after | 1 | 0 |  |
 | `component.gained` · after | 1 | 0 |  |
 | `economy.commodities_replenished` · after | 1 | 0 |  |
 | `economy.trade_goods_gained` · after | 1 | 0 |  |
-| `economy.trade_goods_gained` · when | 0 | 1 | Artuno the Betrayer |
+| `economy.trade_goods_gained` · when | 1 | 0 |  |
 | `faction.ability_used` · after | 1 | 0 |  |
 | `game.faction_in_play` · when | 0 | 1 | The Blade's Orchestra |
 | `game.setup` · before | 0 | 1 | Minor Factions |

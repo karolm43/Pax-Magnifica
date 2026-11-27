@@ -112,15 +112,27 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   const tradeGoods = view.tradeGoods + commanderTg;
   const amalgam = trimPicks(picks, cart);
   const rawCost = cartCost(view.units, paidCart(cart, amalgam));
+  // Units produced without spending resources (Navarch Feng): their cost leaves the total.
+  const freeDiscounts = (view.freeTypes ?? [])
+    .map((free) => ({
+      name: free.name,
+      amount: cartCost(
+        view.units,
+        paidCart(cart, amalgam).filter((line) => line.baseType === free.baseType),
+      ),
+    }))
+    .filter((d) => d.amount > 0);
+  const freeCost = freeDiscounts.reduce((sum, d) => sum + d.amount, 0);
   const cost =
     queued > 0
       ? Math.max(
           0,
-          rawCost - (view.costReduction ?? 0) - (aidaOn ? (view.aida?.discount ?? 0) : 0),
+          rawCost - freeCost - (view.costReduction ?? 0) - (aidaOn ? (view.aida?.discount ?? 0) : 0),
         )
       : rawCost;
   // Zniżki do wyraźnego pokazania: każda z nazwą karty (z danych), AIDA tylko gdy włączona.
   const discounts = [
+    ...freeDiscounts,
     ...(view.costReductionSources ?? []),
     ...(aidaOn && view.aida ? [{ name: "AI Development Algorithm", amount: view.aida.discount }] : []),
   ];

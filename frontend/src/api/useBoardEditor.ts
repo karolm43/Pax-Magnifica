@@ -137,6 +137,8 @@ export type PlayerEdit = {
   technologies?: string[];
   exhausted_technologies?: string[];
   leader_states?: Record<string, string>;
+  /** Trade goods on leader cards (Artuno the Betrayer): `{leaderId: TG}` - replaces the map. */
+  leader_trade_goods?: Record<string, number>;
   /** Przełom frakcji (Thunder's Edge). */
   breakthrough_unlocked?: boolean;
   breakthrough_exhausted?: boolean;

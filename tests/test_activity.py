@@ -670,3 +670,28 @@ def test_void_tether_na_granicy_w_feedzie() -> None:
     found = [(f.type, f.value, f.detail, f.position) for f in entry.facts
              if f.type == "faction_token"]
     assert found == [("faction_token", "voidtether", "border:102", "101")]
+
+
+def test_nomad_time_warp_obszar_i_trade_goods_na_agencie() -> None:
+    """Time Warp names its systems in the effect data (RULES.md 62.21); Artuno's trade goods on
+    the card are a ``leader_tg`` fact."""
+    from src.core import active_effects
+    from src.core.game_events import Duration
+
+    before = _state()
+    before.players["p1"].leader_states["nomadhero"] = "unlocked"
+    after = _state()
+    after.players["p1"].leader_states["nomadhero"] = "purged"
+    active_effects.add_effect(after, "leaders:nomadhero:time_warp", Duration.ROUND, owner="p1",
+                              data={"areas": {"101": "time_warp", "102": "time_warp_token"}})
+    entry = derive_activity("component-use:leader:nomadhero:p1", before, after)
+    assert entry is not None
+    areas = {(f.player_id, f.value, f.detail) for f in entry.facts if f.type == "area"}
+    assert areas == {("p1", "101", "time_warp"), ("p1", "102", "time_warp_token")}
+    stash = _state()
+    stash.players["p1"].leader_trade_goods = {"nomadagentartuno": 3}
+    entry = derive_activity("offers:accept", _state(), stash)
+    assert entry is not None
+    assert [(f.value, f.delta) for f in entry.facts if f.type == "leader_tg"] == [
+        ("nomadagentartuno", 3)
+    ]

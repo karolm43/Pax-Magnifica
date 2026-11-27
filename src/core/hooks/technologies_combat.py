@@ -30,6 +30,7 @@ from src.core.rules_hooks import (
     on_event,
     register,
 )
+from src.core.unit_catalog import is_space_unit
 from src.core.unit_ops import UnitCause
 
 # Aliasy z danych (technologies/pok.json; nie z pamięci). Weryfikowane testem względem rejestru.
@@ -151,10 +152,18 @@ def _repairable(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> lis
         else system.planet_units.get(zone, {}).get(player_id, {})
     )
     used = ctx.get("sustained", {}).get(player_id, {})
+    registry = rules_hooks.bound_registry()
+    fighting = (  # a ground force fighting as a ship (Eidolon Maximum, RULES.md 62.15)
+        ship_roles.space_ground_variants(state, registry, player_id, str(ctx["position"]))
+        if zone == "space" and registry is not None else {}
+    )
     return sorted(
         base_type
         for base_type in units
         if damaged_count(system, zone, player_id, base_type) - used.get(base_type, 0) > 0
+        # A ground force in the space area does not take part in the space combat (a Quantum
+        # Manipulator cannot be repaired - F_nomad quantum-manipulator 3).
+        and (zone != "space" or is_space_unit(base_type) or base_type in fighting)
     )
 
 

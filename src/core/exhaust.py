@@ -84,19 +84,39 @@ def exhaust_leader(state: GameState, player_id: str, leader_id: str) -> None:
 
 
 def ready_leader(state: GameState, player_id: str, leader_id: str) -> None:
-    """Odświeża jednego wyczerpanego lidera (``exhausted`` -> ``unlocked``); inny stan bez zmian."""
+    """Odświeża jednego wyczerpanego lidera (``exhausted`` -> ``unlocked``); inny stan bez zmian.
+
+    A readied leader fires ``COMPONENT_READIED/AFTER`` (``component = leaders:<id>``): "When this
+    card readies" (Artuno the Betrayer, RULES.md 62.21).
+    """
     player = _player(state, player_id)
     if player.leader_states.get(leader_id) == "exhausted":
         player.leader_states = {**player.leader_states, leader_id: "unlocked"}
+        _leaders_readied(state, player_id, [leader_id])
 
 
 def ready_all_leaders(state: GameState, player_id: str) -> None:
     """Odświeża wyczerpanych liderów (``exhausted`` -> ``unlocked``); pozostałe bez zmian."""
     player = _player(state, player_id)
+    readied = [lid for lid, st in player.leader_states.items() if st == "exhausted"]
     player.leader_states = {
         leader_id: ("unlocked" if leader_state == "exhausted" else leader_state)
         for leader_id, leader_state in player.leader_states.items()
     }
+    _leaders_readied(state, player_id, readied)
+
+
+def _leaders_readied(state: GameState, player_id: str, leader_ids: list[str]) -> None:
+    if not leader_ids:
+        return
+    from src.core import triggers  # lokalnie: triggers ładuje hooki, które importują ten moduł
+    from src.core.game_events import GameEvent, Moment
+
+    for leader_id in leader_ids:
+        triggers.fire(
+            state, GameEvent.COMPONENT_READIED, Moment.AFTER, subject=player_id,
+            ctx={"player": player_id, "component": f"leaders:{leader_id}"},
+        )
 
 
 def exhaust_breakthrough(state: GameState, player_id: str) -> None:

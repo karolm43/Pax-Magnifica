@@ -48,6 +48,13 @@ export type BattleUnit = {
   sustainable: number;
   afbHitsOn: number | null;
   afbDice: number;
+  /** Not a combatant: only cancels hits against its owner's ships with Sustain Damage
+   * (Quantum Manipulator in the space area, RULES.md 62.21) - no dice, never destroyed here. */
+  shield?: boolean;
+  /** ONE ship of the group fights with other values (The Cavalry, RULES.md 62.21). */
+  championName?: string | null;
+  championHitsOn?: number | null;
+  championDice?: number;
 };
 
 export type BattleSide = {
@@ -76,7 +83,8 @@ export type BattleRoll = {
 
 export type BattleLogEntry = {
   round: number;
-  phase: "AFB" | "AMBUSH" | "BOMBARDMENT" | "COMBAT" | "RETREAT";
+  /** `REWOUND`: a round's combat rolls undone by The Thundarian (RULES.md 62.21). */
+  phase: "AFB" | "AMBUSH" | "BOMBARDMENT" | "COMBAT" | "RETREAT" | "REWOUND";
   /** Zdolność wpisu spoza rund (np. „Harrow” przy BOMBARDMENT w walce naziemnej). */
   label?: string;
   rolls: Record<string, BattleRoll[]>;

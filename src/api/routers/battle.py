@@ -77,7 +77,7 @@ def _roll(raw: dict[str, Any]) -> BattleRollView:
 def _side(
     ctx: AppContext, state: GameState, player_id: str, role: str, key: str
 ) -> BattleSideView:
-    units = battle.side_units(state, ctx.current_grid, ctx.registry, player_id)
+    units = battle.assign_units(state, ctx.current_grid, ctx.registry, player_id)
     cancels = battle.sustain_cancels(state, player_id)
     return BattleSideView(
         faction=key,
@@ -96,14 +96,20 @@ def _side(
                 dice_per_unit=u.dice_per_unit,
                 total_dice=u.total_dice,
                 expected_hits=u.expected_hits,
-                sustain=u.sustain or u.granted > 0,
+                sustain=u.sustain or u.granted > 0 or u.champion_sustain,
                 sustainable=u.sustainable,
                 afb_hits_on=u.afb_hits_on,
                 afb_dice=u.afb_dice,
+                shield=u.shield,
+                champion_name=(
+                    f"{u.name} ({u.champion_label})" if u.champion_hits_on is not None else None
+                ),
+                champion_hits_on=u.champion_hits_on,
+                champion_dice=u.champion_dice,
             )
             for u in units
         ],
-        unit_count=sum(u.count for u in units),
+        unit_count=sum(u.count for u in units if not u.shield),
         total_dice=sum(u.total_dice for u in units),
         expected_hits=round(sum(u.expected_hits for u in units), 2),
         hp=battle.absorbable_hits(units, cancels),

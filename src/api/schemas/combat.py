@@ -198,6 +198,13 @@ class BattleUnitView(BaseModel):
     sustainable: int
     afb_hits_on: int | None = Field(serialization_alias="afbHitsOn")
     afb_dice: int = Field(serialization_alias="afbDice")
+    # Not a combatant: only cancels hits against its owner's ships with Sustain Damage
+    # (Quantum Manipulator, RULES.md 62.21) - no dice, cannot be destroyed by these hits.
+    shield: bool = False
+    # ONE ship of the group fights with other values (The Cavalry, RULES.md 62.21).
+    champion_name: str | None = Field(default=None, serialization_alias="championName")
+    champion_hits_on: int | None = Field(default=None, serialization_alias="championHitsOn")
+    champion_dice: int = Field(default=0, serialization_alias="championDice")
 
 
 class BattleEffectView(BaseModel):

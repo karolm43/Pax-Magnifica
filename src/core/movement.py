@@ -63,6 +63,7 @@ from src.core.unit_ops import UnitCause
 _CARGO_BASE_TYPES = frozenset({"fighter", "infantry", "mech"})
 CARGO_BASE_TYPES = _CARGO_BASE_TYPES  # publiczny alias (podgląd trasy)
 _FIGHTER = "fighter"  # Gravleash: „non-fighter ships”
+_FLAGSHIP = "flagship"  # Ahk-Syl Siven: the flagship and what it transports (RULES.md 62.21)
 
 
 @dataclass(frozen=True)
@@ -97,6 +98,7 @@ def route_cargo(
     registry: StaticDataRegistry,
     route: list[str],
     player_id: str,
+    carrier: str = "",
 ) -> list[RouteCargo]:
     """Myśliwce i siły naziemne gracza do zabrania w systemach trasy (bez celu).
 
@@ -109,7 +111,9 @@ def route_cargo(
     player = state.players.get(player_id)
     faction_id = player.faction if player is not None else None
     technologies = player.technologies if player is not None else []
-    ignore_cc = _ignores_own_command_token(state, player_id)
+    # ``carrier`` = a moving ship that may pick up units where the others may not (the flagship
+    # under Ahk-Syl Siven, RULES.md 62.21).
+    ignore_cc = _ignores_own_command_token(state, player_id, carrier)
     result: list[RouteCargo] = []
     for position in route:
         system = state.systems.get(position)
@@ -290,7 +294,7 @@ def can_move(
         from_pos != active
         and source is not None
         and player_id in source.command_tokens
-        and not _ignores_own_command_token(state, player_id)
+        and not _ignores_own_command_token(state, player_id, base_type)
     ):
         return False, "A ship cannot move out of a system containing its own command token (R3)."
 
@@ -890,7 +894,11 @@ def move_fleet(
                 )
             key = (pickup_pos, item.base_type, item.from_zone)
             needed_by_key[key] = needed_by_key.get(key, 0) + item.count
-        # T4: pickup z systemu z własnym CC zabroniony (wyjątek: aktywny system).
+        # T4: pickup z systemu z własnym CC zabroniony (wyjątek: aktywny system). A moving
+        # flagship may be the carrier that is exempt (Ahk-Syl Siven, RULES.md 62.21): the units
+        # picked up there must then fit in the flagship alone.
+        carrier = _FLAGSHIP if ships.get(_FLAGSHIP) else ""
+        exempt_cargo = 0
         for pickup_pos in {k[0] for k in needed_by_key}:
             pickup_system = state.systems.get(pickup_pos)
             if (
@@ -899,9 +907,20 @@ def move_fleet(
                 and player_id in pickup_system.command_tokens
                 and not _ignores_own_command_token(state, player_id)
             ):
-                raise ValueError(
-                    "Cannot pick up units from a system containing your own command token (T4)."
+                if not _ignores_own_command_token(state, player_id, carrier):
+                    raise ValueError(
+                        "Cannot pick up units from a system containing your own command token "
+                        "(T4)."
+                    )
+                exempt_cargo += sum(
+                    _capacity_used(registry, faction_id, technologies, bt) * n
+                    for (pos, bt, _zone), n in needed_by_key.items() if pos == pickup_pos
                 )
+        if exempt_cargo > _capacity_provided(registry, faction_id, technologies, _FLAGSHIP):
+            raise ValueError(
+                "Only your flagship may transport units out of systems that contain your "
+                "command tokens - they do not fit in it."
+            )
         for (pickup_pos, base_type, zone), count in needed_by_key.items():
             available = _available_in_zone(
                 state.systems.get(pickup_pos), player_id, base_type, zone

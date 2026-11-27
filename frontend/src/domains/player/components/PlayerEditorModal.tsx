@@ -42,6 +42,7 @@ import { getActionCard } from "@/entities/lookup/actionCards";
 import { getSecretObjectiveData } from "@/entities/lookup/secretObjectives";
 import { getPromissoryNoteData } from "@/entities/lookup/promissoryNotes";
 import { getRelicData } from "@/entities/lookup/relics";
+import { getLeaderById } from "@/entities/lookup/leaders";
 import type { PlayerData } from "@/entities/data/types";
 import {
   actionCardOptions,
@@ -639,6 +640,51 @@ export function PlayerEditorModal({ opened, onClose }: Props) {
                             );
                           })}
                         </Group>
+                        {/* Trade goods lying on a leader card ("... on this card": Artuno). */}
+                        {player.leaders
+                          .filter((leader) => !leader.alliance)
+                          .filter((leader) =>
+                            /trade goods on this card/i.test(getLeaderById(leader.id)?.abilityText ?? ""),
+                          )
+                          .map((leader) => {
+                            const name = getLeaderById(leader.id)?.name ?? leader.id;
+                            const stored = leader.tgCount ?? 0;
+                            const onCards = Object.fromEntries(
+                              player.leaders
+                                .filter((l) => (l.tgCount ?? 0) > 0)
+                                .map((l) => [l.id, l.tgCount ?? 0]),
+                            );
+                            const setStored = (n: number) =>
+                              void apply({ leader_trade_goods: { ...onCards, [leader.id]: Math.max(0, n) } });
+                            return (
+                              <div key={`tg-${leader.id}`} className={styles.numRow}>
+                                <Text size="sm" className={styles.numLabel}>
+                                  Trade goods on {name}
+                                </Text>
+                                <div className={styles.numCtl}>
+                                  <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    disabled={busy || stored <= 0}
+                                    onClick={() => setStored(stored - 1)}
+                                    aria-label={`−1 trade goods on ${name}`}
+                                  >
+                                    <IconMinus size={12} />
+                                  </ActionIcon>
+                                  <Text size="sm">{stored}</Text>
+                                  <ActionIcon
+                                    size="sm"
+                                    variant="subtle"
+                                    disabled={busy}
+                                    onClick={() => setStored(stored + 1)}
+                                    aria-label={`+1 trade goods on ${name}`}
+                                  >
+                                    <IconPlus size={12} />
+                                  </ActionIcon>
+                                </div>
+                              </div>
+                            );
+                          })}
                       </Stack>
                     ) : (
                       <Text size="xs" c="dimmed">

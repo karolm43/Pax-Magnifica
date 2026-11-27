@@ -400,6 +400,18 @@ POINT_STRUCTURE_PDS_AS_MECH = "structures.pds_as_mech"
 # PERMIT -> gdy jednostki gracza używają PRODUCTION, może zdobyć 1 TG przed zapłatą (Tungstantus) -
 # ``production.produce(commander_trade_good=True)``.
 POINT_PRODUCTION_GAIN_TRADE_GOOD = "production.gain_trade_good"
+# FORBID -> positions a MOVING unit treats as adjacent to every system on its route (ctx:
+# ``position``, ``base_type``) - movement only, not board adjacency (Memoria, RULES.md 62.21).
+POINT_MOVEMENT_UNIT_EXTRA_ADJACENT = "movement.unit_extra_adjacent"
+# FORBID -> base types the player produces without spending resources: their cost is left out of
+# the order's total (Navarch Feng: the flagship, RULES.md 62.21).
+POINT_PRODUCTION_FREE_TYPES = "production.free_types"
+# FORBID -> ``"<base_type>|<hits_on>|<dice>|<afb_hits_on>|<afb_dice>"``: ONE ship of that group
+# fights with these values and may use SUSTAIN DAMAGE (The Cavalry, RULES.md 62.21).
+POINT_COMBAT_CHAMPION = "combat.champion"
+# FORBID -> base types of the player's NON-ship units in the space area of their space combat
+# that may use SUSTAIN DAMAGE to cancel hits against their ships (Quantum Manipulator, 62.21).
+POINT_COMBAT_HIT_SHIELDS = "combat.hit_shields"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
 SOURCE_FACTION = "faction"

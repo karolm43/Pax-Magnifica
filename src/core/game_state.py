@@ -571,6 +571,9 @@ class PlayerState(BaseModel):
     # Stan liderów: {leader_id: "locked"|"unlocked"|"exhausted"}. Brak wpisu =
     # stan domyślny z danych frakcji (agent gotowy, commander/hero zablokowani).
     leader_states: dict[str, str] = Field(default_factory=dict)
+    # Trade goods lying on a leader card (Artuno the Betrayer, RULES.md 62.21): {leader_id: TG}.
+    # Changed only through ``core/economy.py`` (``stash_on_leader`` / ``release_from_leader``).
+    leader_trade_goods: dict[str, int] = Field(default_factory=dict)
 
     # Stan przełomu frakcji (breakthrough — mechanika Thunder's Edge). Przełom jest
     # jeden per frakcja (dane w BreakthroughDef, mapowane po frakcji), więc trzymamy
@@ -1260,6 +1263,9 @@ class GameState(BaseModel):
     # zakończeniu akcji. Aplikacja prowadzi kroki, ale nie waliduje reguł.
     active_system: str | None = None
     tactical_step: TacticalStep | None = None
+    # The system activated during the CURRENT turn (stays after the tactical action ends; cleared
+    # when the next turn starts) - "the active system" at the end of a turn (Mercer, RULES 62.21).
+    turn_active_system: str | None = None
     # Ile jednostek wyprodukowano już w TEJ akcji taktycznej (limit PRODUCTION jest
     # wspólny dla całego kroku, nie per zamówienie — RULES.md 33.3). Zerowane przy
     # aktywacji i zakończeniu akcji.

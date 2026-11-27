@@ -85,17 +85,20 @@ def _player_leaders(
     faction_id: str | None,
     registry: StaticDataRegistry,
     states: dict[str, str] | None = None,
+    trade_goods: dict[str, int] | None = None,
 ) -> list[dict[str, Any]]:
     """Buduje listę liderów gracza z danych frakcji (agent/commander/hero).
 
     Stan domyślny: agent gotowy, commander/hero zablokowani. ``states`` nadpisuje
     stan per lider (``"locked"``/``"unlocked"``/``"exhausted"``) — edycja God-Mode.
+    ``trade_goods`` = trade goods lying on a leader card (Artuno the Betrayer, RULES.md 62.21).
     Typ lidera czytamy z danych lidera (``LeaderDef.type``), nie z końcówki id.
     """
     faction = registry.factions.get(faction_id) if faction_id else None
     if faction is None:
         return []
     states = states or {}
+    trade_goods = trade_goods or {}
     leaders: list[dict[str, Any]] = []
     for leader_id in faction.leaders:
         ltype = _leader_type(leader_id, registry)
@@ -106,7 +109,7 @@ def _player_leaders(
             {
                 "id": leader_id,
                 "type": ltype,
-                "tgCount": 0,
+                "tgCount": trade_goods.get(leader_id, 0),
                 "exhausted": state == "exhausted",
                 "locked": state == "locked",
                 # Bohater po użyciu (RULES.md 61.1) — usunięty z gry.
@@ -395,7 +398,9 @@ def _build_player_data(
         # prawdy), nie z player.controlled_planets — eliminuje desync panel↔mapa (Bug 3).
         controlled = _controlled_planets_from_systems(player_id, state)
         econ = _planet_economy(controlled, registry, state)
-        leaders = _player_leaders(player.faction, registry, player.leader_states)
+        leaders = _player_leaders(
+            player.faction, registry, player.leader_states, player.leader_trade_goods
+        )
         leaders += _alliance_leaders(state, player_id, leaders)
         units_owned = _units_owned_for_faction(
             player.faction,

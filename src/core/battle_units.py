@@ -5,7 +5,9 @@ Warstwa POD ``battle.py`` (bez zależności od przebiegu walki); ``battle`` eksp
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
 from src.core import (
     entropic_scar,
@@ -56,15 +58,35 @@ class CombatUnit:
     # Strefa jednostki, gdy różni się od strefy walki (Eidolon Maximum na planecie w walce
     # kosmicznej); pusty = strefa walki.
     zone: str = ""
+    # A non-ship unit that only cancels hits against its owner's ships with SUSTAIN DAMAGE: no
+    # dice, never destroyed by these hits, does not keep a side alive (Quantum Manipulator).
+    shield: bool = False
+    # ONE ship of the group fights with other values (The Cavalry, RULES.md 62.21): combat value
+    # and dice, AFB value and dice, and SUSTAIN DAMAGE while it is undamaged.
+    champion_hits_on: int | None = None
+    champion_dice: int = 0
+    champion_afb_hits_on: int | None = None
+    champion_afb_dice: int = 0
+    champion_sustain: bool = False
+    champion_label: str = ""
 
     @property
     def total_dice(self) -> int:
+        if self.champion_hits_on is not None and self.count > 0:
+            return (self.count - 1) * self.dice_per_unit + self.champion_dice + self.bonus_dice
         return self.count * self.dice_per_unit + self.bonus_dice
 
     @property
     def sustainable(self) -> int:
         """Ile egzemplarzy może jeszcze użyć Sustain Damage (własnego albo nadanego)."""
-        return self.count - self.damaged if self.sustain else self.granted
+        if self.sustain:
+            return self.count - self.damaged
+        return self.granted + (1 if self.champion_sustain else 0)
+
+    @property
+    def has_afb(self) -> bool:
+        """Whether the group rolls Anti-Fighter Barrage (its own or its champion's)."""
+        return self.afb_hits_on is not None or self.champion_afb_hits_on is not None
 
     @property
     def expected_hits(self) -> float:
@@ -161,6 +183,11 @@ def combat_units(
         single_bonus = rules_hooks.modify(
             rules_hooks.POINT_COMBAT_SINGLE_UNIT_BONUS, state, player_id, 0, hook_ctx
         )
+        champion = (
+            _champion(state, player_id, base_type, hook_ctx)
+            if kind == "space" and base_type != _FIGHTER else None
+        )
+        group_damaged = damaged_count(system, unit_zone, player_id, base_type)
         units.append(
             CombatUnit(
                 base_type=base_type,
@@ -192,9 +219,96 @@ def combat_units(
                 bonus_dice=max(0, bonus_dice),
                 single_bonus=single_bonus,
                 zone=unit_zone if unit_zone != zone else "",
+                **_champion_fields(
+                    champion, unit.sustain_damage, no_sustain, group_damaged, scar
+                ),
             )
         )
     return units
+
+
+def _champion(
+    state: GameState, player_id: str, base_type: str, hook_ctx: Mapping[str, Any]
+) -> tuple[int, int, int | None, int, str] | None:
+    """Values ONE ship of this group fights with (hook ``combat.champion`` - The Cavalry)."""
+    for raw in sorted(rules_hooks.forbidden(
+        rules_hooks.POINT_COMBAT_CHAMPION, state, player_id, hook_ctx
+    )):
+        parts = str(raw).split("|")
+        if len(parts) < 5 or parts[0] != base_type:
+            continue
+        afb = int(parts[3]) if parts[3] else None
+        label = parts[5] if len(parts) > 5 else ""
+        return int(parts[1]), int(parts[2]), afb, int(parts[4] or 0), label
+    return None
+
+
+def _champion_fields(
+    champion: tuple[int, int, int | None, int, str] | None,
+    own_sustain: bool,
+    no_sustain: bool,
+    damaged: int,
+    scar: bool,
+) -> dict[str, Any]:
+    if champion is None:
+        return {}
+    hits_on, dice, afb_hits_on, afb_dice, label = champion
+    return {
+        "champion_hits_on": hits_on,
+        "champion_dice": dice,
+        "champion_afb_hits_on": None if scar else afb_hits_on,
+        "champion_afb_dice": afb_dice,
+        # A damaged ship of a type without SUSTAIN DAMAGE is the champion itself (F_nomad
+        # the-cavalry 2.1): it cannot use the ability again.
+        "champion_sustain": not own_sustain and not no_sustain and damaged == 0,
+        "champion_label": label,
+    }
+
+
+def hit_shields(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> list[CombatUnit]:
+    """The player's non-ship units that may cancel hits against their ships in the ONGOING space
+    combat (hook ``combat.hit_shields`` - Quantum Manipulator, RULES.md 62.21).
+
+    Not a combatant: no dice, only SUSTAIN DAMAGE. Only Entropic Scar stops it (a unit ability);
+    "other players' ships lose SUSTAIN DAMAGE" (Fourth Moon) does not - it is not a ship (2.1).
+    """
+    combat = state.active_combat
+    if combat is None or combat.kind != "space" or player_id not in (
+        combat.attacker, combat.defender
+    ):
+        return []
+    types = rules_hooks.forbidden(
+        rules_hooks.POINT_COMBAT_HIT_SHIELDS, state, player_id, {"position": combat.position}
+    )
+    if not types or entropic_scar.unit_abilities_blocked(state, combat.position, registry):
+        return []
+    system = state.systems.get(combat.position)
+    own = system.space_units.get(player_id, {}) if system is not None else {}
+    faction, techs, breakthrough, flipped = variant_key(state, registry, player_id)
+    shields: list[CombatUnit] = []
+    for base_type in sorted(types):
+        count = own.get(base_type, 0)
+        if count <= 0 or is_space_unit(base_type):
+            continue
+        unit = resolve_unit_variant(registry, faction, techs, base_type, breakthrough, flipped)
+        if unit is None or not unit.sustain_damage:
+            continue
+        shields.append(CombatUnit(
+            base_type=base_type, unit_id=unit.id, name=unit.name, count=count,
+            damaged=damaged_count(system, "space", player_id, base_type),
+            hits_on=DIE_SIDES + 1, base_hits_on=DIE_SIDES + 1, modifier=0, dice_per_unit=0,
+            sustain=True, afb_hits_on=None, afb_dice=0, shield=True,
+        ))
+    return shields
+
+
+def assign_units(
+    state: GameState, grid: HexGrid, registry: StaticDataRegistry, player_id: str
+) -> list[CombatUnit]:
+    """Rows of the player's hit assignment: units in the combat + hit shields (62.21)."""
+    return [*side_units(state, grid, registry, player_id), *hit_shields(state, registry, player_id)]
 
 
 def ability_hit_targets(
@@ -247,7 +361,7 @@ def required_hits(
     """Ile trafień gracz musi pokryć: min(trafienia, jednostki + Sustain Damage) — W7."""
     combat = _combat(state)
     pending = combat.pending_hits.get(player_id, 0)
-    units = side_units(state, grid, registry, player_id)
+    units = assign_units(state, grid, registry, player_id)
     return min(pending, absorbable_hits(units, sustain_cancels(state, player_id)))
 
 
@@ -258,7 +372,9 @@ def absorbable_hits(units: list[CombatUnit], cancels: int) -> int:
     „życie" pokazuje okno walki (pasek HP), więc licznik strat i pasek zawsze się zgadzają.
     """
     return sum(
-        u.count + (cancels * u.sustainable if u.sustain else 0) for u in units
+        (0 if u.shield else u.count) + (cancels * u.sustainable if u.sustain else 0)
+        + (cancels if not u.sustain and u.champion_sustain else 0)
+        for u in units
     ) + (cancels if any(u.granted > 0 for u in units) else 0)
 
 

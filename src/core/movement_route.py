@@ -172,7 +172,14 @@ def route_report(
     )
 
     ships = _ships(state, grid, registry, from_pos, route, player_id, bonuses)
-    cargo = movement.route_cargo(state, registry, route, player_id) if route else []
+    # A flagship in the source may carry units out of systems with your command tokens
+    # (Ahk-Syl Siven, RULES.md 62.21) - the move itself checks that it really carries them.
+    source = state.systems.get(from_pos)
+    carrier = (
+        "flagship" if source is not None
+        and source.space_units.get(player_id, {}).get("flagship", 0) > 0 else ""
+    )
+    cargo = movement.route_cargo(state, registry, route, player_id, carrier) if route else []
     # Fighter II ze startu: dolatujący sam jest na liście statków ORAZ ładunku - gracz wybiera,
     # które sztuki lecą same (liczą się do fleet pool w celu), a które jadą na nosicielu
     # (R_gravity_rift: „for each fighter, they must choose if that fighter is moving itself or

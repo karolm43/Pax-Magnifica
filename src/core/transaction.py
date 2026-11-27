@@ -31,6 +31,7 @@ from typing import Any
 
 from src.core import (
     action_budget,
+    active_effects,
     capture,
     card_draw,
     chronicle,
@@ -45,7 +46,7 @@ from src.core import (
     triggers,
     unit_ops,
 )
-from src.core.game_events import GameEvent, Moment
+from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import AgendaStep, GameState, Phase
 from src.core.hex_grid import HexGrid
 from src.core.neighbors import neighbors_of
@@ -159,6 +160,34 @@ def tradable_relics(state: GameState, giver: str, partner: str) -> list[str]:
         return held
     own_rule = rules_hooks.forbidden(rules_hooks.POINT_TRANSACTION_TRADABLE_RELICS, state, giver)
     return [r for r in held if r in own_rule]
+
+
+# A transaction an effect grants to one pair of players outside the usual rules (Temporal Command
+# Suite: no neighbours, no active player, any phase, not the per-turn one - RULES.md 62.21).
+GRANT_KEY = "transaction:granted"
+
+
+def grant_pair(state: GameState, a: str, b: str, source: str = "") -> None:
+    """Grants players ``a`` and ``b`` ONE transaction now (MUTATES ``state``); it lasts until the
+    end of the current phase or until they make it (``⚠️ ASSUMPTION`` RULES.md 62.21)."""
+    if not granted_pair(state, a, b):
+        active_effects.add_effect(
+            state, GRANT_KEY, Duration.PHASE, owner=a, data={"with": b, "source": source}
+        )
+
+
+def granted_pair(state: GameState, a: str, b: str) -> bool:
+    """Whether ``a`` and ``b`` hold a granted transaction (``grant_pair``)."""
+    return a != b and any(
+        e.key == GRANT_KEY and {e.owner, str(e.data.get("with"))} == {a, b}
+        for e in state.active_effects
+    )
+
+
+def _consume_grant(state: GameState, a: str, b: str) -> None:
+    for effect in list(state.active_effects):
+        if effect.key == GRANT_KEY and {effect.owner, str(effect.data.get("with"))} == {a, b}:
+            active_effects.remove_effect(state, effect.id)
 
 
 def reachable(state: GameState, grid: HexGrid, a: str, b: str) -> bool:
@@ -389,6 +418,8 @@ def components_allowed(state: GameState, grid: HexGrid, a: str, b: str) -> bool:
     agendy (w trakcie agendy): KAŻDA para, jedna transakcja na agendę. Inaczej stół dopuszcza
     wyłącznie żetony długu.
     """
+    if granted_pair(state, a, b):
+        return True  # Temporal Command Suite (RULES.md 62.21)
     if agenda_window(state):
         return agenda_pair_free(state, a, b)
     if state.phase is not Phase.ACTION:
@@ -404,7 +435,9 @@ def trade_partners(state: GameState, grid: HexGrid, player_id: str) -> list[str]
     """Gracze, z którymi ``player_id`` może negocjować (sąsiedzi + efekty bez sąsiedztwa)."""
     return [
         pid for pid in state.players
-        if pid != player_id and reachable(state, grid, player_id, pid)
+        if pid != player_id and (
+            reachable(state, grid, player_id, pid) or granted_pair(state, player_id, pid)
+        )
     ]
 
 
@@ -428,6 +461,13 @@ def validate_transaction(
     Raises:
         ValueError: Przy naruszeniu któregokolwiek z warunków.
     """
+    if player_id is not None and granted_pair(state, player_id, partner_id):
+        # Granted transaction (Temporal Command Suite): only what is exchanged is checked.
+        if not give.has_components() and not receive.has_components():
+            raise ValueError("An empty transaction - add something to exchange.")
+        validate_side(state, player_id, partner_id, give, "You")
+        validate_side(state, partner_id, player_id, receive, "The partner")
+        return player_id
     if state.phase is Phase.AGENDA:
         return _validate_agenda_transaction(state, partner_id, give, receive, player_id)
     if state.phase is not Phase.ACTION:
@@ -554,6 +594,7 @@ def resolve_transaction(
     """
     give, receive = give.components(), receive.components()
     active_id = validate_transaction(state, grid, partner_id, give, receive, player_id)
+    granted = player_id is not None and granted_pair(state, player_id, partner_id)
     new_state = state.clone()
     # C_promissory_notes (Support for the Throne): przy jednoczesnej wymianie pierwszy zyskuje
     # (np. punkt) aktywny gracz, a w fazie agendy - pierwszy w kolejności od mówcy.
@@ -563,8 +604,12 @@ def resolve_transaction(
     else:
         _apply_side(new_state, active_id, partner_id, give)
         _apply_side(new_state, partner_id, active_id, receive)
-    new_state.players[active_id].transacted_with.append(partner_id)
-    if new_state.phase is Phase.AGENDA:
+    if granted:
+        # A granted transaction is extra: it does not use up the one with that player (tcs 3).
+        _consume_grant(new_state, active_id, partner_id)
+    else:
+        new_state.players[active_id].transacted_with.append(partner_id)
+    if new_state.phase is Phase.AGENDA and not granted:
         # 47.5: limit dotyczy PARY graczy - odnotowany po obu stronach (zerowany z nową agendą).
         new_state.players[partner_id].transacted_with.append(active_id)
     new_state.last_transaction = [active_id, partner_id]

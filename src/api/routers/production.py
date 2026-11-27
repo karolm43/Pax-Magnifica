@@ -164,6 +164,11 @@ async def get_production_view(ctx: AppContext = Depends(get_ctx)) -> dict[str, A
             if grant is None
             else []
         ),
+        # Unit types produced without spending resources (Navarch Feng, RULES.md 62.21).
+        "freeTypes": [
+            {"baseType": bt, "name": name}
+            for bt, name in production.free_type_sources(state, registry, player_id)
+        ],
         "aida": {
             "ready": production.aida_ready(state, player_id) and grant is None,
             "discount": production.aida_discount(state, registry, player_id),

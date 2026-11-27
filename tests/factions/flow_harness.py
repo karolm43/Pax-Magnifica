@@ -44,7 +44,11 @@ def covers(*component_keys: str) -> Callable[[Callable[..., Any]], Callable[...,
 class Flow:
     """Gra 2-osobowa: ``me`` = testowana frakcja, ``other`` = rywal; faza akcji, tura ``me``."""
 
-    def __init__(self, registry: StaticDataRegistry, faction: str, other: str = "") -> None:
+    def __init__(
+        self, registry: StaticDataRegistry, faction: str, other: str = "", third: str = ""
+    ) -> None:
+        """``third`` = an optional third faction (``self.third``) for effects that need a combat
+        or a deal between two players other than ``me`` (The Cavalry, RULES.md 62.21)."""
         self.registry = registry
         other = other or ("sol" if faction != "sol" else "letnev")
         # Sterowany zegar serwera: okna reakcji trwają stały czas (RULES.md 54.11), więc scenariusz
@@ -55,15 +59,20 @@ class Flow:
                 registry=registry, store=EventStore(":memory:"), now=lambda: self.clock[0]
             )
         )
-        resp = self.client.post(
-            "/game/new", json={"players": [{"faction_id": faction}, {"faction_id": other}]}
-        )
+        seats = [{"faction_id": faction}, {"faction_id": other}]
+        if third:
+            seats.append({"faction_id": third})
+        resp = self.client.post("/game/new", json={"players": seats})
         assert resp.status_code == 200, resp.text
         finish_setup(self.client)
         state = self.state()
         order = state["seating_order"]
         self.me = next(p for p in order if state["players"][p]["faction"] == faction)
-        self.other = next(p for p in order if p != self.me)
+        rivals = [p for p in order if p != self.me]
+        self.other = next(
+            (p for p in rivals if state["players"][p]["faction"] == other), rivals[0]
+        )
+        self.third = next((p for p in order if p not in (self.me, self.other)), "")
         self.home = str(state["players"][self.me]["home_position"])
         self.other_home = str(state["players"][self.other]["home_position"])
 

@@ -222,7 +222,12 @@ def _execute(state: GameState, grid: HexGrid, table: TransactionTable) -> GameSt
     result = state
     if any(s.has_components() for s in sides.values()):
         # Faza agendy (RULES.md 47.5): stroną „aktywną” jest ten, kto otworzył stół.
-        active = table.opener if transaction.agenda_window(state) else state.active_player_id
+        active = (
+            table.opener
+            if transaction.agenda_window(state)
+            or transaction.granted_pair(state, table.opener, table.partner)
+            else state.active_player_id
+        )
         if active not in sides:
             raise ValueError("Transactions are resolved on the active player's turn.")
         other = other_of(table, active)

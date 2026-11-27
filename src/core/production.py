@@ -1014,6 +1014,22 @@ def cost_reduction_sources(
     return out
 
 
+def free_type_sources(
+    state: GameState, registry: StaticDataRegistry, player_id: str
+) -> list[tuple[str, str]]:
+    """``(base type, component name from the assets)`` the player produces without spending
+    resources (Navarch Feng: the flagship, RULES.md 62.21) - the production window's caption."""
+    from src.core.component_text import describe_component
+
+    out: list[tuple[str, str]] = []
+    for hook in rules_hooks.hooks_at(rules_hooks.POINT_PRODUCTION_FREE_TYPES, state, player_id):
+        if hook.kind is not rules_hooks.HookKind.FORBID:
+            continue
+        name = describe_component(registry, hook.covers)[0] or hook.source.component_id
+        out.extend((str(bt), name) for bt in sorted(hook.fn(state, player_id, {})))
+    return out
+
+
 def commander_trade_good_name(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> str | None:
@@ -1046,6 +1062,11 @@ def order_cost(
     player = state.players.get(player_id)
     faction_id = player.faction if player is not None else None
     technologies = player.technologies if player is not None else []
+    # Units produced without spending resources (Navarch Feng: the flagship, RULES.md 62.21):
+    # their cost stays in the data, it is only left out of this order's total.
+    free = rules_hooks.forbidden(rules_hooks.POINT_PRODUCTION_FREE_TYPES, state, player_id)
+    if free:
+        orders = [o for o in orders if o.base_type not in free]
     base_cost = _total_cost(
         registry, faction_id, technologies, orders, dual=dual_production(state, player_id)
     )

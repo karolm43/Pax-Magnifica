@@ -1010,9 +1010,19 @@ export function BattleFleet({
                 {u.damaged > 0 && (
                   <span className={styles.dmgTag}>{u.damaged} dmg</span>
                 )}
+                {u.shield && (
+                  <span className={styles.modTag} title="Cancels hits against your ships with Sustain Damage - it does not fight">
+                    shield
+                  </span>
+                )}
+                {u.championName && (
+                  <span className={styles.modTag} title={`1 ship fights as ${u.championName}`}>
+                    1 × {u.championHitsOn}+ ×{u.championDice}
+                  </span>
+                )}
               </td>
               <td>
-                {u.hitsOn}+ ×{u.dicePerUnit}
+                {u.shield ? "—" : `${u.hitsOn}+ ×${u.dicePerUnit}`}
                 {u.modifier > 0 && (
                   <span className={styles.modTag}>+{u.modifier}</span>
                 )}

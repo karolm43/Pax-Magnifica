@@ -31,6 +31,7 @@ from src.core.battle_units import _FIGHTER, _combat, _units_map, _zone
 from src.core.battle_units import CombatUnit as CombatUnit
 from src.core.battle_units import ability_hit_targets as ability_hit_targets
 from src.core.battle_units import absorbable_hits as absorbable_hits
+from src.core.battle_units import assign_units as assign_units
 from src.core.battle_units import combat_units as combat_units
 from src.core.battle_units import required_hits as required_hits
 from src.core.battle_units import side_units as side_units
@@ -140,6 +141,10 @@ def start_combat(
     return _assault_cannon_stage(new_state, grid, registry)
 
 
+# The Roll Dice step of a combat round (``COMBAT_STEP`` ctx ``step``; The Thundarian 62.21).
+ROLL_DICE_STEP = "roll_dice"
+_RESUME_ROLL = "roll"  # after "start of the Roll Dice step" decisions: back to step ROLL
+
 # Zdolność Assault Cannon (``hooks/technologies_combat``) - osobny etap startu walki.
 ASSAULT_CANNON_COVERS = "technologies:asc"
 _RESUME_ASSAULT = "start_assault"  # po decyzjach Assault Cannon: reszta startu walki
@@ -190,7 +195,7 @@ def _after_start(state: GameState, grid: HexGrid, registry: StaticDataRegistry) 
     ) and (
         bool(combat.afb_extra)
         or any(
-            u.afb_hits_on is not None
+            u.has_afb
             for pid in (attacker, defender)
             for u in side_units(state, grid, registry, pid)
         )
@@ -302,6 +307,10 @@ def _check_hit_targets(
     def _n(part: dict[str, int], bt: str) -> int:
         return max(0, part.get(bt, 0))
 
+    # Hits cancelled by a hit shield (Quantum Manipulator, F_nomad 1: AFB hits too) are not
+    # assigned to anything, so they are not directed hits any more.
+    shielded = sum(_n(sustain, bt) for bt, u in units.items() if u.shield)
+
     if damaged is True:
         # Wskazany USZKODZONY statek: tylko zniszczenie uszkodzonego, który nie użył teraz
         # Sustain Damage (inne statki nie anulują tego trafienia - F_yin).
@@ -314,7 +323,7 @@ def _check_hit_targets(
     else:
         able = sum(u.count + (u.sustainable or 0) for bt, u in units.items() if bt in types)
         landed = sum(_n(part, bt) for part in (sustain, destroy, destroy_damaged) for bt in types)
-    need = min(int(target["count"]), required, able)
+    need = min(int(target["count"]) - shielded, required - shielded, able)
     if need <= 0:
         return
     if landed < need:
@@ -382,6 +391,9 @@ def resume_after_triggers(
         return _apply_afb(new_state, grid, registry)
     if resume == _RESUME_ASSIGN:
         return _open_assign(new_state, grid, registry)
+    if resume == _RESUME_ROLL:
+        combat.step = CombatStep.ROLL  # back at the Roll Dice step (The Thundarian)
+        return new_state
     if resume == _RESUME_RETREAT:
         # Straty rundy przypisane: ponownie oceń krok Retreat (strona mogła stracić statki).
         combat.step = CombatStep.ASSIGN
@@ -471,18 +483,30 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
     for pid in (combat.attacker, combat.defender):
         entries: list[dict[str, Any]] = []
         total = 0
-        afb_units = [u for u in side_units(new_state, grid, registry, pid) if u.afb_hits_on]
+        all_units = side_units(new_state, grid, registry, pid)
+        afb_units = [u for u in all_units if u.afb_hits_on]
         bonus = afb_extra_by_type(new_state, pid, afb_units)
         for unit in afb_units:
             assert unit.afb_hits_on is not None
             extra = bonus.get(unit.base_type, 0)
-            new_state, dice = roll_dice(new_state, unit.count * unit.afb_dice + extra)
+            # The champion rolls its own AFB below (The Cavalry, RULES.md 62.21).
+            rolling = unit.count - (1 if unit.champion_afb_hits_on is not None else 0)
+            new_state, dice = roll_dice(new_state, rolling * unit.afb_dice + extra)
             hits = count_hits(dice, unit.afb_hits_on)
             total += hits
             # Modyfikatory combat (Fragile) nie dotyczą AFB (F_jol_nar): przerzut liczy bez nich.
             entry = _roll_entry(unit, dice, unit.afb_hits_on, hits, modifier=0)
             if extra:
                 entry["extraDice"] = extra
+            entries.append(entry)
+        for unit in all_units:
+            if unit.champion_afb_hits_on is None or unit.count <= 0:
+                continue
+            new_state, dice = roll_dice(new_state, unit.champion_afb_dice)
+            hits = count_hits(dice, unit.champion_afb_hits_on)
+            total += hits
+            entry = _roll_entry(unit, dice, unit.champion_afb_hits_on, hits, modifier=0)
+            entry["name"] = _champion_name(unit)
             entries.append(entry)
         if pid in combat.afb_extra:
             # AFB nadany komponentem (Metali Void Armaments): gracz zgodził się go użyć w ofercie
@@ -515,6 +539,10 @@ def resolve_afb(state: GameState, grid: HexGrid, registry: StaticDataRegistry) -
         combat.resume = _RESUME_AFB
         return new_state
     return _apply_afb(new_state, grid, registry)
+
+
+def _champion_name(unit: CombatUnit) -> str:
+    return f"{unit.name} ({unit.champion_label})" if unit.champion_label else unit.name
 
 
 def afb_extra_sources(state: GameState, player_id: str) -> list[extra_dice.ExtraDie]:
@@ -836,10 +864,7 @@ def roll_round(
                 rules_hooks.POINT_COMBAT_REROLL_MISSES, state, pid, {"base_type": unit.base_type}
             ):
                 new_state, dice = _reroll_misses(new_state, unit, dice)
-            # Gravleash: +X tylko do kości pierwszego egzemplarza (RULES.md 62.2).
-            bonus = [
-                unit.single_bonus if i < unit.dice_per_unit else 0 for i in range(len(dice))
-            ]
+            bonus = _dice_bonus(unit, len(dice))
             hits = sum(
                 1 for d, b in zip(dice, bonus, strict=False)
                 if d + unit.modifier + b >= unit.base_hits_on
@@ -852,8 +877,13 @@ def roll_round(
             hits += natural_extra_hits(state, pid, combat.kind, unit.base_type, dice)
             total += hits
             entry = _roll_entry(unit, dice, unit.base_hits_on, hits)
-            if unit.single_bonus:
+            if any(bonus):
                 entry["bonus"] = bonus
+            if unit.champion_hits_on is not None:
+                entry["champion"] = {
+                    "dice": unit.champion_dice, "hitsOn": unit.champion_hits_on,
+                    "name": _champion_name(unit),
+                }
             entries.append(entry)
         rolls[pid] = entries
         hits_by[pid] = total
@@ -911,6 +941,82 @@ def roll_round(
         combat.resume = _RESUME_ASSIGN
         return new_state
     return _open_assign(new_state, grid, registry)
+
+
+def _dice_bonus(unit: CombatUnit, dice: int) -> list[int]:
+    """Per-die result bonus of a group's combat roll.
+
+    The champion's dice come first and count against its own combat value (The Cavalry,
+    RULES.md 62.21); Gravleash's +X goes to the dice of the first other ship (RULES.md 62.2).
+    """
+    bonus = [0] * dice
+    start = 0
+    if unit.champion_hits_on is not None:
+        start = min(dice, unit.champion_dice)
+        for i in range(start):
+            bonus[i] = unit.base_hits_on - unit.champion_hits_on
+    if unit.single_bonus:
+        for i in range(start, min(dice, start + unit.dice_per_unit)):
+            bonus[i] += unit.single_bonus
+    return bonus
+
+
+def roll_step_open(state: GameState) -> bool:
+    """The round's COMBAT dice are on the table and no hit is assigned yet: the moment "after the
+    Roll Dice step" (The Thundarian, RULES.md 62.21)."""
+    combat = state.active_combat
+    window = state.pending_window
+    return (
+        combat is not None
+        and combat.step is CombatStep.ASSIGN
+        and window is not None
+        and window.window_type is WindowType.COMBAT_ASSIGN_HITS
+        and window.cursor == 0
+        and not combat.afb_assign
+        and not combat.round_end_assign
+        and not combat.start_assign
+        and not combat.stepwise_assign
+        and bool(combat.log)
+        and combat.log[-1].get("phase") == "COMBAT"
+        and not any(combat.log[-1].get("losses", {}).values())
+        and not any(combat.log[-1].get("sustained", {}).values())
+    )
+
+
+def rewind_roll_step(state: GameState) -> None:
+    """Hits are not assigned; the combat returns to the start of this round's Roll Dice step
+    (The Thundarian, RULES.md 62.21). MUTATES ``state`` (the caller's clone).
+
+    The roll, its hits (extra hits included), the hit targets it set and every die change on it
+    are discarded; the round number and round effects stay (no new round start). The assignment
+    window closes; the decisions about that roll go with it.
+    """
+    combat = _combat(state)
+    if not roll_step_open(state):
+        raise ValueError("There is no combat roll to return from right now.")
+    entry = combat.log[-1]
+    entry["phase"] = "REWOUND"
+    combat.rolls = {}
+    combat.side_rolls = {}
+    combat.pending_hits = {}
+    combat.hit_targets = {}
+    combat.stepwise_assign = []
+    combat.sustained_ships = []
+    combat.destroyed_ships = []
+    triggers.drop_offers(state, GameEvent.COMBAT_ROLL, Moment.AFTER)
+    state.pending_window = None
+    combat.step = CombatStep.ROLL
+    # "Return to the start of this combat round's Roll Dice step": the step starts again, so
+    # "before you roll dice" choices are made again (Gravleash Maneuvers - F_letnev gravleash 8).
+    offers_before = len(state.pending_offers)
+    triggers.fire(
+        state, GameEvent.COMBAT_STEP, Moment.START, subject=combat.attacker,
+        ctx={"step": ROLL_DICE_STEP, "kind": combat.kind, "position": combat.position,
+             "attacker": combat.attacker, "defender": combat.defender, "rewound": True},
+    )
+    if len(state.pending_offers) > offers_before:
+        combat.step = CombatStep.TRIGGERS
+        combat.resume = _RESUME_ROLL
 
 
 def _extra_hits(
@@ -1091,8 +1197,12 @@ def plan_losses(
             raise ValueError(
                 f"Only {unit.sustainable} {unit.name} can use Sustain Damage."
             )
+        if unit.shield and (d or dd):
+            raise ValueError(
+                f"{unit.name} is not a ship - it can only use Sustain Damage to cancel hits."
+            )
         if not unit.sustain:
-            granted_used += s
+            granted_used += max(0, s - (1 if unit.champion_sustain else 0))
         damaged_after = unit.damaged + s
         undamaged_after = unit.count - damaged_after
         if d > undamaged_after or dd > damaged_after:
@@ -1175,7 +1285,7 @@ def assign_combat_hits(
             f"It is now {window.current_responder}'s turn to assign hits, not {player_id}."
         )
 
-    units = {u.base_type: u for u in side_units(state, grid, registry, player_id)}
+    units = {u.base_type: u for u in assign_units(state, grid, registry, player_id)}
     required = required_hits(state, grid, registry, player_id)
     plan = plan_losses(
         units, sustain, destroy, destroy_damaged, required, sustain_cancels(state, player_id)
@@ -1231,7 +1341,7 @@ def _note_sustains(
     for base_type, used in used_by_type.items():
         # W walce kosmicznej walczą tylko statki; w naziemnej - tylko siła naziemna-statek
         # (Eidolon Maximum: Direct Hit działa też na niego, F_naaz_rokha eidolon-maximum 2.3).
-        if used > 0 and (
+        if used > 0 and not units[base_type].shield and (
             combat.kind == "space" or floating_structures.ground_moves_as_ship(
                 state, player_id, base_type
             )
@@ -1294,7 +1404,7 @@ def sustain_one(
         )
     if combat.hit_targets.get(player_id):
         raise ValueError("These hits must go to particular units - assign them all at once.")
-    units = {u.base_type: u for u in side_units(state, grid, registry, player_id)}
+    units = {u.base_type: u for u in assign_units(state, grid, registry, player_id)}
     required = required_hits(state, grid, registry, player_id)
     if required <= 0:
         raise ValueError("There are no hits left to cover - confirm the assignment.")
