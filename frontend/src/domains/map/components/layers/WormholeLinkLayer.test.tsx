@@ -40,3 +40,19 @@ describe("WormholeLinkLayer: Quantum Entanglement links (RULES.md 61.7)", () => 
     expect(ownLinks()).toHaveLength(0);
   });
 });
+
+describe("WormholeLinkLayer: system with several wormholes", () => {
+  it("hovering one wormhole shows the connections of all of them", () => {
+    desk = sol;
+    useWormholeHoverStore.getState().setHovered({ position: "000", kinds: ["ALPHA"] });
+    // Wormhole nexus (alpha, beta, gamma) -> one alpha system and one beta system.
+    const { container } = render(
+      <WormholeLinkLayer
+        tiles={[tile("000", "82b", 0), tile("102", "39", 400), tile("104", "40", 800)]}
+        contentSize={{ width: 1200, height: 400 }}
+      />,
+    );
+    expect(container.querySelectorAll('g[data-kind="ALPHA"]')).toHaveLength(1);
+    expect(container.querySelectorAll('g[data-kind="BETA"]')).toHaveLength(1);
+  });
+});

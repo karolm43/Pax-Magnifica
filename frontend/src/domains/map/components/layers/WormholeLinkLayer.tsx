@@ -1,7 +1,7 @@
 import type { Tile } from "@/entities/game/types";
 import { tileOutline } from "@/entities/geometry/tileOutline";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
-import { linkTargets, playerLinkTargets, useWormholeHoverStore } from "../../wormholeLinks";
+import { kindsToShow, linkTargets, playerLinkTargets, useWormholeHoverStore } from "../../wormholeLinks";
 import classes from "./WormholeLinkLayer.module.css";
 
 type Point = { x: number; y: number };
@@ -10,12 +10,11 @@ type Point = { x: number; y: number };
 const KNOWN_KINDS = new Set(["ALPHA", "BETA", "GAMMA", "DELTA", "INGRESS", "EGRESS"]);
 
 /** Łuk między środkami systemów: lekko wygięty, żeby linie do kilku celów się nie nakładały. */
-function arc(a: Point, b: Point): string {
+function arc(a: Point, b: Point, bend: number): string {
   const mx = (a.x + b.x) / 2;
   const my = (a.y + b.y) / 2;
   const dx = b.x - a.x;
   const dy = b.y - a.y;
-  const bend = 0.18;
   return `M ${a.x} ${a.y} Q ${mx - dy * bend} ${my + dx * bend} ${b.x} ${b.y}`;
 }
 
@@ -45,7 +44,7 @@ export function WormholeLinkLayer({
   };
   const from = center(source);
 
-  const printed = hovered.kinds.flatMap((kind) =>
+  const printed = kindsToShow(source, hovered.kinds).flatMap((kind) =>
     linkTargets(kind, hovered.position, tiles).map((position) => ({ kind, position })),
   );
   // Links only one player has (Quantum Entanglement: alpha <-> beta for Creuss) look like any
@@ -75,9 +74,11 @@ export function WormholeLinkLayer({
         height={contentSize.height}
         aria-hidden="true"
       >
-        {links.map(({ kind, target }) => {
+        {links.map(({ kind, target }, index) => {
           const to = center(target);
-          const d = arc(from, to);
+          // A target reached by two wormhole kinds gets two arcs with different bends.
+          const repeat = links.slice(0, index).filter((l) => l.target === target).length;
+          const d = arc(from, to, 0.18 + 0.14 * repeat);
           const dataKind = KNOWN_KINDS.has(kind) ? kind : undefined;
           return (
             <g key={`${kind}-${target.position}`} data-kind={dataKind}>

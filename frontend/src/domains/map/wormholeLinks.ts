@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { Tile } from "@/entities/game/types";
 import { getTileById } from "@/entities/lookup/systems";
-import { linkKindsOfToken } from "@/entities/geometry/wormholePoints";
+import { getPrintedLinkPoints, linkKindsOfToken } from "@/entities/geometry/wormholePoints";
 import { linkedPositions } from "./components/SystemDossier/featureRules";
 
 /**
@@ -37,6 +37,21 @@ function hasIngress(tile: Tile): boolean {
 
 function hasEgress(tile: Tile): boolean {
   return !!getTileById(tile.systemId)?.hasEgress || tile.tokens.includes("egress");
+}
+
+const isGate = (kind: LinkKind) => kind === "INGRESS" || kind === "EGRESS";
+
+/**
+ * Kinds to preview when ``hovered`` kinds are under the cursor: hovering any wormhole shows EVERY
+ * wormhole of the system (printed + tokens); Fracture gates (ingress / egress) stay on their own.
+ */
+export function kindsToShow(tile: Tile, hovered: LinkKind[]): LinkKind[] {
+  if (hovered.every(isGate)) return hovered;
+  const present = [
+    ...getPrintedLinkPoints(tile.systemId).flatMap((point) => point.kinds),
+    ...tile.tokens.flatMap(linkKindsOfToken),
+  ].filter((kind) => !isGate(kind));
+  return [...new Set([...hovered, ...present])];
 }
 
 /** Pozycje systemów, do których prowadzi połączenie ``kind`` z systemu ``position``. */
