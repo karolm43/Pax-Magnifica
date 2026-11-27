@@ -108,8 +108,11 @@ def test_owner_using_it_on_their_own_activation_keeps_the_offer(
 
 
 def test_push_agent_still_offers_the_owner(registry: StaticDataRegistry) -> None:
-    """Cabal's agent is hostile ("capture 1 unit from their reinforcements") - not pull."""
-    assert not cooperative.is_pull("leaders:cabalagent")
+    """Hostile effects stay push (Letnev's hero). Cabal's agent is hostile AND sellable: mutual
+    pull (the Cabal keeps its offer, 54.15 e)."""
+    assert not cooperative.is_pull("leaders:letnevhero")
+    spec = cooperative.spec_for("leaders:cabalagent")
+    assert spec is not None and spec.mutual and spec.owner_picks
     assert cooperative.is_pull(MENDOSA)
     assert cooperative.is_pull("leaders:winnuagent")
 
@@ -218,7 +221,7 @@ def test_self_only_is_never_listed(registry: StaticDataRegistry) -> None:
 def test_configure_validates(registry: StaticDataRegistry) -> None:
     state = _mendosa_state()
     with pytest.raises(ValueError, match="cooperative"):
-        cooperative.configure(state, "p1", "leaders:cabalagent", mode=cooperative.ASK)
+        cooperative.configure(state, "p1", "leaders:letnevhero", mode=cooperative.ASK)
     with pytest.raises(ValueError, match="mode"):
         cooperative.configure(state, "p1", MENDOSA, mode="maybe")
     with pytest.raises(ValueError, match="price"):
@@ -287,11 +290,13 @@ def test_window_component_helping_only_others_is_not_prompted(
     assert cooperative.component_for_others(state, "p1", key) is False  # nobody produces
     helps = cooperative._PULL_COMPONENTS[key]
     try:
-        cooperative._PULL_COMPONENTS[key] = lambda _s, _o: ["p2"]
+        cooperative._PULL_COMPONENTS[key] = cooperative.PullSpec(lambda _s, _o: ["p2"])
         assert cooperative.component_for_others(state, "p1", key) is True
-        cooperative._PULL_COMPONENTS[key] = lambda _s, _o: ["p1"]
+        cooperative._PULL_COMPONENTS[key] = cooperative.PullSpec(lambda _s, _o: ["p1"])
         assert cooperative.component_for_others(state, "p1", key) is False  # own production
-        cooperative._PULL_COMPONENTS[key] = lambda _s, _o: ["p2"]
+        cooperative._PULL_COMPONENTS[key] = cooperative.PullSpec(lambda _s, _o: ["p2"], mutual=True)
+        assert cooperative.component_for_others(state, "p1", key) is False  # mutual: prompted
+        cooperative._PULL_COMPONENTS[key] = cooperative.PullSpec(lambda _s, _o: ["p2"])
         watched = cooperative.set_watch(state, "p1", "turn")
         assert cooperative.component_for_others(watched, "p1", key) is False
     finally:

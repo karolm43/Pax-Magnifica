@@ -18,6 +18,7 @@ from src.core import (
     card_hold,
     command_tokens,
     control,
+    cooperative,
     exhaust,
     exploration,
     faction_components,
@@ -404,6 +405,24 @@ def _exhausted_planets(state: GameState) -> list[tuple[str, str, str]]:
             if position is not None and state.systems[position].planet_owners.get(planet) == pid:
                 found.append((position, planet, pid))
     return sorted(found)
+
+
+def _rinn_helps(state: GameState, owner: str) -> list[str]:
+    return sorted({pid for _pos, _planet, pid in _exhausted_planets(state) if pid != owner})
+
+
+def _planet_controller(state: GameState, _owner: str, value: str) -> str | None:
+    position, _, rest = value.partition("|")
+    planet = rest.partition("|")[0]
+    system = state.systems.get(position)
+    return system.planet_owners.get(planet) if system is not None else None
+
+
+# Cooperative agent (RULES.md 54.15): a player with an exhausted planet may ask / pay to ready it.
+# ACTION: requested only during the Xxcha's turn; uses the Xxcha's component action.
+cooperative.register_pull_component(
+    "leader", AGENT, _rinn_helps, mutual=True, target="planet", target_of=_planet_controller
+)
 
 
 @faction_components.blocker("leader", AGENT)

@@ -33,7 +33,9 @@ def offer_view(
     if hook is not None:
         name, text, kind = describe_component(registry, hook.covers)
         if hook.inputs is not None:
-            inputs = hook.inputs(state, registry, offer.player_id, offer.ctx)
+            # A deal answers the OWNER's form, even when the requester picks (54.15).
+            who = str(deal["owner"]) if deal is not None else offer.player_id
+            inputs = hook.inputs(state, registry, who, offer.ctx)
     elif deal is not None:
         # Requested window-use component (RULES.md 54.15): the component's own form.
         source = str(offer.ctx[cooperative.DEAL]["source"])
@@ -41,6 +43,8 @@ def offer_view(
         inputs_fn = rules_hooks.inputs_for(source)
         if inputs_fn is not None:
             inputs = inputs_fn(state, registry, deal["owner"])
+    if deal is not None:
+        inputs = cooperative.deal_inputs(state, offer, inputs)  # only the requester's options
     return {
         "id": offer.id,
         "player_id": offer.player_id,

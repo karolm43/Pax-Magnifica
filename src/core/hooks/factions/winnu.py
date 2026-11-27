@@ -490,6 +490,18 @@ def rickar_rickani(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> 
 # ------------------------------------------------- Mathis Mathinus — Imperial Seal (hero)
 
 
+def _mathis_helps(state: GameState, owner: str) -> list[str]:
+    return [pid for pid in state.players if pid != owner]
+
+
+# Cooperative hero (RULES.md 54.15): another player may ask / pay to be among "those players".
+# ACTION: requested only during the Winnu's turn; the Winnu picks the card (owner_picks) and the
+# chosen players must include the requester.
+cooperative.register_pull_component(
+    "leader", HERO, _mathis_helps, mutual=True, target="players", owner_picks=True
+)
+
+
 @register_effect_inputs(f"leaders:{HERO}")
 def hero_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str

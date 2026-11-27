@@ -14,6 +14,7 @@ from src.core import (
     active_effects,
     battle_rerolls,
     command_tokens,
+    cooperative,
     economy,
     exhaust,
     faction_components,
@@ -279,6 +280,15 @@ def _agent_window(state: GameState, _registry: StaticDataRegistry, _player_id: s
         # F_hacan: nie w trakcie rozstrzygania innej zdolności (ujawniona karta eksploracji).
         return "Resolve the current exploration card first."
     return None
+
+
+def _carth_helps(state: GameState, owner: str) -> list[str]:
+    return [pid for pid in state.players if pid != owner]
+
+
+# Cooperative agent (RULES.md 54.15): another player may ask / pay to be replenished; the Hacan
+# keeps its own use (gain 2 commodities).
+cooperative.register_pull_component("leader", AGENT, _carth_helps, mutual=True, target="target")
 
 
 @register_effect_inputs(f"leaders:{AGENT}")

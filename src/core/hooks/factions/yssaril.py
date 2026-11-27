@@ -26,6 +26,7 @@ from src.core import (
     active_effects,
     board_graph,
     card_draw,
+    cooperative,
     entropic_scar,
     faction_components,
     leaders,
@@ -717,6 +718,11 @@ def _deepgloom_scheming_ready(state: GameState, player_id: str, ctx: Mapping[str
     return drawer in state.players and drawer != player_id
 
 
+# Cooperative (RULES.md 54.15 e): the drawing player may ask / pay to use Scheming; the Yssaril
+# is still offered the allowance (mutual - it gains the transaction).
+cooperative.register_pull(f"breakthroughs:{BREAKTHROUGH}", mutual=True)
+
+
 @on_event(
     GameEvent.ACTION_CARDS_DRAWN, Moment.AFTER, HookSource(SOURCE_BREAKTHROUGH, BREAKTHROUGH),
     optional=True, condition=_deepgloom_scheming_ready, covers=f"breakthroughs:{BREAKTHROUGH}",
@@ -768,6 +774,13 @@ def _deepgloom_window(state: GameState, _registry_: StaticDataRegistry, player_i
 def _lend_targets(state: GameState, player_id: str) -> list[str]:
     lent = {e.owner for e in state.active_effects if e.key == DEEPGLOOM_STALL}
     return [p for p in _order_from(state, player_id) if p not in lent]
+
+
+# Cooperative (RULES.md 54.15 e): another player may ask / pay to be lent Stall Tactics (the
+# deal is for the requester: ``player`` must be them); the Yssaril keeps its own window.
+cooperative.register_pull_component(
+    "breakthrough", BREAKTHROUGH, _lend_targets, mutual=True, target="player"
+)
 
 
 @register_effect_inputs(f"breakthroughs:{BREAKTHROUGH}")

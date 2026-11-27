@@ -57,6 +57,7 @@ def test_aetherpassage_po_aktywacji_rywala(registry: StaticDataRegistry) -> None
     _other_turn(flow)
     target, _ = flow.plain_pair()
     flow.activate(target)  # the rival activates
+    flow.request_boost("Aetherpassage", flow.other)  # cooperative (RULES.md 54.15)
     flow.accept("Aetherpassage")
     effects = flow.state()["active_effects"]
     assert any(e["key"] == "abilities:aetherpassage:allowed" and e["owner"] == flow.other

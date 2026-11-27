@@ -198,6 +198,10 @@ def _passage_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> 
     )
 
 
+# Cooperative (RULES.md 54.15): the activating player requests passage.
+cooperative.register_pull(f"abilities:{AETHERPASSAGE}")
+
+
 @on_event(
     GameEvent.SYSTEM_ACTIVATED, Moment.AFTER, HookSource(SOURCE_FACTION, FACTION),
     optional=True, condition=_passage_ready, covers=f"abilities:{AETHERPASSAGE}",
@@ -312,6 +316,10 @@ def _stream_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> b
     ):
         return False
     return _anomaly_adjacent(state, activator, str(ctx.get("position") or ""))
+
+
+# Cooperative (RULES.md 54.15): a neighbour activating requests the +1; own activation unchanged.
+cooperative.register_pull(f"technologies:{AETHERSTREAM}")
 
 
 @on_event(
@@ -699,6 +707,11 @@ def dynamo_inputs(
     ]
 
 
+# Cooperative (RULES.md 54.15): the damaged unit's owner requests the repair; the Empyrean pays
+# the influence, so it picks the planets (owner_picks). Repairing own units is unchanged.
+cooperative.register_pull(f"units:{FLAGSHIP}", owner_picks=True)
+
+
 @on_event(
     GameEvent.UNIT_SUSTAIN_DAMAGE, Moment.AFTER, HookSource(SOURCE_UNIT, FLAGSHIP),
     optional=True, condition=_dynamo_ready, inputs=dynamo_inputs, covers=f"units:{FLAGSHIP}",
@@ -759,6 +772,20 @@ def watcher_canceller(state: GameState, player_id: str, ctx: Mapping[str, Any]) 
     """Public: a Watcher in / next to the card player's units - the hold window opens."""
     rival = str(ctx.get("player") or "")
     return bool(rival) and rival != player_id and bool(watcher_mechs(state, player_id, rival))
+
+
+def _watcher_helps(state: GameState, owner: str) -> list[str]:
+    """Third players may ask / pay the Empyrean to cancel the held card (not its player)."""
+    held = state.held_play
+    if held is None:
+        return []
+    rival, _card = card_hold.target_of(held)
+    return [pid for pid in state.players if pid not in (owner, rival)]
+
+
+# Cooperative (RULES.md 54.15 e): a third player may ask / pay for the cancel; the Empyrean is
+# still prompted (mutual) and picks the Watcher.
+cooperative.register_pull_component("unit", MECH, _watcher_helps, mutual=True, owner_picks=True)
 
 
 @faction_components.window_use("unit", MECH, holds=True)
@@ -940,6 +967,11 @@ def _tether_allow_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]
         and not any(e.key == TETHER_ALLOWED and e.owner == activator
                     and e.data.get("by") == player_id for e in state.active_effects)
     )
+
+
+# Cooperative (RULES.md 54.15): the activating player requests the crossing. The placement hook
+# shares the key but fires only on the Empyrean's own activation (owner = beneficiary: unchanged).
+cooperative.register_pull(f"breakthroughs:{BREAKTHROUGH}")
 
 
 @on_event(

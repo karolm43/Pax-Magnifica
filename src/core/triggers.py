@@ -472,9 +472,18 @@ def _drop_stale_offers(state: GameState, resolved: PendingOffer) -> None:
 
 
 def accept_offer(
-    state: GameState, player_id: str, offer_id: str, params: dict[str, Any] | None = None
+    state: GameState,
+    player_id: str,
+    offer_id: str,
+    params: dict[str, Any] | None = None,
+    *,
+    inputs_player: str | None = None,
 ) -> GameState:
     """Gracz przyjmuje ofertę: uruchamia jej hook (``ctx['params']`` = wybory gracza).
+
+    ``inputs_player``: whose form the answer is checked against (default: the answering player).
+    A requested deal (RULES.md 54.15) passes the effect's owner - the requester may answer the
+    owner's form under a standing offer.
 
     Raises:
         ValueError: Oferta nieznana / cudza / nie ta kolej, albo gracz nie ma już źródła hooka.
@@ -488,7 +497,7 @@ def accept_offer(
         raise ValueError("The source of this ability is no longer in play.")
     # Odpowiedź gracza sprawdzamy względem legalnych opcji liczonych TERAZ przez silnik.
     inputs = (
-        hook.inputs(work, rules_hooks.bound_registry(), player_id, offer.ctx)
+        hook.inputs(work, rules_hooks.bound_registry(), inputs_player or player_id, offer.ctx)
         if hook.inputs is not None
         else []
     )

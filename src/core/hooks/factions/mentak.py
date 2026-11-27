@@ -18,6 +18,7 @@ from src.core import (
     battle,
     board_reinforcements,
     card_draw,
+    cooperative,
     economy,
     faction_components,
     leaders,
@@ -442,6 +443,16 @@ def _agent_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bo
         target in state.players and target != player_id
         and leaders.is_ready(state, _registry(), player_id, AGENT)
     )
+
+
+def _pillaged(_state: GameState, _owner: str, ctx: Mapping[str, Any]) -> list[str]:
+    target = ctx.get("target")
+    return [target] if isinstance(target, str) and target else []
+
+
+# Cooperative (RULES.md 54.15): the pillaged player may ask / pay for the draw; the Mentak still
+# gets the offer (they draw too - mutual).
+cooperative.register_pull(f"leaders:{AGENT}", _pillaged, mutual=True)
 
 
 @on_event(

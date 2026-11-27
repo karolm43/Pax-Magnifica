@@ -193,7 +193,8 @@ def test_aetherpassage_przelot_przez_statki_empyrean(registry: StaticDataRegistr
     # The decision comes only AFTER the rival activated (an offer on SYSTEM_ACTIVATED/AFTER).
     assert not _offers(state, "p1", "Aetherpassage")
     _activate(state, "p2", TARMANN)
-    state = _accept(state, "p1", "Aetherpassage")
+    # Cooperative (RULES.md 54.15): the rival requests it, the Empyrean decides.
+    state = _accept(boosts.request(state, registry, "p2", "Aetherpassage"), "p1", "Aetherpassage")
     grid = _bind(state, registry)
     assert shortest_legal_path(grid, state, EMPTY, TARMANN, "p2", can_enter_asteroids=False) == [
         EMPTY, MECATOL, TARMANN]
@@ -265,7 +266,7 @@ def test_aetherstream_sasiad_obok_anomalii(registry: StaticDataRegistry) -> None
     state = _state(registry)
     state.systems[EMPTY].space_units = {"p1": {"destroyer": 1}}  # neighbours with Jord
     _activate(state, "p2", TARMANN)  # Tarmann is next to the Gravity Rift
-    state = _accept(state, "p1", "Aetherstream")
+    state = _accept(boosts.request(state, registry, "p2", "Aetherstream"), "p1", "Aetherstream")
     bonus = rules_hooks.modify(rules_hooks.POINT_MOVEMENT_MOVE_VALUE, state, "p2", 1,
                                {"from": JORD, "base_type": "destroyer"})
     assert bonus == 2
@@ -277,10 +278,11 @@ def test_aetherstream_nie_dla_niesasiada_i_bez_anomalii(registry: StaticDataRegi
     state = _state(registry)
     _activate(state, "p2", TARMANN)  # not neighbours (p1 only at home)
     assert not _offers(state, "p1", "Aetherstream")
+    assert "Aetherstream" not in boosts.names(state, registry, "p2")
     state = _state(registry)
     state.systems[EMPTY].space_units = {"p1": {"destroyer": 1}}
     _activate(state, "p2", EMPTY)  # Empty (103) touches the Nebula (102)
-    assert _offers(state, "p1", "Aetherstream")
+    assert "Aetherstream" in boosts.names(state, registry, "p2")  # pull (RULES.md 54.15)
     state = _state(registry)
     _activate(state, "p1", TARMANN)  # "you": the Empyrean player itself
     assert _offers(state, "p1", "Aetherstream")
@@ -584,6 +586,7 @@ def test_dynamo_naprawa_za_2_wplywu(registry: StaticDataRegistry) -> None:
     state.systems[DARK].space_units["p1"]["flagship"] = 1
     state.systems[TARMANN].space_units = {"p2": {"dreadnought": 2}}  # adjacent to The Dark
     _sustained(state, "p2", TARMANN)
+    state = boosts.request(state, registry, "p2", "Dynamo")  # pull, the Empyrean picks (54.15)
     offer = _offers(state, "p1", "Dynamo")[0]
     fields = {i["key"]: i for i in _inputs(state, registry, offer)}
     assert fields["repairs"]["auto"] == 1 and fields["planets"]["payment"]["cost"] == 2
@@ -592,7 +595,7 @@ def test_dynamo_naprawa_za_2_wplywu(registry: StaticDataRegistry) -> None:
     assert "thedark" in state.players["p1"].exhausted_planets
     # The Dark is spent on ONE repair - its excess influence does not repair a second ship.
     _sustained(state, "p2", TARMANN)
-    assert not _offers(state, "p1", "Dynamo")  # no ready influence left (4.1)
+    assert "Dynamo" not in boosts.names(state, registry, "p2")  # no ready influence left (4.1)
 
 
 def test_dynamo_zasieg_i_brak_wplywu(registry: StaticDataRegistry) -> None:
@@ -600,10 +603,10 @@ def test_dynamo_zasieg_i_brak_wplywu(registry: StaticDataRegistry) -> None:
     state.systems[DARK].space_units["p1"]["flagship"] = 1
     state.systems[JORD].space_units = {"p2": {"dreadnought": 1}}  # not adjacent to The Dark
     _sustained(state, "p2", JORD)
-    assert not _offers(state, "p1", "Dynamo")
+    assert "Dynamo" not in boosts.names(state, registry, "p2")
     state.systems[DARK].space_units["p2"] = {"dreadnought": 1}  # the flagship's own system
     _sustained(state, "p2", DARK)
-    assert _offers(state, "p1", "Dynamo")
+    assert "Dynamo" in boosts.names(state, registry, "p2")
 
 
 @ruling("F_empyrean/dynamo/2", "F_argent/raid-formation/4.2")
@@ -631,7 +634,8 @@ def test_dynamo_direct_hit_nadal_niszczy(registry: StaticDataRegistry) -> None:
     state.active_combat.sustained_ships = [{"player": "p2", "base_type": "dreadnought",
                                             "count": 1}]
     _sustained(state, "p2", TARMANN)
-    state = _accept(state, "p1", "Dynamo", {"repairs": 1, "planets": ["thedark"]})
+    state = _accept(boosts.request(state, registry, "p2", "Dynamo"), "p1", "Dynamo",
+                    {"repairs": 1, "planets": ["thedark"]})
     combat = state.active_combat
     assert combat is not None
     assert reactions_combat._sustained_of(combat, state, "p2") == ["dreadnought"]
@@ -750,7 +754,7 @@ def test_void_tether_zgoda_i_deep_space_cannon(registry: StaticDataRegistry) -> 
     state.players["p1"].breakthrough_unlocked = True
     _tether(state, JORD, RIFT)
     _activate(state, "p2", RIFT)
-    state = _accept(state, "p1", "Void Tether: allow")
+    state = _accept(boosts.request(state, registry, "p2", "Void Tether"), "p1", "Void Tether")
     grid = _bind(state, registry)
     assert RIFT in board_graph.neighbors_for_player(state, grid, "p2", JORD)
     # Space Cannon range follows the same layers (the shooter's adjacency).

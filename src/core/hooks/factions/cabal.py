@@ -14,6 +14,7 @@ from src.core import (
     active_effects,
     board_graph,
     capture,
+    cooperative,
     economy,
     exhaust,
     faction_components,
@@ -329,6 +330,11 @@ def agent_inputs(
         options = [oi.option(_NONE, "No unit can be captured")]
     return [oi.choice("unit", f"Unit to capture from {_faction_name(state, target)}'s "
                               "reinforcements", options, always=True)]
+
+
+# Cooperative AND hostile (RULES.md 54.15): the Cabal is still offered it (mutual); the player who
+# replenished may also ask / pay for the conversion. The Cabal picks the captured unit.
+cooperative.register_pull(f"leaders:{AGENT}", mutual=True, owner_picks=True)
 
 
 @on_event(

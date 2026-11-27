@@ -352,7 +352,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 
 # Frakcje jeszcze niezaimplementowane w src/core/hooks/factions/ (Base / PoK / Codex / Thunder's Edge)
 
-## The Yssaril Tribes (yssaril) [NIEZAIMPLEMENTOWANA]
+## The Yssaril Tribes (yssaril)
 
 ### Liderzy (Agent / Commander / Hero)
 - [x] **[AGENT] Ssruu** (yssarilagent) *(propozycja)* — This card has the text ability of each other player's agent, even if that agent is exhausted.

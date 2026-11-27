@@ -368,3 +368,26 @@ Older, completed blocks (Phase 1 → blocks of 2026-11-25) are in `PROGRESS_ARCH
   looks never name cards); vitest `yssarilFx`, `YssarilFxMarks`, `describeActivity.yssaril`, `DecisionFields`.
 - Gap: Ssruu cannot copy JR-XS455-O (a relic agent - needs a relic proxy). ⚠️ ASSUMPTIONS ("Auto" defaults,
   sequential Kyver, Deepgloom grant to the end of the action phase): RULES.md 62.22.
+
+## Cooperative effects: sellable components (RULES.md 54.15 e, 2026-11-27)
+
+- `cooperative.PullSpec` (`mutual`, `target` / `target_of`, `owner_picks`) on `register_pull` /
+  `register_pull_component`. Mutual = owner keeps the offer AND others may request; target = deal
+  limited to the requester (offer form + 422 on another answer); owner_picks = the accepted request
+  goes to the owner. `ACTION:` components / technologies are requestable on the owner's turn and use
+  the owner's component action (`_accept_component`; Wormhole Generator via `_owner_components`).
+  `spec_for(key, component=...)` separates a hook and a component on one key (Deepgloom).
+- Registered every ticked row of `docs/faction_components_checklist.md` for implemented factions
+  (Arborec, Cabal, Empyrean x5, Creuss x2, Hacan, Mentak, Muaat, Naalu, Nomad x3, Titans, Winnu,
+  Xxcha, Yssaril). Ssruu inherits the copied agent's registration (proxy).
+- Tests: `tests/test_cooperative_specs.py` (mutual, target 422, tech ACTION deal, own-turn only,
+  Deepgloom shared key, Ssruu copy, guard over all ticked keys); Empyrean
+  and Nomad tests moved to the request flow; `test_cooperative.py` updated (Cabal = mutual pull,
+  `PullSpec`).
+- Fix: `cooperative.prune` kept boosts on HTTP `offer:` / `reaction-pause` steps but dropped them on
+  the bot engine's `bot:offer_*` / `bot:reaction_pause_release` (fuzz mismatch `boosts`) - aligned.
+- Pre-existing failures at HEAD (not touched): `test_undo_move::test_active_player_undoes_own_move`,
+  `test_player_undo::test_endpoint_undo_mine_cofa_aktywacje_tylko_autorowi`,
+  `test_technologies_actions::test_kazda_karta_frontier_da_sie_rozstrzygnac_w_oknie_eksploracji`.
+- ⚠️ ASSUMPTIONS: RULES.md 54.15 e (which effects are mutual / owner_picks; Watcher for third
+  players; the Creuss picks the token's system).

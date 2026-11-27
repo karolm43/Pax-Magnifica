@@ -622,6 +622,18 @@ def _secondary_owner(state: GameState) -> str | None:
     return state.active_player_id
 
 
+def _mindsieve_helps(state: GameState, owner: str) -> list[str]:
+    card_owner = _secondary_owner(state)
+    return [card_owner] if card_owner is not None and card_owner != owner else []
+
+
+# Cooperative (RULES.md 54.15): the strategy card's owner (who receives the note) may ask / pay
+# for it; the Naalu is still prompted (mutual) and picks the note from its PRIVATE hand.
+cooperative.register_pull_component(
+    "breakthrough", BREAKTHROUGH, _mindsieve_helps, mutual=True, owner_picks=True
+)
+
+
 @faction_components.window_use("breakthrough", BREAKTHROUGH)
 def _mindsieve_window(state: GameState, _registry_: StaticDataRegistry, player_id: str
                       ) -> str | None:

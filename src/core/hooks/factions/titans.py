@@ -703,6 +703,22 @@ def consent_targets(state: GameState, player_id: str) -> list[tuple[str, str]]:
     return sorted(found)
 
 
+def _slumber_helps(state: GameState, owner: str) -> list[str]:
+    return sorted({controller for _planet, controller in consent_targets(state, owner)})
+
+
+def _planet_holder(state: GameState, owner: str, value: str) -> str | None:
+    return dict(consent_targets(state, owner)).get(value)
+
+
+# Cooperative (RULES.md 54.15): a planet's controller may invite / pay the Titans to place a
+# sleeper token there; the Titans keep asking on their own (mutual) and pick the token.
+cooperative.register_pull_component(
+    "breakthrough", BREAKTHROUGH, _slumber_helps, mutual=True, target="planet",
+    target_of=_planet_holder, owner_picks=True,
+)
+
+
 @faction_components.window_use("breakthrough", BREAKTHROUGH, standing=True)
 def _slumber_window(
     state: GameState, _registry: StaticDataRegistry, player_id: str

@@ -24,14 +24,31 @@ state in ONE step (:func:`accept`). Declined, withdrawn or expired = nothing is 
 
 "Watch / Hold" (:func:`set_watch`): until the end of this combat / turn the owner is offered their
 pull effects unprompted, exactly as before this split.
+
+Registration options (:class:`PullSpec`, RULES.md 54.15 e):
+
+* ``mutual`` - the effect also serves the owner (Suffi An's draw, Carth's own commodities, an
+  ``ACTION:`` the owner plays on their own units): the owner keeps the normal offer / prompt AND
+  the beneficiaries may request it. ``ACTION:`` components are requestable only during the
+  owner's turn and use the owner's action (RULES.md 31.8) when the deal is accepted;
+* ``target`` / ``target_of`` - the input whose option names the player the effect is used on: a
+  deal shows only the requester's options and is accepted only for the requester;
+* ``owner_picks`` - the owner chooses the details even under a standing offer (their hand, their
+  planets, their capture choice): the accepted request goes to the owner, not the requester.
+
+CONVENTION (every faction module, user decision 2026-11-27): a component that helps, targets or
+can be sold to another player ("that player may", "another player", "any player", ACTION used on
+someone else) is checked against ``docs/faction_components_checklist.md`` and registered here with
+:func:`register_pull` / :func:`register_pull_component` in the same block that implements it.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from src.core import reaction_prefs, rules_hooks
+from src.core import offer_inputs, reaction_prefs, rules_hooks
 from src.core.game_state import (
     BoostOffer,
     BoostSetting,
@@ -65,11 +82,46 @@ _KEEP_LABELS = (
     "boost:", "offer:", "reaction-settings", "reaction-pause", "reaction-wait", "transaction",
     "chat", "presence", "player-undo",
 )
+# The bot engine labels a step ``bot:<action kind>`` (``engine.actions.step_label``): the same
+# moves as the HTTP labels above keep boosts too (engine and server must settle identically).
+_KEEP_BOT_KINDS = ("bot:offer_accept", "bot:offer_decline", "bot:reaction_pause_release")
 
 BeneficiaryFn = Callable[[GameState, str, Mapping[str, Any]], list[str]]
 ComponentBeneficiaryFn = Callable[[GameState, str], list[str]]
-_PULL_HOOKS: dict[str, BeneficiaryFn] = {}
-_PULL_COMPONENTS: dict[str, ComponentBeneficiaryFn] = {}
+# ``(state, owner, option value) -> player the option uses the effect on`` (None = nobody).
+TargetFn = Callable[[GameState, str, str], "str | None"]
+
+
+def option_is_player(_state: GameState, _owner: str, value: str) -> str | None:
+    """Default ``target_of``: the option's value is the player id."""
+    return value or None
+
+
+@dataclass(frozen=True)
+class PullSpec:
+    """How a cooperative effect is offered (module docstring, RULES.md 54.15 e)."""
+
+    beneficiaries: Callable[..., list[str]]
+    mutual: bool = False
+    target: str | None = None
+    target_of: TargetFn = option_is_player
+    owner_picks: bool = False
+
+
+_PULL_HOOKS: dict[str, PullSpec] = {}
+_PULL_COMPONENTS: dict[str, PullSpec] = {}
+
+
+def spec_for(covers: str, *, component: bool | None = None) -> PullSpec | None:
+    """The registration of a cooperative effect (``None`` = not cooperative).
+
+    ``component``: ``True`` = the window-use / ``ACTION:`` registration, ``False`` = the event
+    hook one, ``None`` = either. One key may have both (Deepgloom Executable: the Scheming
+    allowance is a hook, lending Stall Tactics a window use).
+    """
+    if component is None:
+        return _PULL_HOOKS.get(covers) or _PULL_COMPONENTS.get(covers)
+    return (_PULL_COMPONENTS if component else _PULL_HOOKS).get(covers)
 
 
 # --- Registration (faction modules) ------------------------------------------------------------
@@ -87,18 +139,42 @@ def combatants(state: GameState, _owner: str, _ctx: Mapping[str, Any]) -> list[s
     return [] if combat is None else [combat.attacker, combat.defender]
 
 
-def register_pull(covers: str, beneficiaries: BeneficiaryFn = that_player) -> None:
+def register_pull(
+    covers: str,
+    beneficiaries: BeneficiaryFn = that_player,
+    *,
+    mutual: bool = False,
+    target: str | None = None,
+    target_of: TargetFn = option_is_player,
+    owner_picks: bool = False,
+) -> None:
     """Marks the optional event hooks covering ``covers`` as cooperative (RULES.md 54.15)."""
-    _PULL_HOOKS[covers] = beneficiaries
+    _PULL_HOOKS[covers] = PullSpec(beneficiaries, mutual, target, target_of, owner_picks)
 
 
 def register_pull_component(
-    kind: str, component: str, beneficiaries: ComponentBeneficiaryFn
+    kind: str,
+    component: str,
+    beneficiaries: ComponentBeneficiaryFn,
+    *,
+    mutual: bool = False,
+    target: str | None = None,
+    target_of: TargetFn = option_is_player,
+    owner_picks: bool = False,
 ) -> None:
-    """Marks a window-use component (``faction_components.window_use``) as cooperative."""
+    """Marks a window-use or ``ACTION:`` component as cooperative (RULES.md 54.15)."""
     from src.core import faction_components  # local: imports the window modules
 
-    _PULL_COMPONENTS[faction_components.effect_key(kind, component)] = beneficiaries
+    _PULL_COMPONENTS[faction_components.effect_key(kind, component)] = PullSpec(
+        beneficiaries, mutual, target, target_of, owner_picks
+    )
+
+
+def _component_targets(state: GameState, owner: str, key: str) -> list[str]:
+    spec = _PULL_COMPONENTS.get(key)
+    if spec is None:
+        return []
+    return [p for p in dict.fromkeys(spec.beneficiaries(state, owner)) if p in state.players]
 
 
 def is_pull(covers: str | None) -> bool:
@@ -194,10 +270,10 @@ def prune_watch(state: GameState) -> None:
 def _beneficiaries_of(
     state: GameState, owner: str, covers: str, ctx: Mapping[str, Any]
 ) -> list[str]:
-    fn = _PULL_HOOKS.get(covers)
-    if fn is None:
+    spec = _PULL_HOOKS.get(covers)
+    if spec is None:
         return []
-    return [p for p in dict.fromkeys(fn(state, owner, ctx)) if p in state.players]
+    return [p for p in dict.fromkeys(spec.beneficiaries(state, owner, ctx)) if p in state.players]
 
 
 def intercept(
@@ -211,13 +287,19 @@ def intercept(
     """A pull hook fired on another player's event: record a boost instead of an offer (MUTATES).
 
     Returns ``True`` when the caller must NOT create an offer. The owner's own use (they are a
-    beneficiary) and "Watch" keep the normal offer.
+    beneficiary) and "Watch" keep the normal offer. A ``mutual`` effect records the boost AND
+    keeps the owner's offer (returns ``False``).
     """
     covers = hook.covers or ""
-    if covers not in _PULL_HOOKS:
+    spec = _PULL_HOOKS.get(covers)
+    if spec is None:
         return False
     targets = _beneficiaries_of(state, owner, covers, ctx)
-    if not targets or owner in targets or watching(state, owner):
+    if spec.mutual:
+        targets = [p for p in targets if p != owner]
+        if not targets:
+            return False
+    elif not targets or owner in targets or watching(state, owner):
         return False
     if setting(state, owner, covers).mode != SELF:
         from src.core import active_effects  # local: import cycle via triggers
@@ -233,22 +315,23 @@ def intercept(
             ctx=ctx,
             label=hook.label,
         )]
-    return True
+    return not spec.mutual
 
 
 def component_for_others(state: GameState, owner: str, key: str) -> bool:
     """A pull window-use component that right now helps only others and the owner is not watching:
-    the engine does not prompt the owner nor keep reaction windows open for it (54.15)."""
-    fn = _PULL_COMPONENTS.get(key)
-    if fn is None:
+    the engine does not prompt the owner nor keep reaction windows open for it (54.15). A
+    ``mutual`` component is always offered to its owner too."""
+    spec = _PULL_COMPONENTS.get(key)
+    if spec is None or spec.mutual:
         return False
-    targets = fn(state, owner)
+    targets = _component_targets(state, owner, key)
     return bool(targets) and owner not in targets and not watching(state, owner)
 
 
 def prune(before: GameState | None, after: GameState, label: str) -> None:
     """Boosts recorded before a step that moved the game on are gone (MUTATES ``after``)."""
-    if before is None or label.startswith(_KEEP_LABELS):
+    if before is None or label.startswith(_KEEP_LABELS) or label in _KEEP_BOT_KINDS:
         return
     old = {b.id for b in before.boosts}
     if old:
@@ -275,17 +358,135 @@ def _hook_live(state: GameState, boost: BoostOffer) -> bool:
     return hook.condition is None or bool(hook.condition(state, boost.owner, boost.ctx))
 
 
+def _owner_components(
+    state: GameState, registry: StaticDataRegistry, owner: str
+) -> list[tuple[str, str]]:
+    """The owner's faction components plus their cooperative ``ACTION:`` technologies (a
+    technology is a faction component only with a window use - Wormhole Generator is not)."""
+    from src.core import faction_components
+
+    rows = faction_components.owned(state, registry, owner)
+    player = state.players.get(owner)
+    rows += [
+        (faction_components.TECHNOLOGY, tech) for tech in (player.technologies if player else [])
+        if faction_components.effect_key(faction_components.TECHNOLOGY, tech) in _PULL_COMPONENTS
+        and (faction_components.TECHNOLOGY, tech) not in rows
+    ]
+    return rows
+
+
+def _action_tech(state: GameState, registry: StaticDataRegistry, owner: str, kind: str,
+                 component: str) -> bool:
+    """A cooperative ``ACTION:`` technology played through the component action itself."""
+    from src.core import faction_components
+
+    return kind == faction_components.TECHNOLOGY and (kind, component) not in (
+        faction_components.owned(state, registry, owner)
+    )
+
+
+def _tech_live(state: GameState, registry: StaticDataRegistry, owner: str, tech: str) -> bool:
+    from src.core import component_action
+
+    player = state.players.get(owner)
+    if player is None or tech not in player.technologies or tech in player.exhausted_technologies:
+        return False
+    try:
+        component_action.play_component_action(
+            state, owner, tech, fire_after=False, run_effect=False
+        )
+    except ValueError:
+        return False
+    inputs_fn = rules_hooks.inputs_for(f"technologies:{tech}")
+    return offer_inputs.has_legal_answer(
+        inputs_fn(state, registry, owner) if inputs_fn is not None else []
+    )
+
+
 def _component_live(
     state: GameState, registry: StaticDataRegistry, owner: str, key: str
 ) -> bool:
     from src.core import faction_components
 
     kind, component = _component_key(key)
+    if _action_tech(state, registry, owner, kind, component):
+        return _tech_live(state, registry, owner, component)
+    # ``ACTION:`` components: only while the owner could play them now (their turn, RULES.md 31.8).
     return any(
-        row["mode"] == "window" and row["playable"]
+        row["mode"] in ("window", "action") and row["playable"]
         and row["kind"] == kind and row["component_id"] == component
         for row in faction_components.playability(state, registry, owner)
     )
+
+
+def _deal_terms(offer: PendingOffer) -> tuple[PullSpec | None, str, str]:
+    deal = _deal(offer) or {}
+    source = str(deal.get("source") or "")
+    return spec_for(source, component=offer.hook_seq == COMPONENT_HOOK), str(
+        deal.get("owner")
+    ), str(deal.get("requester"))
+
+
+def _for_requester(
+    state: GameState, spec: PullSpec, owner: str, requester: str, inputs: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """The ``target`` choice keeps only the options using the effect on the requester."""
+    if spec.target is None:
+        return inputs
+    shaped: list[dict[str, Any]] = []
+    for item in inputs:
+        if item.get("key") != spec.target or item.get("kind") != "choice":
+            shaped.append(item)
+            continue
+        options = [
+            o for o in item.get("options", [])
+            if spec.target_of(state, owner, str(o.get("value"))) == requester
+        ]
+        new = {**item, "options": options}
+        values = [o["value"] for o in options]
+        if values and item.get("auto") not in values:
+            new["auto"] = values[0]
+        elif not values:
+            new.pop("auto", None)
+        shaped.append(new)
+    return shaped
+
+
+def deal_inputs(
+    state: GameState, offer: PendingOffer, inputs: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """The effect's form for a deal offer: options limited to the requester (``target``)."""
+    spec, owner, requester = _deal_terms(offer)
+    if spec is None:
+        return inputs
+    return _for_requester(state, spec, owner, requester, inputs)
+
+
+def _deal_params(
+    state: GameState,
+    spec: PullSpec | None,
+    owner: str,
+    requester: str,
+    inputs: list[dict[str, Any]],
+    params: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """The answer checked against the requester-limited form (a deal is only for the requester).
+
+    Raises:
+        ValueError: An option outside the deal / a ``target`` multi-choice without the requester.
+    """
+    raw = dict(params or {})
+    if spec is None or spec.target is None:
+        return raw
+    cleaned = {**raw, **offer_inputs.validate_params(
+        _for_requester(state, spec, owner, requester, inputs), raw
+    )}
+    item = next((i for i in inputs if i.get("key") == spec.target), None)
+    if item is not None and item.get("kind") == "multi":
+        chosen = [str(v) for v in cleaned.get(spec.target) or []]
+        if not any(spec.target_of(state, owner, v) == requester for v in chosen):
+            raise ValueError("This deal is for the requesting player: include them.")
+    return cleaned
 
 
 def _deal(offer: PendingOffer) -> dict[str, Any] | None:
@@ -360,10 +561,13 @@ def available(
     for owner in state.players:
         if owner == requester:
             continue
-        for kind, component in faction_components.owned(state, registry, owner):
+        for kind, component in _owner_components(state, registry, owner):
             key = faction_components.effect_key(kind, component)
-            fn = _PULL_COMPONENTS.get(key)
-            if fn is None or requester not in fn(state, owner) or owner in fn(state, owner):
+            spec = _PULL_COMPONENTS.get(key)
+            if spec is None:
+                continue
+            targets = _component_targets(state, owner, key)
+            if requester not in targets or (owner in targets and not spec.mutual):
                 continue
             if not _component_live(state, registry, owner, key):
                 continue
@@ -384,7 +588,7 @@ def owned(state: GameState, registry: StaticDataRegistry, player_id: str) -> lis
     keys = [f"leaders:{lid}" for lid in leaders.leaders_of(registry, player)]
     keys += [
         faction_components.effect_key(kind, component)
-        for kind, component in faction_components.owned(state, registry, player_id)
+        for kind, component in _owner_components(state, registry, player_id)
     ]
     rows: list[dict[str, Any]] = []
     for key in dict.fromkeys(keys):
@@ -445,7 +649,8 @@ def request(
     """``requester`` asks for a boost, offering a payment (new state).
 
     A standing offer the payment covers (or free for the requester) and a bot owner who accepts
-    give the offer to the REQUESTER (pick the details or cancel). Otherwise the owner gets the
+    give the offer to the REQUESTER (pick the details or cancel) - unless the effect is
+    ``owner_picks`` (then the accepted offer goes to the owner). Otherwise the owner gets the
     offer and decides. In both cases a REACTION window opens when nothing else is open.
 
     Raises:
@@ -459,16 +664,17 @@ def request(
     paid = trade_goods + commodities
     terms = setting(state, owner, row["source"])
     accepted = terms.mode == STANDING and (requester in terms.free_for or paid >= terms.price)
+    boost = next((b for b in state.boosts if b.id == boost_id), None)
     owner_player = state.players[owner]
     if not accepted and owner_player.control_type is ControlType.BOT:
         if paid < BOT_MIN_PAYMENT:
             raise ValueError(f"{row['name']}: the owner declines - offer a payment.")
         accepted = True
-    decider = requester if accepted else owner
+    spec = spec_for(str(row["source"]), component=boost is None)
+    decider = requester if accepted and not (spec is not None and spec.owner_picks) else owner
     new_state = state.clone()
     from src.core import active_effects
 
-    boost = next((b for b in new_state.boosts if b.id == boost_id), None)
     deal = {
         "boost": boost_id, "requester": requester, "owner": owner, "source": row["source"],
         "trade_goods": int(trade_goods), "commodities": int(commodities),
@@ -523,7 +729,7 @@ def accept(
     Raises:
         ValueError: Unknown offer / not the decider / effect or payment not possible.
     """
-    from src.core import faction_components, triggers
+    from src.core import triggers
 
     offer = next((o for o in state.pending_offers if o.id == offer_id), None)
     deal = _deal(offer) if offer is not None else None
@@ -533,25 +739,72 @@ def accept(
         raise ValueError(f"The deal {offer_id} is decided by {offer.player_id}.")
     owner, requester = str(deal["owner"]), str(deal["requester"])
     source = str(deal["source"])
+    spec = spec_for(source, component=offer.hook_seq == COMPONENT_HOOK)
+    tg, comm = int(deal["trade_goods"]), int(deal["commodities"])
     if offer.hook_seq == COMPONENT_HOOK:
-        if not _component_live(state, registry, owner, source):
-            raise ValueError("That effect can no longer be used.")
+        result = _accept_component(
+            state, registry, grid, actor_id, offer_id, spec, owner, requester, source, tg, comm,
+            params,
+        )
     else:
         base = {k: v for k, v in offer.ctx.items() if k not in (DEAL, "decider")}
         probe = BoostOffer(id="", owner=owner, covers=source, hook_seq=offer.hook_seq,
                            event=offer.event, moment=offer.moment, ctx=base)
         if not _hook_live(state, probe):
             raise ValueError("That effect can no longer be used.")
-    paid = _pay(state, grid, requester, owner, int(deal["trade_goods"]), int(deal["commodities"]))
-    if offer.hook_seq != COMPONENT_HOOK:
-        result = triggers.accept_offer(paid, actor_id, offer_id, params)
-    else:
-        work = paid.clone()
-        triggers.take_offer(work, actor_id, offer_id)
-        kind, component = _component_key(source)
-        result, _ = faction_components.play(work, registry, owner, kind, component, params)
-        triggers.advance_window(result, actor_id)
+        hook = rules_hooks.hook_by_seq(offer.hook_seq)
+        inputs = (
+            hook.inputs(state, registry, owner, offer.ctx)
+            if hook is not None and hook.inputs is not None else []
+        )
+        cleaned = _deal_params(state, spec, owner, requester, inputs, params)
+        paid = _pay(state, grid, requester, owner, tg, comm)
+        result = triggers.accept_offer(paid, actor_id, offer_id, cleaned, inputs_player=owner)
     result.boosts = [b for b in result.boosts if b.id != deal["boost"]]
+    return result
+
+
+def _accept_component(
+    state: GameState,
+    registry: StaticDataRegistry,
+    grid: HexGrid,
+    actor_id: str,
+    offer_id: str,
+    spec: PullSpec | None,
+    owner: str,
+    requester: str,
+    source: str,
+    trade_goods: int,
+    commodities: int,
+    params: Mapping[str, Any] | None,
+) -> GameState:
+    """A requested window-use / ``ACTION:`` component: payment + the owner's use, one step.
+
+    An ``ACTION:`` component is the owner's component action (RULES.md 31.8): the deal's REACTION
+    window closes first (a component action needs no open window) and the owner's action is used.
+    """
+    from src.core import component_action, faction_components, triggers
+
+    kind, component = _component_key(source)
+    tech = _action_tech(state, registry, owner, kind, component)
+    action = tech or faction_components.is_action(registry, kind, component)
+    work = state.clone()
+    triggers.take_offer(work, actor_id, offer_id)
+    if action:
+        triggers.advance_window(work, actor_id)
+    if not _component_live(work, registry, owner, source):
+        raise ValueError("That effect can no longer be used.")
+    inputs_fn = rules_hooks.inputs_for(source)
+    inputs = inputs_fn(work, registry, owner) if inputs_fn is not None else []
+    cleaned = _deal_params(work, spec, owner, requester, inputs, params)
+    paid = _pay(work, grid, requester, owner, trade_goods, commodities)
+    if tech:  # an ``ACTION:`` technology = the owner's component action (RULES.md 31.8)
+        result = component_action.play_component_action(paid, owner, component, params=cleaned)
+        reaction_prefs.note_change(result, owner, f"used {source}")
+    else:
+        result, _ = faction_components.play(paid, registry, owner, kind, component, cleaned)
+    if not action:
+        triggers.advance_window(result, actor_id)
     return result
 
 

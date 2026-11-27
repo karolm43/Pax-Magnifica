@@ -14,6 +14,7 @@ from typing import Any
 from src.core import (
     board_graph,
     command_tokens,
+    cooperative,
     entropic_scar,
     faction_components,
     faction_units,
@@ -305,6 +306,28 @@ def letani_ospha(
         ctx={"player": player_id, "ability": f"leaders:{AGENT}", "target": owner,
              "position": position, "base_type": base_type},
     )
+
+
+def _ospha_helps(state: GameState, owner: str) -> list[str]:
+    """Other players with a non-fighter ship on the board (they may ask for the replacement)."""
+    return sorted({
+        pid for system in state.systems.values()
+        for pid, units in system.space_units.items()
+        if pid != owner and pid in state.players and any(
+            n > 0 and is_space_unit(bt) and bt != "fighter" for bt, n in units.items()
+        )
+    })
+
+
+def _ship_owner(_state: GameState, _owner: str, value: str) -> str | None:
+    return value.split("|")[0] or None
+
+
+# Cooperative agent (RULES.md 54.15): another player may ask / pay for the replacement. ACTION:
+# requested only during the Arborec's turn and uses the Arborec's component action.
+cooperative.register_pull_component(
+    "leader", AGENT, _ospha_helps, mutual=True, target="ship", target_of=_ship_owner
+)
 
 
 def _agent_target(_state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> str:

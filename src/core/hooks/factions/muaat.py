@@ -21,6 +21,7 @@ from src.core import (
     board_graph,
     command_tokens,
     control,
+    cooperative,
     economy,
     exhaust,
     exploration,
@@ -401,6 +402,15 @@ def _umbat_systems(state: GameState, player_id: str) -> list[str]:
         pos for pos, system in state.systems.items()
         if any(system.space_units.get(player_id, {}).get(bt, 0) > 0 for bt in (_WARSUN, "flagship"))
     )
+
+
+def _umbat_helps(state: GameState, owner: str) -> list[str]:
+    return [pid for pid in sorted(state.players) if pid != owner and _umbat_systems(state, pid)]
+
+
+# Cooperative agent (RULES.md 54.15): a player with a war sun / flagship may ask / pay for the
+# production. ACTION: requested only during the Muaat's turn; uses the Muaat's component action.
+cooperative.register_pull_component("leader", AGENT, _umbat_helps, mutual=True, target="player")
 
 
 @register_effect_inputs(f"leaders:{AGENT}")

@@ -49,6 +49,7 @@ from src.core.registry import StaticDataRegistry
 from src.core.retreat import retreat_destinations
 from src.core.state_grid import grid_from_state
 from src.core.transaction import TransactionSide
+from tests import boosts
 from tests.factions.completeness import missing_components
 from tests.rulings import ruling
 
@@ -370,7 +371,9 @@ def test_mercer_przenosi_sily_naziemne(registry: StaticDataRegistry) -> None:
     state.systems[LODOR].space_units = {"p2": {"carrier": 1, "infantry": 1}}
     state.systems[TARMANN].planet_units = {"tarmann": {"p2": {"mech": 1}}}
     _end_turn(state, "p2", LODOR)
-    state = _accept(state, "p1", "Field Marshal Mercer")
+    # Cooperative (RULES.md 54.15): the player whose turn ends requests Mercer.
+    state = _accept(boosts.request(state, registry, "p2", "Field Marshal Mercer"), "p1",
+                    "Field Marshal Mercer")
     assert state.players["p1"].leader_states.get(nomad.MERCER) == "exhausted"
     decision = _offers(state, "p2", "Field Marshal Mercer")[0]
     inputs = _inputs(state, registry, decision)
@@ -396,7 +399,9 @@ def test_mercer_uszkodzony_mech_zostaje_uszkodzony(registry: StaticDataRegistry)
     state.systems[TARMANN].planet_units = {"tarmann": {"p2": {"mech": 1}}}
     set_damaged(state.systems[TARMANN], "tarmann", "p2", "mech", 1)
     _end_turn(state, "p2", LODOR)
-    state = _accept(state, "p1", "Field Marshal Mercer")
+    # Cooperative (RULES.md 54.15): the player whose turn ends requests Mercer.
+    state = _accept(boosts.request(state, registry, "p2", "Field Marshal Mercer"), "p1",
+                    "Field Marshal Mercer")
     decision = _offers(state, "p2", "Field Marshal Mercer")[0]
     state = triggers.accept_offer(state, "p2", decision.id,
                                   {"forces": [f"{TARMANN}|tarmann|mech|0"], "planet_1": "lodor"})
@@ -458,7 +463,9 @@ def test_thundarian_w_cudzej_walce(registry: StaticDataRegistry) -> None:
     state.systems[TARMANN].command_tokens = ["p2"]
     started, grid = _space_combat(registry, state, TARMANN)
     rolled = _rolled(registry, started, grid)
-    assert faction_components.available_now(rolled, registry, ["p1"])
+    # Cooperative (RULES.md 54.15): not prompted in others' combat - the combatants request it.
+    assert not faction_components.available_now(rolled, registry, ["p1"])
+    assert "The Thundarian" in boosts.names(rolled, registry, "p2")
     after, _ = faction_components.play(rolled, registry, "p1", "leader", nomad.THUNDARIAN)
     assert after.active_combat is not None and after.active_combat.step is CombatStep.ROLL
 

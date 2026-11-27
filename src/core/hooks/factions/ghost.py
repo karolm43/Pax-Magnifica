@@ -430,6 +430,18 @@ def dimensional_splicer(state: GameState, player_id: str, ctx: Mapping[str, Any]
 # ============================================================================= Wormhole Generator
 
 
+def _generator_helps(state: GameState, owner: str) -> list[str]:
+    return [pid for pid in state.players if pid != owner]
+
+
+# Cooperative (RULES.md 54.15 e): another player may ask / pay for a wormhole token. ACTION:
+# requested only during the Creuss' turn and uses the Creuss' component action; the Creuss picks
+# the token and the system (owner_picks).
+cooperative.register_pull_component(
+    "technology", GENERATOR, _generator_helps, mutual=True, owner_picks=True
+)
+
+
 @register_effect_inputs(f"technologies:{GENERATOR}")
 def generator_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
@@ -570,6 +582,11 @@ def icarus_inputs(
         oi.choice("token", "Creuss wormhole token", token_options(state, registry, player_id),
                   auto=_auto_token(state, registry, player_id)),
     ]
+
+
+# Cooperative (RULES.md 54.15 e): the activating player may ask / pay for the token in the mech's
+# system; the Creuss is still offered it (mutual) and picks the mech and the token.
+cooperative.register_pull(f"units:{MECH}", mutual=True, owner_picks=True)
 
 
 @on_event(

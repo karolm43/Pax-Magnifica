@@ -24,6 +24,7 @@ from src.core import (
     active_effects,
     battle,
     board_graph,
+    cooperative,
     economy,
     exhaust,
     faction_components,
@@ -299,6 +300,10 @@ def _mercer_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> b
     )
 
 
+# Cooperative agent (RULES.md 54.15): the player whose turn ends requests it.
+cooperative.register_pull(f"leaders:{MERCER}")
+
+
 @on_event(
     GameEvent.TURN, Moment.END, HookSource(SOURCE_LEADER, MERCER), optional=True,
     condition=_mercer_ready, covers=f"leaders:{MERCER}",
@@ -386,6 +391,16 @@ def mercer_place(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> N
 
 
 # ================================================================================ The Thundarian
+
+
+def _thundarian_helps(state: GameState, _owner: str) -> list[str]:
+    combat = state.active_combat
+    return [] if combat is None else [combat.attacker, combat.defender]
+
+
+# Cooperative agent (RULES.md 54.15): either combatant may ask / pay for the re-roll; the Nomad
+# fighting the combat is prompted as before.
+cooperative.register_pull_component("leader", THUNDARIAN, _thundarian_helps)
 
 
 @faction_components.window_use("leader", THUNDARIAN)
@@ -653,6 +668,24 @@ def paradox_inputs(
         oi.choice("ready", "Agent to ready", others, always=True,
                   auto=others[0]["value"] if others else None),
     ]
+
+
+def _paradox_helps(state: GameState, owner: str, _ctx: Mapping[str, Any]) -> list[str]:
+    """Other players with an exhausted agent (they may ask / pay to have it readied)."""
+    _own, exhausted = _paradox_pairs(state, _registry(), owner)
+    return [pid for pid, _lid in exhausted if pid != owner]
+
+
+def _agent_holder(_state: GameState, _owner: str, value: str) -> str | None:
+    return value.partition(_FEUD)[0] or None
+
+
+# Cooperative (RULES.md 54.15): the Nomad is still offered it (mutual) and picks the agent it
+# exhausts; the readied agent must be the requester's.
+cooperative.register_pull(
+    f"breakthroughs:{BREAKTHROUGH}", _paradox_helps, mutual=True, target="ready",
+    target_of=_agent_holder, owner_picks=True,
+)
 
 
 @on_event(
