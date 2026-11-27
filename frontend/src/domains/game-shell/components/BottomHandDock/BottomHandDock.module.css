@@ -29,7 +29,7 @@
   left: 0;
   right: 0;
   margin-inline: auto;
-  width: min(960px, max(520px, calc(100% - 2 * var(--dock-side))));
+  width: min(1120px, max(560px, calc(100% - 2 * var(--dock-side))));
   max-width: calc(100% - 24px);
   /* Wąski dok (zapytanie kontenerowe niżej) chowa podpisy segmentów — zostają ikony i liczniki. */
   container-type: inline-size;
@@ -47,14 +47,15 @@
 }
 
 /* Pasek nagłówka: kto, segmenty kategorii, przycisk zwijania. */
-/* Trzy kolumny: kto | segmenty (zawsze na środku doku) | narzędzia. Boczne kolumny
-   są równe (1fr), więc zmiana szerokości jednej strony nie przesuwa segmentów. */
+/* Three columns: who | category tabs | tools. The tools column never shrinks below its
+   content (contextual buttons such as Boosts must not slide under the Techs tab); the
+   "who" column gives up space first (name ellipsis). */
 .bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto minmax(max-content, 1fr);
   align-items: center;
   gap: 12px;
-  height: 44px;
+  min-height: 48px;
   padding: 0 8px 0 12px;
 }
 
@@ -145,7 +146,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 28px;
+  height: 32px;
   padding: 0 10px;
   color: var(--ds-ink-lo);
   background: rgba(255, 255, 255, 0.03);
@@ -214,8 +215,8 @@
   display: grid;
   place-items: center;
   flex: none;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--ds-radius-sm, 6px);
   color: var(--ds-ink-lo);
   cursor: pointer;
@@ -235,19 +236,18 @@
   transform: rotate(180deg);
 }
 
-/* Rozwinięta część doku: STAŁA wysokość niezależnie od zakładki i liczby kart. */
+/* Expanded part of the dock: a minimum height so tabs do not jump, but it GROWS with
+   extra content (relic fragments, forge row) instead of scrolling (user decision). */
 .body {
   border-top: 1px solid var(--ds-h10, rgba(255, 255, 255, 0.08));
   display: flex;
   flex-direction: column;
-  height: 176px;
-  overflow-y: auto;
-  scrollbar-width: thin;
+  min-height: 176px;
 }
 
-/* Pusta zakładka: sama linia komunikatu zamiast stałej wysokości tacy. */
+/* Empty tab: just the message line instead of the tray's minimum height. */
 .body[data-empty] {
-  height: auto;
+  min-height: 0;
 }
 
 .body[data-empty] .empty {
@@ -258,7 +258,7 @@
    (kafelek .card niżej) - plansza zyskuje ~40 px. */
 @media (max-height: 900px) {
   .body {
-    height: 140px;
+    min-height: 140px;
   }
 }
 
@@ -545,7 +545,7 @@
 }
 
 /* ── Wąski dok: podpisy segmentów tylko dla czytników ekranu, krótsza nazwa gracza ── */
-@container hand-dock (max-width: 760px) {
+@container hand-dock (max-width: 900px) {
   .tabLabel {
     position: absolute;
     width: 1px;
@@ -569,7 +569,7 @@
 }
 
 /* Bardzo wąski dok: narzędzia tylko ikonami (nazwa i opis zostają w dymku i dla czytników). */
-@container hand-dock (max-width: 620px) {
+@container hand-dock (max-width: 700px) {
   .tools :global([data-tone]) > span {
     position: absolute;
     width: 1px;

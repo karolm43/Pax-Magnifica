@@ -378,8 +378,8 @@ export function BottomHandDock() {
         </div>
       </div>
 
-      {/* Rozwinięta część ma STAŁĄ wysokość (CSS ``.body``) - nie skacze zależnie od zakładki
-          i liczby kart; nadmiar przewija się w środku. */}
+      {/* The expanded part has a MINIMUM height (CSS ``.body``) and grows with extra rows
+          (relic fragments / forge) instead of scrolling. */}
       {open && (
       <div
         className={styles.body}
