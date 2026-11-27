@@ -10,6 +10,7 @@ import {
   IconMinus,
   IconX,
 } from "@tabler/icons-react";
+import { DecisionFrame } from "@/shared/ui/DecisionFrame";
 import { fetchJson } from "@/api/fetchJson";
 import { useActivityFeed } from "@/api/useBoardEditor";
 import { useGameState } from "@/api/useGameState";
@@ -252,35 +253,25 @@ export function DecisionCenter() {
               />
             ))}
             {momentsReady && moments.map((row) => (
-              <section key={promptKey(row)} className={styles.card} aria-label={`Available now: ${row.name}`}>
-                <header className={styles.head}>
-                  <IconBolt size={16} aria-hidden="true" className={styles.icon} />
-                  <span className={styles.titleBox}>
-                    <small className={styles.kind}>
-                      Available now · {KIND_LABEL[row.kind]}
-                      {owner(row.player_id) && <> · {owner(row.player_id)}</>}
-                    </small>
-                    <b className={styles.title}>{row.name}</b>
-                  </span>
-                  <button
-                    type="button"
-                    className={styles.iconBtn}
-                    aria-label={`Not now: ${row.name}`}
-                    onClick={() => dismiss(row)}
-                  >
-                    <IconX size={14} aria-hidden="true" />
-                  </button>
-                </header>
-                <p className={styles.text}>{row.text}</p>
-                <div className={styles.actions}>
-                  <button type="button" className={styles.ghost} onClick={() => dismiss(row)}>
-                    Not now
-                  </button>
-                  <button type="button" className={styles.primary} onClick={() => setUsing(row)}>
-                    Use {row.name}
-                  </button>
-                </div>
-              </section>
+              <DecisionFrame
+                key={promptKey(row)}
+                ariaLabel={`Available now: ${row.name}`}
+                icon={<IconBolt size={16} aria-hidden="true" />}
+                kind={
+                  <>
+                    Available now · {KIND_LABEL[row.kind]}
+                    {owner(row.player_id) && <> · {owner(row.player_id)}</>}
+                  </>
+                }
+                title={row.name}
+                text={row.text}
+                onSkip={() => dismiss(row)}
+                skipLabel="Not now"
+                onUse={() => setUsing(row)}
+                useLabel={`Use ${row.name}`}
+                // Enter/Esc należą do bieżącej oferty (jedna decyzja naraz w kolumnie).
+                shortcuts={false}
+              />
             ))}
             <TimingWindowChips
               windows={openWindows}

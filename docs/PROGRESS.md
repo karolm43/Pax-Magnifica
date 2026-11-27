@@ -424,3 +424,21 @@ Older, completed blocks (Phase 1 → early flight-replay blocks of 2026-11-25) a
 ## Home tile swap keeps the stat area in place
 
 - Singularity Reactor on a home tile moved the 3 stat hexes; they now stay at `PlayerState.seat_position`.
+
+## Decision boxes: one frame, no clipping, two widths (frontend)
+
+- `DecisionCenter` cards ("Available now", "Window open now" / "Window closed", trading-table invite) now render
+  through `DecisionFrame` instead of the ad-hoc `.card`/`.actions`/`.ghost`/`.primary` styles (removed from
+  `AbilityPrompts.module.css`). `DecisionFrame` gained `icon`, `tone` (`window` pulse / `closed`), `subtitle`,
+  `hint`, `neverAskHint`, a ReactNode `kind`, `shortcuts` (only the current offer owns Enter/Esc; other cards pass
+  `false` so one Enter never fires several actions) and drops the footer when it has no buttons. The redundant
+  header × on those cards is gone (footer "Not now" does the same).
+- Footer `[Never ask] [Skip Esc] [Secondary] [Use Enter]` wraps (`flex-wrap`), buttons keep one height; a long
+  primary label wraps inside its button, the key hint stays on one line.
+- `SlotsMapField`: the `−` button shows only at ×2+ (with one piece it equalled `×`).
+- `DecisionFields.module.css`: no more line-clamp on option names, option sub-labels and rich descriptions.
+- Widths: `--decision-w` 460px / `--decision-w-wide` 560px (`styles/themeSharedTokens.css`) mirrored by
+  `DECISION_WIDTH` in `DecisionFrame.tsx`; used by `DecisionCenter`, `PromptDock`, `ComponentUseModal`,
+  `ActionCardPlayModal`, `SecondaryDecisionModal`, `StrategyPrimaryStepModal` (card-specific 1080 kept).
+- Tests: vitest `DecisionFrame` (+3: footer order/wrap, `shortcuts={false}`, no empty footer + tone),
+  new `SlotsMapField.test.tsx`.

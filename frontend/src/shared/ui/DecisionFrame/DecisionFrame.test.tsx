@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { DecisionFrame } from "./DecisionFrame";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+const frameCss = readFileSync(resolve(__dirname, "DecisionFrame.module.css"), "utf-8");
 
 describe("DecisionFrame", () => {
   it("Enter używa, Esc pomija; pole formularza przejmuje klawisze", () => {
@@ -40,5 +44,61 @@ describe("DecisionFrame", () => {
     expect(onSkip).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Skip" }));
     expect(onSkip).toHaveBeenCalledTimes(1);
+  });
+
+  it("stopka: Never ask, Skip, Secondary, Use w tej kolejności; zawija się zamiast wychodzić poza ramę", () => {
+    render(
+      <DecisionFrame
+        ariaLabel="Decision: X"
+        title="X"
+        onNeverAsk={() => {}}
+        onSkip={() => {}}
+        secondary={{ label: "Unlock", onClick: () => {} }}
+        onUse={() => {}}
+        useLabel="Play A Very Long Action Card Name Indeed"
+      />,
+    );
+    const names = screen.getAllByRole("button").map((b) => b.textContent?.trim());
+    expect(names).toEqual([
+      "Never ask",
+      "Skip Esc",
+      "Unlock",
+      "Play A Very Long Action Card Name Indeed Enter",
+    ]);
+    const actions = /\.actions\s*\{([^}]*)\}/.exec(frameCss)?.[1] ?? "";
+    expect(actions).toMatch(/flex-wrap:\s*wrap/);
+    expect(actions).toMatch(/justify-content:\s*flex-end/);
+  });
+
+  it("bez skrótów (karta obok bieżącej decyzji): Enter/Esc nic nie robią, brak podpowiedzi klawiszy", () => {
+    const onUse = vi.fn();
+    const onSkip = vi.fn();
+    render(
+      <DecisionFrame ariaLabel="Decision: X" title="X" shortcuts={false} onUse={onUse} onSkip={onSkip} skipLabel="Not now" />,
+    );
+    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onUse).not.toHaveBeenCalled();
+    expect(onSkip).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Not now" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Use" })).toBeTruthy();
+  });
+
+  it("bez akcji nie ma pustej stopki; ton, ikona i podtytuł trafiają do ramy", () => {
+    render(
+      <DecisionFrame
+        ariaLabel="Window closed: X"
+        title="X"
+        tone="closed"
+        icon={<i data-testid="icon" />}
+        subtitle="At the start of combat"
+        text="The game moved on."
+      />,
+    );
+    const frame = screen.getByRole("group", { name: "Window closed: X" });
+    expect(frame.getAttribute("data-tone")).toBe("closed");
+    expect(frame.querySelector("footer")).toBeNull();
+    expect(screen.getByTestId("icon")).toBeTruthy();
+    expect(screen.getByText("At the start of combat")).toBeTruthy();
   });
 });

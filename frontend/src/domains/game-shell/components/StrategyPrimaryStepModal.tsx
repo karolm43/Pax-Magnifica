@@ -13,6 +13,7 @@ import { PromptDock } from "@/domains/strategy/PromptDock";
 import type { CardShell } from "@/domains/strategy/cards/types";
 import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strategyPrompt";
 import { useCanActAs } from "@/domains/network/useNetworkMe";
+import { DECISION_WIDTH } from "@/shared/ui/DecisionFrame";
 
 /**
  * Okno kroku WIELOETAPOWEGO primary karty strategii (RULES.md 30.5).
@@ -105,7 +106,7 @@ export function StrategyPrimaryStepModal() {
       closeOnClickOutside={false}
       closeOnEscape={false}
       // Widok karty ma własny nagłówek (PromptShell: karta + plakietka Primary) - bez drugiego tytułu.
-      size={PRIMARY_MODAL_SIZE[pending.initiative] ?? 560}
+      size={PRIMARY_MODAL_SIZE[pending.initiative] ?? DECISION_WIDTH.wide}
     >
       {body}
     </AppModal>

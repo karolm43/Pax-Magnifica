@@ -1,4 +1,9 @@
 :root {
+  /* Player decision boxes: TWO widths only. Standard = DecisionCenter cards and decision
+     modals; wide = grid/table decisions (strategy prompt dock, composing secondaries).
+     Must match DECISION_WIDTH in shared/ui/DecisionFrame/DecisionFrame.tsx. */
+  --decision-w: 460px;
+  --decision-w-wide: 560px;
   /* Medal colours as triplets, so a rank's fill, edge and text can all be mixed
      from one value. The rgba() forms below are the same colours, kept for the
      places that only need the ink. */

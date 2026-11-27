@@ -81,8 +81,6 @@
 }
 
 .tiles[data-wide] .optText b {
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
   font-weight: 600;
 }
 
@@ -96,12 +94,9 @@
 }
 
 .descr {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  overflow: hidden;
+  display: block;
   margin-top: 2px;
+  overflow-wrap: anywhere;
   font-size: 10.5px;
   line-height: 1.3;
   color: var(--ds-ink);
@@ -244,25 +239,18 @@
   line-height: 1.2;
 }
 
-/* Nazwy opcji ZAWIJAJĄ się (do 2 linii) zamiast ucinać się - pełna nazwa jest czytelna. */
+/* Option names and descriptions WRAP in full - never clamped or cut off. */
 .optText b {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
+  display: block;
   font-size: 12px;
   font-weight: 700;
   overflow-wrap: anywhere;
 }
 
 .optText small {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
+  display: block;
   font-size: 10.5px;
+  overflow-wrap: anywhere;
   color: var(--ds-ink-lo);
 }
 

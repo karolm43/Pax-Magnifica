@@ -11,7 +11,7 @@
   display: grid;
   align-content: start;
   gap: 6px;
-  width: min(420px, calc(100vw - 32px));
+  width: min(var(--decision-w, 460px), calc(100vw - 32px));
   max-height: max(
     240px,
     calc(
@@ -110,34 +110,9 @@
   color: #1a1306;
 }
 
-.card {
-  display: grid;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--ds-edge-accent);
-  background: var(--ds-deck);
-  color: var(--ds-ink-hi);
-  box-shadow: 0 12px 34px rgb(0 0 0 / 0.55);
-  animation: promptIn 180ms ease-out;
-}
-
-.head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .icon {
   flex: none;
   color: var(--ds-accent, #60a5fa);
-}
-
-.titleBox {
-  display: grid;
-  flex: 1;
-  min-width: 0;
-  line-height: 1.15;
 }
 
 .kind {
@@ -154,37 +129,12 @@
   overflow-wrap: anywhere;
 }
 
-/* Card text as a quoted block: reads as "what the card says", apart from the buttons. */
-.text {
-  margin: 0;
-  padding: 6px 10px;
-  font-size: 12.5px;
-  line-height: 1.4;
-  color: var(--ds-ink);
-  border-left: 3px solid rgb(var(--ds-hair-rgb) / 0.35);
-  border-radius: 6px;
-  background: rgb(var(--ds-hair-rgb) / 0.04);
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--ds-h14);
-}
-
-.iconBtn,
-.ghost,
-.primary {
+/* Cards themselves are DecisionFrame (shared/ui/DecisionFrame); this file keeps only the
+   column, its bar, the pill and the quiet "Ready" / "Windows" chips. */
+.iconBtn {
   font: inherit;
   cursor: pointer;
   border-radius: 8px;
-}
-
-.iconBtn {
   display: grid;
   place-items: center;
   width: 26px;
@@ -192,96 +142,6 @@
   border: 0;
   color: var(--ds-ink);
   background: transparent;
-}
-
-.ghost {
-  padding: 5px 10px;
-  font-size: 12.5px;
-  border: 1px solid var(--ds-h14);
-  color: var(--ds-ink);
-  background: transparent;
-}
-
-.ghost:hover {
-  color: var(--ds-ink-hi);
-  border-color: var(--ds-h22);
-}
-
-/* "Never ask": a quiet text link on the left, apart from the real choices. */
-.quiet {
-  margin-right: auto;
-  padding: 5px 2px;
-  font: inherit;
-  font-size: 12px;
-  color: var(--ds-ink-lo);
-  border: 0;
-  background: transparent;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-}
-
-.quiet:hover {
-  color: var(--ds-ink-hi);
-}
-
-.primary {
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 700;
-  border: 0;
-  color: #0b1220;
-  background: var(--ds-accent, #60a5fa);
-}
-
-/* Okno reakcji karty z ręki (RULES.md 54.8): mija z następnym krokiem gry, więc karta woła
-   wyraźniej niż „Available now” - bursztynowa ramka pulsuje, dopóki okno jest otwarte. */
-.card[data-tone="window"] {
-  border-color: rgb(250, 204, 21);
-  animation:
-    promptIn 180ms ease-out,
-    windowPulse 1.6s ease-in-out 180ms infinite;
-}
-
-.card[data-tone="window"] .icon,
-.card[data-tone="window"] .kind {
-  color: rgb(250, 204, 21);
-}
-
-.card[data-tone="window"] .primary {
-  background: rgb(250, 204, 21);
-  color: #1a1405;
-}
-
-.when {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ds-ink-hi);
-}
-
-@keyframes windowPulse {
-  0%,
-  100% {
-    box-shadow: 0 12px 34px rgb(0 0 0 / 0.55), 0 0 0 0 rgba(250, 204, 21, 0.55);
-  }
-  50% {
-    box-shadow: 0 12px 34px rgb(0 0 0 / 0.55), 0 0 0 7px rgba(250, 204, 21, 0);
-  }
-}
-
-@keyframes promptIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card,
-  .card[data-tone="window"] {
-    animation: none;
-  }
 }
 
 /* Stałe okno (cała faza, np. Carth of Golden Sands): jedna cicha linia „Ready”, bez animacji
@@ -298,6 +158,13 @@
   color: var(--ds-ink-hi);
   box-shadow: 0 6px 16px rgb(0 0 0 / 0.35);
   min-width: 0;
+}
+
+.text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ds-ink);
 }
 
 /* Rozwinięty tekst ma własne przewijanie - długa karta nie wypycha reszty centrum. */
@@ -379,9 +246,8 @@
   color: rgb(250, 204, 21);
 }
 
-/* Okno, które właśnie minęło: przygaszone, przekreślona etykieta - gra z niego wyszła. */
-.chip[data-tone="closed"],
-.card[data-tone="closed"] {
+/* Okno, które właśnie minęło: przygaszone - gra z niego wyszła. */
+.chip[data-tone="closed"] {
   opacity: 0.75;
   border-style: dashed;
 }
@@ -419,8 +285,6 @@
   color: var(--ds-ink-lo, #94a3b8);
 }
 
-.card[data-tone="closed"] .icon,
-.card[data-tone="closed"] .kind,
 .chip[data-tone="closed"] .icon,
 .chip[data-tone="closed"] .kind {
   color: var(--ds-ink-lo, #94a3b8);

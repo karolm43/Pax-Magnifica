@@ -504,7 +504,7 @@
   top: 70px;
   transform: translateX(-50%);
   z-index: var(--z-app-modal, 3500);
-  width: min(560px, calc(100vw - 32px));
+  width: min(var(--decision-w-wide, 560px), calc(100vw - 32px));
   max-height: calc(100vh - 120px);
   overflow: auto;
   padding: 12px;

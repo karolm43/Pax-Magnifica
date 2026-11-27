@@ -20,7 +20,7 @@ function baseLabel(label: string): string {
  * JEDNAKOWE SLOTY jako jedno pole (``slotGroups``): silnik pyta N razy o to samo („Infantry
  * 1/2/3 commits to”, każde z „No infantry”), a gracz planszówki myśli „kładę do 3 piechot”.
  * Każdy klik w świecący cel na mapie dokłada 1 sztukę (ten sam cel kilka razy = ×2, ×3), chip
- * celu ma − (zdejmij jedną) i × (zdejmij wszystkie). Opcja bez celu („No infantry”) nie jest
+ * celu ma − (zdejmij jedną, tylko przy ×2+) i × (zdejmij wszystkie). Opcja bez celu („No infantry”) nie jest
  * kafelkiem - wolne sloty dostają ją same. Wartości pól to nadal id opcji, silnik waliduje.
  */
 export function SlotsMapField({
@@ -146,15 +146,18 @@ export function SlotsMapField({
                   {place.name}
                   {n > 1 && <i className={styles.placeCount}>×{n}</i>}
                 </button>
-                <button
-                  type="button"
-                  className={styles.placeMinus}
-                  aria-label={`One less on ${place.name}`}
-                  disabled={disabled}
-                  onClick={() => removeOne(ids)}
-                >
-                  −
-                </button>
+                {/* With a single piece here, − and × would do the same thing: only × then. */}
+                {n > 1 && (
+                  <button
+                    type="button"
+                    className={styles.placeMinus}
+                    aria-label={`One less on ${place.name}`}
+                    disabled={disabled}
+                    onClick={() => removeOne(ids)}
+                  >
+                    −
+                  </button>
+                )}
                 <button
                   type="button"
                   className={styles.placeRemove}

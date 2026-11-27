@@ -74,6 +74,20 @@
   justify-items: start;
 }
 
+.icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--ds-accent, #60a5fa);
+}
+
+/* Wyróżniona linia pod nagłówkiem (fraza okna reakcji). */
+.subtitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ds-ink-hi);
+}
+
 /* Tekst komponentu normalnym kolorem (nie wyszarzony). */
 .text {
   margin: 0;
@@ -122,14 +136,18 @@
   color: #fca5a5;
 }
 
-/* Stopka przyklejona do dołu przewijanej kolumny: Skip / Use są ZAWSZE widoczne. */
+/* Stopka przyklejona do dołu przewijanej kolumny: Skip / Use są ZAWSZE widoczne.
+   [Never ask] [Skip Esc] [Secondary] [Use Enter] wrap onto a second row in a narrow box
+   instead of overflowing it; "Never ask" stays on the left of its row. */
 .actions {
   position: sticky;
   bottom: 0;
   z-index: 1;
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 6px 8px;
   margin: 0 -14px -12px;
   padding: 8px 14px 12px;
   border-radius: 0 0 14px 14px;
@@ -140,8 +158,14 @@
 .use {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  min-height: 32px;
+  max-width: 100%;
   padding: 6px 14px;
+  font-family: inherit;
+  line-height: 1.2;
+  white-space: nowrap;
   font-size: 13px;
   font-weight: 700;
   border-radius: 8px;
@@ -165,7 +189,13 @@
   filter: brightness(1.12);
 }
 
+/* A long primary label ("Play <long card name>") wraps cleanly inside the button
+   rather than pushing it past the box edge; the Enter hint stays on one line. */
 .use {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
   color: #fff;
   border-color: var(--ds-edge-accent);
   background: var(--ds-accent, #2563eb);
@@ -174,6 +204,7 @@
 /* „Never ask” (RULES.md 54.12): cichy przycisk tekstowy obok „Skip”. */
 .never {
   margin-right: auto;
+  white-space: nowrap;
   padding: 6px 4px;
   border: 0;
   background: transparent;
@@ -202,8 +233,14 @@
   cursor: not-allowed;
 }
 
+.useLabel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .skip kbd,
 .use kbd {
+  flex: none;
   padding: 0 4px;
   font-family: inherit;
   font-size: 10px;
@@ -211,6 +248,37 @@
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.14);
   opacity: 0.8;
+}
+
+/* Okno reakcji karty z ręki (RULES.md 54.8): mija z następnym krokiem gry, więc rama woła
+   wyraźniej - bursztynowa ramka pulsuje, dopóki okno jest otwarte. */
+.frame[data-tone="window"] {
+  border-color: rgb(250, 204, 21);
+  animation:
+    frameIn 180ms ease-out,
+    windowPulse 1.6s ease-in-out 180ms infinite;
+}
+
+.frame[data-tone="window"] .icon,
+.frame[data-tone="window"] .kind {
+  color: rgb(250, 204, 21);
+}
+
+.frame[data-tone="window"] .use {
+  color: #1a1405;
+  border-color: rgb(250, 204, 21);
+  background: rgb(250, 204, 21);
+}
+
+/* Okno, które właśnie minęło: przygaszone - gra z niego wyszła. */
+.frame[data-tone="closed"] {
+  opacity: 0.75;
+  border-style: dashed;
+}
+
+.frame[data-tone="closed"] .icon,
+.frame[data-tone="closed"] .kind {
+  color: var(--ds-ink-lo, #94a3b8);
 }
 
 /* Rama w oknie (AppModal): okno ma własne obramowanie i przewijanie. */
@@ -237,8 +305,19 @@
   }
 }
 
+@keyframes windowPulse {
+  0%,
+  100% {
+    box-shadow: 0 12px 34px rgb(0 0 0 / 0.55), 0 0 0 0 rgba(250, 204, 21, 0.55);
+  }
+  50% {
+    box-shadow: 0 12px 34px rgb(0 0 0 / 0.55), 0 0 0 7px rgba(250, 204, 21, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .frame {
+  .frame,
+  .frame[data-tone="window"] {
     animation: none;
   }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { IconHourglassHigh, IconHourglassOff, IconX } from "@tabler/icons-react";
+import { IconHourglassHigh, IconHourglassOff } from "@tabler/icons-react";
 import { usePlayerHand } from "@/domains/game-shell/components/SecretHand/usePlayerHand";
 import { postReactionPrefs, useActionCardPlayability } from "@/api/useActionCard";
 import { useGameData } from "@/state/useGameContext";
@@ -10,7 +10,7 @@ import { useFactionColors } from "@/hooks/useFactionColors";
 import { readyReactions, type ReadyReaction } from "@/domains/game-shell/components/BottomHandDock/reactionReady";
 import { timingPhrase } from "./handReactions";
 import { useRecentlyGone } from "./TimingWindowChips";
-import styles from "./AbilityPrompts.module.css";
+import { DecisionFrame } from "@/shared/ui/DecisionFrame";
 
 /*
  * „Window open now” (RULES.md 54.8): karta akcji albo notka z ręki gracza, którą wolno zagrać
@@ -94,91 +94,55 @@ export function HandReactionRows({
           const text =
             when && r.text.startsWith(`${when}:`) ? r.text.slice(when.length + 1).trim() : r.text;
           const kind = r.tab === "notes" ? "Promissory note" : "Action card";
+          const notNow = () => setDismissed((cur) => new Set(cur).add(r.key));
           return (
-            <section
+            <DecisionFrame
               key={r.key}
-              className={styles.card}
-              data-tone="window"
-              title="This window closes when the game moves on - play the card before the next step"
-              aria-label={`Window open now: ${name}`}
-            >
-              <header className={styles.head}>
-                <IconHourglassHigh size={16} aria-hidden="true" className={styles.icon} />
-                <span className={styles.titleBox}>
-                  <small className={styles.kind}>
-                    Window open now · {kind}
-                    {owner && <> · {owner}</>}
-                  </small>
-                  <b className={styles.title}>
-                    {name}
-                    {r.copies > 1 ? ` ×${r.copies}` : ""}
-                  </b>
-                </span>
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  aria-label={`Not now: ${name}`}
-                  onClick={() => setDismissed((cur) => new Set(cur).add(r.key))}
-                >
-                  <IconX size={14} aria-hidden="true" />
-                </button>
-              </header>
-              {when && <p className={styles.when}>{when}</p>}
-              <p className={styles.text}>{text}</p>
-              <div className={styles.actions}>
-                <button
-                  type="button"
-                  className={styles.quiet}
-                  title="Stop asking about this card. Undo in Reactions on the action panel."
-                  onClick={() => {
-                    setDismissed((cur) => new Set(cur).add(r.key));
-                    void postReactionPrefs(playerId, { mute_cards: { [name]: true } }).catch(
-                      () => undefined,
-                    );
-                  }}
-                >
-                  Never ask
-                </button>
-                <button
-                  type="button"
-                  className={styles.ghost}
-                  onClick={() => setDismissed((cur) => new Set(cur).add(r.key))}
-                >
-                  Not now
-                </button>
-                <button
-                  type="button"
-                  className={styles.primary}
-                  onClick={() => onPlay({ playerId, tab: r.tab, id: r.id, name })}
-                >
-                  Play {name}
-                </button>
-              </div>
-            </section>
+              ariaLabel={`Window open now: ${name}`}
+              hint="This window closes when the game moves on - play the card before the next step"
+              tone="window"
+              icon={<IconHourglassHigh size={16} aria-hidden="true" />}
+              kind={
+                <>
+                  Window open now · {kind}
+                  {owner && <> · {owner}</>}
+                </>
+              }
+              title={`${name}${r.copies > 1 ? ` ×${r.copies}` : ""}`}
+              subtitle={when}
+              text={text}
+              onNeverAsk={() => {
+                notNow();
+                void postReactionPrefs(playerId, { mute_cards: { [name]: true } }).catch(
+                  () => undefined,
+                );
+              }}
+              neverAskHint="Stop asking about this card. Undo in Reactions on the action panel."
+              onSkip={notNow}
+              skipLabel="Not now"
+              onUse={() => onPlay({ playerId, tab: r.tab, id: r.id, name })}
+              useLabel={`Play ${name}`}
+              // Enter/Esc należą do bieżącej oferty (jedna decyzja naraz w kolumnie).
+              shortcuts={false}
+            />
           );
         })}
       {missed.map((r) => (
-        <section
+        <DecisionFrame
           key={`closed:${r.key}`}
-          className={styles.card}
-          data-tone="closed"
-          aria-label={`Window closed: ${r.name}`}
-        >
-          <header className={styles.head}>
-            <IconHourglassOff size={16} aria-hidden="true" className={styles.icon} />
-            <span className={styles.titleBox}>
-              <small className={styles.kind}>
-                Window closed · {r.tab === "notes" ? "Promissory note" : "Action card"}
-                {owner && <> · {owner}</>}
-              </small>
-              <b className={styles.title}>{r.name}</b>
-            </span>
-          </header>
-          <p className={styles.text}>
-            The game moved on{r.when ? ` past “${r.when}”` : ""} - this card can no longer be
-            played in that window.
-          </p>
-        </section>
+          ariaLabel={`Window closed: ${r.name}`}
+          tone="closed"
+          icon={<IconHourglassOff size={16} aria-hidden="true" />}
+          kind={
+            <>
+              Window closed · {r.tab === "notes" ? "Promissory note" : "Action card"}
+              {owner && <> · {owner}</>}
+            </>
+          }
+          title={r.name}
+          text={`The game moved on${r.when ? ` past “${r.when}”` : ""} - this card can no longer be played in that window.`}
+          shortcuts={false}
+        />
       ))}
     </>
   );

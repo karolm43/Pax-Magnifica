@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Text } from "@/ds";
 import { AppModal } from "@/shared/ui/AppModal";
-import { DecisionFrame } from "@/shared/ui/DecisionFrame";
+import { DECISION_WIDTH, DecisionFrame } from "@/shared/ui/DecisionFrame";
 import type { ComponentRef } from "@/domains/cards/components/ComponentInfo";
 import { DecisionFields } from "@/domains/offers/DecisionFields";
 import {
@@ -72,7 +72,7 @@ export function ComponentUseModal({
   cancelLabel = "Cancel",
   onClose,
   secondary,
-  size = 480,
+  size = DECISION_WIDTH.standard,
 }: Props) {
   const [values, setValues] = useState<Record<string, FormValue>>({});
   const [busy, setBusy] = useState(false);

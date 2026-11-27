@@ -66,6 +66,7 @@ import type { CardShell } from "@/domains/strategy/cards/types";
 import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strategyPrompt";
 import { useCanActAs } from "@/domains/network/useNetworkMe";
 import { PHASE_WINDOW } from "@/hooks/useDecisionZone";
+import { DECISION_WIDTH } from "@/shared/ui/DecisionFrame";
 
 /**
  * Popup decyzji SECONDARY karty strategii (RULES.md 29.2, 31.6).
@@ -277,7 +278,7 @@ export function SecondaryDecisionModal() {
       opened={drawn != null}
       onClose={() => setDrawn(null)}
       title="Action cards drawn"
-      size={460}
+      size={DECISION_WIDTH.standard}
     >
       <Stack gap="md">
         <Text size="sm">
@@ -301,7 +302,7 @@ export function SecondaryDecisionModal() {
       closeOnEscape={false}
       // Krok z widokiem karty ma własny nagłówek (PromptShell: karta + plakietka Secondary).
       title={inputView ? undefined : "Strategy Card — secondary ability"}
-      size={composing ? 560 : 460}
+      size={composing ? DECISION_WIDTH.wide : DECISION_WIDTH.standard}
     >
       {inputView ? (
         inputView

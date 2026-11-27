@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { IconArrowsExchange, IconCheck } from "@tabler/icons-react";
+import { IconArrowsExchange } from "@tabler/icons-react";
 import { DEFAULT_GAME_ID } from "@/config";
 import { useBoardEditor, useTransactionState } from "@/api/useBoardEditor";
 import { usePlayerData } from "@/api/usePlayerData";
@@ -12,6 +12,7 @@ import { TransactionModal } from "@/domains/game-shell/components/TurnControls/T
 import type { GameState } from "@/entities/data/types";
 import styles from "./AbilityPrompts.module.css";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
+import { DecisionFrame } from "@/shared/ui/DecisionFrame";
 
 /*
  * Zaproszenie do stołu transakcji (RULES.md 47.1b): wyskakuje SAMO u gracza, z którym ktoś usiadł
@@ -91,26 +92,36 @@ function OwnerInvites({
       {tables.map((t) => {
         const from = nameOf(t.partner);
         return (
-          <section key={t.partner} className={styles.card} aria-label={`Trading table with ${from}`}>
-            <header className={styles.head}>
-              <IconArrowsExchange size={16} aria-hidden="true" className={styles.icon} />
-              <span className={styles.titleBox}>
-                <small className={styles.kind}>
-                  {t.prefilled ? "Trade deal · wash" : "Trading table"}
-                  {several && (
-                    <>
-                      {" · for "}
-                      <PlayerTag playerId={owner} size={13} fallback={nameOf(owner)} />
-                    </>
-                  )}
-                </small>
-                <b className={styles.title}>
-                  {t.prefilled ? "Confirm your Trade deal with " : null}
-                  <PlayerTag playerId={t.partner} size={18} fallback={from} />
-                  {t.prefilled ? null : " sat down to trade with you"}
-                </b>
-              </span>
-            </header>
+          <DecisionFrame
+            key={t.partner}
+            ariaLabel={`Trading table with ${from}`}
+            icon={<IconArrowsExchange size={16} aria-hidden="true" />}
+            kind={
+              <>
+                {t.prefilled ? "Trade deal · wash" : "Trading table"}
+                {several && (
+                  <>
+                    {" · for "}
+                    <PlayerTag playerId={owner} size={13} fallback={nameOf(owner)} />
+                  </>
+                )}
+              </>
+            }
+            title={
+              <b className={styles.title}>
+                {t.prefilled ? "Confirm your Trade deal with " : null}
+                <PlayerTag playerId={t.partner} size={18} fallback={from} />
+                {t.prefilled ? null : " sat down to trade with you"}
+              </b>
+            }
+            onSkip={() => leave(t.partner)}
+            skipLabel="Leave"
+            onUse={() => setOpen(true)}
+            useLabel="Open the table"
+            busy={busy}
+            // Enter/Esc należą do bieżącej oferty (jedna decyzja naraz w kolumnie).
+            shortcuts={false}
+          >
             {!isEmptySide(t.theirs) && (
               <TradeSummary
                 title={`${from} puts down${t.theirReady ? " · Ready" : ""}`}
@@ -118,20 +129,7 @@ function OwnerInvites({
                 issuerColor={t.partnerColor ?? undefined}
               />
             )}
-            <div className={styles.actions}>
-              <button
-                type="button"
-                className={styles.ghost}
-                disabled={busy}
-                onClick={() => leave(t.partner)}
-              >
-                Leave
-              </button>
-              <button type="button" className={styles.primary} onClick={() => setOpen(true)}>
-                <IconCheck size={14} aria-hidden="true" /> Open the table
-              </button>
-            </div>
-          </section>
+          </DecisionFrame>
         );
       })}
       {open && (

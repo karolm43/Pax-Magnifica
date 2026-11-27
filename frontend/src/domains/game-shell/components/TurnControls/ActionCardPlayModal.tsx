@@ -10,6 +10,7 @@ import {
 import { useRelicForm } from "@/api/useRelics";
 import { usePromissoryForm } from "@/api/useFactionComponents";
 import { useAppStore } from "@/state/appStore";
+import { DECISION_WIDTH } from "@/shared/ui/DecisionFrame";
 
 type Props = {
   onClose: () => void;
@@ -144,7 +145,7 @@ export function ActionCardPlayModal({
       useLabel={isRelic ? "Use relic" : isNote ? "Play note" : "Play card"}
       onUse={play}
       onClose={onClose}
-      size={460}
+      size={DECISION_WIDTH.standard}
     />
   );
 }
