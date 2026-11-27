@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.core import timing
-from src.core.game_state import WindowType
+from src.core import battle, timing
+from src.core.game_state import CombatStep, ControlType, GameState, WindowType
 from src.core.registry import StaticDataRegistry
 from src.engine import actions as act
 from src.engine.legal import legal_actions
@@ -112,3 +112,61 @@ def test_technology_secondary_bot_researches(registry: StaticDataRegistry) -> No
     after = act.apply_action(state, ctx, choice)
     assert choice.payload["tech"] in after.players["p2"].technologies
     assert after.players["p2"].trade_goods == 4
+
+
+def _bots(state: GameState, *pids: str) -> GameState:
+    for pid in pids:
+        state.players[pid].control_type = ControlType.BOT
+    return state
+
+
+def test_defender_bot_rolls_its_own_side(registry: StaticDataRegistry) -> None:
+    """Per-side rolls: a human attacker rolls theirs, the defending bot then rolls its own."""
+    grid = _grid()
+    ctx = act.EngineContext(registry=registry, grid=grid)
+    started = battle.start_combat(
+        _bots(_state({"p1": {"cruiser": 2}, "p2": {"cruiser": 2}}), "p2"), grid, registry
+    )
+    assert started.active_combat is not None and started.active_combat.step is CombatStep.ROLL
+    human_rolled = battle.roll_round(started, grid, registry, "p1")
+
+    candidates = legal_actions(observe(human_rolled, ctx, "p2"), ctx)
+
+    assert [a.kind for a in candidates] == ["battle_roll"]
+    after = act.apply_action(human_rolled, ctx, candidates[0])
+    combat = after.active_combat
+    assert combat is not None and combat.step is not CombatStep.ROLL
+    # The attacker already rolled: nothing left for it at this step.
+    assert legal_actions(observe(human_rolled, ctx, "p1"), ctx) == []
+
+
+def test_attacker_bot_rolls_only_its_own_side(registry: StaticDataRegistry) -> None:
+    grid = _grid()
+    ctx = act.EngineContext(registry=registry, grid=grid)
+    started = battle.start_combat(
+        _bots(_state({"p1": {"cruiser": 2}, "p2": {"cruiser": 2}}), "p1"), grid, registry
+    )
+    (roll,) = legal_actions(observe(started, ctx, "p1"), ctx)
+
+    after = act.apply_action(started, ctx, roll)
+
+    combat = after.active_combat
+    assert combat is not None and combat.step is CombatStep.ROLL
+    assert set(combat.side_rolls) == {"p1"}  # the human defender still clicks their own roll
+
+
+def test_defender_bot_fires_anti_fighter_barrage(registry: StaticDataRegistry) -> None:
+    grid = _grid()
+    ctx = act.EngineContext(registry=registry, grid=grid)
+    started = battle.start_combat(
+        _bots(_state({"p1": {"fighter": 2, "carrier": 1}, "p2": {"destroyer": 1}}), "p2"),
+        grid,
+        registry,
+    )
+    assert started.active_combat is not None and started.active_combat.step is CombatStep.AFB
+
+    candidates = legal_actions(observe(started, ctx, "p2"), ctx)
+
+    assert [a.kind for a in candidates] == ["battle_afb"]
+    after = act.apply_action(started, ctx, candidates[0])
+    assert after.active_combat is None or after.active_combat.step is not CombatStep.AFB

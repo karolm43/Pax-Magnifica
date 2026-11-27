@@ -138,7 +138,7 @@ HTTP: dict[str, tuple[str, Callable[[Any], Body]]] = {
     ),
     "battle_start": ("/tactical/battle/start", lambda a: {"planet": a.planet}),
     "battle_afb": ("/tactical/battle/afb", lambda a: None),
-    "battle_roll": ("/tactical/battle/roll", lambda a: None),
+    "battle_roll": ("/tactical/battle/roll", lambda a: {"faction": a.player_id}),
     "battle_close": ("/tactical/battle/close", lambda a: None),
     "battle_announce_retreat": (
         "/tactical/battle/announce-retreat",

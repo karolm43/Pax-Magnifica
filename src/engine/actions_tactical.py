@@ -350,7 +350,7 @@ HANDLERS: dict[str, tuple[Guard | None, Apply]] = {
     ),
     "battle_roll": (
         checked(_SIDES, "Combat roll"),
-        lambda s, c, a: battle.roll_round(s, c.grid, c.registry),
+        lambda s, c, a: battle.roll_round(s, c.grid, c.registry, a.player_id),
     ),
     "battle_close": (checked(_SIDES, "Close combat"), lambda s, c, a: battle.close_combat(s)),
     "battle_announce_retreat": (

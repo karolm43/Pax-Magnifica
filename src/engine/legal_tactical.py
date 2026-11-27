@@ -32,6 +32,7 @@ from src.core import (
 )
 from src.core.game_state import (
     CombatStep,
+    ControlType,
     GameState,
     InvasionPhase,
     TacticalStep,
@@ -278,15 +279,30 @@ def combat(obs: Observation, ctx: EngineContext) -> list[Action]:
             tac.BattleRetreat(player_id=pid, destination=d)
             for d in retreat.retreat_destinations(s, ctx.grid, fight.position, pid)
         ]
-    if pid != fight.attacker:
+    sides = (fight.attacker, fight.defender)
+    if pid not in sides:
         return []
     if fight.step is CombatStep.AFB:
+        # AFB rolls for both sides at once: either side's bot may fire it, but not while a human
+        # opponent still has an extra-dice choice to make (RULES.md 62.11).
+        if any(_human_with_afb_choice(s, other) for other in sides if other != pid):
+            return []
         return [tac.BattleAfb(player_id=pid)]
     if fight.step is CombatStep.ROLL:
+        # Each side rolls its own dice (the defender's bot too); the other side clicks theirs.
+        if pid in fight.side_rolls:
+            return []
         return [tac.BattleRoll(player_id=pid)]
     if fight.step is CombatStep.DONE:
-        return [tac.BattleClose(player_id=pid)]
+        return [tac.BattleClose(player_id=pid)] if pid == fight.attacker else []
     return []  # TRIGGERS (oferty), ASSIGN / ANNOUNCE (okna)
+
+
+def _human_with_afb_choice(s: GameState, pid: str) -> bool:
+    player = s.players.get(pid)
+    if player is None or player.control_type is ControlType.BOT:
+        return False
+    return bool(battle.afb_extra_sources(s, pid))
 
 
 def retreat_window(obs: Observation) -> list[Action]:

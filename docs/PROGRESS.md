@@ -282,3 +282,15 @@ Older, completed blocks (Phase 1 → blocks of 2026-11-25) are in `PROGRESS_ARCH
   `ActionCardPlayModal`, `SecondaryDecisionModal`, `StrategyPrimaryStepModal` (card-specific 1080 kept).
 - Tests: vitest `DecisionFrame` (+3: footer order/wrap, `shortcuts={false}`, no empty footer + tone),
   new `SlotsMapField.test.tsx`.
+
+## Bots roll their own combat side and fire AFB as defender
+
+- After per-side combat rolls (each player clicks their own roll), `legal_tactical.combat` still offered
+  AFB/Roll only to the attacker, and the bot's roll covered both sides. A bot defender never rolled its side,
+  so a human attacking a bot hung at the roll step.
+- Now each bot side gets `BattleRoll` for its own side only, until it has rolled (`side_rolls`). The action and
+  HTTP mapping pass `faction` and call `roll_round(..., side)`. A human opponent still clicks their own roll.
+- AFB (both sides at once in core) can be fired by either side's bot. It waits while a human opponent still has an
+  AFB extra-dice choice (`afb_extra_sources`, RULES.md 62.11). `battle_close` is still for the attacker only.
+- Tests: `tests/engine/test_legal_windows.py` (+3: defender bot rolls its side, attacker bot rolls only its
+  side, defender bot fires AFB); fuzz/passive all-bot games green.
