@@ -49,10 +49,15 @@ export function WormholeLinkLayer({
     linkTargets(kind, hovered.position, tiles).map((position) => ({ kind, position })),
   );
   // Links only one player has (Quantum Entanglement: alpha <-> beta for Creuss) look like any
-  // other wormhole connection, and are shown ONLY to that player (the desk: my seat online).
-  const kind = hovered.kinds.find((k) => k === "ALPHA" || k === "BETA") ?? hovered.kinds[0];
+  // other wormhole connection in the colour of the DESTINATION wormhole (from a beta: green lines
+  // to betas, orange to alphas), and are shown ONLY to that player (the desk: my seat online).
+  const alphas = new Set(linkTargets("ALPHA", hovered.position, tiles));
+  const betas = new Set(linkTargets("BETA", hovered.position, tiles));
   const common = new Set(printed.map((l) => l.position));
-  const own = playerLinkTargets(hovered.position, viewer, common).map((position) => ({ kind, position }));
+  const own = playerLinkTargets(hovered.position, viewer, common).map((position) => ({
+    kind: alphas.has(position) ? "ALPHA" : betas.has(position) ? "BETA" : hovered.kinds[0],
+    position,
+  }));
   const links = [...printed, ...own].flatMap(({ kind, position }) => {
     const target = byPosition.get(position);
     return target ? [{ kind, target }] : [];
@@ -91,7 +96,7 @@ export function WormholeLinkLayer({
         })}
         <circle
           className={classes.origin}
-          data-kind={links[0] && KNOWN_KINDS.has(links[0].kind) ? links[0].kind : undefined}
+          data-kind={hovered.kinds.find((k) => KNOWN_KINDS.has(k))}
           cx={from.x}
           cy={from.y}
           r={18}

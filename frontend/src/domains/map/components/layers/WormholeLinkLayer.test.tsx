@@ -12,13 +12,13 @@ vi.mock("@/domains/game-shell/components/TurnControls/useDeskPlayer", () => ({
   useDeskPlayer: () => desk,
 }));
 
-const tile = (position: string, x: number) =>
-  ({ position, systemId: "18", tokens: [], properties: { x, y: 0 } }) as unknown as Tile;
+const tile = (position: string, systemId: string, x: number) =>
+  ({ position, systemId, tokens: [], properties: { x, y: 0 } }) as unknown as Tile;
 
 function ownLinks() {
   const { container } = render(
     <WormholeLinkLayer
-      tiles={[tile("102", 0), tile("104", 400)]}
+      tiles={[tile("102", "40", 0), tile("104", "39", 400)]}
       contentSize={{ width: 800, height: 400 }}
     />,
   );
@@ -27,10 +27,10 @@ function ownLinks() {
 
 describe("WormholeLinkLayer: Quantum Entanglement links (RULES.md 61.7)", () => {
   beforeEach(() => {
-    useWormholeHoverStore.getState().setHovered({ position: "102", kinds: ["ALPHA"] });
+    useWormholeHoverStore.getState().setHovered({ position: "102", kinds: ["BETA"] });
   });
 
-  it("draws them like a normal wormhole link for the player who has them", () => {
+  it("from a beta draws an alpha destination in the alpha colour, for its owner", () => {
     desk = creuss;
     expect(ownLinks()).toHaveLength(1);
   });
