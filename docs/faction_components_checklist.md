@@ -304,7 +304,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 ### Liderzy (Agent / Commander / Hero)
 - [x] **[AGENT] Berekar Berekon** (winnuagent) *(już Pull)* — You may exhaust this card to reduce the combined cost of the produced units by 2.
 - [ ] **[COMMANDER] Rickar Rickani** (winnucommander) — Apply +2 to the result of each of your unit's combat rolls in the Mecatol Rex system, your home system, and each system that contains a legendary planet.
-- [ ] **[HERO] Mathis Mathinus** (winnuhero) — Perform the primary ability of any strategy card. Then, choose any number of other players. Those players may perform the secondary ability of that strategy card. Then, purge this card.
+- [x] **[HERO] Mathis Mathinus** (winnuhero) *(propozycja)* — Perform the primary ability of any strategy card. Then, choose any number of other players. Those players may perform the secondary ability of that strategy card. Then, purge this card.
 
 ### Przełom (Breakthrough)
 - [ ] **Imperator** (winnubt) — Apply +1 to the results of each of your unit's combat rolls for each "Support for the Throne" in your opponent's play area. After you activate a system that contains a legendary planet, apply +1 to the move value of 1 of your ships during this tactical action.
@@ -355,12 +355,12 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 ## The Yssaril Tribes (yssaril) [NIEZAIMPLEMENTOWANA]
 
 ### Liderzy (Agent / Commander / Hero)
-- [ ] **[AGENT] Ssruu** (yssarilagent) — This card has the text ability of each other player's agent, even if that agent is exhausted.
+- [x] **[AGENT] Ssruu** (yssarilagent) *(propozycja)* — This card has the text ability of each other player's agent, even if that agent is exhausted.
 - [ ] **[COMMANDER] So Ata** (yssarilcommander) — You may look at that player's action cards, promissory notes, or secret objectives.
 - [ ] **[HERO] Kyver, Blade and Key** (yssarilhero) — Each other player shows you 1 action card from their hand. For each player, you may either take that card or force that player to discard 3 random action cards from their hand. Then, purge this card.
 
 ### Przełom (Breakthrough)
-- [ ] **Deepgloom Executable** (yssarilbt) — You can allow other players to use your STALL TACTICS or SCHEMING faction abilities; when you do, you may resolve a transaction with that player. During the action phase, that transaction does not count against the once-per-player transaction limit for that turn.
+- [x] **Deepgloom Executable** (yssarilbt) *(propozycja)* — You can allow other players to use your STALL TACTICS or SCHEMING faction abilities; when you do, you may resolve a transaction with that player. During the action phase, that transaction does not count against the once-per-player transaction limit for that turn.
 
 ### Technologie frakcyjne (Faction Techs)
 - [ ] **Transparasteel Plating** (tp) — During your turn of the action phase, players that have passed cannot play action cards.
@@ -376,7 +376,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 - [ ] **Technological Singularity** (technological_singularity) — You may gain 1 technology that is owned by that player.
 
 ### Liderzy (Agent / Commander / Hero)
-- [ ] **[AGENT] Nekro Malleon** (nekroagent) — You may exhaust this card to choose a player; that player may discard 1 action card or spend 1 command token from their command sheet to gain 2 trade goods.
+- [x] **[AGENT] Nekro Malleon** (nekroagent) *(propozycja)* — You may exhaust this card to choose a player; that player may discard 1 action card or spend 1 command token from their command sheet to gain 2 trade goods.
 - [ ] **[HERO] UNIT.DSGN.FLAYESH** (nekrohero) — Choose a planet that has a technology specialty in a system that contains your units. Destroy any other player's units on that planet. Gain trade goods equal to the planet's combined resource and influence values and gain 1 technology that matches the specialty of that planet. Then, purge this card.
 
 ### Przełom (Breakthrough)
@@ -397,7 +397,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 - [ ] **Hubris** (hubris) — During setup, purge your "Alliance" promissory note. Other players cannot give you their "Alliance" promissory notes.
 
 ### Liderzy (Agent / Commander / Hero)
-- [ ] **[AGENT] Jae Mir Kan** (mahactagent) — You may exhaust this card to remove 1 of the active player's command tokens from the board and use it instead.
+- [x] **[AGENT] Jae Mir Kan** (mahactagent) *(propozycja)* — You may exhaust this card to remove 1 of the active player's command tokens from the board and use it instead.
 - [ ] **[HERO] Airo Shir Aur** (mahacthero) — Move all units in the space area of any system to an adjacent system that contains a different player's ships. Space combat is resolved in that system; neither player can retreat or resolve abilities that would move their ships. Then, purge this card.
 
 ### Technologie frakcyjne (Faction Techs)
@@ -416,7 +416,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 - [ ] **Law's Order** (laws_order) — You may spend 1 trade good or 1 commodity to treat all laws as blank until the end of that turn.
 
 ### Liderzy (Agent / Commander / Hero)
-- [ ] **[AGENT] Xander Alexin Victori III** (keleresagent) — You may exhaust this card to allow any player to spend commodities as if they were trade goods.
+- [x] **[AGENT] Xander Alexin Victori III** (keleresagent) *(propozycja)* — You may exhaust this card to allow any player to spend commodities as if they were trade goods.
 
 ### Przełom (Breakthrough)
 - [ ] **I.I.H.Q. Modernization** (keleresbt) — When you gain this card, gain the Custodia Vigilia planet card and its legendary planet ability card. You are neighbors with all players that have units or control planets in or adjacent to the Mecatol Rex system.
@@ -436,7 +436,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 - [ ] **Law's Order** (laws_order) — You may spend 1 trade good or 1 commodity to treat all laws as blank until the end of that turn.
 
 ### Liderzy (Agent / Commander / Hero)
-- [ ] **[AGENT] Xander Alexin Victori III** (keleresagent) — You may exhaust this card to allow any player to spend commodities as if they were trade goods.
+- [x] **[AGENT] Xander Alexin Victori III** (keleresagent) *(propozycja)* — You may exhaust this card to allow any player to spend commodities as if they were trade goods.
 
 ### Przełom (Breakthrough)
 - [ ] **I.I.H.Q. Modernization** (keleresbt) — When you gain this card, gain the Custodia Vigilia planet card and its legendary planet ability card. You are neighbors with all players that have units or control planets in or adjacent to the Mecatol Rex system.
@@ -456,7 +456,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 - [ ] **Law's Order** (laws_order) — You may spend 1 trade good or 1 commodity to treat all laws as blank until the end of that turn.
 
 ### Liderzy (Agent / Commander / Hero)
-- [ ] **[AGENT] Xander Alexin Victori III** (keleresagent) — You may exhaust this card to allow any player to spend commodities as if they were trade goods.
+- [x] **[AGENT] Xander Alexin Victori III** (keleresagent) *(propozycja)* — You may exhaust this card to allow any player to spend commodities as if they were trade goods.
 - [ ] **[HERO] Odlynn Myrr** (keleresheroodlynn) — You may cast up to 6 additional votes on this agenda. Predict aloud an outcome of this agenda. For each player that abstains or votes for another outcome, gain 1 trade good and 1 command token. Then, purge this card.
 
 ### Przełom (Breakthrough)
@@ -473,7 +473,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 ## Last Bastion (bastion) [NIEZAIMPLEMENTOWANA]
 
 ### Liderzy (Agent / Commander / Hero)
-- [ ] **[AGENT] Dame Briar** (bastionagent) — You may exhaust this card to galvanize another of that player's units in the destroyed unit's system.
+- [x] **[AGENT] Dame Briar** (bastionagent) *(propozycja)* — You may exhaust this card to galvanize another of that player's units in the destroyed unit's system.
 - [ ] **[COMMANDER] Nip and Tuck** (bastioncommander) — Your action cards cannot be canceled by "Sabotage" action cards. The Nekro Virus cannot place assimilator tokens on your components.
 - [ ] **[HERO] Lyra Keen** (bastionhero) — You may purge this card to roll 1 die for each unit in its system that belongs to another player; if the result is equal to or greater than the galvanized unit's combat value, destroy that unit.
 
@@ -493,7 +493,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 - [ ] **Incursion** (incursion) — When you activate a system that contains a breach, you may flip that breach; systems that contain active breaches are adjacent. At the end of the status phase, any player with ships in a system that contains an active breach may remove that breach.
 
 ### Liderzy (Agent / Commander / Hero)
-- [ ] **[AGENT] Ahk Ravin** (crimsonagent) — Exhaust this card to choose 1 player. That player may swap the position of 2 of their ships in any systems; they may transport units when they swap.
+- [x] **[AGENT] Ahk Ravin** (crimsonagent) *(propozycja)* — Exhaust this card to choose 1 player. That player may swap the position of 2 of their ships in any systems; they may transport units when they swap.
 - [ ] **[COMMANDER] Ahk Siever** (crimsoncommander) — Gain 1 commodity or convert 1 of your commodities to a trade good.
 
 ### Przełom (Breakthrough)
@@ -512,12 +512,12 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 - [ ] **Research Team** (researchteam) — If your units on that planet are not already coexisting, you may choose for your units to coexist.
 
 ### Liderzy (Agent / Commander / Hero)
-- [ ] **[AGENT] Doctor Carrina** (deepwroughtagent) — You may exhaust this card to allow that player to ignore 1 prerequisite; if they do, you may place 1 infantry from your reinforcements into coexistence on a non-home planet they control.
-- [ ] **[COMMANDER] Aello** (deepwroughtcommander) — That player may reduce the cost by 1; if they do, gain 1 commodity or convert 1 of your commodities to a trade good.
+- [x] **[AGENT] Doctor Carrina** (deepwroughtagent) *(propozycja)* — You may exhaust this card to allow that player to ignore 1 prerequisite; if they do, you may place 1 infantry from your reinforcements into coexistence on a non-home planet they control.
+- [x] **[COMMANDER] Aello** (deepwroughtcommander) *(propozycja)* — That player may reduce the cost by 1; if they do, gain 1 commodity or convert 1 of your commodities to a trade good.
 - [ ] **[HERO] Ta Zern** (deepwroughthero) — Purge this card and a non-unit upgrade technology you own or from your deck; then, purge all cards with the same name owned by other players and in other players' decks. Then, each player that purged a technology they owned researches another technology.
 
 ### Przełom (Breakthrough)
-- [ ] **Visionaria Select** (deepwroughtbt) — ACTION: Exhaust this card to allow each other player to spend 3 trade goods and give you 1 promissory note. Each player that does may research a non-faction, non-unit upgrade technology. You also gain each technology researched in this way.
+- [x] **Visionaria Select** (deepwroughtbt) *(propozycja)* — ACTION: Exhaust this card to allow each other player to spend 3 trade goods and give you 1 promissory note. Each player that does may research a non-faction, non-unit upgrade technology. You also gain each technology researched in this way.
 
 ### Technologie frakcyjne (Faction Techs)
 - [ ] **Hydrothermal Mining** (hydrothermal) — At the start of the status phase, gain 1 trade good for each ocean card in play.
@@ -533,7 +533,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 - [ ] **Puppets of the Blade** (puppetsoftheblade) — ACTION: Purge The Firmament's faction sheet, leaders, planet cards, and promissory note. Then, gain all of the faction components for The Obsidian.
 
 ### Liderzy (Agent / Commander / Hero)
-- [ ] **[AGENT] Myru Vos** (firmamentagent) — You may exhaust this card; if you do, SPACE CANNON cannot be used against those ships. If they are not transporting units, they can also move through other players' ships.
+- [x] **[AGENT] Myru Vos** (firmamentagent) *(propozycja)* — You may exhaust this card; if you do, SPACE CANNON cannot be used against those ships. If they are not transporting units, they can also move through other players' ships.
 - [ ] **[HERO] Sharsiss** (firmamenthero) — Place 1 of your plot cards in play with any other player's control token on it. Then, you may place any player's control token on 1 of your in-play plot cards; one plot cannot have two of the same player's tokens. Then, purge this card.
 
 ### Przełom (Breakthrough)
@@ -549,7 +549,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 - [ ] **Marionettes** (marionettes) — The player or players whose control tokens are on each plot card are the puppeted players for that plot.
 
 ### Liderzy (Agent / Commander / Hero)
-- [ ] **[AGENT] Vos Hollow** (obsidianagent) — You may exhaust this card; if you do, that player's opponent must destroy 1 of their ships of the same type in the active system.
+- [x] **[AGENT] Vos Hollow** (obsidianagent) *(propozycja)* — You may exhaust this card; if you do, that player's opponent must destroy 1 of their ships of the same type in the active system.
 - [ ] **[COMMANDER] Aroz Hollow** (obsidiancommander) — Apply +1 to the result of each of your units' combat rolls in The Fracture.
 
 ### Przełom (Breakthrough)
@@ -564,7 +564,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 ## The Ral Nel Consortium (ralnel) [NIEZAIMPLEMENTOWANA]
 
 ### Liderzy (Agent / Commander / Hero)
-- [ ] **[AGENT] Kan Kip Rel** (ralnelagent) — Exhaust this card to draw 2 action cards; give 1 of those cards to another player.
+- [x] **[AGENT] Kan Kip Rel** (ralnelagent) *(propozycja)* — Exhaust this card to draw 2 action cards; give 1 of those cards to another player.
 - [ ] **[COMMANDER] Watchful Ojz** (ralnelcommander) — Immediately retreat up to 2 of your ships from the active system to an adjacent system that does not contain another player's ships. Place a command token from your reinforcements into that system.
 
 ### Przełom (Breakthrough)
