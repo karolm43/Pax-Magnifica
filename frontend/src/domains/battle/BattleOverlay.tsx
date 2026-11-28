@@ -742,6 +742,11 @@ export function BattleOverlay() {
     return () => window.clearTimeout(t);
   }, [over]);
   const offersPending = (gameState?.pendingOffers ?? []).length > 0;
+  // A player who is not fighting is not pulled into the window (user decision 2026-11-28):
+  // they get a "Battle in progress — join" pill and watch only when they choose to.
+  const { data: me } = useNetworkMe();
+  const [joined, setJoined] = useState<string | null>(null);
+  const combatKey = `${view?.kind ?? ""}:${view?.position ?? ""}:${view?.planet ?? ""}`;
 
   if (
     (!inCombat && !holding) ||
@@ -750,6 +755,28 @@ export function BattleOverlay() {
     !view.defender
   )
     return null;
+
+  const spectator =
+    !!me?.network &&
+    !!me.player_id &&
+    me.player_id !== view.attacker.playerId &&
+    me.player_id !== view.defender.playerId;
+  if (spectator && joined !== combatKey) {
+    return createPortal(
+      <button
+        type="button"
+        className={styles.returnPill}
+        onClick={() => {
+          setJoined(combatKey);
+          setHidden(false);
+        }}
+      >
+        <IconSwords size={16} aria-hidden="true" />
+        Battle in progress — join
+      </button>,
+      document.body,
+    );
+  }
 
   if (hidden) {
     return createPortal(

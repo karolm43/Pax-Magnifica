@@ -30,9 +30,12 @@ describe("BoostsButton (RULES.md 54.15)", () => {
     data = { available: [], outgoing: [], owned: [], watch: null };
   });
 
-  it("is not there when nothing can be asked for", () => {
-    const { container } = render(<BoostsButton player={me} />);
-    expect(container).toBeEmptyDOMElement();
+  it("stays visible but greyed out when nothing can be asked for", () => {
+    render(<BoostsButton player={me} />);
+    const button = screen.getByRole("button", { name: "Boosts: 0 available" });
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(button);
+    expect(screen.queryByRole("complementary", { name: "Available boosts" })).toBeNull();
   });
 
   it("asks the owner, for free by default", () => {

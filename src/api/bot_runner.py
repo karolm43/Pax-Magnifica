@@ -19,6 +19,7 @@ import contextlib
 import json
 import logging
 import os
+import time
 import zlib
 from collections.abc import Awaitable, Callable, MutableMapping
 from typing import Any
@@ -40,6 +41,17 @@ from src.engine.observation import observe
 log = logging.getLogger(__name__)
 
 Sleep = Callable[[float], Awaitable[None]]
+
+# Bot actions that throw combat dice: paced per round (``BotConfig.combat_round_gap_s``).
+_COMBAT_ROLL_KINDS = frozenset({"battle_roll", "battle_afb"})
+
+
+def combat_roll_mark(state: GameState) -> tuple[str, str, int, bool] | None:
+    """Which combat round a roll now belongs to: (kind, position, round, AFB) or ``None``."""
+    combat = state.active_combat
+    if combat is None:
+        return None
+    return (combat.kind, combat.position, combat.round, not combat.log)
 
 
 async def asgi_post(
@@ -96,12 +108,16 @@ class BotRunner:
         *,
         tick_s: float = 1.0,
         sleep: Sleep = asyncio.sleep,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.app = app
         self.ctx = ctx
         self.config = config
         self.tick_s = tick_s
         self._sleep = sleep
+        self._clock = clock
+        # The combat round of the last bot combat roll and when it was posted (pacing).
+        self._last_roll: tuple[tuple[str, str, int, bool], float] | None = None
         workers = config.workers or max(1, (os.cpu_count() or 2) - 1)
         self.executor = Executor(config.executor, workers=workers)
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -175,6 +191,7 @@ class BotRunner:
                 )
             if self.config.move_delay_s > 0:
                 await self._sleep(self.config.move_delay_s)
+            await self._pace_combat_roll(state, legal[result.order[0]] if result.order else None)
             if service.current_seq() != seq:
                 return True  # stan zmienił się w trakcie (człowiek, Undo) - liczymy od nowa
             for index in result.order:
@@ -187,6 +204,26 @@ class BotRunner:
             self._stuck.add((seq, pid))
         self._report_stall(state, seq, bots)
         return False
+
+    async def _pace_combat_roll(self, state: GameState, action: Action | None) -> None:
+        """Holds a bot's combat roll of a NEW round until the previous round had time on screen.
+
+        Both sides of one round roll without waiting (each side rolls on its own); only the
+        first roll of the next round waits ``combat_round_gap_s`` after the previous round's.
+        """
+        gap = self.config.combat_round_gap_s
+        if action is None or action.kind not in _COMBAT_ROLL_KINDS:
+            return
+        mark = combat_roll_mark(state)
+        if mark is None:
+            return
+        if self._last_roll is not None and self._last_roll[0] == mark:
+            return  # the other side of the same round
+        if gap > 0 and self._last_roll is not None and self._last_roll[0][:2] == mark[:2]:
+            wait = gap - (self._clock() - self._last_roll[1])
+            if wait > 0:
+                await self._sleep(wait)
+        self._last_roll = (mark, self._clock())
 
     def _waits(self) -> str:
         """Wait reasons for a log line; diagnostics must never break the runner."""

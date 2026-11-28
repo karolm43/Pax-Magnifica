@@ -12,8 +12,8 @@ import { ToolHint } from "./ToolHint";
 /*
  * "Boosts" (RULES.md 54.15): other players' cooperative agents you could get RIGHT NOW (Captain
  * Mendosa when you activate, Trilossa Aun Mirik when you produce, Viscount Unlenn in your
- * combat...). They never interrupt anyone: the button appears only while something is available
- * or a request of yours is open. Asking may include a payment - trade goods / commodities when the
+ * combat...). They never interrupt anyone: the button is always there, greyed out while nothing is
+ * available and no request of yours is open (user decision 2026-11-28). Asking may include a payment - trade goods / commodities when the
  * two may transact, debt tokens always (RULES.md 47.3); the owner accepts or declines, or
  * their standing offer accepts at once. The payment and the effect resolve together - a binding
  * deal - and nothing is paid when it is declined or lapses.
@@ -124,8 +124,9 @@ export function BoostsButton({ player }: { player: PlayerData }) {
   const [error, setError] = useState<string | null>(null);
   const available = data?.available ?? [];
   const outgoing = data?.outgoing ?? [];
-  // Contextual: nothing to request and nothing open = no button at all.
-  if (!me || (available.length === 0 && outgoing.length === 0)) return null;
+  if (!me) return null;
+  // Always visible; greyed out while there is nothing to ask for and nothing open.
+  const empty = available.length === 0 && outgoing.length === 0;
 
   const run = (fn: () => Promise<void>) => {
     setBusy(true);
@@ -143,7 +144,7 @@ export function BoostsButton({ player }: { player: PlayerData }) {
         maw={300}
         disabled={open}
         label={
-          <ToolHint title="Boosts" status={`${available.length} available now`}>
+          <ToolHint title="Boosts" status={empty ? "Nothing available right now." : `${available.length} available now`}>
             Other players&apos; agents that could help you right now. Ask for one, optionally
             offering trade goods - nobody is interrupted unless you ask.
           </ToolHint>
@@ -153,10 +154,13 @@ export function BoostsButton({ player }: { player: PlayerData }) {
           type="button"
           className={holdStyles.toolBtn}
           data-tone="boost"
-          data-open={open || undefined}
-          aria-expanded={open}
+          data-open={(open && !empty) || undefined}
+          aria-expanded={open && !empty}
+          aria-disabled={empty || undefined}
           aria-label={`Boosts: ${available.length} available`}
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => {
+            if (!empty) setOpen((v) => !v);
+          }}
         >
           <IconBolt size={15} aria-hidden="true" />
           <span className={holdStyles.toolLabel}>Boosts</span>
@@ -164,7 +168,7 @@ export function BoostsButton({ player }: { player: PlayerData }) {
         </button>
       </Tooltip>
 
-      {open && (
+      {open && !empty && (
         <aside className={holdStyles.panel} aria-label="Available boosts">
           <header className={holdStyles.head}>
             <b>Available boosts</b>

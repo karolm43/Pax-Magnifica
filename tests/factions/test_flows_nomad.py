@@ -44,7 +44,7 @@ def test_artuno_odklada_trade_goods_z_puli(registry: StaticDataRegistry) -> None
     assert gained > 0
     flow.accept("Artuno")
     me = _me(flow)
-    assert me["trade_goods"] == before
+    assert me["trade_goods"] == before + gained
     assert me["leader_trade_goods"] == {"nomadagentartuno": gained}
     assert me["leader_states"]["nomadagentartuno"] == "exhausted"
     leader = next(r for r in _web_player(flow, flow.me)["leaders"]

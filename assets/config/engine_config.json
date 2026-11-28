@@ -27,6 +27,7 @@
       "HARD": "random"
     },
     "move_delay_s": 1.0,
+    "combat_round_gap_s": 4.0,
     "decision_deadline_s": 2.0,
     "key_decision_deadline_s": 10.0,
     "key_decision_kinds": [

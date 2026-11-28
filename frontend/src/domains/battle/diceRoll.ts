@@ -26,11 +26,11 @@ export function isHit(group: DiceGroup, value: number): boolean {
 export type DieSide = "left" | "right";
 
 /** Czas lotu jednej kostki od wejścia do spoczynku (ms) — rzut ma być czytelny, nie błyskawiczny. */
-export const DIE_MS = 2300;
+export const DIE_MS = 1800;
 /** Chwile zderzeń z podłożem jako ułamek czasu lotu (ostatni punkt = spoczynek = 1). */
 export const CONTACTS = [0.34, 0.6, 0.8] as const;
 /** Pauza po lądowaniu ostatniej kostki, zanim ruszą strzały (ms) — czas na odczytanie rzutu. */
-export const READ_MS = 700;
+export const READ_MS = 500;
 /** Ile kostek jednej strony faktycznie rysujemy (reszta tylko w tabeli salwy). */
 export const MAX_DICE_PER_SIDE = 30;
 

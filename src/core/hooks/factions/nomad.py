@@ -435,7 +435,6 @@ def _artuno_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> b
     return (
         ctx.get("player") == player_id and bool(ctx.get("from_supply")) and amount > 0
         and leaders.is_ready(state, _registry(), player_id, ARTUNO)
-        and state.players[player_id].trade_goods >= amount
     )
 
 

@@ -51,14 +51,12 @@ def gain_trade_goods(
 
 
 def stash_on_leader(state: GameState, player_id: str, leader_id: str, amount: int) -> None:
-    """Moves ``amount`` of the player's trade goods onto their leader card (Artuno the Betrayer:
-    "place an equal number of trade goods on this card", RULES.md 62.21). Not a spend."""
+    """Places ``amount`` trade goods from the supply onto the player's leader card (Artuno the
+    Betrayer: "place an equal number of trade goods on this card", RULES.md 62.21). The player
+    keeps the trade goods they gained - the card holds an equal number on top of them."""
     if amount < 0:
         raise ValueError("The amount of trade goods to place cannot be negative.")
     player = _player(state, player_id)
-    if amount > player.trade_goods:
-        raise ValueError(f"Not enough trade goods: {amount} > {player.trade_goods}.")
-    player.trade_goods -= amount
     player.leader_trade_goods = {
         **player.leader_trade_goods,
         leader_id: player.leader_trade_goods.get(leader_id, 0) + amount,

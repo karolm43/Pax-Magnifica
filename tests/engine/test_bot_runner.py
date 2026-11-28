@@ -22,6 +22,7 @@ from src.core.event_store import EventStore
 from src.core.game_state import ControlType, GameState
 from src.core.registry import StaticDataRegistry
 from src.engine import actions as act
+from src.engine import actions_tactical as act_t
 from src.engine import compute
 from src.engine.observation import Observation
 from tests.engine.test_passive_games import FOUR, SIX
@@ -89,7 +90,9 @@ def _bot_app(registry: StaticDataRegistry, clock: list[float]) -> tuple[FastAPI,
         registry=registry, store=EventStore(":memory:"), now=lambda: clock[0], bots=True
     )
     runner: BotRunner = app.state.bot_runner
-    runner.config = runner.config.model_copy(update={"move_delay_s": 0.0})
+    runner.config = runner.config.model_copy(
+        update={"move_delay_s": 0.0, "combat_round_gap_s": 0.0}
+    )
     return app, runner
 
 
@@ -164,3 +167,45 @@ def test_runner_wakes_on_commit_inside_server(registry: StaticDataRegistry) -> N
         while time.monotonic() < deadline and runner.moves < 10:
             time.sleep(0.05)
     assert runner.moves >= 10
+
+
+# --- pacing of combat rounds ------------------------------------------------------------------
+
+
+def test_bot_combat_rounds_are_paced_so_they_never_merge(registry: StaticDataRegistry) -> None:
+    """A bot's roll of a NEW combat round waits ``combat_round_gap_s`` after the previous round;
+    the other side of the same round rolls at once (the battle window shows rounds one by one)."""
+    from src.core.game_state import ActiveCombat
+
+    clock = [1_000_000.0]
+    app, runner = _bot_app(registry, clock)
+    runner.config = runner.config.model_copy(update={"combat_round_gap_s": 4.0})
+    now = [100.0]
+    waits: list[float] = []
+
+    async def fake_sleep(seconds: float) -> None:
+        waits.append(seconds)
+        now[0] += seconds
+
+    runner._sleep = fake_sleep
+    runner._clock = lambda: now[0]
+    state = _state(app).model_copy(deep=True)
+    state.active_combat = ActiveCombat(kind="space", position="0a", attacker="p1", defender="p2")
+    state.active_combat.log = [{"round": 1}]
+    roll_p1 = act_t.BattleRoll(player_id="p1")
+    roll_p2 = act_t.BattleRoll(player_id="p2")
+
+    async def scenario() -> None:
+        await runner._pace_combat_roll(state, roll_p1)  # first roll of the combat: no wait
+        now[0] += 0.5
+        await runner._pace_combat_roll(state, roll_p2)  # same round, other side: no wait
+        assert waits == []
+        assert state.active_combat is not None
+        state.active_combat.round = 2
+        now[0] += 1.0
+        await runner._pace_combat_roll(state, roll_p1)  # next round: waits out the gap
+        assert waits == [pytest.approx(2.5)]  # 4 s after the round's FIRST roll
+        await runner._pace_combat_roll(state, act_t.BattleClose(player_id="p1"))  # not a roll
+        assert len(waits) == 1
+
+    asyncio.run(scenario())

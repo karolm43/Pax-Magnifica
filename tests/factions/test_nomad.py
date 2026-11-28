@@ -520,10 +520,11 @@ def test_artuno_odklada_i_oddaje(registry: StaticDataRegistry) -> None:
     economy.gain_trade_goods(state, "p1", 3)
     state = _accept(state, "p1", "Artuno")
     player = state.players["p1"]
-    assert player.trade_goods == 0 and player.leader_trade_goods == {nomad.ARTUNO: 3}
+    # "an equal number" comes from the supply: the gained 3 stay in the pool.
+    assert player.trade_goods == 3 and player.leader_trade_goods == {nomad.ARTUNO: 3}
     assert player.leader_states.get(nomad.ARTUNO) == "exhausted"
     exhaust.ready_all_leaders(state, "p1")
-    assert state.players["p1"].trade_goods == 3
+    assert state.players["p1"].trade_goods == 6
     assert state.players["p1"].leader_trade_goods == {}
     # The payout is not from the supply: no new Artuno offer.
     assert not _offers(state, "p1", "Artuno")

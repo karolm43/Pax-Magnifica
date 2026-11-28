@@ -24,6 +24,11 @@ const DYING_MS = 3800;
 export const DIE_STAGGER_MS = 280;
 const DIE_STAGGER_MAX = 6;
 const VOLLEY_MS = 5200;
+/**
+ * After the dice land, how long a round's shots (and the defender's reply) keep the table busy:
+ * the next round's volley starts only then - rounds never merge on screen.
+ */
+const ROUND_TAIL_MS = 2200;
 const MAX_BOLTS_PER_SIDE = 22;
 
 const SUSTAIN_MS = 1400;
@@ -211,12 +216,18 @@ function boltsFor(
 /**
  * Salwy w toku. Każda strona rzuca SAMA (kości + strzały niezależnie od drugiej): salwa rusza
  * przy rzucie strony (``sideRolls``), a gdy rzuci druga — tylko jej własna salwa. Wpisy dziennika
- * AFB / Ambush / bombardowania animują obie strony naraz. Kilka salw może trwać równocześnie.
+ * AFB / Ambush / bombardowania animują obie strony naraz. Both sides of ONE round may overlap;
+ * a volley of another round (or another log entry) is queued until the previous one has finished
+ * (bots roll quickly - rounds must not merge on screen). Every new log entry is animated, also
+ * when several arrive in one state update.
  */
 export function useVolley(view: BattleView | undefined): Volley[] {
   const seen = useRef<number | null>(null);
   const sideSeen = useRef<Set<string> | null>(null);
   const lastId = useRef(0);
+  // Queue: when the table is free again (ms, Date.now()) and which round played last.
+  const busyUntil = useRef(0);
+  const lastRound = useRef<string | null>(null);
   const latest = useRef(view);
   latest.current = view;
   const [volleys, setVolleys] = useState<Volley[]>([]);
@@ -228,13 +239,35 @@ export function useVolley(view: BattleView | undefined): Volley[] {
     phase: BattleLogEntry["phase"],
     left: BattleRoll[],
     right: BattleRoll[],
+    /** Same key = same round (the other side's own roll may overlap); other key = queued. */
+    roundKey: string,
   ) => {
     const view = latest.current;
     if (!view?.attacker || !view.defender) return;
-    const id = Math.max(Date.now(), lastId.current + 1);
+    if (left.length === 0 && right.length === 0) return;
+    const now = Date.now();
+    const wait = roundKey === lastRound.current ? 0 : Math.max(0, busyUntil.current - now);
+    lastRound.current = roundKey;
+    const id = Math.max(now + wait, lastId.current + 1);
     lastId.current = id;
     const diceMs = diceLandMs(countDice(left), countDice(right));
     const startMs = volleyStartMs(countDice(left), countDice(right));
+    busyUntil.current = Math.max(busyUntil.current, now + wait + startMs + ROUND_TAIL_MS);
+    if (wait > 0) {
+      window.setTimeout(() => play(id, phase, left, right, diceMs, startMs), wait);
+    } else {
+      play(id, phase, left, right, diceMs, startMs);
+    }
+  };
+
+  const play = (
+    id: number,
+    phase: BattleLogEntry["phase"],
+    left: BattleRoll[],
+    right: BattleRoll[],
+    diceMs: number,
+    startMs: number,
+  ) => {
     const both = left.length > 0 && right.length > 0;
     setVolleys((list) => [
       ...list,
@@ -268,12 +301,20 @@ export function useVolley(view: BattleView | undefined): Volley[] {
       seen.current = length;
       return;
     }
+    const from = seen.current;
     seen.current = length;
-    const entry = view.log[length - 1];
-    // Strony, które rzuciły wcześniej osobno (``early``), mają już swoją salwę.
-    const early = new Set(entry.early ?? []);
-    const side = (key: string) => (early.has(key) ? [] : (entry.rolls[key] ?? []));
-    launch(entry.phase, side(view.attacker.faction), side(view.defender.faction));
+    // Every new entry, in order (two rounds may arrive in one update - each gets its volley).
+    for (const entry of view.log.slice(from, length)) {
+      // Strony, które rzuciły wcześniej osobno (``early``), mają już swoją salwę.
+      const early = new Set(entry.early ?? []);
+      const side = (key: string) => (early.has(key) ? [] : (entry.rolls[key] ?? []));
+      launch(
+        entry.phase,
+        side(view.attacker.faction),
+        side(view.defender.faction),
+        `${entry.phase === "COMBAT" ? "C" : entry.phase}:${entry.round}`,
+      );
+    }
   }, [length]);
 
   // Rzut jednej strony, zanim rzuci druga.
@@ -290,8 +331,8 @@ export function useVolley(view: BattleView | undefined): Volley[] {
       const key = `${round}:${faction}`;
       if (sideSeen.current.has(key)) continue;
       sideSeen.current.add(key);
-      if (faction === view.attacker.faction) launch("COMBAT", rolls, []);
-      else launch("COMBAT", [], rolls);
+      if (faction === view.attacker.faction) launch("COMBAT", rolls, [], `C:${round}`);
+      else launch("COMBAT", [], rolls, `C:${round}`);
     }
   }, [sideKey, round]);
 

@@ -55,20 +55,29 @@ export type FlightEffect = Point & {
 
 export const NATIVE_NORTHWEST_ANGLE = -135;
 /** Wormhole crossing: shrink into the swirl, a beat of nothing, emerge. */
-export const JUMP_MS = 2400;
+export const JUMP_MS = 1800;
 /**
  * Ignition: the ship lifts off and its engines spool up, without turning. It comes about
  * onto its course while it gains speed and swings to its parked heading while it brakes,
  * so it never pivots in place (user decision: "too much rotation, not flying").
  * Settle: it sets down on the board once stopped.
  */
-export const IGNITION_MS = 600;
-export const SETTLE_MS = 450;
-/** Longest stretch of a flight spent coming about (start) or swinging to park (end). */
-const TURN_WINDOW_MS = 1500;
-const TURN_WINDOW_SHARE = 0.32;
+export const IGNITION_MS = 380;
+export const SETTLE_MS = 300;
+/**
+ * Longest stretch of a flight spent coming about (start) or swinging to park (end): short,
+ * so a ship holds its course for most of the flight instead of weaving (user decision
+ * 2026-11-28: "too wiggly - ships should move like ships").
+ */
+const TURN_WINDOW_MS = 800;
+const TURN_WINDOW_SHARE = 0.22;
 /** The nose steers toward the path this far ahead (px), so turns lead into corners. */
-const LOOK_AHEAD_PX = 70;
+const LOOK_AHEAD_PX = 120;
+/**
+ * Curve tension through the systems on the way (0.5 = Catmull-Rom). Lower = a straighter
+ * course that only rounds the corners, no S-bends between hexes.
+ */
+const PATH_TENSION = 0.25;
 /** Lifted off the board in flight: slightly bigger, with a deeper shadow below. */
 const LIFT_SCALE = 0.1;
 const JUMP_SHRINK = 0.42;
@@ -77,7 +86,7 @@ const JUMP_HIDDEN = 0.16;
  * Fracture ingress/egress: quicker and more violent than a wormhole. The ship accelerates
  * into the tear stretching into a streak, flashes out, and shoots out of the linked tear.
  */
-export const PORTAL_MS = 2000;
+export const PORTAL_MS = 1500;
 const PORTAL_DIVE = 0.4;
 const PORTAL_EMERGE = 0.55;
 /** How far past the tear the streak carries (px), in and out. */
@@ -126,12 +135,12 @@ export function flightDuration(deltaX: number, deltaY: number): number {
 }
 
 /**
- * Live moves fly slow and heavy, like an armada (user decisions: "way too fast", then
- * "a little bit slower", then "I want to see weight"): about 2.8 s per system; a short hop
- * (landing, reaching a wormhole) still takes a beat.
+ * Live moves fly with weight, like an armada (user decisions: "way too fast", then "a little
+ * bit slower", then "I want to see weight", then 2026-11-28 "too slow"): about 1.7 s per
+ * system; a short hop (landing, reaching a wormhole) still takes a beat.
  */
 function legBaseMs(distance: number): number {
-  return Math.min(4400, Math.max(1300, 1800 + distance * 3.4));
+  return Math.min(2800, Math.max(850, 1100 + distance * 2.1));
 }
 
 type Chain = {
@@ -214,12 +223,16 @@ export function flightPathDuration(start: Point, legs: FlightLeg[]): number {
 
 // --- Geometry --------------------------------------------------------------
 
+/** Cardinal spline segment p1 -> p2 (tangents scaled by `PATH_TENSION`). */
 function catmullRom(p0: Point, p1: Point, p2: Point, p3: Point, t: number): Point {
   const t2 = t * t;
   const t3 = t2 * t;
+  const h00 = 2 * t3 - 3 * t2 + 1;
+  const h10 = t3 - 2 * t2 + t;
+  const h01 = -2 * t3 + 3 * t2;
+  const h11 = t3 - t2;
   const axis = (a: number, b: number, c: number, d: number) =>
-    0.5 *
-    (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+    h00 * b + h10 * PATH_TENSION * (c - a) + h01 * c + h11 * PATH_TENSION * (d - b);
   return { x: axis(p0.x, p1.x, p2.x, p3.x), y: axis(p0.y, p1.y, p2.y, p3.y) };
 }
 
@@ -767,9 +780,9 @@ function lastSampleOfLeg(dense: DenseSample[], leg: number): DenseSample | undef
 // --- Cargo packed into a carrier -------------------------------------------
 
 /** Fighters / ground forces shrinking into their carrier before it launches. */
-export const PACK_MS = 1100;
+export const PACK_MS = 700;
 /** ...and coming back out of it at the destination. */
-export const UNPACK_MS = 1300;
+export const UNPACK_MS = 800;
 /** Inside the hull: shrunk to a speck (and fully transparent). */
 const PACKED_SCALE = 0.08;
 /** Size on reaching the hatch: they shrink as they near the carrier. */

@@ -348,6 +348,9 @@ class BotConfig(BaseModel):
     - ``algorithm_by_difficulty`` — nazwa algorytmu z ``engine/compute`` dla poziomu trudności
       (brak wpisu → ``default_algorithm``);
     - ``move_delay_s`` — pauza „dla oka” przed ruchem bota (tryb admin fast / testy: 0);
+    - ``combat_round_gap_s`` — a bot's combat roll (AFB / combat round) waits until this long has
+      passed since the previous round's first roll, so the battle window can show one round's
+      dice and shots before the next round starts (rounds never merge on screen; 0 = off);
     - ``decision_deadline_s`` / ``key_decision_deadline_s`` — twardy termin decyzji zwykłej /
       kluczowej (rodzaje akcji z ``key_decision_kinds``); po nim ruch domyślny;
     - ``executor`` / ``workers`` — liczenie w procesie serwera (``inline``) albo w puli procesów
@@ -359,6 +362,7 @@ class BotConfig(BaseModel):
     default_algorithm: str = "first"
     algorithm_by_difficulty: dict[str, str] = Field(default_factory=dict)
     move_delay_s: float = 1.0
+    combat_round_gap_s: float = 4.0
     decision_deadline_s: float = 2.0
     key_decision_deadline_s: float = 10.0
     key_decision_kinds: list[str] = Field(default_factory=list)

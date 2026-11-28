@@ -416,3 +416,20 @@ those files), ruff, mypy; frontend `tsc`, eslint (changed files), vitest (62 fil
   Empyrean Watcher, Muaat Magmus.
 - Tests: `test_cabal.py`, `test_empyrean.py`, `test_mahact.py`, `test_muaat.py`, `test_yssaril.py`,
   `test_flows_yssaril.py`, `rulings_general/test_rulings_technology.py`.
+
+## Playtest fixes: Artuno, Boosts, secondary queue, combat pacing, flight speed (2026-11-28)
+
+- Artuno the Betrayer: "place an equal number of trade goods on this card" now takes them from the supply -
+  the Nomad keeps the trade goods they gained, and the card pays the same amount again when readied
+  (`economy.stash_on_leader`; RULES.md 62.21).
+- Boosts button is always visible; greyed out (`aria-disabled`) while nothing is available or open.
+- Secondary queue chip no longer flashes: its query keeps the previous answer between game-state polls
+  (`placeholderData: keepPreviousData`), so it stays mounted and clickable.
+- Combat: bots pace new rounds (`BotConfig.combat_round_gap_s`, RULES.md 65); the battle window queues a
+  volley of another round until the previous one has finished and animates every new log entry
+  (`useVolley`); dice fly faster (`DIE_MS` 1800, `READ_MS` 500). Players who are not fighting get a
+  "Battle in progress — join" pill instead of the full-screen window.
+- Map flights: faster (≈1.7 s per system, quicker ignition/settle, wormhole/portal, cargo pack/unpack) and
+  steadier (shorter come-about / park swing, longer look-ahead, lower path tension - no S-bends).
+- Tests: `test_nomad.py`, `test_flows_nomad.py`, `test_bot_runner.py`, `useVolley.test.ts`,
+  `BoostsButton.test.tsx`.

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { IconClockPlay, IconX } from "@tabler/icons-react";
 import { Button, Tooltip } from "@/ds";
 import { DEFAULT_GAME_ID } from "@/config";
@@ -47,6 +47,9 @@ export function SecondaryQueueChip({ playerId }: { playerId: string }) {
     queryKey: ["strategy", "queue", playerId, dataUpdatedAt],
     enabled: relevant,
     staleTime: 0,
+    // The key follows every game-state poll: keep the last answer while the next one loads, or
+    // the chip unmounts and remounts on each poll (flashing, impossible to click).
+    placeholderData: keepPreviousData,
     queryFn: async () =>
       fetchJson<QueueOptions>(
         `/bot/strategy/queue-options?player_id=${encodeURIComponent(playerId)}`,
