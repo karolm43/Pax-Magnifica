@@ -22,12 +22,6 @@
   color: var(--ds-ink-lo);
 }
 
-.tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
-  gap: 6px;
-}
-
 .bar {
   display: grid;
   gap: 4px;

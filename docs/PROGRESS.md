@@ -460,3 +460,9 @@ those files), ruff, mypy; frontend `tsc`, eslint (changed files), vitest (62 fil
 - The follow-up conditions now require the exhauster (`ctx["player"] == player_id`): T'ro (Sardakk),
   Acamar (Empyrean), Field Marshal Mercer (Nomad).
 - Test: `tests/factions/test_flows_yssaril.py::test_ssruu_copy_of_tro_places_infantry_once`.
+
+## UI: even decision-window option tiles
+
+- One tile grid (`DecisionFields.module.css` `.tiles`, also used by `PaymentTiles`): tiles fill the whole
+  row (`auto-fit`, min 180px), equal row height, min-height 56px.
+- The ⓘ / "show on map" buttons sit vertically centred at the right edge instead of the top corner.

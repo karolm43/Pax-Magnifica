@@ -69,9 +69,11 @@
   color: var(--ds-ink-lo);
 }
 
+/* One grid for every option tile: tiles fill the whole row and share one height. */
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  grid-auto-rows: 1fr;
   gap: 6px;
 }
 
@@ -86,7 +88,7 @@
 
 /* Kafelki z opisem zasady (technologie, cele, karty): szersze kolumny, tekst pod nazwą. */
 .tiles[data-rich] {
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 }
 
 .tiles[data-rich] .tile {
@@ -108,7 +110,7 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  min-height: 44px;
+  min-height: 56px;
   padding: 8px 10px;
   text-align: left;
   color: var(--ds-ink-hi);
@@ -184,17 +186,18 @@
 }
 
 .tileWrap > .tile {
-  padding-right: 28px;
+  padding-right: 38px;
 }
 
-/* Przyciski kafelka w prawym górnym rogu: ⓘ pełna karta, oko = cel na mapie. */
+/* Przyciski kafelka przy prawej krawędzi, wyśrodkowane: ⓘ pełna karta, oko = cel na mapie. */
 .tileActions {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 50%;
+  right: 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  transform: translateY(-50%);
 }
 
 .locate {

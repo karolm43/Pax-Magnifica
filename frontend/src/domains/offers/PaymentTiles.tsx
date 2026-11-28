@@ -3,6 +3,7 @@ import type { ActionCardOption } from "@/api/useActionCard";
 import { AutoButton } from "@/shared/ui/AutoButton/AutoButton";
 import { Stepper } from "@/shared/ui/Stepper/Stepper";
 import { Tile } from "./DecisionTiles";
+import tileStyles from "./DecisionFields.module.css";
 import styles from "./PaymentTiles.module.css";
 
 /** Planeta do wyczerpania: opcja kafelka z `meta.value` (wartość do zapłaty). */
@@ -72,7 +73,7 @@ export function PaymentTiles({
         </div>
       )}
       {planets.length > 0 ? (
-        <div className={styles.tiles}>
+        <div className={tileStyles.tiles}>
           {planets.map((option) => (
             <Tile
               key={option.id}
