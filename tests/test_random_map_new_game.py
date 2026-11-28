@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from src.api.app import create_app
+from src.core.map_string import is_mecatol_system
 
 
 def test_random_map_new_game_ok() -> None:
@@ -13,4 +14,4 @@ def test_random_map_new_game_ok() -> None:
     res = client.post("/game/new", json={"players": players, "random_map": True})
     assert res.status_code == 200
     ids = [t["system_id"] for t in res.json()["tiles"]]
-    assert "18" in ids and len(ids) > 20
+    assert any(is_mecatol_system(i) for i in ids) and len(ids) > 20

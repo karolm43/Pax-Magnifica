@@ -12,7 +12,7 @@ from typing import Any
 
 from src.core import command_tokens
 from src.core.game_state import GameState
-from src.core.map_string import MECATOL_SYSTEM_ID
+from src.core.map_string import is_mecatol_system
 from src.core.strategy_cards.base import CardContext, CardSpec, Draft
 from src.core.strategy_cards.common import (
     exhausted_owned_planets,
@@ -29,7 +29,7 @@ def eligible_systems(state: GameState, player_id: str) -> dict[str, list[str]]:
     """Systemy (pozycja → własne planety) legalne dla primary: nie Mecatol, z własną planetą."""
     result: dict[str, list[str]] = {}
     for position, system in state.systems.items():
-        if system.system_id == MECATOL_SYSTEM_ID:
+        if is_mecatol_system(system.system_id):
             continue
         mine = [p for p, owner in system.planet_owners.items() if owner == player_id]
         if mine:

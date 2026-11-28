@@ -38,7 +38,7 @@ from src.core.fleet_pool import unit_name
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
 from src.core.hooks.card_helpers import controlled, place_from_reinforcements, system_of_planet
-from src.core.map_string import MECATOL_SYSTEM_ID
+from src.core.map_string import is_mecatol_system
 from src.core.planet_stats import influence_of
 from src.core.production import reinforcements_left
 from src.core.reaction_cards import OpenWindow
@@ -161,7 +161,7 @@ def peace_targets(state: GameState, player_id: str) -> list[tuple[str, str]]:
     for position in sorted(_near_own_planets(state, player_id)):
         system = state.systems.get(position)
         definition = registry.systems.get(system.system_id) if system is not None else None
-        if system is None or definition is None or system.system_id == MECATOL_SYSTEM_ID:
+        if system is None or definition is None or is_mecatol_system(system.system_id):
             continue
         for planet in definition.planets or []:
             if system.planet_owners.get(planet) == player_id:

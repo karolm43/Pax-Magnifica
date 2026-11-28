@@ -16,6 +16,7 @@ from fastapi.testclient import TestClient
 
 from src.api.app import create_app
 from src.core.event_store import EventStore
+from src.core.map_string import mecatol_system_id
 from src.core.registry import StaticDataRegistry
 from tests.setup_helpers import finish_setup
 
@@ -80,8 +81,8 @@ def test_web_data_has_required_top_level_keys(client: TestClient) -> None:
 def test_web_data_tile_positions_format(client: TestClient) -> None:
     client.post("/map/load", json={"map_string": SAMPLE_MAP_STRING})
     data = _web_data(client)
-    # Centrum zawsze obecne jako "000:18" (Mecatol).
-    assert "000:18" in data["tilePositions"]
+    # Center always present as Mecatol Rex (active version: 112 with Thunder's Edge, else 18).
+    assert f"000:{mecatol_system_id(StaticDataRegistry())}" in data["tilePositions"]
     # Każdy wpis to "<pozycja>:<systemId>" i ma odpowiadający klucz w tileUnitData.
     for entry in data["tilePositions"]:
         position, system_id = entry.split(":")
@@ -232,7 +233,7 @@ def test_new_game_without_map_string_uses_default(client: TestClient) -> None:
     assert resp.status_code == 200
     data = _web_data(client)
     # Mapa testowa się załadowała (Mecatol + pierścienie).
-    assert "000:18" in data["tilePositions"]
+    assert f"000:{mecatol_system_id(StaticDataRegistry())}" in data["tilePositions"]
     assert len(data["tilePositions"]) > 10
     # Gracze z auto-przydziałem kolorów wg kolejności (red, grn - aliasy kanoniczne).
     players = {p["faction"]: p["color"] for p in data["playerData"]}
@@ -431,14 +432,16 @@ def test_planet_control_single_source_player_edit(client: TestClient) -> None:
     # Bug 3: edycja controlled_planets gracza aktualizuje planet_owners systemu,
     # więc mapa (controlledBy) i panel (planets) zgadzają się.
     client.post("/game/new", json={"players": [{"faction_id": "sol"}]})
-    # Znajdź planetę z mapy, którą nadamy Solowi (Mecatol Rex = 'mr' w systemie 18).
-    client.post("/player/p1/edit", json={"controlled_planets": ["mr"]})
+    # The Mecatol Rex planet of the center tile (``mrte`` on 112, ``mr`` on 18).
+    registry = StaticDataRegistry()
+    mecatol = registry.systems[mecatol_system_id(registry)].planets[0]
+    client.post("/player/p1/edit", json={"controlled_planets": [mecatol]})
     data = _web_data(client)
     sol = next(p for p in data["playerData"] if p["faction"] == "sol")
     # Panel: Mecatol na liście planet gracza.
-    assert "mr" in sol["planets"]
+    assert mecatol in sol["planets"]
     # Mapa: Mecatol w systemie 000 kontrolowany przez Sol.
-    assert data["tileUnitData"]["000"]["planets"]["mr"]["controlledBy"] == "sol"
+    assert data["tileUnitData"]["000"]["planets"][mecatol]["controlledBy"] == "sol"
 
 
 def test_planet_control_single_source_system_edit(client: TestClient) -> None:

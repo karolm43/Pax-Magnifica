@@ -17,7 +17,7 @@ from typing import Any
 from src.core import objective_progress, objectives, triggers
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState
-from src.core.map_string import MECATOL_SYSTEM_ID
+from src.core.map_string import is_mecatol_system
 from src.core.objective_payment import ObjectivePayment, spend_spec
 from src.core.secret_objectives import draw as draw_secret
 from src.core.secret_objectives import over_limit_after_draw
@@ -29,7 +29,7 @@ INITIATIVE = 8
 def controls_mecatol(state: GameState, player_id: str) -> bool:
     """Czy gracz kontroluje planetę w systemie Mecatol Rex."""
     for system in state.systems.values():
-        if system.system_id == MECATOL_SYSTEM_ID:
+        if is_mecatol_system(system.system_id):
             return player_id in system.planet_owners.values()
     return False
 

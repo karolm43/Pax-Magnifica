@@ -15,7 +15,7 @@ from src.core import invasion as invasion_core
 from src.core.fracture import is_fracture_position
 from src.core.game_state import GameState
 from src.core.hex_grid import HexGrid
-from src.core.map_string import HOME_SLOT_SYSTEM_ID, MECATOL_SYSTEM_ID
+from src.core.map_string import HOME_SLOT_SYSTEM_ID, is_mecatol_system
 from src.core.planet_stats import attachment_defs
 from src.core.registry import StaticDataRegistry
 from src.core.system_planets import planets_of_system
@@ -240,7 +240,7 @@ def _build_tile_unit_data(
 
         # Żeton Custodians na Mecatol Rex: neutralny token planety (klucz "neutral" — nie jest
         # żadnym graczem), rysowany jak inne tokeny z `entityType: "token"`.
-        if system_id == MECATOL_SYSTEM_ID and web_setup.custodian_on_board(state):
+        if is_mecatol_system(system_id) and web_setup.custodian_on_board(state):
             for planet_id in system.planets if system is not None else []:
                 planets[planet_id].setdefault("entities", {}).setdefault(
                     "neutral", []

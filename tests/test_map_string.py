@@ -6,7 +6,10 @@ import pytest
 
 from src.core.map_string import (
     MECATOL_SYSTEM_ID,
+    MECATOL_TE_SYSTEM_ID,
     build_grid_from_map_string,
+    is_mecatol_system,
+    mecatol_system_id,
     parse_map_string,
 )
 from src.core.positions import load_positions, ordered_positions
@@ -127,3 +130,29 @@ def test_build_grid_positions_valid_cube(registry: StaticDataRegistry) -> None:
     for pos in grid.positions:
         q, r, s = grid.coordinates(pos)
         assert q + r + s == 0
+
+
+# --- Mecatol Rex: base tile 18 / Thunder's Edge tile 112 (R_mecatol_rex, RULES.md 2) -------
+
+
+def test_is_mecatol_system_both_versions() -> None:
+    assert is_mecatol_system("18") and is_mecatol_system("112")
+    assert not is_mecatol_system("19") and not is_mecatol_system(None)
+
+
+def test_mecatol_system_id_prefers_thunders_edge(registry: StaticDataRegistry) -> None:
+    """Thunder's Edge active (tile 112 in the registry) -> the legendary 112 is the center."""
+    has_te = MECATOL_TE_SYSTEM_ID in registry.systems
+    expected = MECATOL_TE_SYSTEM_ID if has_te else MECATOL_SYSTEM_ID
+    assert mecatol_system_id(registry) == expected
+
+
+def test_build_grid_center_is_active_mecatol_version(registry: StaticDataRegistry) -> None:
+    """Default center and an explicit base ``18`` both become the active Mecatol tile."""
+    mecatol = mecatol_system_id(registry)
+    assert build_grid_from_map_string(SAMPLE, registry).system_id_at("000") == mecatol
+    # An explicit base ``18`` token (here on ring 1, position 101) is swapped the same way.
+    explicit = build_grid_from_map_string(
+        f"{MECATOL_SYSTEM_ID} 66 77 26 27 34", registry, include_center=False
+    )
+    assert explicit.system_id_at("101") == mecatol

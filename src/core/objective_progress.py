@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from src.core import coexistence, command_tokens, payment, production
 from src.core.game_state import GameState, PlayerState, SystemState
 from src.core.hex_grid import HexGrid
+from src.core.legendary_planets import MECATOL_PLANETS
 from src.core.neighbors import neighbors_by_player
 from src.core.planet_stats import (
     EffectivePlanets,
@@ -143,8 +144,7 @@ class View:
     def mecatol(self) -> str | None:
         for position in self.state.systems:
             for planet_id in self.planets_of_system(position):
-                planet = self.registry.planets.get(planet_id)
-                if planet is not None and planet.planet_type == "MR" and planet_id == "mr":
+                if planet_id in MECATOL_PLANETS:  # base 18 / Thunder's Edge 112
                     return position
         return None
 
@@ -578,7 +578,7 @@ def _p_next_to_home(v: View) -> int:
 
 def _p_seat_of_empire(v: View) -> int:
     mecatol = v.mecatol()
-    if mecatol is None or "mr" not in v.owned:
+    if mecatol is None or not any(p in v.owned for p in MECATOL_PLANETS):
         return 0
     return v.ships_in(mecatol)
 

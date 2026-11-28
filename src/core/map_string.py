@@ -19,8 +19,23 @@ from src.core.home_slots import HOME_SLOT_COLORS_6P, home_slot_color
 from src.core.positions import load_positions, ordered_positions
 from src.core.registry import StaticDataRegistry
 
-# Identyfikator systemu Mecatol Rex (centrum każdej mapy).
+# Mecatol Rex system tiles: base ``18`` (not legendary) and the Thunder's Edge ``112``
+# (legendary planet ``mrte`` - The Galactic Council; R_mecatol_rex, RULES.md 2a).
 MECATOL_SYSTEM_ID = "18"
+MECATOL_TE_SYSTEM_ID = "112"
+MECATOL_SYSTEM_IDS: frozenset[str] = frozenset({MECATOL_SYSTEM_ID, MECATOL_TE_SYSTEM_ID})
+
+
+def is_mecatol_system(system_id: str | None) -> bool:
+    """Whether ``system_id`` is a Mecatol Rex tile (either version)."""
+    return system_id in MECATOL_SYSTEM_IDS
+
+
+def mecatol_system_id(registry: StaticDataRegistry) -> str:
+    """Mecatol Rex tile for new maps: the newest active version (Thunder's Edge ``112``)."""
+    if MECATOL_TE_SYSTEM_ID in registry.systems:
+        return MECATOL_TE_SYSTEM_ID
+    return MECATOL_SYSTEM_ID
 
 # Token pustego miejsca w map stringu.
 _EMPTY_TOKEN = "0"
@@ -49,6 +64,7 @@ def parse_map_string(
     *,
     include_center: bool = True,
     alias_path: str | Path | None = None,
+    center_tile: str = MECATOL_SYSTEM_ID,
 ) -> list[PlacedTile]:
     """Parsuje map string na listę kafelków przypisanych do pozycji.
 
@@ -59,6 +75,7 @@ def parse_map_string(
             centrum, Mecatol Rex (``18``) jest automatycznie dodawany na pozycji
             ``000``. Ustaw ``False``, by nie dodawać centrum.
         alias_path: Opcjonalna ścieżka do pliku alias pozycji (dla testów).
+        center_tile: Tile placed at ``000`` (``mecatol_system_id(registry)`` in a game).
 
     Returns:
         Lista ``PlacedTile`` w kolejności pozycji (bez pustych miejsc).
@@ -81,7 +98,7 @@ def parse_map_string(
 
     placed: list[PlacedTile] = []
     if include_center:
-        placed.append(PlacedTile(position="000", tile_id=MECATOL_SYSTEM_ID))
+        placed.append(PlacedTile(position="000", tile_id=center_tile))
 
     for token, position in zip(tokens, positions, strict=False):
         if token == _EMPTY_TOKEN:
@@ -126,9 +143,10 @@ def build_grid_from_map_string(
     """
     coords = load_positions(alias_path)
     grid = HexGrid()
+    mecatol = mecatol_system_id(registry)
 
     for tile in parse_map_string(
-        map_string, include_center=include_center, alias_path=alias_path
+        map_string, include_center=include_center, alias_path=alias_path, center_tile=mecatol
     ):
         hex_coord = coords.get(tile.position)
         if hex_coord is None:
@@ -144,6 +162,9 @@ def build_grid_from_map_string(
             continue
 
         tile_id = resolve_tile_id(tile.tile_id, registry)
+        if is_mecatol_system(tile_id):
+            # An explicit base Mecatol (``18``) becomes the newest active version (``112``).
+            tile_id = mecatol
         system = registry.systems.get(tile_id) if tile_id is not None else None
         if system is None:
             continue  # Kafelek spoza aktywnych źródeł — pomijamy (endpointy zgłaszają 422).
@@ -245,7 +266,7 @@ def random_map_string(registry: StaticDataRegistry, rng: random.Random) -> str:
     usable = sorted(
         sid
         for sid, s in registry.systems.items()
-        if s.tile_back in ("blue", "red") and sid != MECATOL_SYSTEM_ID and not s.is_fracture
+        if s.tile_back in ("blue", "red") and not is_mecatol_system(sid) and not s.is_fracture
     )
     # Pierścienie 1–3 = pierwsze 36 pozycji; home sloty to rogi pierścienia 3.
     positions_6p = ordered_positions()[:36]

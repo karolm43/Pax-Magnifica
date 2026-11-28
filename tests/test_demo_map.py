@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from src.api.demo_map import build_demo_grid
+from src.core.map_string import mecatol_system_id
 from src.core.registry import StaticDataRegistry
 
 
@@ -21,9 +22,9 @@ def test_demo_grid_has_center(registry: StaticDataRegistry) -> None:
 
 def test_demo_grid_center_is_mecatol(registry: StaticDataRegistry) -> None:
     grid = build_demo_grid(registry)
-    # System 18 = Mecatol Rex w danych AsyncTI4 (jeśli obecny w rejestrze).
-    if "18" in registry.systems:
-        assert grid.system_id_at("000") == "18"
+    # Mecatol Rex: the active version (Thunder's Edge 112, else base 18 - RULES.md 2).
+    if mecatol_system_id(registry) in registry.systems:
+        assert grid.system_id_at("000") == mecatol_system_id(registry)
 
 
 def test_demo_grid_ring_adjacent_to_center(registry: StaticDataRegistry) -> None:

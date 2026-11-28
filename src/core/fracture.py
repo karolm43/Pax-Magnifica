@@ -22,6 +22,7 @@ from src.core.expedition_state import IngressChoice
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import GameState, SystemState
 from src.core.hex_grid import Hex, HexGrid
+from src.core.legendary_planets import MECATOL_PLANETS
 from src.core.neutral import NEUTRAL_PLAYER_ID
 from src.core.planet_stats import planet_stats
 from src.core.registry import StaticDataRegistry
@@ -258,7 +259,11 @@ def _extra_ingress_position(
     """System dodatkowego ingressu: Thunder's Edge, jeśli na planszy, inaczej Mecatol Rex."""
     if state.expeditions.thunders_edge_position is not None:
         return state.expeditions.thunders_edge_position
-    return planet_position("mr", state, grid, registry)
+    for planet in MECATOL_PLANETS:  # base 18 / Thunder's Edge 112
+        position = planet_position(planet, state, grid, registry)
+        if position is not None:
+            return position
+    return None
 
 
 def _synergy_colors(registry: StaticDataRegistry, breakthrough_id: str | None) -> list[str] | None:

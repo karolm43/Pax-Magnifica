@@ -13,11 +13,9 @@ służy do wizualnej weryfikacji renderowania heksów, sąsiedztwa i anomalii.
 from __future__ import annotations
 
 from src.core.hex_grid import HexGrid
+from src.core.map_string import is_mecatol_system, mecatol_system_id
 from src.core.models import SystemDef
 from src.core.registry import StaticDataRegistry
-
-# Identyfikator systemu Mecatol Rex w danych AsyncTI4 (centrum każdej mapy).
-_MECATOL_SYSTEM_ID = "18"
 
 
 def _pick_demo_system_ids(registry: StaticDataRegistry) -> list[str]:
@@ -31,7 +29,7 @@ def _pick_demo_system_ids(registry: StaticDataRegistry) -> list[str]:
     Returns:
         Lista 6 identyfikatorów systemów (bez Mecatol Rex), stabilnie uporządkowana.
     """
-    all_ids = sorted(sid for sid in registry.systems if sid != _MECATOL_SYSTEM_ID)
+    all_ids = sorted(sid for sid in registry.systems if not is_mecatol_system(sid))
 
     def has_anomaly(sid: str) -> bool:
         # Entropic Scar (RULES.md 1.5) bez wpływu na ruch - nie zmienia stałego układu mapy demo.
@@ -69,11 +67,8 @@ def build_demo_grid(registry: StaticDataRegistry) -> HexGrid:
         )
 
     # Centrum: Mecatol Rex (jeśli obecny w rejestrze), inaczej pierwszy system.
-    center_id = (
-        _MECATOL_SYSTEM_ID
-        if _MECATOL_SYSTEM_ID in registry.systems
-        else sorted(registry.systems)[0]
-    )
+    mecatol = mecatol_system_id(registry)
+    center_id = mecatol if mecatol in registry.systems else sorted(registry.systems)[0]
     place("000", registry.systems[center_id])
 
     # Pierwszy pierścień: pozycje 101..106.

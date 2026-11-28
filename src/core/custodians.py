@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from src.core import objectives, payment, rules_hooks
 from src.core.game_state import GameState
-from src.core.map_string import MECATOL_SYSTEM_ID
+from src.core.map_string import is_mecatol_system
 from src.core.registry import StaticDataRegistry
 
 # Koszt zdjęcia żetonu (wpływ) i klucz „innych punktów" w stanie celów.
@@ -35,7 +35,7 @@ def on_board(state: GameState) -> bool:
 def is_mecatol_position(state: GameState, position: str) -> bool:
     """Czy na pozycji ``position`` leży system Mecatol Rex."""
     system = state.systems.get(position)
-    return system is not None and system.system_id == MECATOL_SYSTEM_ID
+    return system is not None and is_mecatol_system(system.system_id)
 
 
 def mecatol_planets(
@@ -44,7 +44,7 @@ def mecatol_planets(
     """Planety systemu Mecatol Rex na ``position`` (zwykle jedna: sam Mecatol Rex)."""
     if not is_mecatol_position(state, position):
         return []
-    definition = registry.systems.get(MECATOL_SYSTEM_ID)
+    definition = registry.systems.get(state.systems[position].system_id)
     return list(definition.planets) if definition is not None else []
 
 
