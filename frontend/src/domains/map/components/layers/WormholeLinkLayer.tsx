@@ -1,7 +1,14 @@
 import type { Tile } from "@/entities/game/types";
 import { tileOutline } from "@/entities/geometry/tileOutline";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
-import { kindsToShow, linkTargets, playerLinkTargets, useWormholeHoverStore } from "../../wormholeLinks";
+import { useGameData } from "@/state/useGameContext";
+import {
+  kindsToShow,
+  linkedKinds,
+  linkTargets,
+  playerLinkTargets,
+  useWormholeHoverStore,
+} from "../../wormholeLinks";
 import classes from "./WormholeLinkLayer.module.css";
 
 type Point = { x: number; y: number };
@@ -31,6 +38,7 @@ export function WormholeLinkLayer({
 }) {
   const hovered = useWormholeHoverStore((s) => s.hovered);
   const viewer = useDeskPlayer();
+  const linked = useGameData()?.linkedWormholes;
   if (!hovered) return null;
 
   const byPosition = new Map(tiles.map((t) => [t.position, t]));
@@ -44,7 +52,12 @@ export function WormholeLinkLayer({
   };
   const from = center(source);
 
-  const printed = kindsToShow(source, hovered.kinds).flatMap((kind) =>
+  // Wormhole Reconstruction (alpha <-> beta for everyone): a linked destination is drawn in the
+  // colour of the DESTINATION wormhole, like Quantum Entanglement below.
+  const shown = new Set(
+    kindsToShow(source, hovered.kinds).flatMap((kind) => linkedKinds(kind, linked)),
+  );
+  const printed = [...shown].flatMap((kind) =>
     linkTargets(kind, hovered.position, tiles).map((position) => ({ kind, position })),
   );
   // Links only one player has (Quantum Entanglement: alpha <-> beta for Creuss) look like any

@@ -211,6 +211,11 @@ POINT_ADJACENCY_CUT_FOR_PLAYER = "adjacency.cut_for_player"
 # ship's system contains a delta wormhole"); read ONLY via ``board_graph.unit_wormholes``
 # (map sync + ``wormholes_at``), RULES.md 62.19.
 POINT_BOARD_UNIT_WORMHOLES = "board.unit_wormholes"
+# FORBID -> ``"<TYPE>|<TYPE>"`` pairs of wormhole types that are linked on the map graph for
+# EVERYONE (law Wormhole Reconstruction "For": "All systems that contain either an alpha or beta
+# wormhole are adjacent to each other" - every "adjacent" effect, not only movement; user decision
+# 2026-11-28, RULES.md 51.6). Read ONLY via ``board_graph.linked_wormhole_types`` (map sync).
+POINT_BOARD_LINKED_WORMHOLES = "board.linked_wormholes"
 # PERMIT -> game effects (laws: Enforced Travel Ban, Nexus Sovereignty) cannot block this
 # player's wormhole movement (Creuss Quantum Entanglement); read in
 # ``movement_paths.wormhole_link_blocked`` (RULES.md 62.19).

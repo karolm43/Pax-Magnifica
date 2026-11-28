@@ -12,6 +12,11 @@ vi.mock("@/domains/game-shell/components/TurnControls/useDeskPlayer", () => ({
   useDeskPlayer: () => desk,
 }));
 
+let linkedWormholes: string[][] = [];
+vi.mock("@/state/useGameContext", () => ({
+  useGameData: () => ({ linkedWormholes }),
+}));
+
 const tile = (position: string, systemId: string, x: number) =>
   ({ position, systemId, tokens: [], properties: { x, y: 0 } }) as unknown as Tile;
 
@@ -54,5 +59,30 @@ describe("WormholeLinkLayer: system with several wormholes", () => {
     );
     expect(container.querySelectorAll('g[data-kind="ALPHA"]')).toHaveLength(1);
     expect(container.querySelectorAll('g[data-kind="BETA"]')).toHaveLength(1);
+  });
+});
+
+describe("WormholeLinkLayer: Wormhole Reconstruction (RULES.md 51.6)", () => {
+  const draw = () =>
+    render(
+      <WormholeLinkLayer
+        tiles={[tile("102", "39", 0), tile("104", "40", 400)]}
+        contentSize={{ width: 800, height: 400 }}
+      />,
+    ).container.querySelectorAll('g[data-kind="BETA"]');
+
+  beforeEach(() => {
+    desk = sol;
+    useWormholeHoverStore.getState().setHovered({ position: "102", kinds: ["ALPHA"] });
+  });
+
+  it("with the law in force, an alpha shows the beta systems to every player", () => {
+    linkedWormholes = [["ALPHA", "BETA"]];
+    expect(draw()).toHaveLength(1);
+  });
+
+  it("without it, an alpha does not lead to a beta", () => {
+    linkedWormholes = [];
+    expect(draw()).toHaveLength(0);
   });
 });

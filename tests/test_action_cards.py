@@ -342,6 +342,24 @@ def test_refit_troops_zamienia_piechote_na_mechy(registry: StaticDataRegistry) -
             _play(state, registry, "refit", {"planets": bad})
 
 
+def test_refit_troops_also_replaces_infantry_in_space(registry: StaticDataRegistry) -> None:
+    """RULES.md 53 (user decision 2026-11-28): Refit Troops covers infantry in a space area
+    (cargo) too - the mech replaces it in the same space area; the form offers it on the map."""
+    planet = _planets_with(registry, "cultural", 1)[0]
+    state = _state(registry, [], [planet])
+    state.systems["000"].planet_units = {planet: {"p1": {"infantry": 1}}}
+    state.systems["000"].space_units = {"p1": {"carrier": 1, "infantry": 1}}
+    state.players["p1"].private.action_cards = ["refit"]
+    _implemented, inputs = action_cards.card_inputs(state, registry, "p1", "refit")
+    values = [o["value"] for o in inputs[0]["options"]]
+    assert "space:000" in values and planet in values
+    new = _play(state, registry, "refit", {"planets": [planet, "space:000"]})
+    assert new.systems["000"].space_units["p1"] == {"carrier": 1, "mech": 1}
+    assert new.systems["000"].planet_units[planet]["p1"] == {"mech": 1}
+    with pytest.raises(ValueError, match="that many infantry"):
+        _play(state, registry, "refit", {"planets": ["space:000", "space:000"]})
+
+
 def test_scuttle_zwraca_statki_i_daje_tg_rowne_kosztowi(registry: StaticDataRegistry) -> None:
     state = _state(registry, [], [], trade_goods=0)
     state.systems["000"].space_units = {"p1": {"destroyer": 1, "cruiser": 1, "fighter": 3}}

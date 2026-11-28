@@ -243,13 +243,19 @@ def _name(state: GameState, player_id: str) -> str:
 # ====================================================================================== Voidwatch
 
 
+def _moved_by(ctx: Mapping[str, Any]) -> str:
+    """The player who moved the ships: "a player moves ships" abilities read the mover, not the
+    ships' owner (the Mahact with Benediction - F_mahact airo-shir-aur-benediction 2.1)."""
+    return str(ctx.get("mover") or ctx.get("player") or "")
+
+
 def _voidwatch_mover(_state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> str:
     """"A player moves ships" = the player who moved them (F_mahact benediction 2.1)."""
-    return str(ctx.get("mover") or ctx["player"])
+    return _moved_by(ctx)
 
 
 def _voidwatch_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
-    mover = str(ctx.get("mover") or ctx.get("player") or "")
+    mover = _moved_by(ctx)
     return (
         bool(mover) and mover != player_id and mover in state.players
         and _has_units(state, player_id, str(ctx.get("position") or ""))
@@ -346,7 +352,7 @@ def aetherstream_bonus(state: GameState, player_id: str, _ctx: Mapping[str, Any]
 
 
 def _acamar_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
-    mover = str(ctx.get("player") or "")
+    mover = _moved_by(ctx)
     position = str(ctx.get("position") or "")
     registry = _registry()
     return (
@@ -371,7 +377,7 @@ def acamar(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     exhaust this card; that player gains 1 command token (its pool = that player's decision)."""
     faction_components.pay_cost(
         state, _registry(), player_id, "leader", AGENT,
-        {"target": str(ctx["player"]), "position": str(ctx["position"])},
+        {"target": _moved_by(ctx), "position": str(ctx["position"])},
     )
 
 
@@ -422,7 +428,7 @@ def _xuange_unlocked(state: GameState, registry: StaticDataRegistry, player_id: 
 
 
 def _xuange_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
-    mover = str(ctx.get("player") or "")
+    mover = _moved_by(ctx)
     system = state.systems.get(str(ctx.get("position") or ""))
     return (
         bool(mover) and mover != player_id and system is not None

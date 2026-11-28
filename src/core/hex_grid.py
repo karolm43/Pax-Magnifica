@@ -137,6 +137,9 @@ class HexGrid:
         # Wormhole z ŻETONÓW położonych w trakcie gry (np. Gamma Wormhole z eksploracji):
         # typ -> pozycje. Osobno od wbudowanych, żeby Undo/Redo dawało spójną mapę.
         self._token_wormholes: dict[str, set[str]] = {}
+        # Groups of different wormhole types linked for everyone by a game effect (Wormhole
+        # Reconstruction: alpha <-> beta, RULES.md 51.6); synchronized from state on every read.
+        self._linked_wormholes: frozenset[frozenset[str]] = frozenset()
         # Anomalie nadane przez JEDNOSTKI w trakcie gry (Dimensional Tear = gravity rift, RULES.md
         # 62.17): pozycja -> anomalie. Osobno od kafla; synchronizowane ze stanu przy odczycie.
         self._extra_anomalies: dict[str, frozenset[str]] = {}
@@ -249,6 +252,14 @@ class HexGrid:
             for i, a in enumerate(pos_list):
                 for b in pos_list[i + 1 :]:
                     self._graph.add_edge(a, b, kind="wormhole")
+        # Linked types (Wormhole Reconstruction): every system with one type of the group is
+        # adjacent to every system with another type of it.
+        for group in sorted(self._linked_wormholes, key=sorted):
+            linked = sorted(set().union(*(combined.get(t, set()) for t in group)))
+            for i, a in enumerate(linked):
+                for b in linked[i + 1 :]:
+                    if not self._graph.has_edge(a, b):
+                        self._graph.add_edge(a, b, kind="wormhole")
 
         # Portale The Fracture: każdy ingress <-> każdy egress (R_fracture). Istniejąca
         # krawędź (np. geometryczna) zachowuje swój rodzaj.
@@ -276,6 +287,19 @@ class HexGrid:
         if wanted != self._token_wormholes:
             self._token_wormholes = wanted
             self.build_edges()
+
+    def sync_linked_wormholes(self, groups: frozenset[frozenset[str]]) -> None:
+        """Sets the linked wormhole type groups (``board_graph.linked_wormhole_types``) and
+        rebuilds the edges when they changed. Called on every state read."""
+        wanted = frozenset(frozenset(t.upper() for t in g) for g in groups)
+        if wanted != self._linked_wormholes:
+            self._linked_wormholes = wanted
+            self.build_edges()
+
+    @property
+    def linked_wormholes(self) -> frozenset[frozenset[str]]:
+        """Linked wormhole type groups currently in force (see ``sync_linked_wormholes``)."""
+        return self._linked_wormholes
 
     def sync_extra_anomalies(self, anomalies: dict[str, set[str]]) -> None:
         """Ustawia anomalie z jednostek (pozycja -> typy); krawędzie bez zmian (anomalia nie zmienia

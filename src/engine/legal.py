@@ -134,20 +134,21 @@ def _window(obs: Observation, ctx: EngineContext, pid: str) -> list[Action]:
     window = obs.view.pending_window
     assert window is not None
     if window.window_type is WindowType.STRATEGY_SECONDARY:
-        # Pas pierwszy; gracz „free” (Trade) nie może spasować - wtedy wykonanie bez wyborów.
+        # Pas pierwszy; gracz „free” (Trade) i Strategize (must resolve) nie mogą spasować.
         options = (obs.strategy_prompt or {}).get("options", {})
+        passes: list[Action] = (
+            [] if (obs.strategy_prompt or {}).get("pass_forbidden")
+            else [act.StrategySecondary(player_id=pid, execute=False)]
+        )
         if "tree" in options:
             # Technology: secondary = zbadaj 1 technologię za 4 zasoby (warianty z zapłatą).
-            variants: list[Action] = [act.StrategySecondary(player_id=pid, execute=False)]
+            variants: list[Action] = list(passes)
             variants.extend(
                 act.StrategySecondary(player_id=pid, execute=True, payload=p)
                 for p in research_payloads(options)
             )
             return variants
-        return [
-            act.StrategySecondary(player_id=pid, execute=False),
-            act.StrategySecondary(player_id=pid, execute=True),
-        ]
+        return [*passes, act.StrategySecondary(player_id=pid, execute=True)]
     if window.window_type is WindowType.COMBAT_ASSIGN_HITS:
         return _assign_hits(obs.view, ctx, pid)
     if window.window_type is WindowType.FLEET_POOL:

@@ -704,6 +704,32 @@ def test_watcher_anuluje_karte_akcji(registry: StaticDataRegistry) -> None:
     assert "sabo1" not in after.players["p2"].private.action_cards
 
 
+@ruling("F_empyrean/watcher/8.1")
+def test_watcher_anuluje_druga_akcje_fleet_logistics(registry: StaticDataRegistry) -> None:
+    """The cancelled ACTION card was the second action of a Fleet Logistics turn: that action is
+    given back, and the player may end the turn without a second action and without passing."""
+    from src.core import action_budget, faction_components, turn_flow
+
+    state = _state(registry)
+    state.active_player_id = "p2"
+    state.systems[TARMANN].planet_units = {"tarmann": {"p1": {"mech": 1}}}
+    state.systems[RIFT].space_units = {"p2": {"cruiser": 1}}  # adjacent to Tarmann
+    p2 = state.players["p2"]
+    p2.technologies = ["fl"]
+    assert action_budget.actions_allowed(state, "p2") == 2
+    action_budget.register_action(state, "p2")  # the first action of the turn
+    action_budget.register_action(state, "p2", component="sabo1")  # the card = second action
+    assert action_budget.actions_left(state, "p2") == 0
+    _held(state)
+    after, _ = faction_components.play(state, registry, "p1", "unit", empyrean.MECH,
+                                       {"mech": f"{TARMANN}|tarmann|0"})
+    assert after.held_play is None and "sabo1" in after.decks.action_card_discard
+    assert after.players["p2"].actions_this_turn == 1  # only the first action remains
+    assert action_budget.actions_left(after, "p2") == 1  # a different action is still allowed
+    ended = turn_flow.end_turn(after, "p2")  # ... or the turn ends without it
+    assert ended.active_player_id == "p1" and not ended.players["p2"].passed
+
+
 @ruling("F_empyrean/watcher/2", "F_empyrean/watcher/2.1")
 def test_watcher_musi_byc_przy_jednostkach_gracza(registry: StaticDataRegistry) -> None:
     from src.core import faction_components

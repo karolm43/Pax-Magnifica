@@ -704,6 +704,54 @@ def test_benediction_nova_seed_nie_dla_przesunietego(registry: StaticDataRegistr
     assert not muaat._hero_ready(_state(registry, other="muaat"), "p2", ctx)
 
 
+@ruling("F_mahact/airo-shir-aur-benediction/2.3")
+def test_benediction_stellar_genesis_nie_dla_przesunietego(registry: StaticDataRegistry) -> None:
+    """"After you move one of your war suns" (Stellar Genesis) - not when the Mahact moved it."""
+    from src.core.hooks.factions import muaat
+
+    state = _state(registry, other="muaat")
+    state.systems[EMPTY].added_planets = [muaat.AVERNUS]
+    ctx = {"player": "p2", "mover": "p1", "position": EMPTY_B, "from": EMPTY,
+           "route": [EMPTY, EMPTY_B], "ships": {"warsun": 1}}
+    assert not muaat._carries_avernus(state, "p2", ctx)
+    assert muaat._carries_avernus(state, "p2", {**ctx, "mover": "p2"})
+
+
+@ruling("F_mahact/airo-shir-aur-benediction/2.1")
+def test_benediction_another_player_moves_to_mahact(registry: StaticDataRegistry) -> None:
+    """"After another player moves ships" (Xuange, Foresight) reads the Mahact as the mover: it
+    triggers even for the owner's own ships the Mahact moved, and not for the owner's own move."""
+    from src.core.hooks.factions import empyrean, naalu
+
+    state = _state(registry, other="empyrean")
+    state.systems[EMPTY_B].command_tokens = ["p2"]
+    moved = {"player": "p2", "mover": "p1", "position": EMPTY_B, "from": EMPTY,
+             "ships": {"destroyer": 1}}
+    assert empyrean._xuange_ready(state, "p2", moved)
+    assert not empyrean._xuange_ready(state, "p2", {**moved, "mover": "p2"})
+
+    state = _state(registry, other="naalu")
+    state.players["p2"].strategic_cc = 1
+    state.systems[EMPTY_B].space_units = {"p2": {"destroyer": 2}}
+    assert naalu._foresight_ready(state, "p2", moved)
+    assert not naalu._foresight_ready(state, "p2", {**moved, "mover": "p2"})
+
+
+@ruling("F_mahact/airo-shir-aur-benediction/2.1")
+def test_benediction_acamar_daje_zeton_mahactowi(registry: StaticDataRegistry) -> None:
+    """Acamar: "After a player moves ships ... that player gains 1 command token" - the Mahact."""
+    from src.core.hooks.factions import empyrean
+
+    state = _state(registry, other="empyrean")
+    moved = {"player": "p2", "mover": "p1", "position": EMPTY_B, "from": EMPTY,
+             "ships": {"destroyer": 1}}
+    assert empyrean._acamar_ready(state, "p2", moved)
+    empyrean.acamar(state, "p2", moved)
+    assert [o.label for o in triggers.offers_for(state, "p1")
+            if "Acamar" in o.label] == ["Acamar: place your command token"]
+    assert not any("Acamar" in o.label for o in triggers.offers_for(state, "p2"))
+
+
 @ruling("F_mahact/airo-shir-aur-benediction/5")
 def test_benediction_wyjscie_ze_szczeliny_rzut(
     registry: StaticDataRegistry, monkeypatch: pytest.MonkeyPatch,

@@ -1038,3 +1038,28 @@ def test_reconstruction_against_creuss_gate_gets_a_token_too(
     }
     out = _resolve(registry, state, "against")
     assert out.systems["101"].command_tokens == ["p1"]
+
+
+def test_reconstruction_for_links_alpha_and_beta_for_every_adjacent_effect(
+    registry: StaticDataRegistry,
+) -> None:
+    """RULES.md 51.6 (user decision 2026-11-28): Wormhole Reconstruction "For" makes alpha and
+    beta systems adjacent on the MAP GRAPH - every "adjacent" effect and every player, not only
+    the active player's movement."""
+    from src.core import state_grid
+
+    state, grid = _wormhole_pair(registry, "wormhole_recon")
+    grid = _line(registry, ("101", ALPHA), ("104", BETA))
+    state.systems["104"].system_id = BETA
+    grid.sync_linked_wormholes(board_graph.linked_wormhole_types(state))
+    assert board_graph.linked_wormhole_types(state) == {frozenset({"ALPHA", "BETA"})}
+    assert grid.are_adjacent("101", "104") and grid.link_kind("101", "104") == "wormhole"
+    assert "104" in board_graph.adjacent_positions("101")  # card effects (bound grid)
+    assert "101" in board_graph.neighbors_for_player(state, grid, "p2", "104")  # any player
+    assert _route_ok(state, grid)  # movement too
+    assert state_grid.grid_from_state(state, registry).are_adjacent("101", "104")
+    # Law gone -> the link disappears on the next sync (Undo / repeal).
+    state.decks.agenda_laws = {}
+    grid.sync_linked_wormholes(board_graph.linked_wormhole_types(state))
+    assert not grid.are_adjacent("101", "104")
+    assert not _route_ok(state, grid)

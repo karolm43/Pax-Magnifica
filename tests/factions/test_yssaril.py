@@ -26,6 +26,8 @@ from src.core import (
     leaders,
     offers,
     promissory_play,
+    relic_actions,
+    relic_cards,
     rules_hooks,
     status_phase,
     transaction,
@@ -399,6 +401,43 @@ def test_ssruu_purge_wylacza_kopie(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     state.players["p1"].leader_states[yssaril.AGENT] = leaders.PURGED
     assert rules_hooks.leader_proxies(state, "p1") == {}
+    state.players["p2"].relics = ["titanprototype"]
+    assert relic_actions.relic_proxies(state, "p1") == {}
+
+
+def _row(state: GameState, registry: StaticDataRegistry, relic: str) -> dict[str, Any]:
+    return next(r for r in relic_cards.playability(state, registry, "p1") if r["relic_id"] == relic)
+
+
+@ruling("C_relics/jrxs455o/1.2", "C_relics/jrxs455o/1.1")
+def test_ssruu_kopiuje_jr_xs455_o(registry: StaticDataRegistry) -> None:
+    """Another player's JR-XS455-O (a relic that is an agent) is one of Ssruu's texts - even if
+    exhausted. Using it exhausts Ssruu, not the relic; Temporal Command Suite may ready Ssruu."""
+    titan = "titanprototype"
+    state = _state(registry, "nomad")
+    p2 = state.players["p2"]
+    p2.relics, p2.exhausted_relics = [titan], [titan]
+    p2.technologies.append(nomad.TCS)
+    assert relic_actions.relic_proxies(state, "p1") == {titan: yssaril.AGENT}
+    assert relic_actions.relic_proxies(state, "p2") == {}  # only the Yssaril, never own relics
+    row = _row(state, registry, titan)  # the copy shows up in the Yssaril's Relics tab
+    assert row["copied_by"] == yssaril.AGENT and row["playable"] and not row["exhausted"]
+    after, implemented = relic_cards.play_relic(
+        state, registry, "p1", titan, {"player": "p1", "placement": "none"}
+    )
+    assert implemented and after.players["p1"].trade_goods == 1  # declined: 1 trade good
+    assert after.players["p1"].leader_states[yssaril.AGENT] == leaders.EXHAUSTED
+    assert after.players["p2"].relics == [titan] and after.players["p1"].relics == []
+    blocked = _row(after, registry, titan)
+    assert not blocked["playable"] and blocked["exhausted"]
+    assert relic_actions.block_reason(after, registry, "p1", titan) == "Ssruu is exhausted."
+    readied = _accept(after, "p2", "Temporal Command Suite")  # "that agent" is Ssruu
+    assert leaders.is_ready(readied, registry, "p1", yssaril.AGENT)
+    # Without a proxy the Yssaril cannot use a relic it does not have.
+    readied.players["p1"].leader_states[yssaril.AGENT] = leaders.PURGED
+    with pytest.raises(ValueError, match="do not have"):
+        relic_cards.play_relic(readied, registry, "p1", titan,
+                               {"player": "p1", "placement": "none"})
 
 
 @ruling("F_yssaril/ssruu/4")
@@ -696,3 +735,9 @@ def test_deepgloom_pozycza_stall_tactics(registry: StaticDataRegistry) -> None:
     assert faction_components.granted_abilities(state, "p2") == []  # used up
     assert transaction.granted_pair(state, "p1", "p2")
     assert _offers(state, "p1", "Blackshade") == []  # not the Yssaril's own use
+    # User decision 2026-11-28 (RULES.md 62.22): the loan is ONE use - no second Stall Tactics.
+    assert ("ability", yssaril.STALL) not in faction_components.owned(state, registry, "p2")
+    more = _cards(registry, 2)[1:]
+    _give(state, "p2", more)
+    with pytest.raises(ValueError):
+        _use(state, registry, "p2", "ability", yssaril.STALL, {"card": more[0]})

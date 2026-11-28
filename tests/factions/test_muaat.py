@@ -27,6 +27,7 @@ from src.core import (
     triggers,
 )
 from src.core.combat import resolve_unit_variant
+from src.core.components import ComponentCategory
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
     EliminatedPlayer,
@@ -413,6 +414,57 @@ def test_magmus_tg_moze_wywolac_pillage(registry: StaticDataRegistry) -> None:
     state = _accept(state, "p1", "Magmus")
     assert state.players["p1"].trade_goods == 3
     assert any("Pillage" in o.label for o in triggers.offers_for(state, "p2"))
+
+
+@ruling("F_muaat/magmus/2.2", "F_mentak/pillage/8")
+def test_magmus_lead_from_the_front_i_spy_network_przed_pillage(
+    registry: StaticDataRegistry,
+) -> None:
+    """Lead From the Front (strategy tokens -> Magmus trade goods) and Form a Spy Network are
+    scored together, before the Mentak may Pillage; the action card drawn through Suffi An then
+    cannot be one of the Spy Network discards."""
+    from src.core import status_phase
+    from src.core.game_state import StatusPhaseState
+    from src.core.objective_payment import ObjectivePayment
+
+    state = _magmus_state()
+    state.phase, state.status = Phase.STATUS, StatusPhaseState()
+    state.players["p2"].faction = "mentak"
+    state.players["p2"].leader_states = {"mentakagent": "unlocked"}
+    state.systems[PLAIN].space_units = {"p1": {"destroyer": 1}}
+    state.systems[RIVAL].space_units = {"p2": {"cruiser": 1}}  # neighbours (102-103)
+    p1 = state.players["p1"]
+    p1.trade_goods, p1.tactical_cc, p1.strategic_cc = 2, 1, 2
+    state.objectives.revealed = ["lead"]
+    p1.private.secret_objectives = ["fsn"]
+    deck = sorted(registry.catalog.all(ComponentCategory.ACTION_CARD))
+    hand, state.decks.action_card_deck = deck[:5], deck[5:10]
+    p1.private.action_cards = list(hand)
+    grid = _grid(state, registry)
+
+    state = status_phase.score_objective(
+        state, registry, grid, "p1", "public", "lead",
+        ObjectivePayment(tokens={"tactical": 1, "strategic": 2}),
+    )
+    assert len(_offers(state, "p1", "Magmus")) == 2  # one trade good per strategy token
+    assert not _offers(state, "p2", "Pillage")  # nothing gained yet
+    state = status_phase.score_objective(
+        state, registry, grid, "p1", "secret", "fsn", ObjectivePayment(cards=list(hand)),
+    )
+    assert "fsn" in state.players["p1"].scored_secrets
+    assert state.players["p1"].private.action_cards == []
+    # Only now the trade goods come in, one at a time - each may be pillaged.
+    state = _accept(state, "p1", "Magmus")
+    state = _accept(state, "p1", "Magmus")
+    assert state.players["p1"].trade_goods == 4
+    state = _accept(state, "p2", "Pillage", {"take": "trade_good"})
+    state = _accept(state, "p2", "Suffi An")
+    drawn = state.players["p1"].private.action_cards
+    assert len(drawn) == 1 and drawn[0] not in hand
+    assert set(hand) <= set(state.decks.action_card_discard)  # paid before the draw
+    # The second trade good's Pillage is still open (one per trade good - pillage 8).
+    state = _accept(state, "p2", "Pillage", {"take": "trade_good"})
+    assert state.players["p1"].trade_goods == 2
 
 
 # ================================================================================ Nova Seed

@@ -54,6 +54,17 @@ export function kindsToShow(tile: Tile, hovered: LinkKind[]): LinkKind[] {
   return [...new Set([...hovered, ...present])];
 }
 
+/**
+ * Wormhole kinds a ``kind`` wormhole leads to: itself plus every kind linked to it for everyone
+ * (``linked`` = web-data ``gameState.linkedWormholes``; Wormhole Reconstruction "For": alpha <->
+ * beta, RULES.md 51.6). Fracture gates never link to wormholes.
+ */
+export function linkedKinds(kind: LinkKind, linked: string[][] = []): LinkKind[] {
+  if (isGate(kind)) return [kind];
+  const others = linked.filter((group) => group.includes(kind)).flat();
+  return [...new Set([kind, ...others])];
+}
+
 /** Pozycje systemów, do których prowadzi połączenie ``kind`` z systemu ``position``. */
 export function linkTargets(
   kind: LinkKind,

@@ -30,7 +30,7 @@ from src.core.components import ComponentCategory
 from src.core.fleet_pool import unit_name
 from src.core.game_state import GameState, SystemState
 from src.core.hooks import card_labels
-from src.core.hooks.action_cards_units import refit_shortfall
+from src.core.hooks.action_cards_units import REFIT_SPACE_PREFIX, refit_shortfall
 from src.core.hooks.card_helpers import controlled
 from src.core.offer_inputs import as_payment, unit_at
 from src.core.offer_inputs import choice as as_choice
@@ -399,6 +399,16 @@ def refit_inputs(state: GameState, registry: StaticDataRegistry, player_id: str)
                 )
                 meta = unit_at(state, player_id, "infantry", planet=planet)
                 options.append(_option(planet, label, f"{planet}#{index}", meta=meta))
+    # Infantry in space areas (cargo) count too - user decision 2026-11-28 (RULES.md 53).
+    for system in state.systems.values():
+        for index in range(count_in_zone(system, "space", player_id, "infantry")):
+            label = (
+                f"{unit_name(state, registry, player_id, 'infantry')} "
+                f"in the space area of {_system_label(registry, system)}"
+            )
+            meta = unit_at(state, player_id, "infantry", position=system.position)
+            value = f"{REFIT_SPACE_PREFIX}{system.position}"
+            options.append(_option(value, label, f"{value}#{index}", meta=meta))
     # C_action_cards: przy braku mechów w rezerwie można je zdjąć z planszy (systemy bez
     # własnego żetonu); bez żadnego dostępnego mecha karta nie jest zagrywalna.
     short = refit_shortfall(state, player_id, _MAX_PICKS)
@@ -414,7 +424,8 @@ def refit_inputs(state: GameState, registry: StaticDataRegistry, player_id: str)
             options if most else [],
             1,
             max(1, most),
-            "Pick 1 or 2 of your infantry; each is replaced with a mech on the same planet.",
+            "Pick 1 or 2 of your infantry (on planets or in space); each is replaced with a mech "
+            "in the same place.",
         )
     ]
     if sources:

@@ -545,6 +545,35 @@ def test_strategize_secondary_kosztuje_zeton_ze_strategy_pool_poza_leadership(
         strategic_action.resolve_secondary(new, registry, "p1", execute=True, payload={})
 
 
+def test_strategize_secondary_cannot_be_passed(registry: StaticDataRegistry) -> None:
+    """RULES.md 53.4 (user decision 2026-11-28): the player who played Strategize must resolve
+    the secondary - "Don't follow" is rejected (engine, bot legal actions and UI prompt)."""
+    state = _state(["strategize1"])
+    new = _play(registry, state, "strategize1", {"initiative": 5})  # Trade: always resolvable
+    assert strategic_action.secondary_pass_forbidden(new, "p1", registry)
+    prompt = strategic_action.step_options(new, registry, "p1")
+    assert prompt is not None and prompt["pass_forbidden"] is True
+    with pytest.raises(ValueError, match="must resolve"):
+        strategic_action.resolve_secondary(new, registry, "p1", execute=False)
+    # A secondary opened another way (Perfect Synthesis chain) can still be passed.
+    other = state.clone()
+    strategic_action.begin_strategize_secondary(other, "p1", 5)
+    assert not strategic_action.secondary_pass_forbidden(other, "p1", registry)
+    assert strategic_action.resolve_secondary(
+        other, registry, "p1", execute=False
+    ).pending_window is None
+
+
+def test_strategize_unpayable_secondary_may_still_be_passed(registry: StaticDataRegistry) -> None:
+    """No dead end: with no way to pay the strategy-pool token, passing stays legal."""
+    state = _state(["strategize1"], strategic_cc=0)
+    new = _play(registry, state, "strategize1", {"initiative": 4})
+    assert not strategic_action.secondary_pass_forbidden(new, "p1", registry)
+    assert strategic_action.resolve_secondary(
+        new, registry, "p1", execute=False
+    ).pending_window is None
+
+
 def test_strategize_odrzuca_wyczerpana_karte(registry: StaticDataRegistry) -> None:
     state = _state(["strategize1"])
     state.players["p2"].strategy_cards = [3]

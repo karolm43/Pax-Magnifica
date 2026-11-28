@@ -309,11 +309,13 @@ def _nexus(state: GameState, pid: str, ctx: Mapping[str, Any]) -> frozenset[str]
     return frozenset()
 
 
-# Wormhole Reconstruction - For: all alpha and beta systems are adjacent to each other.
-@register(rules_hooks.POINT_MOVEMENT_ALPHA_BETA_ADJACENT, agenda_source("wormhole_recon"),
-          HookKind.PERMIT, covers=covers("wormhole_recon"))
-def _recon(state: GameState, _pid: str, _ctx: Mapping[str, Any]) -> bool:
-    return _law_for(state, "wormhole_recon")
+# Wormhole Reconstruction - For: all alpha and beta systems are adjacent to each other. User
+# decision 2026-11-28: a map-graph link for EVERY "adjacent" effect (movement, Space Cannon,
+# neighbors, retreats...) and the UI wormhole-link helper - not only movement (RULES.md 51.6).
+@register(rules_hooks.POINT_BOARD_LINKED_WORMHOLES, agenda_source("wormhole_recon"),
+          HookKind.FORBID, covers=covers("wormhole_recon"))
+def _recon(state: GameState, _pid: str, _ctx: Mapping[str, Any]) -> frozenset[str]:
+    return frozenset({"ALPHA|BETA"}) if _law_for(state, "wormhole_recon") else frozenset()
 
 
 # Shared Research - For: each player's units can move through nebulae.

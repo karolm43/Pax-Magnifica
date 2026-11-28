@@ -651,6 +651,11 @@ export type GameState = {
   peek?: GamePeek | null;
   /** Gracz z żetonem „0” Naalu (klucz jak `playerData[].faction`) - inicjatywa 0. */
   initiativeZero?: string | null;
+  /**
+   * Wormhole types linked to each other for EVERY player (Wormhole Reconstruction "For":
+   * `[["ALPHA", "BETA"]]`, RULES.md 51.6); empty / absent = only same-type links.
+   */
+  linkedWormholes?: string[][];
   /** player_id zwycięzcy po zakończeniu gry (``winner`` to jego kolor). */
   winnerId?: string | null;
   /** God-Mode: limit ręki kart akcji wyłączony przez hosta (RULES.md 53.8). */

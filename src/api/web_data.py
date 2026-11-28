@@ -35,6 +35,7 @@ from src.api.web_players import _build_player_data, _build_stat_tile_positions
 from src.api.web_tiles import _build_tile_unit_data, _ring_count
 from src.core import actor as actor_rules
 from src.core import (
+    board_graph,
     faction_tokens,
     game_clock,
     initiative_zero,
@@ -299,6 +300,11 @@ def build_web_data(
             "peek": _peek_payload(state, grid, viewing_player if strict else viewer, entity_keys),
             # Gracz z żetonem „0” Naalu (inicjatywa 0) - znacznik na karcie strategii.
             "initiativeZero": _zero_token_key(state, entity_keys),
+            # Wormhole types linked for everyone (Wormhole Reconstruction: [["ALPHA", "BETA"]],
+            # RULES.md 51.6) - the hover helper ``wormholeLinks.linkTargets`` draws them too.
+            "linkedWormholes": sorted(
+                sorted(group) for group in board_graph.linked_wormhole_types(projected)
+            ),
             # Setup startowy — None po zakończeniu; kandydaci tylko dla jednego gracza.
             "setup": web_setup.build_setup_payload(state, viewing_player, own_only=strict)
             if strict

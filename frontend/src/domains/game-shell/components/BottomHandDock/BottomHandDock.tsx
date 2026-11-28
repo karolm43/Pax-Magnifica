@@ -215,10 +215,9 @@ export function BottomHandDock() {
     if (overlayOpen) setPeek(true);
     else setStoredOpen(true);
   });
-  const { data: relicPlayability } = useRelicPlayability(
-    active?.discordId ?? null,
-    open && tab === "relics",
-  );
+  // Fetched while the dock is open: another player's relic agent copied through a proxy (Ssruu:
+  // JR-XS455-O) joins the Relics tab, so its count must be known before the tab is opened.
+  const { data: relicPlayability } = useRelicPlayability(active?.discordId ?? null, open);
   const noteColors = useFactionColors();
   // Promissory notes (RULES.md 61.2): zagrywalne w otwartym oknie, nigdy własne.
   const { data: notePlayability } = usePromissoryPlayability(
@@ -250,7 +249,13 @@ export function BottomHandDock() {
     "frontier-card",
   );
   // Relikty są jawne (leżą przed graczem), więc lista idzie z danych gracza, nie z endpointu ręki.
-  const relicIds = useMemo(() => active?.relics ?? [], [active?.relics]);
+  const relicIds = useMemo(() => {
+    const own = active?.relics ?? [];
+    const copied = Object.values(relicPlayability ?? {})
+      .filter((row) => row.copied_by && !own.includes(row.relic_id))
+      .map((row) => row.relic_id);
+    return copied.length > 0 ? [...own, ...copied] : own;
+  }, [active?.relics, relicPlayability]);
   const exhaustedRelics = useMemo(
     () => new Set(active?.exhaustedRelics ?? []),
     [active?.exhaustedRelics],
@@ -413,7 +418,10 @@ export function BottomHandDock() {
                 tab === "relics"
                   ? [
                       relic ? (passive ? "Passive" : "Action") : undefined,
-                      exhaustedRelics.has(id) ? "Exhausted" : undefined,
+                      relic?.copied_by ? "Copied" : undefined,
+                      (relic?.copied_by ? relic.exhausted : exhaustedRelics.has(id))
+                        ? "Exhausted"
+                        : undefined,
                     ]
                       .filter(Boolean)
                       .join(" · ") || undefined

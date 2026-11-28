@@ -121,7 +121,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `tactical.system_activated` · when | 5 | 1 | Incursion |
 | `combat.won` · after | 5 | 0 |  |
 | `combat` · end | 1 | 4 | "Total Mystery", Ahk Siever, Exile II, Phoenix Standard |
-| `phase` · during [phase=action] | 3 | 2 | Data Skimmer, Nekro Malleon |
+| `phase` · during [phase=action] | 4 | 1 | Data Skimmer |
 | `phase` · start [phase=status] | 1 | 4 | Hydrothermal Mining, Neural Parasite (Firmament), Radical Advancement, The Reaping |
 | `turn` · end | 5 | 0 |  |
 | `unit.sustain_damage` · after | 5 | 0 |  |
@@ -141,7 +141,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `tactical.action` · after | 3 | 0 |  |
 | `tactical.action` · end | 2 | 1 | Miniaturization |
 | `tactical.units_committed` · after | 3 | 0 |  |
-| `technology.gained` · when [would] | 0 | 3 | Valefar Assimilator X, Valefar Assimilator Y, Valefar Assimilator Z |
+| `technology.gained` · when [would] | 3 | 0 |  |
 | `technology.research` · when | 2 | 1 | Doctor Carrina |
 | `technology.research` · when [unit_upgrade=true] | 3 | 0 |  |
 | `agenda.elected` · when | 2 | 0 |  |
@@ -165,7 +165,7 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `unit.sustain_damage` · when | 2 | 0 |  |
 | `agenda.outcome_resolved` · after | 1 | 0 |  |
 | `agenda.outcome_resolved` · during [would] | 1 | 0 |  |
-| `agenda.revealed` · after [1/agenda phase] | 0 | 1 | Galactic Threat |
+| `agenda.revealed` · after [1/agenda phase] | 1 | 0 |  |
 | `agenda.votes_cast` · after [scope=all] | 0 | 1 | Hidden Agenda |
 | `cards.action_discarded` · after | 1 | 0 |  |
 | `cards.action_drawn` · when | 1 | 0 |  |
@@ -211,15 +211,15 @@ Komponenty z oknem (reakcja / przy zdobyciu) wg okna: ✅ = ma kanał do gracza,
 | `tactical.ships_moved` · when | 0 | 1 | Myru Vos |
 | `tactical.units_committed` · during | 1 | 0 |  |
 | `tactical.units_committed` · when | 0 | 1 | Research Team |
-| `technology.gained` · after | 0 | 1 | Nekro Acidos |
+| `technology.gained` · after | 1 | 0 |  |
 | `technology.research` · after | 1 | 0 |  |
-| `technology.research` · when [would] | 0 | 1 | Propagation |
+| `technology.research` · when [would] | 1 | 0 |  |
 | `tokens.placed` · after | 1 | 0 |  |
 | `transaction` · after | 1 | 0 |  |
 | `unit.ability_used` · after [ability=afb] | 1 | 0 |  |
 | `unit.ability_used` · when [ability=afb] | 1 | 0 |  |
 | `unit.coexist` · when | 0 | 1 | Oceanbound |
-| `unit.destroyed` · after [1/combat] | 0 | 1 | Technological Singularity |
+| `unit.destroyed` · after [1/combat] | 1 | 0 |  |
 | `unit.galvanized` · when | 0 | 1 | Galvanize |
 
 ## 3. Rodzaje komponentów wg kategorii

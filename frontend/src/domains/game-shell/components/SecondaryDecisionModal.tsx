@@ -249,6 +249,8 @@ export function SecondaryDecisionModal() {
   const followBlockedRaw = prompt?.kind === "secondary" ? prompt.options.follow_blocked : null;
   const followBlocked =
     !isFree && typeof followBlockedRaw === "string" && followBlockedRaw ? followBlockedRaw : null;
+  // Strategize (user decision 2026-11-28): the engine forbids passing while it can be resolved.
+  const passForbidden = prompt?.kind === "secondary" && prompt.pass_forbidden === true;
   const cannotAfford = fromReinforcements
     ? sheetNeeded && !tokenPool
     : needsToken && (poolTokens ?? 1) < 1 && !(scepterReady && useScepter) && !tokenAlt;
@@ -442,7 +444,8 @@ export function SecondaryDecisionModal() {
         <Group justify="flex-end" gap="sm">
           <Button
             variant="default"
-            disabled={busy || isFree}
+            disabled={busy || isFree || passForbidden}
+            title={passForbidden ? "Strategize: you must resolve this secondary ability." : undefined}
             leftSection={<IconHandStop size={16} />}
             onClick={() => decide(false)}
           >

@@ -286,6 +286,22 @@ def unit_wormholes(state: GameState) -> dict[str, list[str]]:
     return found
 
 
+def linked_wormhole_types(state: GameState) -> frozenset[frozenset[str]]:
+    """Groups of DIFFERENT wormhole types linked to each other on the map graph for everyone
+    (hook FORBID ``board.linked_wormholes``, entries ``"<TYPE>|<TYPE>"``) - Wormhole
+    Reconstruction "For": alpha <-> beta for every "adjacent" effect (RULES.md 51.6). The ONE
+    input of ``HexGrid.sync_linked_wormholes``."""
+    found: set[frozenset[str]] = set()
+    for player_id in sorted(state.players):
+        for entry in rules_hooks.forbidden(
+            rules_hooks.POINT_BOARD_LINKED_WORMHOLES, state, player_id
+        ):
+            types = frozenset(t.upper() for t in str(entry).split("|") if t)
+            if len(types) > 1:
+                found.add(types)
+    return frozenset(found)
+
+
 def placed_wormholes(state: GameState) -> dict[str, list[str]]:
     """``{position: [TYPE]}`` of every wormhole put into play on top of the tiles: tokens, the
     Ion Storm side and unit wormholes - the ONE input of ``HexGrid.sync_token_wormholes``."""

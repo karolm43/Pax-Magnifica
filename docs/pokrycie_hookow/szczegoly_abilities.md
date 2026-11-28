@@ -28,7 +28,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `foresight` | Foresight | naalu | after | TRIGGER (okno reakcji) | ruch, żetony dowodzenia | ✔ | You may place 1 token from your strategy pool in an adjacent system that does not contain another player's ships; move your ships from the … |
 | `fragile` | Fragile | jolnar | — | MODIFY (liczba/rzut) | walka | ✔ | Apply -1 to the result of each of your unit's combat rolls. |
 | `future_sight` | Future Sight | nomad | during | — | ekonomia i płatności | ✔ | Gain 1 trade good |
-| `galactic_threat` | Galactic Threat | nekro | unclassified | FORBID (zakaz) | technologie, agenda i głosowanie | — | You cannot vote on agendas You may predict aloud the outcome of that agenda. If your prediction is correct, gain 1 technology that is owned… |
+| `galactic_threat` | Galactic Threat | nekro | unclassified | FORBID (zakaz) | technologie, agenda i głosowanie | ✔ | You cannot vote on agendas You may predict aloud the outcome of that agenda. If your prediction is correct, gain 1 technology that is owned… |
 | `galvanize` | Galvanize | bastion | when | TRIGGER (okno reakcji) | walka | — | Galvanized units roll 1 additional die for combat rolls and unit abilities. They place a galvanize token beneath it if it does not have one. |
 | `gashlai_physiology` | Gashlai Physiology | muaat | — | PERMIT (pozwolenie) | ruch | ✔ | Your ships can move through supernovas. |
 | `guild_ships` | Guild Ships | hacan | — | PERMIT (pozwolenie) | — | ✔ | You can negotiate transactions with players who are not your neighbor. |
@@ -52,7 +52,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `phoenixstandard` | Phoenix Standard | bastion | at_end | PERMIT (pozwolenie) | — | — | You may galvanize 1 of your units that participated. |
 | `pillage` | Pillage | mentak | after | TRIGGER (okno reakcji) | ekonomia i płatności | ✔ | If they have 3 or more trade goods, you may take 1 of their trade goods or commodities. |
 | `plotsplots` | Plots Within Plots | firmament | when | TRIGGER (okno reakcji) | planety i eksploracja, cele i punkty | — | You can score secret objectives already scored by other players if you fulfill their requirements; this does not count against your secret … |
-| `propagation` | Propagation | nekro | when | TRIGGER (okno reakcji) | żetony dowodzenia, technologie | — | You cannot research technology Gain 3 command tokens instead. |
+| `propagation` | Propagation | nekro | when | TRIGGER (okno reakcji) | żetony dowodzenia, technologie | ✔ | You cannot research technology Gain 3 command tokens instead. |
 | `puppetsoftheblade` | Puppets of the Blade | firmament | unclassified | — | karty, planety i eksploracja | — | ACTION: Purge The Firmament's faction sheet, leaders, planet cards, and promissory note. Then, gain all of the faction components for The O… |
 | `quantum_entanglement` | Quantum Entanglement | ghost | — | FORBID (zakaz) | ruch | ✔ | You treat all systems that contain either an alpha or beta wormhole as adjacent to each other. Game effects cannot prevent you from using t… |
 | `quash` | Quash | xxcha | when | TRIGGER (okno reakcji) | ekonomia i płatności, żetony dowodzenia, karty, agenda i głosowanie | ✔ | You may spend 1 token from your strategy pool to discard that agenda and reveal 1 agenda from the top of the deck. Players vote on this age… |
@@ -68,7 +68,7 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `star_forge` | Star Forge | muaat | action | MODIFY (liczba/rzut) | walka, produkcja, ekonomia i płatności, żetony dowodzenia | ✔ | Spend 1 token from your strategy pool to place either 2 fighters or 1 destroyer from your reinforcements in a system that contains 1 or mor… |
 | `sundered` | Sundered | crimson | — | FORBID (zakaz) | ruch, walka | — | You cannot use wormholes other than epsilon wormholes. Other players' units that move or are placed into your home system are destroyed. |
 | `survivalinstinct` | Survival Instinct | ralnel | after | TRIGGER (okno reakcji) | ruch, żetony dowodzenia | — | You may move up to 2 of your ships into the active system from adjacent systems that do not contain your command tokens. |
-| `technological_singularity` | Technological Singularity | nekro | unclassified | PERMIT (pozwolenie) | technologie | — | You may gain 1 technology that is owned by that player. |
+| `technological_singularity` | Technological Singularity | nekro | unclassified | PERMIT (pozwolenie) | technologie | ✔ | You may gain 1 technology that is owned by that player. |
 | `telepathic` | Telepathic | naalu | at_end | — | karty strategii i inicjatywa | ✔ | Place the Naalu "0" token on your strategy card; you are first in initiative order. |
 | `terragenesis` | Terragenesis | titans | after | TRIGGER (okno reakcji) | ruch, planety i eksploracja | ✔ | You may place or move 1 sleeper token onto that planet. |
 | `the_company` | The Company | nomad | — | MODIFY (liczba/rzut) | — | ✔ | During setup, take the 2 additional Nomad faction agents and place them next to your faction sheet; you have 3 agents |

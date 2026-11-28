@@ -31,6 +31,7 @@ from src.core import (
     faction_components,
     leaders,
     promissory_play,
+    relic_actions,
     rules_hooks,
     transaction,
     unit_ops,
@@ -415,20 +416,26 @@ def mageon_pick(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> Non
 # ======================================================================================== Ssruu
 
 
+def _ssruu_usable(state: GameState, player_id: str) -> bool:
+    """The player has Ssruu on their faction sheet and it is not purged or locked."""
+    registry = rules_hooks.bound_registry()
+    player = state.players.get(player_id)
+    if registry is None or player is None:
+        return False
+    faction = registry.factions.get(player.faction or "")
+    if faction is None or AGENT not in faction.leaders:
+        return False
+    return player.leader_states.get(AGENT) not in (leaders.PURGED, leaders.LOCKED)
+
+
 @rules_hooks.register_leader_proxy
 def ssruu(state: GameState, player_id: str) -> dict[str, str]:
     """Ssruu: At any time: This card has the text ability of each other player's agent, even if
     that agent is exhausted - every other player's agent resolves to Ssruu for its owner (state,
     exhaustion and sources - RULES.md 62.22). Reads the state directly (no hooks)."""
+    if not _ssruu_usable(state, player_id):
+        return {}
     registry = rules_hooks.bound_registry()
-    player = state.players.get(player_id)
-    if registry is None or player is None:
-        return {}
-    faction = registry.factions.get(player.faction or "")
-    if faction is None or AGENT not in faction.leaders:
-        return {}
-    if player.leader_states.get(AGENT) in (leaders.PURGED, leaders.LOCKED):
-        return {}
     found: dict[str, str] = {}
     for pid, other in state.players.items():
         theirs = registry.factions.get(other.faction or "") if pid != player_id else None
@@ -437,6 +444,19 @@ def ssruu(state: GameState, player_id: str) -> dict[str, str]:
             if leader is not None and leader.type == "agent" and leader_id != AGENT:
                 found[leader_id] = AGENT
     return found
+
+
+@relic_actions.register_relic_proxy
+def ssruu_relics(state: GameState, player_id: str) -> dict[str, str]:
+    """Ssruu also has the text of another player's relic that is an agent, even if exhausted
+    (JR-XS455-O - C_relics jrxs455o 1.2): using it exhausts Ssruu (RULES.md 62.22)."""
+    if not _ssruu_usable(state, player_id):
+        return {}
+    return {
+        relic: AGENT
+        for pid, other in state.players.items() if pid != player_id
+        for relic in other.relics if relic_actions.is_agent_relic(relic)
+    }
 
 
 # Ssruu's own text has no effect - the proxy above is the whole ability.

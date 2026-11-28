@@ -47,6 +47,9 @@ _TRADE_INITIATIVE = trade.INITIATIVE
 
 # Klucz kontekstu okna: player_id graczy z DARMOWYM, obowiązkowym secondary (CSV).
 _FREE_KEY = "free"
+# Window context key: player_id who MUST resolve the secondary - Strategize (user decision
+# 2026-11-28, RULES.md 53.4): no pass, unless the token it costs cannot be paid at all.
+MUST_RESOLVE_KEY = "must_resolve"
 # Klucz kontekstu okna: respondent, który „follow" i czeka na koniec produkcji z karty
 # (Warfare TE); kolejka stoi, dopóki produkcja się nie zakończy.
 _AWAIT_PRODUCTION_KEY = "await_production"
@@ -546,6 +549,7 @@ def begin_strategize_secondary(
     *,
     then: list[int] | None = None,
     from_reinforcements: bool = False,
+    must_resolve: bool = False,
 ) -> None:
     """Strategize: gracz wykonuje SECONDARY karty ``initiative`` (jego własna odpowiedź).
 
@@ -555,6 +559,7 @@ def begin_strategize_secondary(
 
     ``then`` = kolejne karty łańcucha (Perfect Synthesis: wybrane z góry, każda po zamknięciu
     poprzedniego okna); ``from_reinforcements`` = żeton z rezerwy zamiast z puli strategicznej.
+    ``must_resolve`` = the player cannot pass (Strategize action card, ``MUST_RESOLVE_KEY``).
     """
     spec = _spec(initiative)
     context: dict[str, str | int] = {
@@ -566,8 +571,66 @@ def begin_strategize_secondary(
         context[CHAIN_KEY] = ",".join(str(i) for i in then)
     if from_reinforcements:
         context[TOKEN_FROM_KEY] = FROM_REINFORCEMENTS
+    if must_resolve:
+        context[MUST_RESOLVE_KEY] = player_id
     opened = timing.open_window(state, WindowType.STRATEGY_SECONDARY, [player_id], context=context)
     state.pending_window = opened.pending_window
+
+
+def _can_pay_secondary(state: GameState, player_id: str, initiative: int) -> bool:
+    """Whether the player can pay the command token of the open secondary in any way (strategy
+    pool, Scepter of Emelpar, an alternative such as Jae Mir Kan, Perfect Synthesis' sheet
+    fallback) - or it costs none."""
+    window = state.pending_window
+    context = window.context if window is not None else {}
+    if not _spec(initiative).secondary_costs_token:
+        return True
+    if secondary_without_token(state, player_id, initiative):
+        return True
+    if context.get(TOKEN_FROM_KEY) == FROM_REINFORCEMENTS:
+        return True  # empty reinforcements: a token from the command sheet (62.15)
+    return command_tokens.can_spend_strategy_token(state, player_id) or bool(
+        command_tokens.secondary_token_alternatives(state, player_id)
+    )
+
+
+def _resolvable(
+    state: GameState, registry: StaticDataRegistry, player_id: str, initiative: int,
+    grid: HexGrid | None,
+) -> bool:
+    """Whether "follow" can achieve anything: the card's own ``follow_blocked`` reason
+    (Leadership, RULES.md 30.7) is absent and a Technology tree has a researchable entry."""
+    spec = _spec(initiative)
+    if spec.options is None:
+        return True
+    options = spec.options(state, CardContext(registry, grid), player_id, None, {})
+    if options.get("follow_blocked"):
+        return False
+    tree = options.get("tree")
+    return not isinstance(tree, list) or any(r.get("status") == "available" for r in tree)
+
+
+def secondary_pass_forbidden(
+    state: GameState,
+    player_id: str,
+    registry: StaticDataRegistry | None = None,
+    grid: HexGrid | None = None,
+) -> bool:
+    """Whether ``player_id`` may NOT pass the open secondary window: chosen as "free" (Trade)
+    or playing Strategize (``MUST_RESOLVE_KEY``, user decision 2026-11-28). A Strategize
+    secondary that cannot be resolved can still be passed (no dead end): its token cannot be
+    paid, or - with ``registry`` - the card says "follow" achieves nothing."""
+    window = state.pending_window
+    if window is None or window.window_type is not WindowType.STRATEGY_SECONDARY:
+        return False
+    if player_id in _free_players(window.context):
+        return True
+    if window.context.get(MUST_RESOLVE_KEY) != player_id:
+        return False
+    initiative = int(window.context.get("initiative", 0))
+    if not _can_pay_secondary(state, player_id, initiative):
+        return False
+    return registry is None or _resolvable(state, registry, player_id, initiative, grid)
 
 
 def _spend_reinforcement_token(state: GameState, player_id: str, pool: object) -> None:
@@ -658,6 +721,10 @@ def resolve_secondary(
         )
     elif is_free:
         raise ValueError("The active player chose you - you must resolve this secondary ability.")
+    elif secondary_pass_forbidden(state, player_id, registry, grid):
+        raise ValueError(
+            "Strategize: you must resolve this secondary ability - passing is not allowed."
+        )
 
     grant = new_state.production_grant
     if execute and grant is not None and grant.standalone and grant.player_id == player_id:
@@ -783,6 +850,8 @@ def step_options(
             "step": None,
             "draft": {},
             "options": options,
+            # Strategize (user decision 2026-11-28): "Don't follow" is not allowed.
+            "pass_forbidden": secondary_pass_forbidden(state, player_id, registry, grid),
             # Other ways to pay the token (Jae Mir Kan - RULES.md 62.23).
             "token_alternatives": (
                 command_tokens.secondary_token_alternatives(state, player_id)

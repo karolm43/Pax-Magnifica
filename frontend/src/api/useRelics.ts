@@ -20,6 +20,8 @@ export type RelicPlayability = {
   /** Dla pasywnych: czy silnik egzekwuje efekt; dla ACTION: czy ma zakodowany efekt. */
   implemented: boolean;
   exhausted: boolean;
+  /** Leader through which another player's relic agent is used (Ssruu: JR-XS455-O); null = own. */
+  copied_by?: string | null;
 };
 
 /** Opis reliktu i formularza jego ACTION. */

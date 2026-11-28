@@ -110,6 +110,8 @@ class AppContext:
         state = self.service.current_state()
         # Tokens, Ion Storm and unit wormholes (Hil Colish delta, RULES.md 62.19).
         self._grid.sync_token_wormholes(board_graph.placed_wormholes(state))
+        # Wormhole Reconstruction: alpha <-> beta for everyone (RULES.md 51.6).
+        self._grid.sync_linked_wormholes(board_graph.linked_wormhole_types(state))
         # The Fracture (kafle frac1..7) i portale ingress/egress - też ze stanu (Undo/Redo).
         fracture.sync_grid(self._grid, state, self.registry)
         # Wormhole Nexus: strona kafelka (82a nieaktywna / 82b aktywna) wg stanu.

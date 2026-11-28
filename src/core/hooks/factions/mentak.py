@@ -248,9 +248,11 @@ def _pillage(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
         raise ValueError(reason)
     take = str(ctx.get("params", {}).get("take") or _TAKE_TG)
     if take == _TAKE_COMMODITY:
-        economy.give_to_player(state, target, player_id, commodities=1, cause=PILLAGE)
+        economy.give_to_player(state, target, player_id, commodities=1, cause=PILLAGE,
+                               taken=True)
     else:
-        economy.give_to_player(state, target, player_id, trade_goods=1, cause=PILLAGE)
+        economy.give_to_player(state, target, player_id, trade_goods=1, cause=PILLAGE,
+                               taken=True)
     ability_notes.note(
         state, player_id, "abilities:pillage", f"against {_name(_registry(), state, target)}"
     )

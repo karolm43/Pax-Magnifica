@@ -310,7 +310,18 @@ def _p_same_trait(v: View) -> int:
 
 
 def _p_unit_upgrades(v: View) -> int:
-    return sum("UNITUPGRADE" in v.tech_types(t) for t in v.player.technologies)
+    """Unit upgrades by UNIT TYPE: a copied faction upgrade next to the generic one of the same
+    type counts once (F_nekro valefar-assimilator 6.1, RULES.md 62.24)."""
+    upgraded: set[str] = set()
+    for tech_id in v.player.technologies:
+        if "UNITUPGRADE" not in v.tech_types(tech_id):
+            continue
+        base = next(
+            (u.base_type for u in v.registry.units.values() if u.required_tech_id == tech_id),
+            tech_id,
+        )
+        upgraded.add(str(base))
+    return len(upgraded)
 
 
 def _p_diversify(v: View) -> int:

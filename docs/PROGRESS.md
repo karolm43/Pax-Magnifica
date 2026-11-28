@@ -367,7 +367,8 @@ those files), ruff, mypy; frontend `tsc`, eslint (changed files), vitest (62 fil
 ## B17: The Nekro Virus (RULES.md 62.24)
 
 - `core/hooks/factions/nekro.py`: every component (3 abilities, Valefar X/Y, Valefar Z, 3 leaders, Antivirus,
-  The Alastor, Mordred). ⚠️ ASSUMPTION (to confirm): the Nekro starts owning `vax` + `vay` (data lists only `dxa`).
+  The Alastor, Mordred). ✅ User decision (2026-11-28): the Nekro starts owning `vax` + `vay` (data lists only
+  `dxa`); an idle assimilator does not count as a technology for objectives/effects.
 - Valefar X/Y copies: the copied tech id joins `technologies` + `PlayerState.assimilated`
   (`technology.assimilate` / `release_assimilated` - not a "gain"); exhaust/ready mirrored to the assimilator
   (`core/exhaust.py`); `resolve_unit_variant` accepts a copied faction unit upgrade (faction beats generic on a tie);
@@ -390,3 +391,28 @@ those files), ruff, mypy; frontend `tsc`, eslint (changed files), vitest (62 fil
 - Tests: `test_nekro.py` (41), `test_rulings_nekro.py` (22, incl. 18 cross-file rulings that waited for the Nekro),
   `test_flows_nekro.py` (7), activity / hero-area feed, frontend `nekroFx`, `NekroFxMarks`, `describeActivity.nekro`.
   Gaps recorded in `rulings_status.json` (Alastor on planets, same-window gains, Infantry II card transfers).
+
+## Assumptions resolved by the user (2026-11-28)
+
+- 27 open `⚠️ ASSUMPTION`s answered (`docs/ASSUMPTIONS_DO_DECYZJI.md`); entries in `R01/R39/R40/R41/R45/R50/R51/
+  R53/R57/R60/R62` marked "✅ User decision (2026-11-28)", others re-checked against tirules ("✅ VERIFIED").
+  Open contradictions with tirules are listed in `docs/ASSUMPTIONS_SPRZECZNOSCI.md` (19, not yet resolved).
+- Code changes: Wormhole Reconstruction "For" links alpha↔beta on the map graph for every "adjacent" effect
+  (FORBID `board.linked_wormholes` → `board_graph.linked_wormhole_types` → `HexGrid.sync_linked_wormholes`;
+  web data `linkedWormholes` → `WormholeLinkLayer` hover helper). Refit Troops also takes infantry in space
+  (`space:<position>`); Scuttle rejects fighters. Strategize must be resolved (`must_resolve`,
+  `pass_forbidden` in `SecondaryDecisionModal`, bot legal actions) unless the secondary cannot be resolved.
+  Neutrals use upgraded stats without upgrade text abilities (test).
+- Tests: `test_action_cards*.py`, `test_thunders_edge.py`, `rulings_general/test_rulings_agendas_2.py`,
+  `WormholeLinkLayer.test.tsx`, `wormholeLinks.test.ts`.
+
+## Cross-file rulings sweep (2026-11-28)
+
+- `rulings_status.json` statuses replaced with `@ruling` tests: Mahact Benediction (the mover, not the owner,
+  for Voidwatch / Acamar / Xuange / Foresight; Stellar Genesis only for the owner's move), Pillage takes TG
+  even with a pending Pillage (`economy.spend_trade_goods(taken=True)`), Ssruu copies another player's
+  agent relic (JR-XS455-O, `relic_actions.register_relic_proxy`, Relics tab `copied_by`), Integrated Economy
+  compares printed costs (`production.printed_order_cost`), Vuil'raith Amalgamation / Dimensional Tear,
+  Empyrean Watcher, Muaat Magmus.
+- Tests: `test_cabal.py`, `test_empyrean.py`, `test_mahact.py`, `test_muaat.py`, `test_yssaril.py`,
+  `test_flows_yssaril.py`, `rulings_general/test_rulings_technology.py`.

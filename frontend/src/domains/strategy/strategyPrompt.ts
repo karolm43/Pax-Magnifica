@@ -18,6 +18,8 @@ export type StrategyPrompt = {
   options: Record<string, unknown>;
   /** Other ways to pay the secondary's token (Jae Mir Kan, RULES.md 62.23): systems on the map. */
   token_alternatives?: TokenAlternative[];
+  /** Strategize: the player must resolve this secondary - "Don't follow" is not allowed. */
+  pass_forbidden?: boolean;
 };
 
 export type TokenAlternative = { key: string; label: string; systems: string[] };

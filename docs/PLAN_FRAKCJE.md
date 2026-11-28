@@ -3,7 +3,7 @@
 Implementation plan for **all faction components**: abilities, faction technologies, leaders
 (agent / commander / hero), breakthrough (Thunder's Edge), faction promissory notes, and faction units
 (flagship, mech, special units). Expands section "H5 — Factions" from
-`PLAN_PELNA_ROZGRYWKA.md`. Plan: 2026-11-11, status (§6): 2026-11-27.
+`PLAN_PELNA_ROZGRYWKA.md`. Plan: 2026-11-11, status (§6): 2026-11-28.
 
 > **Overriding rule unchanged:** texts and numbers EXCLUSIVELY from assets (`registry.catalog`,
 > `catalog.faction_bundle(<id>)`), rule in `docs/rules/R<NN>.md` BEFORE it enters code, exception =

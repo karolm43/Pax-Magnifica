@@ -13,7 +13,7 @@ from typing import Any
 from src.core import board_reinforcements, economy, unit_ops
 from src.core.dice import DIE_SIDES, next_rng, record_table_roll
 from src.core.fleet_pool import unit_cost
-from src.core.game_state import GameState
+from src.core.game_state import GameState, SystemState
 from src.core.hooks.card_helpers import (
     other_player_param,
     place_from_reinforcements,
@@ -123,6 +123,26 @@ def refit_shortfall(state: GameState, player_id: str, count: int) -> int:
     return 0 if left is None else max(0, count - max(0, left))
 
 
+REFIT_SPACE_PREFIX = "space:"  # Refit Troops entry for infantry in a space area: "space:<position>"
+
+
+def _refit_zone(state: GameState, entry: object) -> tuple[SystemState, str]:
+    """``(system, zone)`` of one Refit Troops entry: a planet id or ``"space:<position>"``.
+
+    User decision 2026-11-28 (RULES.md 53): "your infantry on the game board" includes infantry
+    in a space area (cargo), not only on planets.
+    """
+    if not isinstance(entry, str):
+        raise ValueError("'planets' must contain planet ids or 'space:<position>' entries.")
+    if entry.startswith(REFIT_SPACE_PREFIX):
+        position = entry.removeprefix(REFIT_SPACE_PREFIX)
+        system = state.systems.get(position)
+        if system is None:
+            raise ValueError(f"Unknown system {position}.")
+        return system, "space"
+    return system_of_planet(state, entry), entry
+
+
 @register_effect("action_cards:refit")
 def refit_troops(
     state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
@@ -132,14 +152,15 @@ def refit_troops(
     """
     planets = params.get("planets")
     if not isinstance(planets, list) or not 1 <= len(planets) <= 2:
-        raise ValueError("Choose 1 or 2 of your infantry ('planets': one planet id per infantry).")
-    for planet in set(planets):
-        if not isinstance(planet, str):
-            raise ValueError("'planets' must contain planet ids.")
-        system = system_of_planet(state, planet)
-        have = unit_ops.count_in_zone(system, planet, player_id, "infantry")
-        if have < planets.count(planet):
-            raise ValueError(f"You do not have that many infantry on {planet}.")
+        raise ValueError(
+            "Choose 1 or 2 of your infantry ('planets': a planet id or 'space:<position>' per "
+            "infantry)."
+        )
+    for entry in set(planets):
+        system, zone = _refit_zone(state, entry)
+        have = unit_ops.count_in_zone(system, zone, player_id, "infantry")
+        if have < planets.count(entry):
+            raise ValueError(f"You do not have that many infantry in {entry}.")
     # C_action_cards: gdy mechów w rezerwie brak, zdejmuje się mecha z systemu bez własnego
     # żetonu i stawia go (nieuszkodzonego) w miejsce piechoty. R_component_limitations: zdolność
     # nie może do tego zmusić - bez wskazanego źródła (nic nie wybrane = „Do not place”, ⚠️ ZAŁOŻENIE
@@ -151,10 +172,10 @@ def refit_troops(
     for source in sources:
         board_reinforcements.take_from_board(state, player_id, "mech", str(source))
     replaced = len(planets) - short + len(sources)
-    for planet in planets[:replaced]:
-        system = system_of_planet(state, planet)
-        unit_ops.take_units(state, system, planet, player_id, "infantry", 1, UnitCause.REMOVED)
-        place_from_reinforcements(state, system, planet, player_id, "mech", 1)
+    for entry in planets[:replaced]:
+        system, zone = _refit_zone(state, entry)
+        unit_ops.take_units(state, system, zone, player_id, "infantry", 1, UnitCause.REMOVED)
+        place_from_reinforcements(state, system, zone, player_id, "mech", 1)
 
 
 @register_effect("action_cards:scuttle")

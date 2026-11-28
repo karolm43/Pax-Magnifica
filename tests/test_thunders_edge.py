@@ -366,6 +366,37 @@ def test_neutralni_uzywaja_ulepszonych_jednostek(registry: StaticDataRegistry) -
     assert infantry is not None and infantry.upgrades_from_unit_id is not None
 
 
+def test_neutrals_get_upgraded_stats_but_no_upgrade_abilities(
+    registry: StaticDataRegistry,
+) -> None:
+    """RULES.md 50.3 (user decision 2026-11-28): neutral units use the upgraded STATS only.
+
+    The special text abilities of the unit upgrades do not apply: no Infantry II revive roll,
+    no Fighter II fleet-pool overflow, no Dreadnought II immunity to Direct Hit.
+    """
+    from src.core import capacity, rules_hooks, unit_ops
+    from src.core.hooks.reactions_combat import _direct_hit_immune
+    from src.core.unit_ops import UnitCause
+
+    rules_hooks.bind_registry(registry)
+    grid = _grid(registry)
+    state = enter_play(_state(registry, grid), registry, grid, "p1")
+    # Contrast: a player owning the same upgrades DOES get the abilities.
+    state.players["p1"].technologies = [*state.players["p1"].technologies, "inf2", "ff2", "dn2"]
+    assert capacity.fighters_overflow_to_fleet(state, "p1")
+    assert _direct_hit_immune(state, "p1", "dreadnought")
+
+    assert not capacity.fighters_overflow_to_fleet(state, NEUTRAL_PLAYER_ID)
+    assert not _direct_hit_immune(state, NEUTRAL_PLAYER_ID, "dreadnought")
+    rolls_before = len(state.table_rolls)
+    unit_ops.remove_units(
+        state, state.systems["frac4"], "styx", NEUTRAL_PLAYER_ID, "infantry", 3,
+        UnitCause.DESTROYED,
+    )
+    assert len(state.table_rolls) == rolls_before  # no Infantry II revive roll for neutrals
+    assert state.players["p1"].infantry_ii_on_card == 0
+
+
 # ----------------------------------------------------------------------------- ekspedycje
 
 

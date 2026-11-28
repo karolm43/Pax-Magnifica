@@ -693,13 +693,17 @@ def stellar_genesis(state: GameState, player_id: str, ctx: Mapping[str, Any]) ->
 
 
 def _carries_avernus(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
-    """War sun wyleciał z systemu Avernus albo przeleciał przez niego, cel spoza domów."""
+    """War sun wyleciał z systemu Avernus albo przeleciał przez niego, cel spoza domów.
+
+    "After you move one of your war suns": the owner moved it - not when the Mahact moved it with
+    Benediction (F_mahact airo-shir-aur-benediction 2.3)."""
     source = avernus_position(state)
     ships = ctx.get("ships") or {}
     route = [str(p) for p in ctx.get("route") or []]
     dest = str(ctx.get("position") or "")
     return (
         ctx.get("player") == player_id
+        and ctx.get("mover", player_id) == player_id
         and source is not None
         and int(ships.get(_WARSUN, 0)) > 0
         and source in route[:-1]

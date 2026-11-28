@@ -199,7 +199,9 @@ def foresight_destinations(state: GameState, player_id: str, position: str) -> l
 
 def _foresight_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
     position = str(ctx.get("position") or "")
-    mover = ctx.get("player")
+    # "After another player moves ships": the mover (the Mahact with Benediction - F_mahact
+    # airo-shir-aur-benediction 2.1), not the ships' owner.
+    mover = ctx.get("mover") or ctx.get("player")
     return (
         mover is not None and mover != player_id
         and state.players[player_id].strategic_cc > 0

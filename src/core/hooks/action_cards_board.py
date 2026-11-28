@@ -471,9 +471,10 @@ def strategize(
 
     Efekt otwiera okno ``STRATEGY_SECONDARY`` z jednym respondentem (zagrywającym); dalej to
     zwykłe secondary - z kosztem żetonu ze strategy pool poza Leadership (notka karty).
+    User decision 2026-11-28: the player MUST resolve it - no pass (``must_resolve``).
     """
     initiative = _initiative_param(state, registry, params)
-    strategic_action.begin_strategize_secondary(state, player_id, initiative)
+    strategic_action.begin_strategize_secondary(state, player_id, initiative, must_resolve=True)
 
 
 for _strategize_id in _STRATEGIZE_CARDS:  # 4 kopie karty, ten sam efekt

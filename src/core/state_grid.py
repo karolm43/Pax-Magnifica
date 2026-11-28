@@ -41,6 +41,7 @@ def grid_from_state(state: GameState, registry: StaticDataRegistry) -> HexGrid:
     from src.core import board_graph  # lokalnie: board_graph -> rules_hooks -> hooki
 
     grid.sync_token_wormholes(board_graph.placed_wormholes(state))
+    grid.sync_linked_wormholes(board_graph.linked_wormhole_types(state))
     fracture.sync_grid(grid, state, registry)
     nexus.sync_grid(grid, state, registry)
     tile_swap.sync_grid(grid, state, registry)

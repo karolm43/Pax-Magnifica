@@ -63,8 +63,8 @@ Generowany — nie edytuj. Podsumowanie: [`../POKRYCIE_HOOKOW.md`](../POKRYCIE_H
 | `naaz_mech` | Eidolon | naaz | — | — | walka | ✔ | If this unit is in the space area of the active system at the start of a space combat, flip this card. |
 | `naaz_mech_space` | Z-Grav Eidolon | naaz | — | — | — | ✔ | If this unit is in the space area of the active system, it is also a ship. At the end of a space battle in the active system, flip this car… |
 | `naaz_voltron` | Eidolon Maximum | naaz | — | FORBID (zakaz) | walka, produkcja | — | This unit is both a ship and ground force. It cannot be assigned hits from unit abilities. Repair it at the start of every combat round. Ga… |
-| `nekro_flagship` | The Alastor | nekro | — | — | walka | — | At the start of a space combat, choose any number of your ground forces in this system to participate in that combat as if they were ships. |
-| `nekro_mech` | Mordred | nekro | — | MODIFY (liczba/rzut) | walka, technologie | — | During combat against an opponent who has an "X" or "Y" token on 1 or more of their technologies, apply +2 to the result of each of this un… |
+| `nekro_flagship` | The Alastor | nekro | — | — | walka | ✔ | At the start of a space combat, choose any number of your ground forces in this system to participate in that combat as if they were ships. |
+| `nekro_mech` | Mordred | nekro | — | MODIFY (liczba/rzut) | walka, technologie | ✔ | During combat against an opponent who has an "X" or "Y" token on 1 or more of their technologies, apply +2 to the result of each of this un… |
 | `nomad_flagship` | Memoria I | nomad | — | MODIFY (liczba/rzut) | ruch | ✔ | You may treat this unit as if it were adjacent to systems that contain 1 or more of your mechs. |
 | `nomad_flagship2` | Memoria II | nomad | — | MODIFY (liczba/rzut) | ruch | ✔ | You may treat this unit as if it were adjacent to systems that contain 1 or more of your mechs. |
 | `nomad_mech` | Quantum Manipulator | nomad | — | PERMIT (pozwolenie) | walka, produkcja | ✔ | While this unit is in a space area during combat, you may use its SUSTAIN DAMAGE ability to cancel a hit that is produced against your ship… |

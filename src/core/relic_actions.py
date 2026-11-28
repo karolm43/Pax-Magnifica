@@ -43,6 +43,59 @@ def blocker(relic_id: str) -> Callable[[BlockerFn], BlockerFn]:
     return decorate
 
 
+# Relics that are agents (C_relics jrxs455o 1: "JR-XS455-O is an agent. All rules that apply to
+# agents apply to JR-XS455-O"). Declared by the relic's hook module.
+_AGENT_RELICS: set[str] = set()
+
+# Relic agent proxies: (state, player) -> {relic id: leader id} - another player's relic agent
+# that this player may use as if it were theirs, the leader's state standing for the relic's
+# (Ssruu copies JR-XS455-O - C_relics jrxs455o 1.2, RULES.md 62.22). Registered by hook modules;
+# they read the state directly (no hooks).
+RelicProxyFn = Callable[[GameState, str], dict[str, str]]
+_RELIC_PROXIES: list[RelicProxyFn] = []
+
+
+def declare_agent_relic(relic_id: str) -> None:
+    """Marks a relic as an agent (see ``_AGENT_RELICS``)."""
+    _AGENT_RELICS.add(relic_id)
+
+
+def is_agent_relic(relic_id: str) -> bool:
+    """Whether the relic is an agent (JR-XS455-O)."""
+    return relic_id in _AGENT_RELICS
+
+
+def register_relic_proxy(fn: RelicProxyFn) -> RelicProxyFn:
+    """Registers a relic agent proxy provider (see ``_RELIC_PROXIES``)."""
+    _RELIC_PROXIES.append(fn)
+    return fn
+
+
+def relic_proxies(state: GameState, player_id: str) -> dict[str, str]:
+    """``{relic id: leader id}`` - other players' relic agents this player may use through a
+    proxy (never a relic the player has themselves)."""
+    rules_hooks.effect_for(effect_key(""))  # loads the hooks package (proxy providers)
+    player = state.players.get(player_id)
+    found: dict[str, str] = {}
+    for fn in _RELIC_PROXIES:
+        found.update(fn(state, player_id))
+    own = set(player.relics) if player is not None else set()
+    return {relic: leader for relic, leader in found.items() if relic not in own}
+
+
+def relic_proxy(state: GameState, player_id: str, relic_id: str) -> str | None:
+    """The leader whose state stands for another player's ``relic_id`` (``None`` = no proxy)."""
+    return relic_proxies(state, player_id).get(relic_id)
+
+
+def usable(state: GameState, player_id: str, relic_id: str) -> bool:
+    """Whether the player may use the relic: it is in front of them or copied through a proxy."""
+    player = state.players.get(player_id)
+    return player is not None and (
+        relic_id in player.relics or relic_proxy(state, player_id, relic_id) is not None
+    )
+
+
 def block_reason(
     state: GameState, registry: StaticDataRegistry, player_id: str, relic_id: str
 ) -> str | None:
@@ -98,7 +151,8 @@ def form(
     if player is None:
         raise ValueError(f"Unknown player: {player_id}")
     card = relic_def(registry, relic_id)
-    if relic_id not in player.relics:
+    proxy = relic_proxy(state, player_id, relic_id) if relic_id not in player.relics else None
+    if relic_id not in player.relics and proxy is None:
         raise ValueError(f"You do not have the relic {card.name}.")
     key = effect_key(relic_id)
     action = is_action_relic(registry, relic_id)
@@ -120,8 +174,13 @@ def form(
         "kind": "action" if action else "passive",
         "implemented": implemented,
         "inputs": inputs,
-        "exhausted": relic_id in player.exhausted_relics,
+        # A copied relic agent has the state of its proxy (Ssruu - C_relics jrxs455o 1.2).
+        "exhausted": (
+            player.leader_states.get(proxy) == "exhausted" if proxy is not None
+            else relic_id in player.exhausted_relics
+        ),
         "summary": preview(state, registry, player_id) if preview is not None else None,
+        "copied_by": proxy,
     }
 
 
@@ -142,8 +201,7 @@ def run_action_effect(
     Raises:
         ValueError: Odpowiedź gracza spoza legalnych opcji albo efekt odrzucił stan gry.
     """
-    player = state.players[player_id]
-    if relic_id not in player.relics or not is_action_relic(registry, relic_id):
+    if not usable(state, player_id, relic_id) or not is_action_relic(registry, relic_id):
         return False
     key = effect_key(relic_id)
     effect = rules_hooks.effect_for(key)

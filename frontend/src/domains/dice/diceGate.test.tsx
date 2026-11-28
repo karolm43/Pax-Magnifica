@@ -22,16 +22,22 @@ describe("diceGate - nic nie wyprzedza kości", () => {
     rerender(<Probe k="offer-1" />);
     expect(probe()).toBe("held");
     act(() => useDiceGate.getState().hold(2000)); // dane rzutu przyszły chwilę później
-    act(() => vi.advanceTimersByTime(DICE_GRACE_MS));
+    act(() => {
+      vi.advanceTimersByTime(DICE_GRACE_MS);
+    });
     expect(probe()).toBe("held");
-    act(() => vi.advanceTimersByTime(2000));
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
     expect(probe()).toBe("open");
   });
 
   it("bez rzutu treść pojawia się po krótkiej chwili; widoczna nie miga przy kolejnym rzucie", () => {
     const { rerender } = render(<Probe k="" />);
     rerender(<Probe k="offer-1" />);
-    act(() => vi.advanceTimersByTime(DICE_GRACE_MS + 10));
+    act(() => {
+      vi.advanceTimersByTime(DICE_GRACE_MS + 10);
+    });
     expect(probe()).toBe("open");
     act(() => useDiceGate.getState().hold(3000));
     expect(probe()).toBe("open");

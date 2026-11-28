@@ -295,6 +295,8 @@ class RelicInputsResponse(BaseModel):
     exhausted: bool = False
     inputs: list[dict[str, Any]]
     summary: str | None = None
+    # Another player's relic agent used through a proxy leader (Ssruu: JR-XS455-O).
+    copied_by: str | None = None
 
 
 class RelicPlayability(BaseModel):
@@ -306,6 +308,9 @@ class RelicPlayability(BaseModel):
     reason: str | None = None
     implemented: bool = False
     exhausted: bool = False
+    # Leader id through which the player uses another player's relic agent (Ssruu copying
+    # JR-XS455-O); ``None`` for the player's own relics.
+    copied_by: str | None = None
 
 
 class RelicPlayabilityResponse(BaseModel):

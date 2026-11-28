@@ -390,6 +390,12 @@ export function TechnologyOverlay(props: TechnologyOverlayProps) {
         </div>
       </header>
 
+      {options.propagation ? (
+        <p className={styles.notice} role="note">
+          <b>Propagation:</b> you cannot research technology - pick what you would research and
+          gain <b>3 command tokens</b> instead (no prerequisites are spent).
+        </p>
+      ) : null}
       {options.researched.length > 0 ? (
         <p className={styles.notice}>
           <IconCheck size={14} aria-hidden="true" /> Researched this action:{" "}

@@ -47,12 +47,6 @@
   "F_xxcha/xxekir-grom-political-data-nexus-omega-replaced-by-omega-omega/*": {
     "na": "Nieaktywny wariant bohatera (Codex Ω): grę gra Xxekir Grom z Thunder's Edge (xxchahero-te), decyzja użytkownika 2026-11-16."
   },
-  "F_xxcha/elder-qanoj/4": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Nekro z notką Alliance Xxcha głosuje i nadal przewiduje wynik (Galactic Threat)."
-  },
   "F_arborec/stymie-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko Stymie Ω („After another player moves ships into a system…”, karta wraca od razu); ta sekcja opisuje starą kartę leżącą w strefie gry."
   },
@@ -77,12 +71,6 @@
   "F_yin/dannel-of-the-tenth-spinner-overdrive-replaced-by-omega-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko wersję Ω z Codexu (Dannel of the Tenth Ω - Quantum Dissemination); ta sekcja opisuje starą kartę z PoK."
   },
-  "F_argent/raid-formation/6": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Mechy Nekro w walce kosmicznej (The Alastor) mogą zostać uszkodzone przez Raid Formation - frakcja niezaimplementowana."
-  },
   "F_lizix/cybernetic-enhancements-replaced-by-omega/2": {
     "na": "Ruling dotyczy starej wersji notki (żeton z puli strategii L1Z1X). Assety mają tekst „When you gain command tokens during the status phase: Gain 1 additional command token” - bez puli L1Z1X (RULES.md 62.12)."
   },
@@ -92,20 +80,8 @@
   "F_jol_nar/research-agreement/3": {
     "na": "Umowy między graczami są niewiążące i poza silnikiem (R_trade, RULES.md 47): silnik nie egzekwuje obietnic co do momentu zagrania notki."
   },
-  "F_jol_nar/rin-the-masters-legacy-genetic-memory/4": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Commander Nekro (Alliance u Jol-Nar) nie dobiera kart akcji przy Genetic Memory - Genetic Memory nie wywołuje badania (grant_technology), test po wdrożeniu Nekro."
-  },
   "F_mentak/pillage/6.1": {
     "na": "Umowy między graczami są niewiążące i poza silnikiem (R_trade, RULES.md 47); Pillage jest ofertą po rozstrzygnięciu transakcji (TRANSACTION AFTER) - silnik nie przyjmuje deklaracji wcześniej."
-  },
-  "F_mentak/corsair/3": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Valefar Assimilator (Nekro) na Corsairze - frakcja niezaimplementowana."
   },
   "F_letnev/war-funding-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko War Funding Ω z Codexu („After you and your opponent roll dice during space combat…”, bez utraty TG Letneva); ta sekcja opisuje starą kartę z PoK."
@@ -115,25 +91,6 @@
   },
   "F_winnu/acquiescence-replaced-by-omega/*": {
     "na": "Nieaktywny wariant: assety mają tylko Acquiescence Ω („When the Winnu player resolves a strategic action: You do not have to spend or place a command token…”); ta sekcja opisuje starą notkę z zamianą kart strategii."
-  },
-  "F_winnu/salai-sai-corian/2": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Siły naziemne Nekro w walce w przestrzeni przez flagowiec The Alastor - frakcja niezaimplementowana; Salai Sai Corian liczy dziś statki bez myśliwców w przestrzeni."
-  },
-  "C_relics/book-of-latvinia/3": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Nekro zamiast badania technologii bierze żetony dowodzenia (sześć zamiast dwóch technologii z Book of Latvinia)."
-  },
-  "C_relics/jrxs455o/1.2": {"gap": "JR-XS455-O is a relic, not a leader: the leader proxy of Ssruu (rules_hooks.leader_proxy) covers other players' agents from their faction sheets only, so the Yssaril cannot yet copy another player's JR-XS455-O (RULES.md 62.22)."},
-  "C_relics/the-prophets-tears/2": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Nekro dobiera kartę akcji z Prophet's Tears, gdy badałby technologię."
   },
   "R_adjacency/rules-reference/4": {
     "gap": "Hyperlane tiles are not modelled as line connections: HexGrid places them as plain hexes with shared-edge adjacency only (RULES.md 61.7)."
@@ -153,53 +110,18 @@
   "C_technology/assault-cannon/2.2": {
     "na": "Lista przykładów zdolności usuwających statki na starcie walki; mechanizm (warunek ≥3 statków sprawdzany w chwili rozstrzygania) testują /2, /2.1 i /3."
   },
-  "C_technology/assault-cannon/3.2": {
-    "requires": [
-      "faction:nekro",
-      "faction:naaz"
-    ],
-    "reason": "Przykłady dokładania statków na starcie walki: The Alastor (Nekro), Eidolon (Naaz-Rokha), Sleeper Cell + Ambush (Mentak, bohater)."
-  },
   "F_muaat/magmus-reactor-replaced-by-omega/2": {
     "na": "Ruling dotyczy starej wersji Magmus Reactor (TG za war suna przy produkcji). Assety mają tekst Ω: „Your ships can move into supernovas. Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability...” (RULES.md 62.13)."
   },
   "F_muaat/magmus-reactor-replaced-by-omega/3": {
     "na": "Ruling dotyczy starej wersji Magmus Reactor (TG za war suna przy produkcji). Assety mają tekst Ω: „Your ships can move into supernovas. Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability...” (RULES.md 62.13)."
   },
-  "F_saar/floating-factory/14.1": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Alastor (Nekro): siły naziemne walczące jak statki blokują dok - po implementacji Nekro (blokada liczy dziś statki w przestrzeni)."
-  },
+  "F_saar/floating-factory/14.1": {"gap": "The Alastor lets only ground forces in the SPACE area fight as ships (ActiveCombat.ground_as_ships); ground forces on planets cannot participate yet, so they cannot blockade a Floating Factory from a planet (RULES.md 62.24 gap)."},
   "F_muaat/umbat/4": {
     "na": "Ruling o produkcyjnych commanderach Naalu/Yin (PoK). W assetach grają M'aban z Codexu (podgląd notek sąsiadów i talii agend, RULES.md 62.16) i Brother Omar Ω (zielony prerekwizyt) - żaden nie zmienia produkcji; limit 2 sztuk grantu Umbat ma test test_umbat_wybrany_gracz_produkuje_2_tanie_jednostki."
   },
   "F_muaat/umbat/4.1": {
     "na": "Regulated Conscription + produkcyjny commander Naalu/Yin (PoK) - aktywne wersje commanderów (M'aban Codex, Brother Omar Ω) nie produkują jednostek."
-  },
-  "F_muaat/magmus/2.2": {
-    "requires": [
-      "secret_objectives:fsn",
-      "leaders:mentakagent"
-    ],
-    "reason": "Jednoczesne punktowanie Lead From the Front i Form a Spy Network przed Pillage (Suffi An) - wymaga punktowania kilku celów naraz."
-  },
-  "F_vuilraith/amalgamation/5": {
-    "gap": "Alliance commandera Naalu/Yin (dodatkowy myśliwiec/piechota za 1 zasób) + Amalgamation - kombinacja niezweryfikowana testem; aktywne warianty tych commanderów nie dają darmowej sztuki przy produkcji."
-  },
-  "F_vuilraith/it-feeds-on-carrion-dimensional-anchor/6": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Valefar Assimilator kopiujący Dimensional Tear II - frakcja Nekro niezaimplementowana."
-  },
-  "R_capture/notes/3": {
-    "requires": [
-      "faction:nekro",
-      "faction:yssaril"
-    ],
-    "reason": "Przechwytywanie skopiowaną zdolnością bez wydawania - frakcje Nekro i Yssaril niezaimplementowane."
   },
   "F_lizix/cybernetic-enhancements-replaced-by-omega/1": {
     "na": "Nagłówek tirules bez treści reguły: karta zastąpiona wersją Ω (rulingi wersji aktywnej są w osobnej sekcji)."
@@ -219,26 +141,8 @@
   "C_technology/x89-bacterial-weapon/1": {
     "na": "Nagłówek tirules bez treści reguły: karta zastąpiona wersją Ω (rulingi wersji aktywnej są w osobnej sekcji)."
   },
-  "F_vuilraith/dimensional-tear/5": {
-    "gap": "Nekro copying Dimensional Tear II (its space docks become gravity rifts for the Vuil'raith player) is not implemented."
-  },
-  "F_mentak/corsair/4": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Nekro kopiujący Cruiser II (Mentak nadal posiada Cruiser II pod Corsair) - frakcja Nekro niezaimplementowana."
-  },
   "R_frontier_tokens/notes/2": {
     "na": "No tile in the active assets has a space station without planets. The only SPACESTATION planet, 'loststation', is in no system tile. game_setup.place_frontier_tokens skips any system with a non-empty planets list, so it would also skip a station-only tile if one were added."
-  },
-  "C_technology/integrated-economy/6": {
-    "gap": "There is no Nomad commander (Navarch Feng) hook, and Integrated Economy (technologies_actions.integrated_economy, ProductionGrant.max_cost) has no cost-reduction path. Ruling: effects that let a player produce for less than cost do not change the unit's cost."
-  },
-  "C_relics/metali-void-shielding/5": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Nekro (flagship The Alastor, ground forces in space combat) is not implemented, so there is nothing to test."
   },
   "C_action_cards/lie-in-wait/1": {
     "na": "A deal for a player to play an action card is an agreement outside the rules; the engine has no such transaction component. Lie In Wait is an optional window after the transaction and reads the live hand, so any card played earlier is already gone when it resolves."
@@ -246,41 +150,11 @@
   "C_promissory_notes/support-for-the-throne/8.1": {
     "na": "Flavor text ('a betrayal most foul'); no mechanical effect. The mechanical half is covered by support-for-the-throne/8."
   },
-  "F_jol_nar/rin-the-masters-legacy-genetic-memory/5": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Valefar Assimilator (Nekro) is not implemented - nothing copies a faction technology, so there is no token to keep on a technology replaced by Genetic Memory. Test after Nekro lands."
-  },
-  "C_agendas/committee-formation/3": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Nekro cannot vote but may own and resolve Committee Formation. Nekro is not implemented."
-  },
   "C_agendas/public-execution/2": {
     "requires": [
       "faction:keleres"
     ],
     "reason": "Public Execution during the action phase comes from Keleres' Executive Order technology. Keleres is not implemented, so the agenda cannot resolve in the action phase."
-  },
-  "C_agendas/publicize-weapon-schematics/4": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Nekro owns a war sun technology by copying it with Valefar Assimilator. Nekro is not implemented."
-  },
-  "C_agendas/antiintellectual-revolution/1.1": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "The Nekro player is never affected by Anti-Intellectual Revolution. Nekro is not implemented."
-  },
-  "C_agendas/antiintellectual-revolution/2": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Nekro's Valefar Assimilator technologies count for the \"Against\" effect. Nekro is not implemented."
   },
   "C_agendas/classified-document-leaks/8": {
     "requires": [
@@ -299,12 +173,6 @@
   },
   "C_action_cards/hack-election/*": {
     "na": "Replaced by Hack Election Ω: the active card 'hack' uses the Ω text (see C_action_cards/hack-election-omega)."
-  },
-  "C_action_cards/divert-funding/6": {
-    "requires": [
-      "faction:nekro"
-    ],
-    "reason": "Nekro's Propagation (3 command tokens instead of research) - faction not implemented."
   },
   "C_action_cards/plagiarize/3": {
     "na": "User decision (2026-11-26): the Sabotage window opens immediately when an action card is played, before deciding targets, technologies, or variable costs."
@@ -360,9 +228,6 @@
   "R_movement/notes/7": {
   "na": "Binding deals are not modelled in the engine (core/transaction.py has no deal/agreement item), so no deal can grant passage; movement_paths.passage_blocked has no deal exception."
 },
-  "F_empyrean/watcher/8.1": {
-    "gap": "card_hold.cancel_by_component returns the cancelled ACTION card's action (action_budget.unregister_action); ending the turn without the Fleet Logistics second action is the existing End turn path - no dedicated scenario with Fleet Logistics (RULES.md 62.20)."
-  },
 
   "R_abilities/rules-reference/1": {"na": "The engine has one rules source, the LRR dump in docs/rules_tirules/. The Learn to Play booklet is not a source, so there is nothing to override."},
   "R_abilities/rules-reference/3": {"na": "Describes how abilities are written. Each hook is registered at the (event, moment) window its text names (rules_hooks.on_event, RULES.md 54.1)."},
@@ -386,7 +251,37 @@
   "R_coexistence/notes/7": {"gap": "Control is sticky (RULES.md 23). A coexisting player left alone on a planet does not gain control automatically; this is listed as not modelled in RULES.md 40.1 I7b and handled by operator/God-Mode."},
   "R_coexistence/notes/7.1": {"gap": "Same as notes/7: when the controller moves all its units off the planet outside an invasion, control does not pass immediately to the coexisting player."},
   "R_coexistence/notes/7.3": {"gap": "Depends on notes/2.2: no effect puts the controller into coexistence when ground forces are committed, so this case cannot arise."},
-  "R_coexistence/notes/7.4": {"gap": "Same as notes/7: there is no control hand-off to the next coexisting player in ability-resolution order (initiative in the action phase, otherwise clockwise)."}
+  "R_coexistence/notes/7.4": {"gap": "Same as notes/7: there is no control hand-off to the next coexisting player in ability-resolution order (initiative in the action phase, otherwise clockwise)."},
+  "F_nekro/technological-singularity/4.1": {"na": "Combat dice are rolled and their hits counted at roll time (ActiveCombat.rolls); a technology gained afterwards only changes the CombatUnit values rebuilt for later rolls (test_singularity_ulepszenie_dziala_od_razu, RULES.md 62.24)."},
+  "F_nekro/technological-singularity/4.2": {"na": "battle_units.combat_units rebuilds every unit from the state at each step, so an upgrade gained in the AFB Assign Hits step is in effect for that round's combat rolls (same mechanism as ruling 4, RULES.md 62.24)."},
+  "F_nekro/technological-singularity/4.3": {"na": "Same rebuild-from-state mechanism: an AFB upgrade gained at the start of combat is read by battle.resolve_afb from the current unit variant (RULES.md 62.24)."},
+  "F_nekro/technological-singularity/4.4": {"na": "Sustain Damage is read from the unit variant when hits are assigned (battle_units.combat_units), so a sustain upgrade gained after Direct Hit cancels that round's hits (RULES.md 62.24)."},
+  "F_nekro/technological-singularity/5": {"gap": "Offers of a window are created when the event fires; a technology gained inside the same window (e.g. start of combat) does not get its own offer for that already-fired window (RULES.md 62.24)."},
+  "F_nekro/technological-singularity/5.1": {"gap": "Same as 5: a Valefar copy of Dimensional Splicer placed during the start-of-combat window is not offered in that window."},
+  "F_nekro/technological-singularity/6": {"gap": "Infantry II rolls are offered on each infantry's own UNIT_DESTROYED; an Infantry II gained by Singularity after the same hit assignment does not retroactively roll for infantry destroyed in that step (RULES.md 62.24)."},
+  "F_nekro/technological-singularity/6.1": {"gap": "Same as 6: infantry destroyed in the Direct Hit assign step do not roll for an Infantry II gained in that step."},
+  "F_nekro/technological-singularity/6.2": {"na": "Infantry destroyed by Strike Wing Alpha II are destroyed in the AFB roll, before any Singularity gain of the following Assign Hits step - they simply go to reinforcements (engine order, RULES.md 62.24)."},
+  "F_nekro/valefar-assimilator/6.2": {"gap": "Units waiting on an Infantry II card are not transferred between the generic card and a copied faction infantry upgrade (no per-card tracking of returning infantry yet, RULES.md 62.24)."},
+  "F_nekro/valefar-assimilator/10": {"na": "Heading of rulings 10.1-10.6 (no rule of its own)."},
+  "F_nekro/valefar-assimilator/10.1": {"gap": "Floating Factory II + Vortex on one Nekro: the blockade order (return captured units, then destroy the dock) is not combined for a single player holding both copies."},
+  "F_nekro/valefar-assimilator/10.2": {"gap": "No stalemate detection: Non-Euclidean Shielding + Duranium Armor versus the Letnev never forces the attacker to retreat or be destroyed."},
+  "F_nekro/valefar-assimilator/10.3": {"na": "Both copies are hook sources of the Nekro (owned_sources reads technologies): movement.into_supernova (Magmus Reactor) and the floating space docks (Floating Factory II) combine through the generic movement checks (RULES.md 62.24)."},
+  "F_nekro/valefar-assimilator/10.4": {"na": "A copied Floating Factory II makes the Nekro docks floating structures through the same hook source; the dock coexistence check is generic (floating_structures, RULES.md 62.14 / 62.24)."},
+  "F_nekro/valefar-assimilator/10.5": {"gap": "End-of-combat-round abilities of both players are offered in resolution order, not strictly alternating between the two Exotrireme II owners."},
+  "F_nekro/valefar-assimilator/10.6": {"requires": ["faction:deepwrought"], "reason": "Radical Advancement belongs to the Deepwrought Scholarate (not implemented yet)."},
+  "F_nekro/valefar-assimilator/11.1": {"gap": "technology.release_assimilated handles a lost war sun upgrade only; losing a copied Floating Factory II does not move the space docks onto planets / back to reinforcements."},
+  "F_nekro/valefar-assimilator/11.3": {"na": "Losing a copied Magmus Reactor removes the hook source; units already in a supernova stay (no rule removes them) and later moves check movement.into_supernova again (RULES.md 62.24)."},
+  "F_nekro/valefar-assimilator/11.4": {"na": "Dimensional Tear gravity rifts come from the dock variant (cabal._tear_positions / map.gravity_rifts): a released dt2 copy changes the variant back, so the systems stop being gravity rifts at once (RULES.md 62.24)."},
+  "F_nekro/valefar-assimilator/11.5": {"gap": "Same as 6.2: no per-card tracking of infantry waiting on an infantry upgrade card."},
+  "F_nekro/the-alastor/2": {"na": "Start-of-combat offers are prompted in order starting after the active player (RULES.md 43.4); each ability's condition is re-checked when it resolves (Assault Cannon reads ship_roles.space_ships at that moment), RULES.md 62.24."},
+  "F_nekro/the-alastor/2.1": {"na": "Example of 2 - Assault Cannon readiness is re-evaluated when the Nekro resolves it (technologies_combat._assault_cannon_ready)."},
+  "F_nekro/the-alastor/4": {"gap": "Only ground forces in the space area can be chosen; ground forces on planets cannot participate yet (the combat engine keeps one zone per unit type) - RULES.md 62.24 gap."},
+  "F_nekro/the-alastor/4.1": {"gap": "Depends on 4 (ground forces on planets do not participate)."},
+  "F_nekro/the-alastor/8": {"gap": "PDS (Hel Titan II) are on planets - same gap as 4."},
+  "F_nekro/the-alastor/10": {"gap": "Elimination is checked after the combat, not the moment the last ground force dies in a space combat."},
+  "F_nekro/the-alastor/10.1": {"gap": "Depends on 10 (immediate elimination during combat)."},
+  "F_nekro/valefar-assimilator-z/6": {"requires": ["faction:firmament"], "reason": "Heaven's Eye and the Firmament plots are not implemented yet."},
+  "F_nekro/valefar-assimilator-z/7": {"requires": ["faction:firmament"], "reason": "The Firmament / Obsidian flip is not implemented yet."}
 
   
   

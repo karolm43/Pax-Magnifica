@@ -64,7 +64,6 @@ from src.core.strategy_cards.common import (
     place_structure,
     structure_problem,
 )
-from src.core.unit_catalog import is_space_unit
 from src.core.unit_ops import UnitCause
 
 FACTION = "winnu"

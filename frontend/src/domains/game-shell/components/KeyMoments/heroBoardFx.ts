@@ -53,7 +53,8 @@ export type FxMark =
   | "tether" // Empyrean Void Tether: a dark seam seals the border, the two systems recoil
   | "timewarp" // Nomad: a chronometer rewinds over the flagship, chrono-locks open on its tokens
   | "keyhole" // Yssaril: shadows creep over rival homes, a keyhole is slashed open, a card is lifted
-  | "benediction"; // Mahact: a gene-sigil seizes a fleet, a chain drags it, binding links lock the combat
+  | "benediction" // Mahact: a gene-sigil seizes a fleet, a chain drags it, binding links lock the combat
+  | "devour"; // Nekro: a viral lattice infects the system, tendrils drain the planet, a tech core is extracted
 
 export type HeroFxRecipe = {
   /** Przyciemnienie całej planszy (0–1). */
@@ -435,6 +436,34 @@ export const HERO_BOARD_FX: Record<string, HeroFxRecipe> = {
       { at: 3400, name: "armorHit", gain: 0.6, rate: 0.55 },
       { at: 3450, name: "explosionHeavy", gain: 0.6, rate: 0.6 },
       { at: 4600, name: "warSunEnter", gain: 0.3, rate: 0.4 },
+    ],
+  },
+  // Polymorphic Algorithm: Devour World (UNIT.DSGN.FLAYESH, RULES.md 62.24): the board glitches
+  // into blood-red static; over the devoured system a hexagonal viral lattice blinks in, cell by
+  // cell (the infection spreads); six data tendrils crawl from the tile rim onto the PLANET and a
+  // corrupted ring of code segments spins around it; at the flash the planet implodes - a black
+  // core swallows it, its shards are torn outward and sucked back in - then a glowing tech core
+  // (the gained technology) rises out of the husk and the Nekro sigil burns over it. Sound: a
+  // low glitch hum, data chirps, the reversed suction of the implosion, a heavy impact and the
+  // dying whine of the planet's grid.
+  nekrohero: {
+    dim: 0.55,
+    sweep: "static",
+    area: { self: true, kinds: ["nekro_devour"] },
+    target: "units",
+    mark: "devour",
+    tone: "235 30 45",
+    ms: 6600,
+    flashAt: 3000,
+    quake: [{ at: 3000, px: 4, ms: 600 }],
+    sounds: [
+      { at: 0, name: "plasma", gain: 0.35, rate: 0.35 },
+      { at: 700, name: "laser", gain: 0.3, rate: 2.2 },
+      { at: 1100, name: "laser", gain: 0.25, rate: 2.6 },
+      { at: 1600, name: "explosionHeavy", gain: 0.45, rate: 0.5, reverse: true, endIn: 1400 },
+      { at: 3000, name: "impact", gain: 0.55, rate: 0.6 },
+      { at: 3050, name: "explosionHeavy", gain: 0.5, rate: 0.7 },
+      { at: 3900, name: "mechPowerDown", gain: 0.4, rate: 0.8 },
     ],
   },
   // Probability Matrix: Time Warp (Ahk-Syl Siven, RULES.md 62.21): the board flickers like a

@@ -894,7 +894,10 @@ def validate_production(
                         f"{free_grant.max_unit_cost:g} or less."
                     )
         if free_grant.max_cost is not None:
-            cost = order_cost(state, registry, player_id, orders, exhaust_aida=exhaust_aida)
+            # The limit counts each unit's printed cost: effects that let a player produce for
+            # less (Navarch Feng, AI Development Algorithm, Amalgamation) do not change that cost
+            # (C_technology integrated-economy 6, F_vuilraith amalgamation 3.1).
+            cost = printed_order_cost(state, registry, player_id, orders)
             if cost > free_grant.max_cost:
                 raise ValueError(
                     f"The combined cost {cost:g} exceeds the limit of {free_grant.max_cost:g}."
@@ -1049,6 +1052,22 @@ def commander_trade_good_name(
     ):
         return describe_component(registry, hook.covers)[0] or hook.source.component_id
     return None
+
+
+def printed_order_cost(
+    state: GameState, registry: StaticDataRegistry, player_id: str, orders: list[ProductionOrder]
+) -> float:
+    """The order's total at the units' printed costs (a fighter/infantry pair = one cost), with
+    no "produce for less" effect applied - the cost a combined-cost limit compares against
+    (Integrated Economy: C_technology integrated-economy 6)."""
+    player = state.players.get(player_id)
+    return _total_cost(
+        registry,
+        player.faction if player is not None else None,
+        player.technologies if player is not None else [],
+        orders,
+        dual=dual_production(state, player_id),
+    )
 
 
 def order_cost(

@@ -27,8 +27,10 @@ from src.core import (
     exploration_frontier,
     faction_tokens,
     fracture,
+    leaders,
     objectives,
     payment,
+    relic_actions,
     relics,
     strategy_phase,
     technology,
@@ -458,14 +460,23 @@ def the_silver_flame(
 
 # --- JR-XS455-O ------------------------------------------------------------------------------
 
+_TITAN = "titanprototype"
 _TITAN_COST = 3  # „spend 3 resources”
 _DECLINE = "none"
 
+# "JR-XS455-O is an agent" (C_relics jrxs455o 1): Ssruu may copy it (1.2, RULES.md 62.22).
+relic_actions.declare_agent_relic(_TITAN)
 
-@blocker("titanprototype")
+
+@blocker(_TITAN)
 def _titan_blocker(state: GameState, registry: StaticDataRegistry, player_id: str) -> str | None:
-    del registry
-    return _ready_blocker(state, player_id, "titanprototype", "JR-XS455-O")
+    proxy = relic_actions.relic_proxy(state, player_id, _TITAN)
+    if proxy is not None:  # another player's JR-XS455-O copied: the proxy must be ready
+        if not leaders.is_ready(state, registry, player_id, proxy):
+            leader = registry.leaders.get(proxy)
+            return f"{leader.name if leader is not None else proxy} is exhausted."
+        return None
+    return _ready_blocker(state, player_id, _TITAN, "JR-XS455-O")
 
 
 @register_effect_inputs("relics:titanprototype")
@@ -524,12 +535,20 @@ def jr_xs455_o(
     if target not in state.players:
         raise ValueError("Choose a player at the table ('player').")
     placement = _text(params, "placement", "Choose their answer.")
-    exhaust.exhaust_relic(state, player_id, "titanprototype")
+    # Another player's JR-XS455-O copied by Ssruu exhausts Ssruu, not the relic (C_relics
+    # jrxs455o 1.2, RULES.md 62.22).
+    proxy = relic_actions.relic_proxy(state, player_id, _TITAN)
+    extra: dict[str, Any] = {}
+    if proxy is not None:
+        exhaust.exhaust_leader(state, player_id, proxy)
+        extra["proxy"] = f"leaders:{proxy}"
+    else:
+        exhaust.exhaust_relic(state, player_id, _TITAN)
     # "JR-XS455-O is an agent" (C_relics): its exhaustion is an agent becoming exhausted
     # (Temporal Command Suite may ready it - jrxs455o 1.1, RULES.md 62.21).
     triggers.fire(
         state, GameEvent.COMPONENT_EXHAUSTED, Moment.AFTER, subject=player_id,
-        ctx={"player": player_id, "component": "relics:titanprototype", "agent": True},
+        ctx={"player": player_id, "component": f"relics:{_TITAN}", "agent": True, **extra},
     )
     if placement == _DECLINE:
         economy.gain_trade_goods(state, target, 1)

@@ -27,7 +27,12 @@ def _hand(flow: Flow, pid: str | None = None) -> list[str]:
 
 
 def _give(flow: Flow, pid: str, cards: list[str]) -> None:
+    """Puts ``cards`` in the hand and takes them out of the action card deck (no re-draws)."""
     flow.player(lambda p: p["private"].__setitem__("action_cards", list(cards)), pid)
+    service = flow.client.app.state.ctx.service  # type: ignore[attr-defined]
+    state = service.current_state().clone()
+    state.decks.action_card_deck = [c for c in state.decks.action_card_deck if c not in cards]
+    service.replace_state(state, label="test")
 
 
 def _facts(flow: Flow) -> list[Json]:
@@ -180,3 +185,28 @@ def test_deepgloom_pozycza_stall_tactics(registry: StaticDataRegistry) -> None:
     assert _hand(flow, flow.other) == []
     assert not flow.has_offer("Blackshade")  # not the Yssaril's own use
     assert "stall_tactics" not in flow.playable(flow.other)
+
+
+def test_ssruu_kopiuje_jr_xs455_o_przez_api(registry: StaticDataRegistry) -> None:
+    """Another player's JR-XS455-O shows up in the Yssaril's Relics tab (Ssruu, C_relics jrxs455o
+    1.2) and is played through the relic endpoint; Ssruu is exhausted, the relic stays."""
+    flow = Flow(registry, "yssaril", "hacan")
+    flow.player(lambda p: p["relics"].append("titanprototype"), flow.other)
+
+    def rows() -> dict[str, Json]:
+        found = flow.client.get("/relic/playable", params={"player_id": flow.me}).json()
+        return {r["relic_id"]: r for r in found["relics"]}
+
+    row = rows()["titanprototype"]
+    assert row["playable"] and row["copied_by"] == "yssarilagent"
+    form = flow.client.get("/relic/titanprototype/inputs", params={"player_id": flow.me})
+    assert form.status_code == 200 and form.json()["copied_by"] == "yssarilagent"
+    tg = _me(flow)["trade_goods"]
+    flow.post("/relic/play", {"player_id": flow.me, "actor_id": flow.me,
+                              "relic_id": "titanprototype",
+                              "params": {"player": flow.me, "placement": "none"}})
+    me = _me(flow)
+    assert me["trade_goods"] == tg + 1
+    assert me["leader_states"]["yssarilagent"] == "exhausted"
+    assert "titanprototype" not in _me(flow, flow.other)["exhausted_relics"]
+    assert rows()["titanprototype"]["exhausted"]

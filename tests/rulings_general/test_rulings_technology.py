@@ -1012,6 +1012,28 @@ def test_integrated_economy_is_not_a_production_ability_so_sarween_does_not_appl
     assert production.order_cost(state, registry, "p1", orders) == base
 
 
+@ruling("C_technology/integrated-economy/6")
+def test_integrated_economy_limit_uses_printed_cost_with_navarch_feng(
+    registry: StaticDataRegistry,
+) -> None:
+    """Navarch Feng makes the Nomad flagship free to produce, but its cost stays 8: it does not
+    fit under Integrated Economy's limit of the planet's resource value."""
+    state, planet = _ie_state(registry)
+    p1 = state.players["p1"]
+    p1.faction = "nomad"
+    p1.leader_states = {**p1.leader_states, "nomadcommander": "unlocked"}
+    cap = int(registry.planets[planet].resources or 0)
+    flagship = [production.ProductionOrder("flagship", 1)]
+    assert production.order_cost(state, registry, "p1", flagship) == 0  # nothing is spent
+    assert production.printed_order_cost(state, registry, "p1", flagship) == 8 > cap
+    with pytest.raises(ValueError, match="exceeds"):
+        production.produce(state, HexGrid(), registry, "p1", flagship)
+    # Units that fit at their printed cost are still produced (and paid for).
+    infantry = [production.ProductionOrder("infantry", 2, planet)]
+    done = production.produce(state, HexGrid(), registry, "p1", infantry)
+    assert done.systems["101"].planet_units[planet]["p1"] == {"infantry": 2}
+
+
 # ============================================================================ Graviton Laser System
 
 

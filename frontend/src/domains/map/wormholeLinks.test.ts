@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Tile } from "@/entities/game/types";
 import { getTokenRule } from "./components/SystemDossier/featureRules";
 import { getPrintedLinkPoints } from "./components/layers/WormholeBlockedLayer";
-import { linkKindsOfToken, linkTargets } from "./wormholeLinks";
+import { linkedKinds, linkKindsOfToken, linkTargets } from "./wormholeLinks";
 
 function tile(position: string, systemId: string, tokens: string[] = []): Tile {
   return { position, systemId, tokens } as unknown as Tile;
@@ -24,6 +24,15 @@ describe("wormholeLinks", () => {
     expect(linkTargets("ALPHA", "101", tiles)).toEqual(["202"]);
     expect(linkTargets("GAMMA", "404", tiles)).toEqual(["505"]);
     expect(linkTargets("BETA", "303", tiles)).toEqual([]);
+  });
+
+  it("Wormhole Reconstruction: alpha also leads to beta systems and back (RULES.md 51.6)", () => {
+    const linked = [["ALPHA", "BETA"]];
+    expect(linkedKinds("ALPHA", linked)).toEqual(["ALPHA", "BETA"]);
+    expect(linkedKinds("BETA", linked)).toEqual(["BETA", "ALPHA"]);
+    expect(linkedKinds("GAMMA", linked)).toEqual(["GAMMA"]);
+    expect(linkedKinds("INGRESS", linked)).toEqual(["INGRESS"]);
+    expect(linkedKinds("ALPHA")).toEqual(["ALPHA"]);
   });
 
   it("ingress prowadzi do każdego egress i odwrotnie", () => {

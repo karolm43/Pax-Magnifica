@@ -61,6 +61,8 @@ export type GameData = {
   strategyCardIdMap?: PlayerDataResponse["strategyCardIdMap"];
   /** Gracz z żetonem „0” Naalu (klucz jak `playerData[].faction`) - inicjatywa 0. */
   initiativeZero?: string | null;
+  /** Wormhole types linked for everyone (Wormhole Reconstruction, web-data `gameState.linkedWormholes`). */
+  linkedWormholes?: string[][];
   vpsToWin: PlayerDataResponse["vpsToWin"];
   cardPool: PlayerDataResponse["cardPool"];
   versionSchema?: PlayerDataResponse["versionSchema"];

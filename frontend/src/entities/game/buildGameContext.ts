@@ -409,6 +409,7 @@ export function buildGameContext(
     strategyCards: data.strategyCards,
     strategyCardIdMap: data.strategyCardIdMap,
     initiativeZero: data.gameState?.initiativeZero ?? null,
+    linkedWormholes: data.gameState?.linkedWormholes ?? [],
     vpsToWin: data.vpsToWin,
     cardPool: data.cardPool,
     versionSchema: data.versionSchema,

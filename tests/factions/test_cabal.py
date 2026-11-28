@@ -447,6 +447,43 @@ def test_amalgamation_war_sun_wymaga_wlasnej_technologii(registry: StaticDataReg
     assert state.players["p1"].captured_units == {"p2": {"warsun": 1}}
 
 
+_PRODUCTION_POINTS = sorted(
+    getattr(rules_hooks, name) for name in dir(rules_hooks) if name.startswith("POINT_PRODUCTION")
+)
+
+
+def _production_hooks(state: GameState) -> set[str]:
+    return {
+        hook.covers or "" for point in _PRODUCTION_POINTS
+        for hook in rules_hooks.hooks_at(point, state, "p1")
+    }
+
+
+@pytest.mark.parametrize("other", ["naalu", "yin"])
+@ruling("F_vuilraith/amalgamation/5")
+def test_amalgamation_z_alliance_naalu_yin(registry: StaticDataRegistry, other: str) -> None:
+    """The ruling describes the PoK commanders (1 extra fighter / infantry for no cost). The active
+    variants (M'aban, Brother Omar) have no production text, so the Alliance adds no extra unit:
+    Amalgamation works exactly as without it."""
+    state = _producing(_state(other))
+    state.players["p1"].captured_tokens = {"infantry": 1}
+    orders = [ProductionOrder("infantry", 2, ACHERON)]
+    captured = {"infantry": {capture.TOKEN: 1}}
+    plain = production.produce(state, _grid(state, registry), registry, "p1", orders,
+                               captured=captured)
+    commander = f"{other}commander"
+    state.players["p2"].leader_states = {commander: "unlocked"}
+    state.players["p1"].promissory_notes_in_play = ["blue_an"]  # p2's Alliance
+    assert faction_components.borrowed_commanders(state, "p1") == [commander]
+    assert f"leaders:{commander}" not in _production_hooks(state)
+    assert production.free_small_units(state, "p1", orders) == 0
+    allied = production.produce(state, _grid(state, registry), registry, "p1", orders,
+                                captured=captured)
+    assert allied.systems[HOME].planet_units == plain.systems[HOME].planet_units
+    assert allied.players["p1"].trade_goods == plain.players["p1"].trade_goods
+    assert allied.players["p1"].exhausted_planets == plain.players["p1"].exhausted_planets
+
+
 def test_amalgamation_walidacja(registry: StaticDataRegistry) -> None:
     state = _producing(_state())
     state.players["p1"].captured_units = {"p2": {"cruiser": 1}}
@@ -908,3 +945,21 @@ def test_flagowiec_po_direct_hit_nie_przechwytuje_reszty_rundy() -> None:
     _destroy(state, ARENA, "space", "p1", "flagship")  # Direct Hit (bez note_destroyed)
     _destroy(state, ARENA, "space", "p1", "cruiser")  # pozostałe trafienia
     assert state.players["p1"].captured_units == {}
+
+
+@ruling("F_vuilraith/dimensional-tear/5")
+def test_nekro_kopiuje_dimensional_tear_ii(registry: StaticDataRegistry) -> None:
+    """Nekro copying Dimensional Tear II (Valefar Assimilator): systems with the Nekro's space
+    docks are gravity rifts, and the Vuil'raith must roll for removal there (only the Nekro's own
+    ships skip that roll)."""
+    from src.core import map_anomalies, movement_paths
+
+    state = _state("nekro")
+    state.players["p2"].technologies = ["vax"]
+    state.systems[EAST].space_units = {"p2": {"spacedock": 1}}
+    assert EAST not in map_anomalies.extra_anomalies(state)
+    technology.assimilate(state, "p2", "vax", cabal.DT2)
+    assert map_anomalies.GRAVITY_RIFT in map_anomalies.extra_anomalies(state)[EAST]
+    assert movement_paths.rolls_at(state, "p1", EAST)  # the Vuil'raith rolls
+    assert not movement_paths.rolls_at(state, "p2", EAST)  # "your ships do not roll"
+    assert not movement_paths.rolls_at(state, "p1", HOME)  # its own tear: still no roll

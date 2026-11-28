@@ -79,12 +79,18 @@ def release_from_leader(state: GameState, player_id: str, leader_id: str) -> int
     return amount
 
 
-def spend_trade_goods(state: GameState, player_id: str, amount: int) -> None:
-    """Gracz traci ``amount`` trade goods (wydaje je); za mało → ``ValueError``."""
+def spend_trade_goods(
+    state: GameState, player_id: str, amount: int, *, taken: bool = False
+) -> None:
+    """Gracz traci ``amount`` trade goods (wydaje je); za mało → ``ValueError``.
+
+    ``taken=True``: another player's effect takes them (Pillage) - not the player spending, so a
+    pending Pillage decision does not block it (F_mentak pillage: one Pillage per trade good
+    gained one at a time)."""
     if amount < 0:
         raise ValueError("The amount of trade goods to spend cannot be negative.")
     player = _player(state, player_id)
-    if amount > 0 and any(
+    if amount > 0 and not taken and any(
         o.event == GameEvent.TRADE_GOODS_GAINED.value and o.label == "Pillage"
         and o.ctx.get("player") == player_id
         for o in state.pending_offers
@@ -209,12 +215,14 @@ def give_to_player(
     trade_goods: int = 0,
     commodities: int = 0,
     cause: str = "",
+    taken: bool = False,
 ) -> None:
     """Przekazuje trade goods i commodities innemu graczowi (transakcja, R_transactions).
 
     R_commodities: commodity oddana innemu graczowi staje się u odbiorcy trade good.
+    ``taken=True``: the receiver takes them (Pillage - see ``spend_trade_goods``).
     """
-    spend_trade_goods(state, giver_id, trade_goods)
+    spend_trade_goods(state, giver_id, trade_goods, taken=taken)
     spend_commodities(state, giver_id, commodities)
     gain_trade_goods(
         state, receiver_id, trade_goods + commodities, cause=cause, from_supply=False

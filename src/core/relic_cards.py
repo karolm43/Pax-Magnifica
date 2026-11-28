@@ -31,7 +31,10 @@ def playability(
     if player is None:
         raise ValueError(f"Unknown player: {player_id}")
     rows: list[dict[str, Any]] = []
-    for relic_id in dict.fromkeys(player.relics):
+    # Own relics, then other players' relic agents copied through a proxy (Ssruu: JR-XS455-O -
+    # C_relics jrxs455o 1.2), so the copy shows up in the Relics tab by itself.
+    copied = list(relic_actions.relic_proxies(state, player_id))
+    for relic_id in dict.fromkeys([*player.relics, *copied]):
         info = relic_actions.form(state, registry, player_id, relic_id)
         row: dict[str, Any] = {
             "relic_id": relic_id,
@@ -40,6 +43,7 @@ def playability(
             "reason": None,
             "implemented": info["implemented"],
             "exhausted": info["exhausted"],
+            "copied_by": info["copied_by"],
         }
         rows.append(row)
         if info["kind"] != "action":
