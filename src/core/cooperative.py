@@ -49,6 +49,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from src.core import offer_inputs, reaction_prefs, rules_hooks
+from src.core.game_events import GameEvent, Moment, event_point
 from src.core.game_state import (
     BoostOffer,
     BoostSetting,
@@ -60,7 +61,6 @@ from src.core.game_state import (
 )
 
 if TYPE_CHECKING:
-    from src.core.game_events import GameEvent, Moment
     from src.core.hex_grid import HexGrid
     from src.core.registry import StaticDataRegistry
     from src.core.rules_hooks import Hook
@@ -77,6 +77,8 @@ BOT_MIN_PAYMENT = 1
 DEAL = "__deal"
 # ``PendingOffer.hook_seq`` of a deal for a window-use component (no event hook behind it).
 COMPONENT_HOOK = -1
+# Id prefix of a turn-end preview (54.15 f): ``"te:<owner>:<hook seq>"``.
+TURN_END_PREFIX = "te:"
 # Steps that do not move the game on: boosts recorded before them stay available.
 _KEEP_LABELS = (
     "boost:", "offer:", "reaction-settings", "reaction-pause", "reaction-wait", "transaction",
@@ -545,6 +547,69 @@ def _row(
     }
 
 
+def _turn_end_ctx(state: GameState, requester: str) -> dict[str, Any] | None:
+    """The ``TURN END`` context of the requester's own turn, once it may end (54.15 f).
+
+    Only while ``requester`` is the active player of the action phase, on their own turn (not
+    Puppets on a String's extra action), and has already taken an action - what remains of the
+    turn is its end.
+    """
+    from src.core import action_budget
+
+    player = state.players.get(requester)
+    if (
+        state.phase is not Phase.ACTION
+        or state.active_player_id != requester
+        or player is None
+        or not player.took_action_this_turn
+        or action_budget.outside_turn(state, requester)
+    ):
+        return None
+    return {
+        "player": requester, "position": state.turn_active_system or "",
+        "event": GameEvent.TURN.value, "moment": Moment.END.value, "subject": requester,
+    }
+
+
+def _turn_end_previews(state: GameState, requester: str) -> list[BoostOffer]:
+    """Other players' cooperative "at the end of a player's turn" effects ``requester`` could get
+    at the end of THIS turn (Garv and Gunn, Field Marshal Mercer): listed during the turn, so the
+    deal is struck before the turn passes (RULES.md 54.15 f). Not stored - rebuilt on every read.
+    """
+    ctx = _turn_end_ctx(state, requester)
+    if ctx is None:
+        return []
+    point = event_point(GameEvent.TURN, Moment.END)
+    previews: list[BoostOffer] = []
+    for owner in state.players:
+        if owner == requester:
+            continue
+        for hook in rules_hooks.hooks_at(point, state, owner):
+            covers = hook.covers or ""
+            spec = _PULL_HOOKS.get(covers)
+            if spec is None or not hook.optional:
+                continue
+            if not all(str(ctx.get(key)) == value for key, value in hook.where):
+                continue
+            targets = _beneficiaries_of(state, owner, covers, ctx)
+            if requester not in targets or (owner in targets and not spec.mutual):
+                continue
+            previews.append(BoostOffer(
+                id=f"{TURN_END_PREFIX}{owner}:{hook.seq}", owner=owner, covers=covers,
+                beneficiaries=[requester], hook_seq=hook.seq, event=GameEvent.TURN.value,
+                moment=Moment.END.value, ctx=ctx, label=hook.label,
+            ))
+    return previews
+
+
+def _boost(state: GameState, requester: str, boost_id: str) -> BoostOffer | None:
+    """A recorded boost or a turn-end preview of ``requester`` (``None`` = a component)."""
+    stored = next((b for b in state.boosts if b.id == boost_id), None)
+    if stored is not None or not boost_id.startswith(TURN_END_PREFIX):
+        return stored
+    return next((b for b in _turn_end_previews(state, requester) if b.id == boost_id), None)
+
+
 def available(
     state: GameState, registry: StaticDataRegistry, grid: HexGrid, requester: str
 ) -> list[dict[str, Any]]:
@@ -552,7 +617,7 @@ def available(
     from src.core import faction_components
 
     rows: list[dict[str, Any]] = []
-    for boost in state.boosts:
+    for boost in [*state.boosts, *_turn_end_previews(state, requester)]:
         if requester in boost.beneficiaries and _hook_live(state, boost):
             row = _row(state, registry, grid, requester, boost.id, boost.owner, boost.covers)
             if row is not None:
@@ -616,10 +681,19 @@ def _find(
 
 
 def _check_payment(
-    state: GameState, grid: HexGrid, payer: str, owner: str, trade_goods: int, commodities: int
+    state: GameState,
+    grid: HexGrid,
+    payer: str,
+    owner: str,
+    trade_goods: int,
+    commodities: int,
+    debt_tokens: int = 0,
 ) -> None:
-    if trade_goods < 0 or commodities < 0:
+    if trade_goods < 0 or commodities < 0 or debt_tokens < 0:
         raise ValueError("A payment cannot be negative.")
+    if debt_tokens > MAX_PRICE:
+        raise ValueError(f"At most {MAX_PRICE} debt tokens.")
+    # Debt tokens are table memory, not components: no neighbours, turn or phase (RULES.md 47.3).
     if trade_goods + commodities == 0:
         return
     player = state.players[payer]
@@ -643,9 +717,13 @@ def request(
     *,
     trade_goods: int = 0,
     commodities: int = 0,
+    debt_tokens: int = 0,
     now: float,
 ) -> GameState:
     """``requester`` asks for a boost, offering a payment (new state).
+
+    The payment is trade goods / commodities (a transaction) and/or the requester's debt tokens
+    (always possible - RULES.md 47.3, 54.15 f; each one counts as 1 towards a standing price).
 
     A standing offer the payment covers (or free for the requester) and a bot owner who accepts
     give the offer to the REQUESTER (pick the details or cancel) - unless the effect is
@@ -659,11 +737,11 @@ def request(
     if row["pending"] is not None:
         raise ValueError("You already asked for this boost.")
     owner = str(row["owner"])
-    _check_payment(state, grid, requester, owner, trade_goods, commodities)
-    paid = trade_goods + commodities
+    _check_payment(state, grid, requester, owner, trade_goods, commodities, debt_tokens)
+    paid = trade_goods + commodities + debt_tokens
     terms = setting(state, owner, row["source"])
     accepted = terms.mode == STANDING and (requester in terms.free_for or paid >= terms.price)
-    boost = next((b for b in state.boosts if b.id == boost_id), None)
+    boost = _boost(state, requester, boost_id)
     owner_player = state.players[owner]
     if not accepted and owner_player.control_type is ControlType.BOT:
         if paid < BOT_MIN_PAYMENT:
@@ -677,7 +755,7 @@ def request(
     deal = {
         "boost": boost_id, "requester": requester, "owner": owner, "source": row["source"],
         "trade_goods": int(trade_goods), "commodities": int(commodities),
-        "accepted": accepted, "at": float(now),
+        "debt_tokens": int(debt_tokens), "accepted": accepted, "at": float(now),
     }
     offer = PendingOffer(
         id=active_effects.next_id(new_state, "of"),
@@ -713,6 +791,16 @@ def _pay(
     raise ValueError("A paid deal is a transaction: one side must be the active player.")
 
 
+def _pay_debt(
+    state: GameState, payer: str, owner: str, deal: Mapping[str, Any]
+) -> GameState:
+    """The deal's debt tokens: the payer's tokens go to the owner (RULES.md 47.3, 54.15 f)."""
+    from src.core import debt
+
+    count = int(deal.get("debt_tokens", 0) or 0)
+    return debt.give_debt_tokens(state, payer, owner, count) if count > 0 else state
+
+
 def accept(
     state: GameState,
     registry: StaticDataRegistry,
@@ -743,7 +831,7 @@ def accept(
     if offer.hook_seq == COMPONENT_HOOK:
         result = _accept_component(
             state, registry, grid, actor_id, offer_id, spec, owner, requester, source, tg, comm,
-            params,
+            params, int(deal.get("debt_tokens", 0)),
         )
     else:
         base = {k: v for k, v in offer.ctx.items() if k not in (DEAL, "decider")}
@@ -757,7 +845,7 @@ def accept(
             if hook is not None and hook.inputs is not None else []
         )
         cleaned = _deal_params(state, spec, owner, requester, inputs, params)
-        paid = _pay(state, grid, requester, owner, tg, comm)
+        paid = _pay_debt(_pay(state, grid, requester, owner, tg, comm), requester, owner, deal)
         result = triggers.accept_offer(paid, actor_id, offer_id, cleaned, inputs_player=owner)
     result.boosts = [b for b in result.boosts if b.id != deal["boost"]]
     return result
@@ -776,6 +864,7 @@ def _accept_component(
     trade_goods: int,
     commodities: int,
     params: Mapping[str, Any] | None,
+    debt_tokens: int = 0,
 ) -> GameState:
     """A requested window-use / ``ACTION:`` component: payment + the owner's use, one step.
 
@@ -796,7 +885,10 @@ def _accept_component(
     inputs_fn = rules_hooks.inputs_for(source)
     inputs = inputs_fn(work, registry, owner) if inputs_fn is not None else []
     cleaned = _deal_params(work, spec, owner, requester, inputs, params)
-    paid = _pay(work, grid, requester, owner, trade_goods, commodities)
+    paid = _pay_debt(
+        _pay(work, grid, requester, owner, trade_goods, commodities), requester, owner,
+        {"debt_tokens": debt_tokens},
+    )
     if tech:  # an ``ACTION:`` technology = the owner's component action (RULES.md 31.8)
         result = component_action.play_component_action(paid, owner, component, params=cleaned)
         reaction_prefs.note_change(result, owner, f"used {source}")
@@ -846,5 +938,6 @@ def deal_view(offer: PendingOffer) -> dict[str, Any] | None:
     return {
         "requester": deal["requester"], "owner": deal["owner"],
         "tradeGoods": int(deal["trade_goods"]), "commodities": int(deal["commodities"]),
+        "debtTokens": int(deal.get("debt_tokens", 0)),
         "accepted": bool(deal.get("accepted")), "at": float(deal.get("at", 0.0)),
     }

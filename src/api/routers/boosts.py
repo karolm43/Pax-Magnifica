@@ -29,6 +29,8 @@ class BoostRequestBody(BaseModel):
     boost_id: str
     trade_goods: int = Field(default=0, ge=0, le=cooperative.MAX_PRICE)
     commodities: int = Field(default=0, ge=0, le=cooperative.MAX_PRICE)
+    # The requester's debt tokens for the owner - always possible (RULES.md 47.3, 54.15 f).
+    debt_tokens: int = Field(default=0, ge=0, le=cooperative.MAX_PRICE)
 
 
 class BoostWithdrawBody(BaseModel):
@@ -97,11 +99,12 @@ async def post_request(
     try:
         new_state = cooperative.request(
             state, ctx.registry, ctx.current_grid, body.player_id, body.boost_id,
-            trade_goods=body.trade_goods, commodities=body.commodities, now=ctx.service.now(),
+            trade_goods=body.trade_goods, commodities=body.commodities,
+            debt_tokens=body.debt_tokens, now=ctx.service.now(),
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    paid = body.trade_goods + body.commodities
+    paid = body.trade_goods + body.commodities + body.debt_tokens
     return await _commit(ctx, new_state, f"boost:request:{body.player_id}:{body.boost_id}:{paid}")
 
 

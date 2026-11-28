@@ -40,24 +40,33 @@ describe("BoostsButton (RULES.md 54.15)", () => {
     render(<BoostsButton player={me} />);
     fireEvent.click(screen.getByRole("button", { name: "Boosts: 1 available" }));
     fireEvent.click(screen.getByRole("button", { name: "Ask for free" }));
-    expect(request).toHaveBeenCalledWith("p2", "bo1", 0, 0);
+    expect(request).toHaveBeenCalledWith("p2", "bo1", 0, 0, 0);
   });
 
-  it("a standing offer: Auto pays the price and takes it", () => {
+  it("a standing offer: no Auto - the price is typed, then taken", () => {
     data = { ...data, available: [{ ...row, mode: "standing", price: 2 }] };
     render(<BoostsButton player={me} />);
     fireEvent.click(screen.getByRole("button", { name: /Boosts/ }));
     expect(screen.getByText(/standing offer: 2/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Auto" })).toBeNull();
+    fireEvent.change(screen.getByRole("textbox", { name: "Trade goods" }), {
+      target: { value: "2" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Take the offer" }));
-    expect(request).toHaveBeenCalledWith("p2", "bo1", 2, 0);
+    expect(request).toHaveBeenCalledWith("p2", "bo1", 2, 0, 0);
   });
 
-  it("no payment when the two cannot transact", () => {
+  it("debt tokens even when the two cannot transact", () => {
     data = { ...data, available: [{ ...row, payable: false }] };
     render(<BoostsButton player={me} />);
     fireEvent.click(screen.getByRole("button", { name: /Boosts/ }));
-    expect(screen.queryByRole("spinbutton")).toBeNull();
-    expect(screen.getByText(/No payment possible now/)).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: "Trade goods" })).toBeNull();
+    expect(screen.getByText(/debt tokens are always possible/)).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", { name: "Debt tokens" }), {
+      target: { value: "3" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Ask, paying 3" }));
+    expect(request).toHaveBeenCalledWith("p2", "bo1", 0, 0, 3);
   });
 
   it("an open request can be withdrawn", () => {

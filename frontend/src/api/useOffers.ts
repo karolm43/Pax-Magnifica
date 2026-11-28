@@ -38,6 +38,8 @@ export type OfferDeal = {
   owner: string;
   tradeGoods: number;
   commodities: number;
+  /** The requester's debt tokens for the owner (RULES.md 47.3). */
+  debtTokens?: number;
   /** A standing offer (or a bot) already accepted: the requester picks the details. */
   accepted: boolean;
   at: number;

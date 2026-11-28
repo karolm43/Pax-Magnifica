@@ -2,7 +2,7 @@ import { useState } from "react";
 import { IconBolt, IconX } from "@tabler/icons-react";
 import { Button, NumberInput, Tooltip } from "@/ds";
 import type { PlayerData } from "@/entities/data/types";
-import { useBoostActions, useBoosts, type BoostRow } from "@/api/useBoosts";
+import { useBoostActions, useBoosts, type BoostRow, type OutgoingDeal } from "@/api/useBoosts";
 import { LeaderChip } from "@/domains/player/components/Leader/LeaderChip";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import holdStyles from "./HoldControls.module.css";
@@ -13,10 +13,19 @@ import { ToolHint } from "./ToolHint";
  * "Boosts" (RULES.md 54.15): other players' cooperative agents you could get RIGHT NOW (Captain
  * Mendosa when you activate, Trilossa Aun Mirik when you produce, Viscount Unlenn in your
  * combat...). They never interrupt anyone: the button appears only while something is available
- * or a request of yours is open. Asking may include a payment; the owner accepts or declines, or
+ * or a request of yours is open. Asking may include a payment - trade goods / commodities when the
+ * two may transact, debt tokens always (RULES.md 47.3); the owner accepts or declines, or
  * their standing offer accepts at once. The payment and the effect resolve together - a binding
  * deal - and nothing is paid when it is declined or lapses.
  */
+
+function offering(deal: OutgoingDeal): string {
+  const goods = deal.tradeGoods + deal.commodities;
+  const debt = deal.debtTokens ?? 0;
+  if (goods + debt === 0) return " · for free";
+  const parts = [goods ? `${goods} TG` : "", debt ? `${debt} debt token${debt === 1 ? "" : "s"}` : ""];
+  return ` · offering ${parts.filter(Boolean).join(" + ")}`;
+}
 
 function leaderId(source: string): string | null {
   const [category, id] = source.split(":");
@@ -27,14 +36,15 @@ function BoostItem({ row, me, busy, onRequest }: {
   row: BoostRow;
   me: PlayerData;
   busy: boolean;
-  onRequest: (tradeGoods: number, commodities: number) => void;
+  onRequest: (tradeGoods: number, commodities: number, debtTokens: number) => void;
 }) {
-  // "Auto" = the owner's standing price paid in trade goods (0 when free or when asking).
-  const auto = row.mode === "standing" && !row.free ? (row.price ?? 0) : 0;
-  const [tg, setTg] = useState<number | null>(null);
+  // No "Auto" here (user decision 2026-11-28): the requester types the payment.
+  const [tg, setTg] = useState(0);
   const [comm, setComm] = useState(0);
-  const tradeGoods = tg ?? Math.min(auto, me.tg ?? 0);
-  const paid = tradeGoods + comm;
+  const [debt, setDebt] = useState(0);
+  const tradeGoods = row.payable ? tg : 0;
+  const commodities = row.payable ? comm : 0;
+  const paid = tradeGoods + commodities + debt;
   const covered = row.mode === "standing" && (row.free || paid >= (row.price ?? 0));
   const leader = leaderId(row.source);
   return (
@@ -68,7 +78,7 @@ function BoostItem({ row, me, busy, onRequest }: {
                 min={0}
                 max={me.tg ?? 0}
                 disabled={busy}
-                value={tradeGoods}
+                value={tg}
                 onChange={(v) => setTg(typeof v === "number" ? v : 0)}
               />
               <NumberInput
@@ -80,17 +90,23 @@ function BoostItem({ row, me, busy, onRequest }: {
                 value={comm}
                 onChange={(v) => setComm(typeof v === "number" ? v : 0)}
               />
-              <Button size="xs" variant="subtle" disabled={busy} onClick={() => { setTg(null); setComm(0); }}>
-                Auto
-              </Button>
             </>
           ) : (
             <small className={styles.note}>
-              No payment possible now (not neighbours, or you already traded this turn) - ask for
-              free.
+              No trade goods or commodities now (not neighbours, or you already traded this turn)
+              - debt tokens are always possible.
             </small>
           )}
-          <Button size="xs" disabled={busy} onClick={() => onRequest(row.payable ? tradeGoods : 0, row.payable ? comm : 0)}>
+          <NumberInput
+            label="Debt tokens"
+            size="xs"
+            min={0}
+            max={20}
+            disabled={busy}
+            value={debt}
+            onChange={(v) => setDebt(typeof v === "number" ? v : 0)}
+          />
+          <Button size="xs" disabled={busy} onClick={() => onRequest(tradeGoods, commodities, debt)}>
             {covered ? "Take the offer" : paid > 0 ? `Ask, paying ${paid}` : "Ask for free"}
           </Button>
         </div>
@@ -170,9 +186,7 @@ export function BoostsButton({ player }: { player: PlayerData }) {
                 <li key={deal.offerId} className={styles.item}>
                   <span>
                     <b>{deal.name}</b> from <PlayerTag playerId={deal.owner} size={14} />
-                    {deal.tradeGoods + deal.commodities > 0
-                      ? ` · offering ${deal.tradeGoods + deal.commodities}`
-                      : " · for free"}
+                    {offering(deal)}
                   </span>
                   <Button
                     size="xs"
@@ -193,7 +207,7 @@ export function BoostsButton({ player }: { player: PlayerData }) {
                 row={row}
                 me={player}
                 busy={busy}
-                onRequest={(tg, comm) => run(() => actions.request(me, row.id, tg, comm))}
+                onRequest={(tg, comm, debt) => run(() => actions.request(me, row.id, tg, comm, debt))}
               />
             ))}
           </ul>

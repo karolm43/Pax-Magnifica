@@ -46,13 +46,15 @@ function sourceTech(source: string | undefined): string | null {
 /** Przycisk „Use”, a gdy etykieta hooka mówi, co się stanie („…: spend 2 TG …”) — ta treść. */
 /** Terms of a requested cooperative effect on its offer card (RULES.md 54.15). */
 export function DealLine({ deal, decider }: { deal: OfferDeal; decider: string }) {
-  const paid = deal.tradeGoods + deal.commodities;
+  const debt = deal.debtTokens ?? 0;
+  const paid = deal.tradeGoods + deal.commodities + debt;
   const price =
     paid === 0
       ? "for free"
       : [
           deal.tradeGoods ? `${deal.tradeGoods} trade good${deal.tradeGoods === 1 ? "" : "s"}` : "",
           deal.commodities ? `${deal.commodities} commodit${deal.commodities === 1 ? "y" : "ies"}` : "",
+          debt ? `${debt} debt token${debt === 1 ? "" : "s"}` : "",
         ]
           .filter(Boolean)
           .join(" + ");

@@ -351,3 +351,15 @@ Older, completed blocks (Phase 1 → blocks of 2026-11-25) are in `PROGRESS_ARCH
 QA (all three blocks): full backend suite (10 failures, all stale asserts, fixed and re-run: 270 passed in
 those files), ruff, mypy; frontend `tsc`, eslint (changed files), vitest (62 files, 271 passed). Skipped:
 `npm run build` (no new modules/imports), e2e (no wizard/flow change).
+
+## Boosts: turn-end agents during your turn, debt-token payments, no Auto (RULES.md 54.15 f)
+
+- `cooperative._turn_end_previews`: another player's cooperative "at the end of a player's turn" effect
+  (Garv and Gunn, Field Marshal Mercer) is listed in the active player's Boosts panel once they have taken an
+  action on their own turn (id `te:<owner>:<seq>`, rebuilt on read); accepting resolves it at once with the
+  turn's `TURN END` context. ⚠️ ASSUMPTION: resolves on acceptance, not held until End turn.
+- Deals may be paid with debt tokens (`request(..., debt_tokens=)`, `POST /boosts/request` `debt_tokens`):
+  always possible (RULES.md 47.3), count towards a standing price, given on acceptance (`debt.give_debt_tokens`);
+  `deal_view.debtTokens`, `DealLine` / outgoing request text show them.
+- `BoostsButton`: no "Auto" (payment starts at 0), "Debt tokens" field always shown.
+- Tests: `tests/test_cooperative_turn_end.py` (5), `BoostsButton.test.tsx` (updated).

@@ -23,11 +23,12 @@ export type BoostRow = {
   text: string;
   kind: string;
   mode: BoostMode;
-  /** Standing offer price (TG + commodities); null for ``ask``. */
+  /** Standing offer price (TG + commodities + debt tokens); null for ``ask``. */
   price: number | null;
   /** Free for this player (an ally on the owner's standing offer). */
   free: boolean;
-  /** A payment is possible now (a legal transaction between the two). */
+  /** Trade goods / commodities are possible now (a legal transaction between the two). Debt
+   * tokens are always possible (RULES.md 47.3). */
   payable: boolean;
   /** Offer id of this player's open request, if any. */
   pending: string | null;
@@ -40,6 +41,7 @@ export type OutgoingDeal = {
   owner: string;
   tradeGoods: number;
   commodities: number;
+  debtTokens?: number;
   accepted: boolean;
   at: number;
 };
@@ -112,11 +114,18 @@ export function useBoostActions() {
     }
   };
   return {
-    request: (actorId: string, boostId: string, tradeGoods: number, commodities: number) =>
+    request: (
+      actorId: string,
+      boostId: string,
+      tradeGoods: number,
+      commodities: number,
+      debtTokens = 0,
+    ) =>
       run("request", actorId, {
         boost_id: boostId,
         trade_goods: tradeGoods,
         commodities,
+        debt_tokens: debtTokens,
       }),
     withdraw: (actorId: string, offerId: string) => run("withdraw", actorId, { offer_id: offerId }),
     configure: (
