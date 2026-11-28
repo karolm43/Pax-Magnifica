@@ -316,9 +316,11 @@ def _agent_target(_state: GameState, _player_id: str, ctx: Mapping[str, Any]) ->
     return str(ctx["target"])
 
 
-def _agent_granted(_state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> bool:
-    """Tylko wyczerpanie z oferty końca akcji taktycznej (ma gracza-odbiorcę i system)."""
-    return "target" in ctx and "position" in ctx
+def _agent_granted(_state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
+    """Only the exhaust from the end-of-tactical-action offer (has a recipient and a system),
+    and only for the player who exhausted it: with Ssruu copying T'ro both the Yssaril and the
+    Sardakk hold the text, but one exhaust grants one placement (RULES.md 62.22)."""
+    return "target" in ctx and "position" in ctx and ctx.get("player") == player_id
 
 
 def tro_inputs(

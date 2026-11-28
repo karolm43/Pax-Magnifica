@@ -210,3 +210,27 @@ def test_ssruu_kopiuje_jr_xs455_o_przez_api(registry: StaticDataRegistry) -> Non
     assert me["leader_states"]["yssarilagent"] == "exhausted"
     assert "titanprototype" not in _me(flow, flow.other)["exhausted_relics"]
     assert rows()["titanprototype"]["exhausted"]
+
+
+def test_ssruu_copy_of_tro_places_infantry_once(registry: StaticDataRegistry) -> None:
+    """Ssruu copying T'ro, requested by the active player: the Yssaril and the Sardakk both hold
+    T'ro's text, but one exhaust grants a single "place 2 infantry" decision (RULES.md 62.22)."""
+    flow = Flow(registry, "sol", other="yssaril", third="sardakk")
+    flow.activate(flow.home)
+    flow.decline_all()
+    flow.pass_reactions()
+    flow.end_turn()
+    owners = [b["owner"] for b in flow.boosts() if "T'ro" in b["name"]]
+    assert owners[0] == flow.other  # the Yssaril's Ssruu copy is listed first
+    flow.request_boost("T'ro")
+    flow.accept("T'ro", pid=flow.other)
+    assert _me(flow, flow.other)["leader_states"].get("yssarilagent") == "exhausted"
+    assert _me(flow, flow.third)["leader_states"].get("sardakkagent") != "exhausted"
+    decisions = [o for o in flow.offers() if "place 2 infantry" in o["label"]]
+    assert len(decisions) == 1
+    planet = flow.planets(flow.home)[0]
+    before = flow.state()["systems"][flow.home]["planet_units"][planet][flow.me]["infantry"]
+    flow.accept(decisions[0]["label"], {"planet": planet})
+    after = flow.state()["systems"][flow.home]["planet_units"][planet][flow.me]["infantry"]
+    assert after == before + 2
+    assert not [o for o in flow.offers() if "place 2 infantry" in o["label"]]

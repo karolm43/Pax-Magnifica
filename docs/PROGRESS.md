@@ -452,3 +452,11 @@ those files), ruff, mypy; frontend `tsc`, eslint (changed files), vitest (62 fil
 - Tests: `tutorialStore.test.ts`, `coachHint.test.ts`, `tourSteps.test.ts`, `TutorialTour.test.tsx`,
   `milestones.test.ts`, `MilestoneTips.test.tsx`, `CoachSection.test.tsx`, `HelpPopover.test.tsx`,
   `HowToPlayModal.test.tsx`.
+
+## Fix: Ssruu copy of T'ro placed infantry twice (RULES.md 62.22)
+
+- With Ssruu copying another player's agent, both the Yssaril and the agent's owner hold its text, so
+  the `COMPONENT_EXHAUSTED/AFTER` follow-up hook fired once per holder (two "place 2 infantry" decisions).
+- The follow-up conditions now require the exhauster (`ctx["player"] == player_id`): T'ro (Sardakk),
+  Acamar (Empyrean), Field Marshal Mercer (Nomad).
+- Test: `tests/factions/test_flows_yssaril.py::test_ssruu_copy_of_tro_places_infantry_once`.

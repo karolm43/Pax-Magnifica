@@ -323,8 +323,10 @@ def _mercer_target(_state: GameState, _player_id: str, ctx: Mapping[str, Any]) -
     return str(ctx["target"])
 
 
-def _mercer_granted(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> bool:
-    return str(ctx.get("target") or "") in state.players and bool(ctx.get("position"))
+def _mercer_granted(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
+    # Only the exhauster resolves it - a Ssruu copy must not fire twice (RULES.md 62.22).
+    return (str(ctx.get("target") or "") in state.players and bool(ctx.get("position"))
+            and ctx.get("player") == player_id)
 
 
 def mercer_inputs(

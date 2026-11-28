@@ -385,9 +385,10 @@ def _acamar_target(_state: GameState, _player_id: str, ctx: Mapping[str, Any]) -
     return str(ctx["target"])
 
 
-def _acamar_granted(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> bool:
+def _acamar_granted(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> bool:
+    # Only the exhauster resolves it - a Ssruu copy must not fire twice (RULES.md 62.22).
     target = str(ctx.get("target") or "")
-    return target in state.players and "position" in ctx
+    return target in state.players and "position" in ctx and ctx.get("player") == player_id
 
 
 def acamar_inputs(
