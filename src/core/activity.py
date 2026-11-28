@@ -72,6 +72,8 @@ class ActivityFact(BaseModel):
     # "moved" (ruch floty: player_id, value = typ jednostki, delta = liczba, detail = pozycja celu —
     # ruch sam się znosi w sumach, więc dopisujemy go osobno), "landed" (desant: value = typ,
     # delta = liczba, detail = id planety).
+    # "hero_planet" (value = planet id: the planet a hero acted on, from its effect's
+    # ``data.planets`` - Devour World, RULES.md 62.24; KeyMoments aim the board FX at it),
     # "move_route" (one per fleet move: route/hops/anomalies, so every client replays the flight),
     # "carried" (cargo of that move: value = unit type, delta = count, detail = source zone
     # "space" / planet id), "rift_lost" (a ship / its cargo removed by a gravity rift roll on
@@ -554,6 +556,9 @@ def _hero_area_facts(
                 type="area", player_id=effect.owner or hero_user, value=str(position),
                 detail=str(detail or "effect"),
             ))
+        for planet in effect.data.get("planets") or ():  # the exact planet (Devour World)
+            out.append(ActivityFact(type="hero_planet", player_id=effect.owner or hero_user,
+                                    value=str(planet)))
     # Multiverse Shift (RULES.md 62.20): frontier tokens placed / waiting to be explored.
     for position in _placed_frontier(before, after):
         out.append(ActivityFact(type="area", player_id=hero_user, value=position,

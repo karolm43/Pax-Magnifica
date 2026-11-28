@@ -787,6 +787,13 @@ def _open_card(
     agenda.blocked = [
         p for p in agenda.phase_blocked if p in work.players and not vote_unblockable(work, p)
     ]
+    # "You cannot vote on agendas" (Galactic Threat, RULES.md 62.24) - unless game effects cannot
+    # prevent the player from voting (Elder Qanoj via Alliance - F_nekro galactic-threat 2).
+    agenda.blocked += [
+        p for p in agenda.vote_order
+        if p not in agenda.blocked and not vote_unblockable(work, p)
+        and rules_hooks.permits(rules_hooks.POINT_AGENDA_CANNOT_VOTE, work, p)
+    ]
     agenda.step = AgendaStep.VOTE
     reveal_ctx = {"agenda": hidden or card, "kind": agenda.kind}
     triggers.fire(work, GameEvent.AGENDA_REVEALED, Moment.WHEN, subject=player_id, ctx=reveal_ctx)

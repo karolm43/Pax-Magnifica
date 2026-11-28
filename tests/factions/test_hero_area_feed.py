@@ -71,3 +71,25 @@ def test_mahact_benediction_zrodlo_i_walka(registry: StaticDataRegistry) -> None
     areas = _areas(flow)
     assert (flow.me, source, "benediction_origin") in areas
     assert (flow.me, dest, "benediction") in areas
+
+
+def test_nekro_devour_world_system_i_planeta(registry: StaticDataRegistry) -> None:
+    """Devour World (RULES.md 62.24): the area ``nekro_devour`` + the exact planet
+    (``hero_planet``) so the board FX consumes that planet."""
+    flow = Flow(registry, "nekro")
+    position, _ = flow.plain_pair()
+
+    def wellon(s: Json) -> None:
+        system = s["systems"][position]
+        system["system_id"] = "19"
+        system["planet_owners"] = {}
+        system["planet_units"] = {"wellon": {flow.other: {"infantry": 1}}}
+        system["space_units"] = {flow.me: {"cruiser": 1}}
+
+    flow.edit(wellon)
+    flow.player(lambda p: p["leader_states"].update(nekrohero="unlocked"))
+    flow.use("leader", "nekrohero", {"planet": "wellon", "technology": "sdn"})
+    entries = flow.client.get("/history/activity").json()["entries"]
+    facts = entries[-1]["activity"]["facts"]
+    assert (flow.me, position, "nekro_devour") in _areas(flow)
+    assert any(f["type"] == "hero_planet" and f["value"] == "wellon" for f in facts)

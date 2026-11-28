@@ -21,6 +21,7 @@ from src.core.hooks.factions import (
     muaat,
     naalu,
     naaz,
+    nekro,
     nomad,
     saar,
     sardakk,
@@ -35,7 +36,7 @@ from src.core.hooks.factions import (
 __all__ = [
     "arborec", "argent", "cabal", "empyrean", "ghost", "hacan", "jolnar", "l1z1x", "letnev",
     "mahact", "mentak", "muaat",
-    "naalu", "naaz", "nomad",
+    "naalu", "naaz", "nekro", "nomad",
     "saar", "sardakk",
     "sol", "titans",
     "winnu", "xxcha", "yin", "yssaril",

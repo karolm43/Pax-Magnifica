@@ -20,6 +20,7 @@ import { EmpyreanFxDefs, VoidEyeMark, VoidTetherMark } from "./EmpyreanFxMarks";
 import { NomadFxDefs, TimeWarpMark } from "./NomadFxMarks";
 import { KeyholeMark, YssarilFxDefs } from "./YssarilFxMarks";
 import { BenedictionMark, MahactFxDefs } from "./MahactFxMarks";
+import { DevourMark, NekroFxDefs } from "./NekroFxMarks";
 import classes from "./HeroBoardFxLayer.module.css";
 
 /**
@@ -356,6 +357,8 @@ export function HeroBoardFxLayer({
           <YssarilFxDefs />
         ) : recipe.mark === "benediction" ? (
           <MahactFxDefs />
+        ) : recipe.mark === "devour" ? (
+          <NekroFxDefs />
         ) : (
           <MarkDefs />
         )}
@@ -377,6 +380,12 @@ export function HeroBoardFxLayer({
             <VoidEyeMark key={tile.position} tile={tile} index={index} explore={explored.has(tile.position)} />
           ) : recipe.mark === "keyhole" ? (
             <KeyholeMark key={tile.position} tile={tile} index={index} />
+          ) : recipe.mark === "devour" ? (
+            <DevourMark
+              key={tile.position}
+              tile={tile}
+              planet={run.planets?.find((p) => p in tile.planets)}
+            />
           ) : recipe.mark === "timewarp" ? (
             <TimeWarpMark
               key={tile.position}

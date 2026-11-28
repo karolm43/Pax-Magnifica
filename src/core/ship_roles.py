@@ -19,6 +19,16 @@ from src.core.registry import StaticDataRegistry
 from src.core.unit_catalog import is_space_unit
 
 
+def chosen_ground_ships(state: GameState, player_id: str, position: str) -> dict[str, int]:
+    """Ground forces in the space area chosen to participate in THIS space combat as if they
+    were ships (The Alastor, RULES.md 62.24): ``{base type: count}`` from
+    ``ActiveCombat.ground_as_ships`` (empty outside that combat)."""
+    combat = state.active_combat
+    if combat is None or combat.kind != "space" or combat.position != position:
+        return {}
+    return {bt: n for bt, n in combat.ground_as_ships.get(player_id, {}).items() if n > 0}
+
+
 def space_ground_variants(
     state: GameState,
     registry: StaticDataRegistry,
@@ -33,6 +43,18 @@ def space_ground_variants(
         return {}
     ctx = {"position": position, "finished_combat": finished_combat}
     found: dict[str, str] = {}
+    chosen = chosen_ground_ships(state, player_id, position)
+    if chosen:
+        from src.core.combat import resolve_unit_variant  # local: combat imports rules_hooks
+
+        player = state.players[player_id]
+        for base_type in sorted(chosen):
+            unit = resolve_unit_variant(
+                registry, player.faction, player.technologies, base_type,
+                player.breakthrough_unlocked, player.breakthrough_flipped,
+            )
+            if unit is not None:
+                found[base_type] = unit.id
     for unit_id in sorted(rules_hooks.forbidden(
         rules_hooks.POINT_COMBAT_SPACE_GROUND_VARIANT, state, player_id, ctx
     )):
@@ -94,8 +116,9 @@ def space_ships(
     as_ships = space_ground_variants(
         state, registry, player_id, position, finished_combat=finished_combat
     )
+    chosen = chosen_ground_ships(state, player_id, position)
     ships = {
-        bt: n for bt, n in system.space_units.get(player_id, {}).items()
+        bt: min(n, chosen.get(bt, n)) for bt, n in system.space_units.get(player_id, {}).items()
         if n > 0 and (is_space_unit(bt) or bt in as_ships)
     }
     for base_type, (_planet, count) in planet_ships(state, registry, player_id, position).items():

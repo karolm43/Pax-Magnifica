@@ -711,7 +711,7 @@ def genetic_memory(
     for old, _ in swaps:
         technology.return_technology(state, player_id, old)
     for _, new in swaps:
-        technology.grant_technology(state, player_id, new)
+        technology.grant_technology(state, player_id, new, replacement=True)
 
 
 # ------------------------------------------------------------ Specialist Compounds (BT)

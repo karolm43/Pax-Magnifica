@@ -139,15 +139,33 @@ def ready_breakthrough(state: GameState, player_id: str) -> None:
     _player(state, player_id).breakthrough_exhausted = False
 
 
+def assimilated_pair(player: PlayerState, tech_id: str) -> set[str]:
+    """The card and its Valefar Assimilator twin (RULES.md 62.24): a copy keeps the
+    ASSIMILATOR's exhausted state, so exhausting / readying either card changes both."""
+    for token, copied in player.assimilated.items():
+        if tech_id in (token, copied):
+            return {token, copied}
+    return {tech_id}
+
+
 def exhaust_technology(state: GameState, player_id: str, tech_id: str) -> None:
-    """Wyczerpuje technologię gracza (już wyczerpana nie dubluje się)."""
+    """Wyczerpuje technologię gracza (już wyczerpana nie dubluje się); Valefar - obie karty."""
     player = _player(state, player_id)
-    if tech_id not in player.exhausted_technologies:
-        player.exhausted_technologies = [*player.exhausted_technologies, tech_id]
+    for card in sorted(assimilated_pair(player, tech_id)):
+        if card not in player.exhausted_technologies:
+            player.exhausted_technologies = [*player.exhausted_technologies, card]
 
 
 def ready_technology(state: GameState, player_id: str, tech_id: str) -> None:
-    """Odświeża jedną technologię gracza (np. Bio-Stims)."""
+    """Odświeża jedną technologię gracza (np. Bio-Stims); Valefar - obie karty."""
+    player = _player(state, player_id)
+    cards = assimilated_pair(player, tech_id)
+    player.exhausted_technologies = [t for t in player.exhausted_technologies if t not in cards]
+
+
+def forget_technology(state: GameState, player_id: str, tech_id: str) -> None:
+    """Removes ONE card from the exhausted list without touching its Valefar twin (a released
+    copy leaves the play area; the assimilator keeps its own state - RULES.md 62.24)."""
     player = _player(state, player_id)
     player.exhausted_technologies = [t for t in player.exhausted_technologies if t != tech_id]
 

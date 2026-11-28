@@ -91,6 +91,9 @@ export type ResearchOptions = {
   asPrimary: boolean;
   second: ResearchOptions | null;
   gain: GainMode | null;
+  /** Propagation (Nekro, RULES.md 62.24): the pick is what the player "would research" - they
+   * gain 3 command tokens instead of the technology. */
+  propagation: boolean;
 };
 
 export type BreakthroughInfo = {
@@ -151,6 +154,7 @@ export function toResearchOptions(raw: Record<string, unknown>): ResearchOptions
     discount: typeof raw.discount === "number" ? raw.discount : 0,
     compoundPlanets: (raw.compound_planets ?? {}) as Record<string, TechColor[]>,
     asPrimary: raw.as_primary === true,
+    propagation: raw.propagation === true,
     gain:
       raw.gain && typeof raw.gain === "object" ? (raw.gain as GainMode) : null,
     second:

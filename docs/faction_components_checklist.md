@@ -369,7 +369,7 @@ Odfiltrowano jednostki bazowe i efekty wyłącznie na siebie. Zaznacz [x] przy w
 ### Jednostki frakcyjne (Flagship / Mech / Unikalne)
 - [ ] **[flagship] Y'sia Y'ssrila** (yssaril_flagship) — This ship can move through systems that contain other player's ships.
 
-## The Nekro Virus (nekro) [NIEZAIMPLEMENTOWANA]
+## The Nekro Virus (nekro)
 
 ### Umiejętności (Abilities)
 - [ ] **Galactic Threat** (galactic_threat) — You cannot vote on agendas

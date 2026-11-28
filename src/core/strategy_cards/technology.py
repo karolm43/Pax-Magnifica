@@ -170,6 +170,9 @@ def research_view(
         ),
         "cost": max(0, cost - discount),
         "needs_input": True,
+        # Propagation (RULES.md 62.24): the pick is what the player "would research" - they gain
+        # 3 command tokens instead (banner in the TechnologyOverlay).
+        "propagation": technology.research_replaced(state, player_id),
     }
 
 

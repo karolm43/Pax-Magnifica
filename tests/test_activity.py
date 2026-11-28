@@ -741,3 +741,25 @@ def test_boost_request_feed(registry: StaticDataRegistry) -> None:
         "p2", "p1", "saaragent", "2"
     )
     assert derive_activity("boost:request:p2:nope:0", before, before) is None
+
+
+def test_nekro_devour_world_obszar_planeta_i_notatki() -> None:
+    """Devour World names the system (``area`` nekro_devour) and the planet (``hero_planet``) for
+    the KeyMoment board FX; Valefar copies / Propagation are ability notes (RULES.md 62.24)."""
+    from src.core import ability_notes, active_effects
+    from src.core.game_events import Duration
+
+    before = _state()
+    before.players["p1"].leader_states["nekrohero"] = "unlocked"
+    after = _state()
+    after.players["p1"].leader_states["nekrohero"] = "purged"
+    active_effects.add_effect(after, "leaders:nekrohero:devour", Duration.TURN, owner="p1",
+                              data={"areas": {"105": "nekro_devour"}, "planets": ["wellon"]})
+    ability_notes.note(after, "p1", "technologies:vax", "copies Advanced Carrier II (Sol)")
+    entry = derive_activity("component-use:leader:nekrohero:p1", before, after)
+    assert entry is not None
+    areas = {(f.player_id, f.value, f.detail) for f in entry.facts if f.type == "area"}
+    assert ("p1", "105", "nekro_devour") in areas
+    assert [f.value for f in entry.facts if f.type == "hero_planet"] == ["wellon"]
+    notes = [(f.value, f.detail) for f in entry.facts if f.type == "ability_used"]
+    assert ("technologies:vax", "copies Advanced Carrier II (Sol)") in notes

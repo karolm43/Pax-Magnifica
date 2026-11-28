@@ -209,8 +209,12 @@ def circlet_enters_asteroids(
 def _no_prerequisite_techs(
     state: GameState, registry: Any, player_id: str
 ) -> list[Any]:
-    """Technologie z talii gracza bez prerekwizytów, których jeszcze nie ma."""
-    owned = set(state.players[player_id].technologies)
+    """Technologie z talii gracza bez prerekwizytów, których jeszcze nie ma (Propagation: także
+    posiadane - Nekro "would research" każdą, C_relics book-of-latvinia 3)."""
+    owned = (
+        set() if technology.research_replaced(state, player_id)
+        else set(state.players[player_id].technologies)
+    )
     return [
         tech
         for tech in technology.tech_pool(state, registry, player_id).values()
@@ -248,8 +252,9 @@ def book_gained(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> Non
     """Book of Latvinia: When you gain this card, research up to 2 technologies that have no
     prerequisites.
 
-    ⚠ ZAŁOŻENIE: wyjątek Nekro (sześć żetonów dowodzenia zamiast technologii) nie jest jeszcze
-    kodowany - to osobny etap zdolności frakcji.
+    Nekro (Propagation): each "research" becomes 3 command tokens - six tokens and zero
+    technologies, even when it owns every technology without prerequisites (C_relics
+    book-of-latvinia 3, RULES.md 62.24).
     """
     registry = rules_hooks.bound_registry()
     chosen = list(ctx.get("params", {}).get("technologies", []))

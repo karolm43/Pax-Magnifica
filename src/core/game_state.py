@@ -614,6 +614,13 @@ class PlayerState(BaseModel):
     technologies: list[str] = Field(default_factory=list)
     # Technologies purged from the game (Vaults of the Heir, RULES.md 62.23): never gained again.
     purged_technologies: list[str] = Field(default_factory=list)
+    # Valefar Assimilator X/Y (RULES.md 62.24): {assimilator tech id: copied tech id}. The copied
+    # id is ALSO in ``technologies`` (the card "gains that technology's text"); only
+    # ``technology.assimilate`` / ``technology.release_assimilated`` change this map.
+    assimilated: dict[str, str] = Field(default_factory=dict)
+    # Valefar Assimilator Z (RULES.md 62.24): factions whose sheet holds a Z token - the player's
+    # flagship gains the text abilities of their flagships.
+    assimilated_flagships: list[str] = Field(default_factory=list)
     # Technologie WYCZERPANE (exhausted) — np. część technologii jednostkowych/akcji.
     # Gotowe = posiadane, których tu nie ma. Odświeżane w fazie statusu.
     exhausted_technologies: list[str] = Field(default_factory=list)
@@ -828,6 +835,9 @@ class ActiveCombat(BaseModel):
     # ``{gracz: liczba}`` — przypisuje je zwykły krok ASSIGN przed AFB (``start_assign``).
     start_hits: dict[str, int] = Field(default_factory=dict)
     start_assign: bool = False
+    # Ground forces in the space area that participate in this space combat as if they were ships
+    # (The Alastor, RULES.md 62.24): ``{player: {base type: count}}`` - read by ``ship_roles``.
+    ground_as_ships: dict[str, dict[str, int]] = Field(default_factory=dict)
     # Ostatnia strona przypisania użyła Sustain Damage, a ktoś może odpowiedzieć (Direct Hit,
     # Reflective Shielding): walka stoi w kroku ASSIGN (okno zamknięte) na czas pauzy ochronnej,
     # potem ``battle.release_sustain_hold`` (z ``step_settle``) prowadzi ją dalej (RULES.md 54.10).

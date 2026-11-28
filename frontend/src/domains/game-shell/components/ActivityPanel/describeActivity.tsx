@@ -1222,7 +1222,9 @@ function describeFact(
     case "winner":
       return { key, tone: "good", text: <>{<b>{playerName(ctx, fact.player_id)}</b>} won the game</> };
     case "area":
-      // Miejsce efektu bohatera na planszy (RULES.md 64.4) — tylko dla animacji, nie do feedu.
+    case "hero_planet":
+      // Miejsce efektu bohatera na planszy (RULES.md 64.4; planeta Devour World - 62.24) — tylko
+      // dla animacji, nie do feedu.
       return null;
     case "carried":
       return {

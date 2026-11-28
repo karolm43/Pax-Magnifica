@@ -21,6 +21,7 @@ from src.core import (
     production,
     promissory_play,
     rules_hooks,
+    ship_roles,
     strategic_action,
     unit_ops,
 )
@@ -602,12 +603,12 @@ def salai_sai_corian(state: GameState, player_id: str, ctx: Mapping[str, Any]) -
     if ctx.get("base_type") != "flagship" or ctx.get("kind") != "space" or combat is None:
         return 0
     opponent = combat.defender if player_id == combat.attacker else combat.attacker
-    system = state.systems.get(combat.position)
-    ships = sum(
-        n for bt, n in (system.space_units.get(opponent, {}) if system else {}).items()
-        if is_space_unit(bt) and bt != "fighter"
-    )
     registry = _registry()
+    # Ground forces fighting as ships count too (The Alastor - F_winnu salai-sai-corian 2).
+    ships = sum(
+        n for bt, n in ship_roles.space_ships(state, registry, opponent, combat.position).items()
+        if bt != "fighter"
+    )
     unit = registry.units.get(FLAGSHIP)
     base = (unit.combat_die_count or 1) if unit is not None else 1
     return ships - base

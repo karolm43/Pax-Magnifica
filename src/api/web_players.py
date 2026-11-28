@@ -476,6 +476,11 @@ def _build_player_data(
                 # Il Na Viroset: the map lets this player activate systems with own tokens.
                 "canActivateOwnTokens": tactical.can_activate_own_token(state, player_id, ""),
                 "purgedTechs": list(player.purged_technologies),
+                # Valefar Assimilator Z (RULES.md 62.24): factions whose flagship text the Nekro
+                # flagship gains - the unit card lists those abilities.
+                "valefarZTargets": list(player.assimilated_flagships),
+                # Valefar Assimilator X/Y: {assimilator: copied technology}.
+                "valefarCopies": dict(player.assimilated),
                 "strategicCC": player.strategic_cc,
                 "ccReinf": player.cc_reinf,
                 "totalVps": player.victory_points,

@@ -79,6 +79,7 @@ export function pickTreeOptions(allowed: string[], owned: string[]): ResearchOpt
     asPrimary: false,
     second: null,
     gain: { mandatory: false, tokenPool: null, tokens: 0, note: "" },
+    propagation: false,
   };
 }
 

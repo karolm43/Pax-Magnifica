@@ -154,6 +154,12 @@ def combat_units(
     # {typ: (liczba, strefa)}; w walce kosmicznej także statek-siła naziemna stojący na planecie
     # (Eidolon Maximum walczy w kosmosie, nawet gdy jest na planecie - F_naaz_rokha 2.1).
     in_zone = {bt: (n, zone) for bt, n in _units_map(system, zone, player_id).items() if n > 0}
+    # The Alastor (RULES.md 62.24): only the CHOSEN ground forces of the space area fight.
+    for bt, cap in (
+        ship_roles.chosen_ground_ships(state, player_id, position) if kind == "space" else {}
+    ).items():
+        if bt in in_zone:
+            in_zone[bt] = (min(in_zone[bt][0], cap), in_zone[bt][1])
     if kind == "space":
         for bt, (planet_zone, n) in ship_roles.planet_ships(
             state, registry, player_id, position

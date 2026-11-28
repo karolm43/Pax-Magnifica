@@ -1,0 +1,209 @@
+/*
+ * The Nekro board effect (RULES.md 62.24, 64.4). Tone from --tone (layer).
+ * UNIT.DSGN.FLAYESH — Devour World (HERO_BOARD_FX.nekrohero, 6.6 s): the infection glow and the
+ * hex lattice blink in 0–1.6 s (ring by ring, with glitch flicker); the tendrils crawl onto the
+ * planet 0.8–2.6 s while the corrupted ring spins; the board flash at 3.0 s = the implosion (the
+ * void core swallows the planet, shards burst out 3.0–3.5 s and are sucked back by 4.2 s); the
+ * tech core rises 3.8–5.4 s and the sigil burns over it; everything fades by 6.4 s.
+ */
+.devour rect,
+.devour path,
+.devour circle {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.infection {
+  opacity: 0;
+  animation: nekInfect 6400ms ease-in-out both;
+}
+
+.lattice {
+  animation: nekFade 6400ms ease-in-out both;
+}
+
+.cell {
+  fill: rgb(var(--tone) / 0.08);
+  stroke: rgb(var(--tone));
+  stroke-width: 2.5;
+  opacity: 0;
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+  animation:
+    nekCell 380ms steps(3, jump-none) both,
+    nekGlitch 900ms steps(2, jump-none) infinite;
+  animation-delay: calc(var(--k) * 360ms + var(--j) * 60ms), calc(1600ms + var(--j) * 110ms);
+}
+
+.tendril {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 8px rgb(var(--tone)));
+  animation:
+    nekCrawl 1800ms cubic-bezier(0.5, 0, 0.7, 1) both,
+    nekFade 6400ms ease-in-out both;
+  animation-delay: calc(800ms + var(--k) * 70ms), 0ms;
+}
+
+.ring {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  opacity: 0;
+  animation:
+    nekRing 6400ms ease-in-out both,
+    nekSpin 1400ms linear infinite;
+}
+
+.segment {
+  fill: none;
+  stroke: rgb(255 200 200);
+  stroke-width: 6;
+  stroke-linecap: butt;
+  filter: drop-shadow(0 0 6px rgb(var(--tone)));
+}
+
+.void {
+  opacity: 0;
+  scale: 0.2;
+  animation: nekVoid 6400ms cubic-bezier(0.6, 0, 0.3, 1) both;
+}
+
+.shards {
+  opacity: 0;
+  animation: nekShards 6400ms linear both;
+}
+
+.shard {
+  fill: rgb(var(--tone));
+  stroke: rgb(255 230 230);
+  stroke-width: 1;
+  animation: nekBurst 1200ms cubic-bezier(0.2, 0.7, 0.4, 1) both;
+  animation-delay: calc(3000ms + var(--lag));
+}
+
+.shock {
+  fill: none;
+  stroke: rgb(255 210 210);
+  stroke-width: 4;
+  opacity: 0;
+  animation: nekShock 900ms ease-out 3000ms both;
+}
+
+.core {
+  opacity: 0;
+  animation: nekCore 6400ms ease-in-out both;
+}
+
+.coreRing {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+}
+
+.sigil {
+  opacity: 0;
+  animation: nekSigil 6400ms ease-in-out both;
+}
+
+.sigilTriangle {
+  fill: none;
+  stroke: rgb(var(--tone));
+  stroke-width: 5;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 12px rgb(var(--tone)));
+}
+
+.sigilEye {
+  fill: rgb(255 220 220);
+  filter: drop-shadow(0 0 10px rgb(var(--tone)));
+}
+
+@keyframes nekInfect {
+  0% { opacity: 0; scale: 0.6; }
+  20% { opacity: 0.8; }
+  45% { opacity: 1; scale: 1; }
+  80% { opacity: 0.6; }
+  100% { opacity: 0; scale: 1.1; }
+}
+
+@keyframes nekFade {
+  0%, 85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes nekCell {
+  0% { opacity: 0; scale: 0.4; }
+  50% { opacity: 1; scale: 1.15; }
+  100% { opacity: 0.85; scale: 1; }
+}
+
+@keyframes nekGlitch {
+  0% { translate: 0 0; }
+  50% { translate: 2px -1px; }
+  100% { translate: -1px 1px; }
+}
+
+@keyframes nekCrawl {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes nekRing {
+  0%, 20% { opacity: 0; scale: 1.6; }
+  35% { opacity: 1; scale: 1; }
+  45% { opacity: 1; scale: 0.6; }
+  50%, 100% { opacity: 0; scale: 0.2; }
+}
+
+@keyframes nekSpin {
+  to { rotate: 360deg; }
+}
+
+@keyframes nekVoid {
+  0%, 38% { opacity: 0; scale: 0.2; }
+  46% { opacity: 1; scale: 1.25; }
+  60% { opacity: 1; scale: 0.9; }
+  85% { opacity: 0.8; scale: 0.7; }
+  100% { opacity: 0; scale: 0.4; }
+}
+
+@keyframes nekShards {
+  0%, 45% { opacity: 0; }
+  47%, 64% { opacity: 1; }
+  70%, 100% { opacity: 0; }
+}
+
+@keyframes nekBurst {
+  0% { translate: 0 0; scale: 1.2; }
+  40% { translate: var(--dist) 0; scale: 1; rotate: 120deg; }
+  100% { translate: 0 0; scale: 0.2; rotate: 300deg; }
+}
+
+@keyframes nekShock {
+  0% { opacity: 0.9; scale: 1; }
+  100% { opacity: 0; scale: 3.6; }
+}
+
+@keyframes nekCore {
+  0%, 56% { opacity: 0; translate: 0 0; scale: 0.3; }
+  66% { opacity: 1; scale: 1.2; }
+  82% { opacity: 1; translate: 0 -70px; scale: 1; }
+  100% { opacity: 0; translate: 0 -110px; scale: 0.8; }
+}
+
+@keyframes nekSigil {
+  0%, 60% { opacity: 0; scale: 1.4; }
+  70% { opacity: 1; scale: 1; }
+  88% { opacity: 0.9; }
+  100% { opacity: 0; scale: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .devour * {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

@@ -363,3 +363,30 @@ those files), ruff, mypy; frontend `tsc`, eslint (changed files), vitest (62 fil
   `deal_view.debtTokens`, `DealLine` / outgoing request text show them.
 - `BoostsButton`: no "Auto" (payment starts at 0), "Debt tokens" field always shown.
 - Tests: `tests/test_cooperative_turn_end.py` (5), `BoostsButton.test.tsx` (updated).
+
+## B17: The Nekro Virus (RULES.md 62.24)
+
+- `core/hooks/factions/nekro.py`: every component (3 abilities, Valefar X/Y, Valefar Z, 3 leaders, Antivirus,
+  The Alastor, Mordred). ⚠️ ASSUMPTION (to confirm): the Nekro starts owning `vax` + `vay` (data lists only `dxa`).
+- Valefar X/Y copies: the copied tech id joins `technologies` + `PlayerState.assimilated`
+  (`technology.assimilate` / `release_assimilated` - not a "gain"); exhaust/ready mirrored to the assimilator
+  (`core/exhaust.py`); `resolve_unit_variant` accepts a copied faction unit upgrade (faction beats generic on a tie);
+  losing a war sun copy removes war suns; `technology.owned_cards` (copies are not owned - AIR "Against").
+- Valefar Z: `PlayerState.assimilated_flagships` + `rules_hooks.register_unit_source_provider` (other flagships'
+  text hooks work for The Alastor); web data `valefarZTargets` / `valefarCopies`.
+- Propagation: PERMIT `technology.research_replaced` in `apply_research` (WHEN fires, no tech, no AFTER/trace) +
+  mandatory decision: one pool choice per token (bot-safe first answer); research view `propagation` banner in the TechnologyOverlay; plan_research
+  allows an owned tech when replaced (Book of Latvinia: 6 tokens).
+- Galactic Threat: PERMIT `agenda.cannot_vote` (`_open_card` blocks, unless `vote_unblockable`); prediction offer
+  after reveal (once per agenda phase), correct -> mandatory gain from `voters_for`.
+- Technological Singularity: once per combat, opponent's destruction in that combat, not vs Antivirus in play;
+  shared gain form (TechnologyOverlay + X/Y/Z token). Commander Acidos skips card swaps (`grant_technology(replacement=True)`,
+  Genetic Memory). Hero Devour World: planet on the map + tech of its specialty; `hero_planet` activity fact.
+- The Alastor: `ActiveCombat.ground_as_ships` read by `ship_roles` / `combat_units` (space area only; ground forces
+  on planets = gap). Fixed along the way: Salai Sai Corian and Raid Formation count ground forces fighting as
+  ships; Develop Weaponry counts unit upgrades per unit type.
+- Frontend: `HERO_BOARD_FX.nekrohero` + `NekroFxMarks` (viral hex lattice, tendrils, planet implosion, tech core,
+  sigil; static sweep, flash/quake, 7 sound cues) aimed at the exact devoured planet; describeActivity tests.
+- Tests: `test_nekro.py` (41), `test_rulings_nekro.py` (22, incl. 18 cross-file rulings that waited for the Nekro),
+  `test_flows_nekro.py` (7), activity / hero-area feed, frontend `nekroFx`, `NekroFxMarks`, `describeActivity.nekro`.
+  Gaps recorded in `rulings_status.json` (Alastor on planets, same-window gains, Infantry II card transfers).

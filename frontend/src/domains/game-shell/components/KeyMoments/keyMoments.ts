@@ -70,7 +70,8 @@ export type HeroArea = {
    * `time_warp` / `time_warp_token`: the Nomad flagship's system / a system with a Nomad command
    * token under Time Warp (RULES.md 62.21). `kyver`: a rival's home system under Kyver's Guild of
    * Spies (RULES.md 62.22). `benediction_origin` / `benediction`: the system whose space area
-   * Benediction moves / the system where its space combat is fought (RULES.md 62.23). */
+   * Benediction moves / the system where its space combat is fought (RULES.md 62.23).
+   * `nekro_devour`: the system of the planet Devour World consumes (RULES.md 62.24). */
   kind:
     | "gain"
     | "loss"
@@ -81,7 +82,8 @@ export type HeroArea = {
     | "time_warp_token"
     | "kyver"
     | "benediction_origin"
-    | "benediction";
+    | "benediction"
+    | "nekro_devour";
 };
 
 /** Rozpoznanie typu lidera (wstrzykiwane — w aplikacji `getLeaderById`). */
@@ -141,6 +143,11 @@ export function momentsForEntry(entry: ActivityEntry, isHero: IsHero): KeyMoment
       kind: f.detail as HeroArea["kind"],
     }));
   if (hero?.kind === "hero" && areas.length > 0) hero.areas = areas;
+  // The exact planet a hero acted on (fact `hero_planet` - Devour World, RULES.md 62.24).
+  const heroPlanets = a.facts.filter((f) => f.type === "hero_planet" && f.value).map((f) => f.value ?? "");
+  if (hero?.kind === "hero" && heroPlanets.length > 0) {
+    hero.planets = [...(hero.planets ?? []), ...heroPlanets];
+  }
   // Stellar Converter: zniszczona planeta we wpisie, w którym relikt zszedł z gry (The Silver
   // Flame też niszczy planety — dom gracza — ale to nie ten moment).
   const converterUsed =
@@ -224,6 +231,7 @@ const AREA_KINDS = new Set([
   "kyver",
   "benediction_origin",
   "benediction",
+  "nekro_devour",
 ]);
 
 /** Void Tether token id (`assets/data/tokens`, backend `faction_tokens.VOID_TETHER`). */

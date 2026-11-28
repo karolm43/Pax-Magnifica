@@ -526,7 +526,7 @@ def plan_research(
         if tech_id in registry.technologies:
             raise ValueError("This technology is not in your technology deck.")
         raise ValueError(f"Unknown technology: {tech_id}")
-    if tech_id in player.technologies:
+    if tech_id in player.technologies and not research_replaced(state, player_id):
         raise ValueError(f"You already own {tech.name}.")
     if len(set(skips)) != len(skips):
         raise ValueError("The same skip was selected twice.")
@@ -645,7 +645,9 @@ def _plan_paid_ignore(
     return card, tuple(planets), trade_goods
 
 
-def grant_technology(state: GameState, player_id: str, tech_id: str) -> None:
+def grant_technology(
+    state: GameState, player_id: str, tech_id: str, *, replacement: bool = False
+) -> None:
     """Dodaje technologię graczowi — JEDYNE miejsce zmiany ``PlayerState.technologies``.
 
     RULES.md 43.1a: badanie i „gain" przechodzą tędy, więc hook „gdy zdobywasz technologię"
@@ -658,7 +660,11 @@ def grant_technology(state: GameState, player_id: str, tech_id: str) -> None:
     if tech_id in player.purged_technologies:
         raise ValueError("That technology was purged - it cannot be gained again.")
     if tech_id not in player.technologies:
-        tech_ctx = {"player": player_id, "technology": tech_id}
+        tech_ctx: dict[str, Any] = {"player": player_id, "technology": tech_id}
+        if replacement:
+            # A card swapped in for another (Genetic Memory): "after you gain" abilities such as
+            # Nekro Acidos do not apply (F_jol_nar rin-the-masters-legacy-genetic-memory 4).
+            tech_ctx["replacement"] = True
         triggers.fire(
             state,
             GameEvent.TECHNOLOGY_GAINED,
@@ -730,6 +736,112 @@ def purge_technology(state: GameState, player_id: str, tech_id: str) -> None:
                 unit_ops.remove_units(
                     state, system, "space", player_id, base_type, count, UnitCause.REMOVED
                 )
+
+
+# Valefar Assimilator tokens (RULES.md 62.24): assimilator tech ids that copy another card.
+ASSIMILATORS: tuple[str, ...] = ("vax", "vay")
+
+
+def add_setup_technologies(state: GameState, player_id: str, tech_ids: list[str]) -> None:
+    """Technologies a faction begins the game with, added during setup WITHOUT
+    ``TECHNOLOGY_GAINED`` (setup is not a gain - the Nekro's Valefar Assimilators, RULES.md
+    62.24). Idempotent."""
+    player = state.players[player_id]
+    missing = [t for t in tech_ids if t not in player.technologies]
+    player.technologies = [*player.technologies, *missing]
+
+
+def assimilate(state: GameState, player_id: str, token: str, tech_id: str) -> None:
+    """Places a Valefar Assimilator ``token`` (``vax``/``vay``) on ``tech_id`` (RULES.md 62.24).
+
+    The copied id joins ``technologies`` (the assimilator "gains that technology's text" - unit
+    variants, hook sources, objectives read it from there) WITHOUT ``TECHNOLOGY_GAINED``: placing
+    a token is not gaining a technology (F_nekro nekro-acidos 2). A token already copying another
+    card moves (the previous copy is lost first - valefar-assimilator 1). The copy takes the
+    assimilator's exhausted state (2). Legality (owner, faction technology) is checked by the
+    caller. Mutates the caller's working clone.
+
+    Raises:
+        ValueError: Unknown player, token not owned, or the card already carries a token.
+    """
+    player = state.players.get(player_id)
+    if player is None:
+        raise ValueError(f"Unknown player: {player_id}")
+    if token not in player.technologies:
+        raise ValueError("You do not own that Valefar Assimilator.")
+    if tech_id in player.assimilated.values() or tech_id in player.technologies:
+        raise ValueError("That technology already has an assimilator token.")
+    if token in player.assimilated:
+        release_assimilated(state, player_id, token)
+    player.assimilated = {**player.assimilated, token: tech_id}
+    player.technologies = [*player.technologies, tech_id]
+    if token in player.exhausted_technologies:
+        exhaust.exhaust_technology(state, player_id, token)
+
+
+def release_assimilated(state: GameState, player_id: str, token: str) -> str | None:
+    """Removes the Valefar Assimilator ``token`` from its copied card (RULES.md 62.24).
+
+    The copied id leaves ``technologies`` and the exhausted list (the assimilator keeps its own
+    state - valefar-assimilator 2). Losing a war sun upgrade without the generic one removes the
+    player's war suns from the board (11.2, R_technology). Returns the released tech id.
+    """
+    player = state.players.get(player_id)
+    if player is None or token not in player.assimilated:
+        return None
+    copied = player.assimilated[token]
+    player.assimilated = {k: v for k, v in player.assimilated.items() if k != token}
+    player.technologies = [t for t in player.technologies if t != copied]
+    exhaust.forget_technology(state, player_id, copied)
+    registry = rules_hooks.bound_registry()
+    if registry is not None:
+        _remove_war_suns_without_upgrade(state, registry, player_id, copied)
+    return copied
+
+
+def _remove_war_suns_without_upgrade(
+    state: GameState, registry: StaticDataRegistry, player_id: str, tech_id: str
+) -> None:
+    """War suns need their upgrade to exist (R_technology): losing the only war sun upgrade
+    removes every war sun of the player from the board."""
+    from src.core import unit_ops  # local: unit_ops -> triggers -> hooks -> technology
+    from src.core.combat import resolve_unit_variant
+    from src.core.unit_ops import UnitCause
+
+    player = state.players[player_id]
+    lost = {
+        unit.base_type for unit in registry.units.values()
+        if unit.base_type == "warsun" and unit.required_tech_id == tech_id
+    }
+    for base_type in sorted(lost):
+        kept = resolve_unit_variant(
+            registry, player.faction, player.technologies, base_type,
+            player.breakthrough_unlocked, player.breakthrough_flipped,
+        )
+        if kept is not None and kept.required_tech_id is not None:
+            continue  # another war sun upgrade (generic) keeps them on the board
+        for system in state.systems.values():
+            count = system.space_units.get(player_id, {}).get(base_type, 0)
+            if count > 0:
+                unit_ops.remove_units(
+                    state, system, "space", player_id, base_type, count, UnitCause.REMOVED
+                )
+
+
+def owned_cards(state: GameState, player_id: str) -> list[str]:
+    """Technology cards the player OWNS: ``technologies`` without Valefar copies (the assimilator
+    card counts itself, whatever it copies - C_agendas antiintellectual-revolution 2)."""
+    player = state.players[player_id]
+    copies = set(player.assimilated.values())
+    return [t for t in player.technologies if t not in copies]
+
+
+def assimilation_owner(state: GameState, tech_id: str) -> str | None:
+    """The player whose Valefar Assimilator copies ``tech_id`` (None: no token on it)."""
+    for pid, player in state.players.items():
+        if tech_id in player.assimilated.values():
+            return pid
+    return None
 
 
 def _unit_upgrade_flag(tech_id: str) -> str:
@@ -821,6 +933,15 @@ def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None
         subject=player_id,
         ctx=research_ctx,
     )
+    if research_replaced(state, player_id):
+        # Propagation (RULES.md 62.24): "Gain 3 command tokens instead" - no technology, nothing
+        # spent on prerequisites, no "after research" triggers (F_nekro propagation 3).
+        triggers.fire(
+            state, GameEvent.FACTION_ABILITY_USED, Moment.AFTER, subject=player_id,
+            ctx={"player": player_id, "ability": RESEARCH_REPLACED, "target": player_id,
+                 "technology": plan.tech_id},
+        )
+        return
     grant_technology(state, player_id, plan.tech_id)
     if plan.free_ignores:
         from src.core import ability_notes  # lokalnie: unika cyklu importów
@@ -874,6 +995,15 @@ def apply_research(state: GameState, player_id: str, plan: ResearchPlan) -> None
         subject=player_id,
         ctx=research_ctx,
     )
+
+
+# ``FACTION_ABILITY_USED`` ability of a research replaced by another effect (Propagation).
+RESEARCH_REPLACED = "technology:research_replaced"
+
+
+def research_replaced(state: GameState, player_id: str) -> bool:
+    """Czy badanie gracza zastępuje inny efekt (Propagation: hook PERMIT - RULES.md 62.24)."""
+    return rules_hooks.permits(rules_hooks.POINT_TECHNOLOGY_RESEARCH_REPLACED, state, player_id)
 
 
 def research(

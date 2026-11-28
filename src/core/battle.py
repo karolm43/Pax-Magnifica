@@ -676,8 +676,11 @@ def raid_targets(
     Sustain Damage nadany komponentem (Metali Void Shielding) się nie liczy (C_relics)."""
     fresh: dict[str, int] = {}
     hurt: dict[str, int] = {}
+    # Ground forces fighting as ships are ships of this combat (The Alastor - F_argent
+    # raid-formation 6).
+    as_ships = ship_roles.space_ships(state, registry, victim, _combat(state).position)
     for unit in side_units(state, grid, registry, victim):
-        if not unit.sustain or not is_space_unit(unit.base_type):
+        if not unit.sustain or not (is_space_unit(unit.base_type) or unit.base_type in as_ships):
             continue
         if unit.count - unit.damaged > 0:
             fresh[unit.base_type] = unit.count - unit.damaged

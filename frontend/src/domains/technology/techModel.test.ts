@@ -27,6 +27,7 @@ const row = (over: Partial<TechRow>): TechRow => ({
 
 const options = (over: Partial<ResearchOptions>): ResearchOptions => ({
   breakthrough: null,
+  propagation: false,
   tree: [],
   ownedColors: {},
   specialties: {},
@@ -145,5 +146,12 @@ describe("Riftmeld (RULES.md 62.17)", () => {
     const auto = autoSkips(tech, opts);
     expect(auto.skips).toEqual(["captured:p2"]);
     expect(totalMissing(remainingAfter(tech, auto.skips, opts))).toBe(0);
+  });
+});
+
+describe("Propagation (RULES.md 62.24)", () => {
+  it("the research view carries the Nekro's replacement flag", () => {
+    expect(toResearchOptions({ propagation: true }).propagation).toBe(true);
+    expect(toResearchOptions({}).propagation).toBe(false);
   });
 });

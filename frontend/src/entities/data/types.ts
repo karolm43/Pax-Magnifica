@@ -1183,8 +1183,10 @@ export type PlayerData = {
   // Technologies purged from the game (Vaults of the Heir).
   purgedTechs?: string[];
 
-  // nekro-specific properties (Thunder's Edge)
+  // nekro-specific properties: Valefar Assimilator Z targets (factions, Thunder's Edge) and the
+  // X/Y copies {assimilator tech id: copied tech id} (RULES.md 62.24).
   valefarZTargets?: string[];
+  valefarCopies?: Record<string, string>;
 
   // myko-mentori-specific properties (Divination omen dice results)
   omenDice?: number[];

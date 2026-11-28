@@ -94,10 +94,18 @@ def resolve_unit_variant(
             return True
         if unit.upgrades_from_unit_id in faction_unit_ids:
             return True
-        return unit.faction is not None and unit.faction == faction_id
+        if unit.faction is not None and unit.faction == faction_id:
+            return True
+        # Another faction's unit upgrade whose technology the player holds: only a Valefar
+        # Assimilator copy puts it there (no tech id is shared with a generic upgrade -
+        # RULES.md 62.24), and the copied faction upgrade beats the generic one (F_nekro 6).
+        req = unit.required_tech_id
+        return (
+            unit.upgrades_from_unit_id is not None and req is not None and req.lower() in techs
+        )
 
     best: UnitDef | None = None
-    best_rank: tuple[int, bool] = (-1, False)
+    best_rank: tuple[int, bool, bool] = (-1, False, False)
     for unit in registry.units.values():
         if unit.base_type != base_type:
             continue
@@ -133,7 +141,9 @@ def resolve_unit_variant(
             rank += 2
         # Remis rangi (kilka wersji jednostki frakcji, np. Iconoclast / Iconoclast TE): wygrywa
         # wariant wymieniony w danych frakcji (``faction.units``), nie kolejność rejestru.
-        key = (rank, unit.id in faction_unit_ids)
+        # A faction-specific unit beats a generic one of the same rank (a Valefar copy of a
+        # faction upgrade next to the generic upgrade - F_nekro valefar-assimilator 6).
+        key = (rank, unit.faction is not None, unit.id in faction_unit_ids)
         if key > best_rank:
             best_rank = key
             best = unit

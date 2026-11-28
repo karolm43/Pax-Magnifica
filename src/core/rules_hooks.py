@@ -427,6 +427,12 @@ POINT_COMBAT_CHAMPION = "combat.champion"
 POINT_COMBAT_HIT_SHIELDS = "combat.hit_shields"
 
 # Rodzaje źródeł hooka (kto "posiada" wyjątek).
+# PERMIT -> the player's "research" is replaced by another effect (Propagation: "When you would
+# research a technology: Gain 3 command tokens instead") - ``technology.apply_research``.
+POINT_TECHNOLOGY_RESEARCH_REPLACED = "technology.research_replaced"
+# PERMIT -> the player cannot vote on agendas (Galactic Threat) - ``agenda_phase._open_card``
+# puts them in ``agenda.blocked`` unless ``agenda.vote_unblockable``.
+POINT_AGENDA_CANNOT_VOTE = "agenda.cannot_vote"
 SOURCE_FACTION = "faction"
 SOURCE_TECHNOLOGY = "technology"
 SOURCE_AGENDA = "agenda"  # prawo w grze (decks.agenda_laws) - obowiązuje KAŻDEGO gracza
@@ -1003,6 +1009,27 @@ def _unit_sources_cached(
     return frozenset(found)
 
 
+# Unit source providers: (state, player) -> unit ids whose text abilities the player's units gain
+# (Valefar Assimilator Z: other factions' flagships, RULES.md 62.24). Registered by hook modules;
+# they read the state directly (no hooks - ``owned_sources`` calls them).
+UnitSourceProviderFn = Callable[[GameState, str], list[str]]
+_UNIT_SOURCE_PROVIDERS: list[UnitSourceProviderFn] = []
+
+
+def register_unit_source_provider(fn: UnitSourceProviderFn) -> UnitSourceProviderFn:
+    """Registers a borrowed unit-text provider (see ``_UNIT_SOURCE_PROVIDERS``)."""
+    _UNIT_SOURCE_PROVIDERS.append(fn)
+    return fn
+
+
+def _provided_unit_sources(state: GameState, player_id: str) -> set[HookSource]:
+    _ensure_loaded()
+    return {
+        HookSource(SOURCE_UNIT, unit_id)
+        for fn in _UNIT_SOURCE_PROVIDERS for unit_id in fn(state, player_id)
+    }
+
+
 def _promissory_sources(state: GameState, player_id: str) -> set[HookSource]:
     """Szablony notek w strefie (``<color>_sftt``) + commanderzy z Alliance (RULES.md 61.2)."""
     registry = _BOUND_REGISTRY
@@ -1095,7 +1122,7 @@ def owned_sources(state: GameState, player_id: str) -> frozenset[HookSource]:
     sources.update(HookSource(SOURCE_LEADER, lid) for lid in leader_proxies(state, player_id))
     suppressed = _suppressed_unit_types(state, player_id)
     sources.update(
-        src for src in _unit_sources(player)
+        src for src in _unit_sources(player) | _provided_unit_sources(state, player_id)
         if not suppressed or _unit_base_type(src.component_id) not in suppressed
     )
     sources.update(HookSource(SOURCE_RELIC, r) for r in player.relics)

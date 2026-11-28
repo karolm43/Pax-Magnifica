@@ -148,6 +148,12 @@ def _return_on_activation(template: str, vp_loss: int) -> None:
                 promissory_notes.return_from_play(state, player_id, owner, note_id)
 
 
+def return_on_activation(template: str) -> None:
+    """Faction note returned to its owner when the holder activates a system with the owner's
+    units (Antivirus, RULES.md 62.24) - the same rule as Support for the Throne / Alliance."""
+    _return_on_activation(template, 0)
+
+
 _return_on_activation(SUPPORT, _SUPPORT_VP)
 _return_on_activation(ALLIANCE, 0)
 

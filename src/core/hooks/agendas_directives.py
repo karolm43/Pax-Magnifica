@@ -929,7 +929,9 @@ def _revolution_against(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> 
 def _revolution_targets(state: GameState, player_id: str) -> tuple[list[str], int]:
     ready = [p for p in controlled(state, player_id)
              if p not in state.players[player_id].exhausted_planets]
-    return ready, min(len(state.players[player_id].technologies), len(ready))
+    # Owned cards: a Valefar copy is not owned, the assimilator itself counts (C_agendas
+    # antiintellectual-revolution 2, RULES.md 62.24).
+    return ready, min(len(technology.owned_cards(state, player_id)), len(ready))
 
 
 def _revolution_inputs(
