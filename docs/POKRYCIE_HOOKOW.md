@@ -11,7 +11,7 @@ Zarejestrowanych hooków: **548** (lista: `pokrycie_hookow/hooki.md`).
 |---|---:|---:|---:|
 | action_cards | 143 | 143 | 100.0 |
 | agendas | 63 | 50 | 79.4 |
-| explores | 80 | 4 | 5.0 |
+| explores | 80 | 80 | 100.0 |
 | relics | 24 | 23 | 95.8 |
 | promissory_notes | 40 | 30 | 75.0 |
 | galactic_events | 20 | 0 | 0.0 |
@@ -41,17 +41,17 @@ Im więcej komponentów dotyka obszaru, tym bardziej opłaca się domknąć jego
 
 | Obszar | Komponentów | Bez hooka |
 |---|---:|---:|
-| planety i eksploracja (control, exploration) | 252 | 111 |
+| planety i eksploracja (control, exploration) | 252 | 57 |
 | walka (combat.*, space_cannon, bombardment) | 236 | 53 |
-| produkcja (production.*) | 178 | 33 |
-| ekonomia i płatności (economy, payment) | 159 | 67 |
-| status i odświeżanie (status_phase) | 148 | 43 |
-| ruch (movement.*) | 142 | 32 |
-| karty (card_draw, promissory) | 117 | 32 |
-| żetony dowodzenia (command_tokens) | 96 | 22 |
-| technologie (technology) | 68 | 24 |
+| produkcja (production.*) | 178 | 23 |
+| ekonomia i płatności (economy, payment) | 159 | 34 |
+| status i odświeżanie (status_phase) | 148 | 39 |
+| ruch (movement.*) | 142 | 30 |
+| karty (card_draw, promissory) | 117 | 23 |
+| żetony dowodzenia (command_tokens) | 96 | 14 |
+| technologie (technology) | 68 | 20 |
 | agenda i głosowanie (agenda_phase) | 49 | 10 |
-| cele i punkty (objectives) | 36 | 11 |
+| cele i punkty (objectives) | 36 | 9 |
 | karty strategii i inicjatywa | 27 | 1 |
 
 Szacowany typ hooka (RULES.md 43.1 pkt 4):
@@ -115,7 +115,7 @@ Zdolności, technologie frakcyjne, liderzy, przełom i promissory notes przypisa
 - [`pokrycie_hookow/przypadki_szczegolne.md`](pokrycie_hookow/przypadki_szczegolne.md) — sekcja 5: komponenty bez dopasowania do obszaru.
 - [`pokrycie_hookow/szczegoly_action_cards.md`](pokrycie_hookow/szczegoly_action_cards.md) — sekcja 8: action_cards (143 / 143 z hookiem).
 - [`pokrycie_hookow/szczegoly_agendas.md`](pokrycie_hookow/szczegoly_agendas.md) — sekcja 8: agendas (50 / 63 z hookiem).
-- [`pokrycie_hookow/szczegoly_explores.md`](pokrycie_hookow/szczegoly_explores.md) — sekcja 8: explores (4 / 80 z hookiem).
+- [`pokrycie_hookow/szczegoly_explores.md`](pokrycie_hookow/szczegoly_explores.md) — sekcja 8: explores (80 / 80 z hookiem).
 - [`pokrycie_hookow/szczegoly_relics.md`](pokrycie_hookow/szczegoly_relics.md) — sekcja 8: relics (23 / 24 z hookiem).
 - [`pokrycie_hookow/szczegoly_promissory_notes.md`](pokrycie_hookow/szczegoly_promissory_notes.md) — sekcja 8: promissory_notes (30 / 40 z hookiem).
 - [`pokrycie_hookow/szczegoly_galactic_events.md`](pokrycie_hookow/szczegoly_galactic_events.md) — sekcja 8: galactic_events (0 / 20 z hookiem).

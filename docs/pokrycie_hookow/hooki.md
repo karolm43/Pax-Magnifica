@@ -261,7 +261,7 @@ Razem: **548**. Opis = pierwsza linia docstringu funkcji hooka.
 | `event:faction.ability_used:after` | TRIGGER | leader:yssarilcommander | — | Looking changes nothing; the decision only shows the cards to the Yssaril. |
 | `event:fracture.ingress_placed:after` | TRIGGER | breakthrough:cabalbt | breakthroughs:cabalbt | Oferta zaraz po rozłożeniu ingressów (ruling 1.2) - wykonuje :func:`move_ingress`. |
 | `event:game.setup:during` | TRIGGER | faction:mahact | abilities:hubris | Hubris: During setup, purge your "Alliance" promissory note. |
-| `event:game.setup:during` | TRIGGER | faction:nekro | — | ⚠️ ASSUMPTION (RULES.md 62.24): the Nekro begins the game owning both Valefar |
+| `event:game.setup:during` | TRIGGER | faction:nekro | — | User decision 2026-11-28 (RULES.md 62.24): the Nekro begins the game owning both Valefar |
 | `event:objective.revealed:after` | TRIGGER | relic:neuraloop | relics:neuraloop | Neuraloop: When a public objective is revealed, you may purge one of your relics to discard |
 | `event:objective.scored:after` | TRIGGER | breakthrough:yinbt | breakthroughs:yinbt | Yin Ascendant: ... or score a public objective, gain the alliance ability of a random, |
 | `event:phase:end` | TRIGGER | technology:bio | technologies:bio | Bioplasmosis: At the end of the status phase, you may remove any number of infantry from |

@@ -76,7 +76,7 @@ Component hook coverage (from generated report [`docs/POKRYCIE_HOOKOW.md`](docs/
 | Faction abilities | 38 / 73 | 🔧 |
 | Breakthroughs | 18 / 31 | 🔧 |
 | Units (with abilities) | 46 / 90 | 🔧 |
-| Exploration | 4 / 80 | ⬜ |
+| Exploration | 80 / 80 | ✅ |
 | Galactic events | 0 / 20 | ⬜ |
 
 **Next steps:** remaining factions (abilities, leaders, promissory notes, breakthroughs) → remaining timing windows → exploration → bot expansion.
