@@ -142,3 +142,8 @@
     display: none;
   }
 }
+
+/* Tutorial `?` micro-help: sits tight against the readout it explains. */
+.help {
+  margin-left: -4px;
+}

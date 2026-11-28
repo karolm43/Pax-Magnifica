@@ -1,0 +1,76 @@
+/* Guided UI Tour: callout content (inside TutorialSpotlight's card) and the first-visit offer. */
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -4px -6px 2px 0;
+}
+
+.counter {
+  font-family: var(--ds-font-data);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ds-ink-lo);
+}
+
+.title {
+  margin: 0 0 6px;
+  font-family: var(--ds-font-text);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ds-ink-hi);
+}
+
+.body {
+  margin: 0 0 12px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.offer {
+  --tut-accent-rgb: var(--player-accent-rgb, var(--ds-accent-rgb));
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--hand-dock-clear, 0px) + 84px);
+  z-index: var(--z-tutorial, 3400);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  max-width: calc(100vw - 24px);
+  padding: 10px 12px 10px 14px;
+  border-radius: var(--ds-radius-md, 4px);
+  border: 1px solid rgb(var(--tut-accent-rgb) / 0.45);
+  border-left: 3px solid rgb(var(--tut-accent-rgb) / 0.9);
+  background: var(--ds-ground, #151517);
+  box-shadow: var(--ds-shadow-lg);
+  color: var(--ds-ink);
+  font-family: var(--ds-font-text);
+  font-size: 13px;
+}
+
+.offerIcon {
+  flex: none;
+  color: rgb(var(--tut-accent-rgb));
+}
+
+.offerText {
+  margin: 0;
+  color: var(--ds-ink-hi);
+}
+
+.offerActions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}

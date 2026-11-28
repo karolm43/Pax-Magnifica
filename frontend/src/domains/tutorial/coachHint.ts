@@ -1,31 +1,33 @@
 /**
- * Podpowiedź „What now?” samouczka — CZYSTA funkcja stanu gry → krótka instrukcja dla gracza
- * przy ekranie. Bez reguł liczbowych: tylko „co teraz zrobić i gdzie kliknąć”. Szczegóły
- * (rozdział `chapter`) otwiera okno How to play (`tutorialContent.ts`).
+ * The tutorial's "What now?" hint - a PURE function of game state -> a short instruction for the
+ * player at the screen. No numeric rules: only "what to do now and where to click". Details
+ * (the `chapter`) open in the How to play window (`tutorialContent.ts`); `targetId` names the
+ * screen region the hint talks about ("Show me" pulses it).
  */
 import type { ChapterId } from "./tutorialContent";
+import { TUTORIAL_TARGETS, type TutorialTargetId } from "./targets";
 
 export type CoachContext = {
   phase: string;
-  /** Czy trwa setup startowy (tajne cele, Custodians) przed pierwszą rundą. */
+  /** Starting setup (secret objectives, Custodians) is in progress before the first round. */
   setupPending: boolean;
   winner: boolean;
-  /** Czyja tura (nazwa do wyświetlenia), null = brak gracza z turą. */
+  /** Whose turn it is (display name); null = no player has the turn. */
   turnName: string | null;
-  /** Czy tura należy do gracza przy ekranie. */
+  /** The turn belongs to the player at the screen. */
   myTurn: boolean;
-  /** Czy gracz z turą to bot. */
+  /** The player whose turn it is is a bot. */
   turnIsBot: boolean;
-  /** Czy gracz przy ekranie ma już kartę strategii w tej rundzie. */
+  /** The player at the screen already has a Strategy Card this round. */
   myCardPicked: boolean;
-  /** Czy gracz przy ekranie zagrał już (wyczerpał) swoją kartę strategii. */
+  /** The player at the screen already played (exhausted) their Strategy Card. */
   myCardPlayed: boolean;
   passed: boolean;
   tookAction: boolean;
   activeSystem: string | null;
   tacticalStep: string | null;
   inCombat: boolean;
-  /** Otwarte okno czasowe (np. secondary) i czy to gracz przy ekranie ma teraz zdecydować. */
+  /** An open timing window (e.g. a secondary) and whether the player at the screen decides now. */
   windowOpen: boolean;
   myDecision: boolean;
   isSpeaker: boolean;
@@ -36,8 +38,10 @@ export type CoachHint = {
   title: string;
   lines: string[];
   chapter: ChapterId;
-  /** Gracz przy ekranie ma coś do zrobienia (wyróżnienie panelu). */
+  /** The player at the screen has something to do (panel highlight). */
   act: boolean;
+  /** Screen region the hint talks about; "Show me" pulses it. Absent = nothing to point at. */
+  targetId?: TutorialTargetId;
 };
 
 const TACTICAL: Record<string, Omit<CoachHint, "act">> = {
@@ -45,6 +49,7 @@ const TACTICAL: Record<string, Omit<CoachHint, "act">> = {
     title: "Tactical action: activate",
     lines: ["Click a system on the map to place a command token there and activate it."],
     chapter: "tactical",
+    targetId: TUTORIAL_TARGETS.map,
   },
   MOVEMENT: {
     title: "Tactical action: move",
@@ -53,16 +58,19 @@ const TACTICAL: Record<string, Omit<CoachHint, "act">> = {
       "Review capacity and fleet pool, then fly the plan and advance to the next step.",
     ],
     chapter: "tactical",
+    targetId: TUTORIAL_TARGETS.map,
   },
   SPACE_CANNON: {
     title: "Tactical action: Space Cannon",
     lines: ["Units with SPACE CANNON in range may fire at the ships that moved in. Roll, or skip to the next step."],
     chapter: "combat",
+    targetId: TUTORIAL_TARGETS.tacticalAction,
   },
   SPACE_COMBAT: {
     title: "Tactical action: space combat",
     lines: ["If two players have ships in the active system, they fight. Follow the battle window round by round."],
     chapter: "combat",
+    targetId: TUTORIAL_TARGETS.battle,
   },
   INVASION: {
     title: "Tactical action: invasion",
@@ -71,6 +79,7 @@ const TACTICAL: Record<string, Omit<CoachHint, "act">> = {
       "Defenders fight back in ground combat; win to take control of the planet.",
     ],
     chapter: "tactical",
+    targetId: TUTORIAL_TARGETS.tacticalAction,
   },
   PRODUCTION: {
     title: "Tactical action: production",
@@ -79,6 +88,7 @@ const TACTICAL: Record<string, Omit<CoachHint, "act">> = {
       "Pay with resources by exhausting planets. Then finish the action and press End turn.",
     ],
     chapter: "economy",
+    targetId: TUTORIAL_TARGETS.tacticalAction,
   },
 };
 
@@ -100,6 +110,7 @@ export function coachHint(c: CoachContext): CoachHint {
       ],
       chapter: "goal",
       act: true,
+      targetId: TUTORIAL_TARGETS.phasePanel,
     };
   }
   if (c.inCombat) {
@@ -111,6 +122,7 @@ export function coachHint(c: CoachContext): CoachHint {
       ],
       chapter: "combat",
       act: true,
+      targetId: TUTORIAL_TARGETS.battle,
     };
   }
   if (c.windowOpen && c.myDecision) {
@@ -122,6 +134,7 @@ export function coachHint(c: CoachContext): CoachHint {
       ],
       chapter: "strategic",
       act: true,
+      targetId: TUTORIAL_TARGETS.secondaryDecision,
     };
   }
   if (c.isSpeaker && c.canAdvancePhase) {
@@ -130,6 +143,7 @@ export function coachHint(c: CoachContext): CoachHint {
       lines: ["Everyone is done. As the speaker, press Next phase."],
       chapter: "round",
       act: true,
+      targetId: TUTORIAL_TARGETS.turnControls,
     };
   }
   if (!c.myTurn && c.turnName && c.phase !== "status.scoring" && !c.phase.startsWith("agenda")) {
@@ -141,6 +155,7 @@ export function coachHint(c: CoachContext): CoachHint {
       ],
       chapter: "round",
       act: false,
+      targetId: TUTORIAL_TARGETS.map,
     };
   }
   if (c.phase === "strategy") {
@@ -150,6 +165,7 @@ export function coachHint(c: CoachContext): CoachHint {
           lines: ["You have your Strategy Card. Wait for the others to pick theirs."],
           chapter: "strategy",
           act: false,
+          targetId: TUTORIAL_TARGETS.strategyCards,
         }
       : {
           title: "Pick a Strategy Card",
@@ -159,6 +175,7 @@ export function coachHint(c: CoachContext): CoachHint {
           ],
           chapter: "strategy",
           act: true,
+          targetId: TUTORIAL_TARGETS.strategyCards,
         };
   }
   if (c.phase === "action") {
@@ -172,6 +189,7 @@ export function coachHint(c: CoachContext): CoachHint {
         lines: ["Other players are deciding (e.g. whether to follow your secondary). Then press End turn."],
         chapter: "strategic",
         act: false,
+        targetId: TUTORIAL_TARGETS.turnControls,
       };
     }
     if (c.passed || c.tookAction) {
@@ -184,6 +202,7 @@ export function coachHint(c: CoachContext): CoachHint {
         ],
         chapter: "action",
         act: true,
+        targetId: TUTORIAL_TARGETS.turnControls,
       };
     }
     return {
@@ -198,6 +217,7 @@ export function coachHint(c: CoachContext): CoachHint {
       ],
       chapter: "action",
       act: true,
+      targetId: TUTORIAL_TARGETS.turnControls,
     };
   }
   if (c.phase.startsWith("status")) {
@@ -209,6 +229,7 @@ export function coachHint(c: CoachContext): CoachHint {
       ],
       chapter: "status",
       act: true,
+      targetId: TUTORIAL_TARGETS.phasePanel,
     };
   }
   if (c.phase.startsWith("agenda")) {
@@ -220,6 +241,7 @@ export function coachHint(c: CoachContext): CoachHint {
       ],
       chapter: "agenda",
       act: true,
+      targetId: TUTORIAL_TARGETS.phasePanel,
     };
   }
   return {

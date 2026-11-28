@@ -74,6 +74,8 @@ import {
   preloadBattleSounds,
   setBattleMuted,
 } from "./battleSound";
+import { HelpPopover } from "@/domains/tutorial/HelpPopover";
+import { tutorialTarget } from "@/domains/tutorial/targets";
 import styles from "./BattleOverlay.module.css";
 import { BATTLE_BACKGROUND } from "./BattleVolley";
 import { VolleyLayer } from "./BattleVolley";
@@ -439,6 +441,7 @@ function Battlefield({
   return (
     <div
       className={styles.overlay}
+      {...tutorialTarget("battle")}
       // Okno pełnoekranowe: dok ręki zwija się do paska, a okno rezerwuje pod nim miejsce.
       data-fullscreen-overlay=""
       data-kind={view.kind ?? undefined}
@@ -484,6 +487,7 @@ function Battlefield({
           </b>
         </span>
         <span className={styles.topActions}>
+          <HelpPopover help="battle" position="bottom-end" className={styles.help} />
           <button
             type="button"
             className={styles.hideBtn}

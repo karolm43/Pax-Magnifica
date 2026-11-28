@@ -31,6 +31,7 @@ import {
   TacticalActionWindow,
 } from "@/domains/game-shell/components/TacticalActionWindow";
 import { BoardHud } from "./BoardHud";
+import { TUTORIAL_TARGETS, tutorialTarget } from "@/domains/tutorial/targets";
 import { ChessClockPanel } from "@/domains/clock/ChessClockPanel";
 
 /** DESIGN.md's stated gap between the board's outermost paint and the chrome. */
@@ -217,6 +218,7 @@ export function PannableMapView({ gameId }: { gameId: string }) {
       <Box
         ref={mapContainerRef}
         className={`dragscroll ${classes.mapArea}`}
+        {...tutorialTarget(TUTORIAL_TARGETS.map)}
         style={{ width: "100%" }}
       >
         {isMobile && !hideZoomControls && (

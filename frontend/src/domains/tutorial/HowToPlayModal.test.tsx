@@ -5,7 +5,12 @@ import { HowToPlayModal } from "./HowToPlayModal";
 import { CHAPTERS } from "./tutorialContent";
 import { useTutorialStore } from "./tutorialStore";
 
-afterEach(() => act(() => useTutorialStore.getState().closeGuide()));
+afterEach(() =>
+  act(() => {
+    useTutorialStore.getState().closeGuide();
+    useTutorialStore.getState().endTour();
+  }),
+);
 
 describe("HowToPlayModal", () => {
   it("is closed until a chapter is opened", () => {
@@ -33,5 +38,14 @@ describe("HowToPlayModal", () => {
     const toc = screen.getByRole("navigation", { name: "Chapters" });
     await user.click(within(toc).getByRole("button", { name: /Combat/ }));
     expect(screen.getByRole("heading", { name: "Combat" })).toBeInTheDocument();
+  });
+
+  it("Restart tour closes the guide and starts the screen tour at step 1", async () => {
+    const user = userEvent.setup();
+    act(() => useTutorialStore.getState().openGuide("combat"));
+    render(<HowToPlayModal />);
+    await user.click(screen.getByRole("button", { name: /Restart tour/ }));
+    expect(useTutorialStore.getState().chapter).toBeNull();
+    expect(useTutorialStore.getState().tourStep).toBe(0);
   });
 });

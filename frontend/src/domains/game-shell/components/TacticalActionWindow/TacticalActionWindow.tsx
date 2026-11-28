@@ -10,6 +10,7 @@ import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { useResizablePanel } from "@/hooks/useResizablePanel";
 import { useNetworkMe } from "@/domains/network/useNetworkMe";
 import { useDeskPlayer } from "@/domains/game-shell/components/TurnControls/useDeskPlayer";
+import { tutorialTarget } from "@/domains/tutorial/targets";
 import { TacticalActionPanel } from "./TacticalActionPanel";
 import { TACTICAL_STEPS, stepIndex } from "./tacticalSteps";
 import styles from "./TacticalActionWindow.module.css";
@@ -62,6 +63,7 @@ export function TacticalActionWindow() {
       ref={drag.ref}
       style={{ ...drag.style, ...(minimized ? {} : resize.style) }}
       aria-label="Tactical action"
+      {...tutorialTarget("tactical-action")}
       data-draggable-panel
       data-minimized={minimized || undefined}
       data-dragging={drag.isDragging || undefined}

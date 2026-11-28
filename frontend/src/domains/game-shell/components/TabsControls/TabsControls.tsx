@@ -9,6 +9,7 @@ import {
   IconKeyboard,
   IconLinkPlus,
   IconMenu2,
+  IconRoute,
   IconSettings,
   IconSticker,
 } from "@tabler/icons-react";
@@ -19,6 +20,7 @@ import { isMobileDevice } from "@/utils/isTouchDevice";
 import { ThemeSwatches } from "./ThemeSwatches";
 import { BoardSearch } from "@/domains/search/BoardSearch";
 import { useTutorialStore } from "@/domains/tutorial";
+import { TUTORIAL_TARGETS, tutorialTarget } from "@/domains/tutorial/targets";
 import classes from "./TabsControls.module.css";
 
 const LENS_ICON_SIZE = 16;
@@ -89,11 +91,17 @@ function LensToolbar({
   const settings = useSettingsStore((state) => state.settings);
   const handlers = useSettingsStore((state) => state.handlers);
   const openGuide = useTutorialStore((state) => state.openGuide);
+  const restartTour = useTutorialStore((state) => state.restartTour);
   const showPds = !!game?.tilesWithPds?.size;
 
   return (
     <Box className={classes.toolbar}>
-      <Box className={classes.lenses} role="toolbar" aria-label="Map lenses">
+      <Box
+        className={classes.lenses}
+        role="toolbar"
+        aria-label="Map lenses"
+        {...tutorialTarget(TUTORIAL_TARGETS.mapLenses)}
+      >
         <Lens
           active={settings.planetTypesMode}
           label="Planet traits"
@@ -189,6 +197,9 @@ function LensToolbar({
         )}
         <Lens label="How to play" onClick={() => openGuide()}>
           <IconHelpCircle size={LENS_ICON_SIZE} />
+        </Lens>
+        <Lens label="Restart tour" onClick={restartTour}>
+          <IconRoute size={LENS_ICON_SIZE} />
         </Lens>
         {showKeyboardButton && (
           <Lens

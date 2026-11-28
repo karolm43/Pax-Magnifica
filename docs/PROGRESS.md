@@ -433,3 +433,22 @@ those files), ruff, mypy; frontend `tsc`, eslint (changed files), vitest (62 fil
   steadier (shorter come-about / park swing, longer look-ahead, lower path tension - no S-bends).
 - Tests: `test_nomad.py`, `test_flows_nomad.py`, `test_bot_runner.py`, `useVolley.test.ts`,
   `BoostsButton.test.tsx`.
+
+## Intelligent Tutorial & Presentation Tour (UI only, 2026-11-28)
+
+- Target registry: stable `data-tutorial-id` on key HUD regions (`domains/tutorial/targets.ts`):
+  map, phase panel, economy/command pools, turn controls, strategy cards, tactical action, hand, map
+  toolbar/lenses, board HUD/objectives/players, secondary decision, battle, production.
+- Guided UI Tour (`TutorialTour`, `TutorialSpotlight`, `tourSteps.ts`): offered once per game on the first
+  visit (Start tour / Not now / Skip all); 8 spotlighted steps with an auto-positioned callout, keyboard
+  navigation (←/→/Esc), steps whose region is not mounted are skipped. "Restart tour" in the map toolbar
+  help area and in How to play re-enables tips and replays the tour (for live presentations).
+- "What now?" coach: every hint names its UI region (`CoachHint.targetId`); "Show me" pulses it.
+- First-time milestone tips (`MilestoneTips`, `milestones.ts`): strategy pick, first tactical action,
+  secondary, combat, production; "Got it" or the moment passing dismisses them; "Skip all" turns them off.
+- Contextual `?` micro-helps (`HelpPopover`, `microHelps.ts`): command pools and trade goods
+  (ResourceBar), tactical action panel, secondary decision, battle window.
+- State persisted in `localStorage` (`tutorialStore.ts`); `--z-tutorial` z-index token.
+- Tests: `tutorialStore.test.ts`, `coachHint.test.ts`, `tourSteps.test.ts`, `TutorialTour.test.tsx`,
+  `milestones.test.ts`, `MilestoneTips.test.tsx`, `CoachSection.test.tsx`, `HelpPopover.test.tsx`,
+  `HowToPlayModal.test.tsx`.

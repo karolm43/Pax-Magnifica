@@ -57,6 +57,7 @@ import {
   type ProductionProducer,
   type ProductionUnit,
 } from "./useProduction";
+import { tutorialTarget } from "@/domains/tutorial/targets";
 import styles from "./ProductionOverlay.module.css";
 
 /* Grafika tła (podmienna, w `assets/extra/`, serwowana pod `/static`); brak pliku = gwiazdy + ciemne tło. */
@@ -334,6 +335,7 @@ function ProductionWindow({ view }: { view: ProductionBody }) {
   return createPortal(
     <div
       className={styles.overlay}
+      {...tutorialTarget("production")}
       // Okno pełnoekranowe: dok ręki zwija się do paska, a okno rezerwuje pod nim miejsce.
       data-fullscreen-overlay=""
       role="dialog"

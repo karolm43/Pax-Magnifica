@@ -1,0 +1,96 @@
+/* First-time milestone tip: a small card on the right edge, below the toolbar - clear of the phase
+   panel (top left) and the hand dock (bottom). Above the battle overlay (the combat tip points at
+   it), below the bottom dock, toasts and app modals. */
+
+.tip {
+  position: fixed;
+  top: calc(var(--app-shell-header-height, 0px) + 72px);
+  right: 16px;
+  z-index: calc(var(--z-battle-overlay, 2900) + 10);
+  display: grid;
+  gap: 6px;
+  width: min(320px, calc(100vw - 32px));
+  padding: 10px 12px 12px;
+  border: 1px solid var(--ds-h22);
+  border-left: 3px solid var(--ds-accent);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-deck);
+  box-shadow: var(--ds-shadow-lg);
+  color: var(--ds-ink);
+  font-family: var(--ds-font-text);
+  font-size: 13px;
+  animation: tip-in 200ms ease-out;
+}
+
+@keyframes tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tip {
+    animation: none;
+  }
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ds-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.title {
+  color: var(--ds-ink-hi);
+  font-size: 14px;
+}
+
+.lines {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  line-height: 1.45;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--ds-h22);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ds-ink-hi);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.button:hover {
+  border-color: var(--ds-h35);
+  background: var(--ds-h10);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: -2px;
+}
+
+.primary {
+  border-color: var(--ds-accent);
+}

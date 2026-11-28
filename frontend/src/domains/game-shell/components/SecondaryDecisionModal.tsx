@@ -68,6 +68,8 @@ import { useStrategyPrompt, type PromptPlayer } from "@/domains/strategy/strateg
 import { useCanActAs } from "@/domains/network/useNetworkMe";
 import { PHASE_WINDOW } from "@/hooks/useDecisionZone";
 import { DECISION_WIDTH } from "@/shared/ui/DecisionFrame";
+import { HelpPopover } from "@/domains/tutorial/HelpPopover";
+import { tutorialTarget } from "@/domains/tutorial/targets";
 
 /**
  * Popup decyzji SECONDARY karty strategii (RULES.md 29.2, 31.6).
@@ -315,7 +317,7 @@ export function SecondaryDecisionModal() {
       {inputView ? (
         inputView
       ) : (
-      <Stack gap="md" {...PHASE_WINDOW}>
+      <Stack gap="md" {...PHASE_WINDOW} {...tutorialTarget("secondary-decision")}>
         {/* Kto teraz decyduje. */}
         <Group gap="sm" wrap="nowrap">
           {responder?.faction ? (
@@ -327,6 +329,9 @@ export function SecondaryDecisionModal() {
             </Text>
             <Text fw={700}>{responderName}</Text>
           </Stack>
+          <span style={{ marginLeft: "auto" }}>
+            <HelpPopover help="secondary" position="bottom-end" />
+          </span>
         </Group>
 
         <Text size="sm">

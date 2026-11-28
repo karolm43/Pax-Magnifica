@@ -1,5 +1,5 @@
-/* Sekcja „What now?” w panelu fazy (GameStatePanel). Spokojny ton płyty HUD; gdy gracz
-   ma coś do zrobienia (data-act) - akcent na lewej krawędzi, jak dawny panel. */
+/* "What now?" section in the phase panel (GameStatePanel). Calm HUD plate tone; when the player
+   has something to do (data-act) - an accent on the left edge, like the old panel. */
 
 .section {
   border-top: 1px solid var(--ds-h14);
@@ -51,7 +51,7 @@
   text-transform: uppercase;
 }
 
-/* Zwinięta sekcja: sam tytuł podpowiedzi w jednej linii. */
+/* Collapsed section: just the hint title on one line. */
 .peek {
   flex: 1;
   min-width: 0;
@@ -91,12 +91,18 @@
   line-height: 1.45;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
 .more {
   justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 2px;
   padding: 3px 8px;
   border: 1px solid var(--ds-h22);
   border-radius: 6px;

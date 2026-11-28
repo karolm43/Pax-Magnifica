@@ -58,6 +58,7 @@ import { useForgeOptions } from "@/api/useRelics";
 import { useFactionComponentPlayability } from "@/api/useFactionComponents";
 import { ExpeditionModal } from "@/domains/thunders-edge/ExpeditionModal";
 import { ComponentInfoButton, type ComponentKind } from "@/domains/cards/components/ComponentInfo";
+import { TUTORIAL_TARGETS, tutorialTarget } from "@/domains/tutorial/targets";
 import styles from "./TurnControls.module.css";
 
 /** Rodzaj źródła akcji → rodzaj komponentu do opisu pod ⓘ (każdy wiersz ma pełną kartę). */
@@ -425,6 +426,7 @@ export function TurnControls() {
       <div
         className={styles.actionZone}
         aria-label="Turn actions"
+        {...tutorialTarget(TUTORIAL_TARGETS.turnControls)}
         ref={actionDrag.ref}
         style={actionDrag.style}
         data-draggable-panel

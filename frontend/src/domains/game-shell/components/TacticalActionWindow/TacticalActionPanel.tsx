@@ -33,6 +33,8 @@ import {
   stepStatuses,
   type StepContext,
 } from "./tacticalSteps";
+import { HelpPopover } from "@/domains/tutorial/HelpPopover";
+import { tutorialTarget } from "@/domains/tutorial/targets";
 import styles from "./TacticalActionWindow.module.css";
 
 /* Ships (asyncId) - who has a fleet in the system (space combat, RULES.md 39 W2). */
@@ -160,6 +162,7 @@ export function TacticalActionPanel({
       <button
         type="button"
         className={cx(styles.bigAction, activateMode && styles.bigActionOn)}
+        {...tutorialTarget("tactical-action")}
         onClick={toggleActivateMode}
         title="Click, then pick a system on the map to activate it"
       >
@@ -223,7 +226,7 @@ export function TacticalActionPanel({
   };
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} {...tutorialTarget("tactical-action")}>
       <header className={styles.head}>
         <div className={styles.system}>
           <IconTarget size={16} aria-hidden="true" />
@@ -231,6 +234,7 @@ export function TacticalActionPanel({
             {systemName ?? activeSystem}
           </span>
           <small className={styles.tileId}>{activeSystem}</small>
+          <HelpPopover help="tacticalAction" />
         </div>
         <PlanetSummary position={activeSystem} />
       </header>

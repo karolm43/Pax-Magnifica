@@ -11,6 +11,7 @@ import { AudioSettingsButton } from "@/shared/audio/AudioSettingsButton";
 import { assetUrl } from "@/shared/assets/resolveAsset";
 import type { PlayerHandData } from "@/shared/types/playerHand";
 import zoomClasses from "@/shared/ui/map/ZoomControls.module.css";
+import { TUTORIAL_TARGETS, tutorialTarget } from "@/domains/tutorial/targets";
 import classes from "./FloatingMapToolbar.module.css";
 
 type FloatingPanel = "events" | "cards";
@@ -204,6 +205,7 @@ export function FloatingMapToolbar({
     <>
       <div
         className={cx(classes.controls, noTransition)}
+        {...tutorialTarget(TUTORIAL_TARGETS.mapToolbar)}
         style={{ right: rightOffset, top: controlsTop }}
       >
         {renderControls ? (

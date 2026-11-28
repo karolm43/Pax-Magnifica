@@ -29,6 +29,7 @@ import { DEFAULT_GAME_ID } from "@/config";
 import type { PlayerData } from "@/entities/data/types";
 import { clampDragDelta } from "@/utils/keepOnScreen";
 import { resolvePrimaryRgb } from "@/entities/lookup/colors";
+import { TUTORIAL_TARGETS, tutorialTarget } from "@/domains/tutorial/targets";
 import styles from "./StrategyCardTable.module.css";
 
 /* Initiative → sygnał koloru dysku (spójnie z pickerem w GameStatePanel). */
@@ -347,6 +348,7 @@ export function StrategyCardTable(): ReactElement | null {
         // ``intro``); po odegraniu sekwencji schodzi, więc re-rendery nie migają.
         data-intro={intro || undefined}
         aria-label="Strategy Cards on the table"
+        {...tutorialTarget(TUTORIAL_TARGETS.strategyCards)}
         style={{
           transform: `translate(${offset.dx}px, ${offset.dy}px)`,
         }}

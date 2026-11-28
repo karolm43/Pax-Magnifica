@@ -1,4 +1,4 @@
-import { IconArrowLeft, IconArrowRight, IconBulb } from "@tabler/icons-react";
+import { IconArrowLeft, IconArrowRight, IconBulb, IconRoute } from "@tabler/icons-react";
 import { Button } from "@/ds";
 import { AppModal } from "@/shared/ui/AppModal";
 import { CHAPTERS, chapterById } from "./tutorialContent";
@@ -14,6 +14,7 @@ export function HowToPlayModal() {
   const chapterId = useTutorialStore((s) => s.chapter);
   const openGuide = useTutorialStore((s) => s.openGuide);
   const closeGuide = useTutorialStore((s) => s.closeGuide);
+  const restartTour = useTutorialStore((s) => s.restartTour);
   const chapter = chapterById(chapterId ?? "goal");
   const index = CHAPTERS.findIndex((c) => c.id === chapter.id);
   const prev = CHAPTERS[index - 1];
@@ -62,6 +63,15 @@ export function HowToPlayModal() {
       </div>
       <footer className="overlay-modal-footer">
         <p className="overlay-modal-note">Full rules: the Rules button (in game and in the main menu).</p>
+        {/* Closes this window (via the store) and replays the on-screen tour from step 1. */}
+        <Button
+          variant="subtle"
+          size="sm"
+          leftSection={<IconRoute size={14} aria-hidden="true" />}
+          onClick={restartTour}
+        >
+          Restart tour
+        </Button>
         <Button
           variant="default"
           size="sm"

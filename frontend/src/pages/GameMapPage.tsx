@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { NetworkPanel } from "@/domains/network/NetworkPanel";
-import { HowToPlayModal } from "@/domains/tutorial";
+import { HowToPlayModal, MilestoneTips, TutorialTour } from "@/domains/tutorial";
 import { useDeckSearchStore } from "@/domains/search/deckSearchStore";
 import { useParams } from "react-router-dom";
 import { AppShell, Box, Tabs } from "@/ds";
@@ -338,6 +338,9 @@ function GameMapContent() {
 
       {/* Samouczek: okno How to play (podpowiedź „What now?” żyje w panelu fazy). */}
       <HowToPlayModal />
+      {/* Guided UI Tour (first-visit offer, spotlight) and first-time milestone tips. */}
+      <TutorialTour />
+      <MilestoneTips />
 
       <KeyboardShortcutsModal
         opened={settings.keyboardShortcutsModalOpened}

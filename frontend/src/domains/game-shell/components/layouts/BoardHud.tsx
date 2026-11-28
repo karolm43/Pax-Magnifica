@@ -10,6 +10,7 @@ import { ScaledContent } from "@/shared/ui/ScaledContent";
 import { filterPlayersWithAssignedFaction } from "@/entities/game/playerUtils";
 import { computePanelsZoom } from "@/utils/zoom";
 import { JUMP_OBJECTIVES_ATTR } from "@/hooks/useKeyboardShortcuts";
+import { TUTORIAL_TARGETS, tutorialTarget } from "@/domains/tutorial/targets";
 
 type GameData = NonNullable<ReturnType<typeof useGameData>>;
 
@@ -77,12 +78,17 @@ export function BoardHud({
   return (
     <Box
       className={classes.bottomHud}
+      {...tutorialTarget(TUTORIAL_TARGETS.boardHud)}
       style={{ "--board-bleed-bottom": `${bleedBottom}px` } as CSSProperties}
     >
       <Box className={classes.bottomHudBody}>
         {gameData && (
           <HudSection isMobile={isMobile} innerStyle={areaStyles}>
-            <Stack gap="md" {...{ [JUMP_OBJECTIVES_ATTR]: "" }}>
+            <Stack
+              gap="md"
+              {...{ [JUMP_OBJECTIVES_ATTR]: "" }}
+              {...tutorialTarget(TUTORIAL_TARGETS.objectives)}
+            >
               <HudTitle gameData={gameData} />
               <Box className={classes.hudFitScreen}>
                 <ScoreTracker
@@ -109,7 +115,7 @@ export function BoardHud({
 
         {/* The deck is wider than the screen: it pans inside its own scroller so
             the HUD itself stays screen-sized whatever the map zoom is. */}
-        <Box className={classes.hudScrollX}>
+        <Box className={classes.hudScrollX} {...tutorialTarget(TUTORIAL_TARGETS.players)}>
           <HudSection isMobile={isMobile} innerStyle={playerAreaStyles}>
             <PlayerDeck
               players={filterPlayersWithAssignedFaction(gameData?.playerData ?? [])}

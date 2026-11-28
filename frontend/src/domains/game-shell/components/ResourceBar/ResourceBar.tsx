@@ -16,6 +16,8 @@ import { getColorAlias } from "@/entities/lookup/colors";
 import type { PlayerData } from "@/entities/data/types";
 import InfluenceIcon from "@/shared/ui/InfluenceIcon";
 import { Unit } from "@/shared/ui/Unit";
+import { HelpPopover } from "@/domains/tutorial/HelpPopover";
+import { tutorialTarget, type TutorialTargetId } from "@/domains/tutorial/targets";
 import styles from "./ResourceBar.module.css";
 
 /** Statki w kolejności jak w strefie gracza (`PlayerCardUnitsArea`). */
@@ -37,16 +39,24 @@ function Group({
   label,
   title,
   group,
+  target,
   children,
 }: {
   label?: string;
   title: string;
   /** Klucz do ukrywania grupy na wąskich ekranach (CSS `data-group`). */
   group?: "total" | "ships";
+  /** Tutorial target id of this group (tour spotlight, "Show me"). */
+  target?: TutorialTargetId;
   children: ReactNode;
 }) {
   return (
-    <span className={styles.group} title={title} data-group={group}>
+    <span
+      className={styles.group}
+      title={title}
+      data-group={group}
+      {...(target ? tutorialTarget(target) : {})}
+    >
       {label && <small>{label}</small>}
       {children}
     </span>
@@ -117,7 +127,13 @@ export function ResourceBarFor({
   const showFlex = floor(flex.totalFlex) > 0;
 
   return (
-    <div className={styles.bar} role="group" aria-label={label} data-strip={strip || undefined}>
+    <div
+      className={styles.bar}
+      role="group"
+      aria-label={label}
+      data-strip={strip || undefined}
+      {...(strip ? tutorialTarget("economy") : {})}
+    >
       {!flexSpendOnly && (
         <Group
           label="Total"
@@ -150,9 +166,11 @@ export function ResourceBarFor({
       <Group title={`Trade goods: ${tg} · commodities: ${comms} of ${commsMax}`}>
         <Pair icon={<img src="/tg.png" alt="" />} value={tg} />
         <Pair icon={<img src="/comms.png" alt="" />} value={comms} total={commsMax} />
+        {strip && <HelpPopover help="tradeGoods" className={styles.help} />}
       </Group>
       <Group
         label="CC"
+        target={strip ? "command-pools" : undefined}
         title={`Command tokens: ${player.tacticalCC} tactic · ${fleet} fleet · ${player.strategicCC} strategy`}
       >
         <span className={styles.cc}>
@@ -163,6 +181,7 @@ export function ResourceBarFor({
           <b>{player.strategicCC}</b>
           <em>S</em>
         </span>
+        {strip && <HelpPopover help="commandPools" className={styles.help} />}
       </Group>
       <Ships player={desk} />
       {player.fragments.length > 0 && <FragmentsPool fragments={player.fragments} />}

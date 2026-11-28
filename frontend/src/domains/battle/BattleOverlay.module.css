@@ -3957,3 +3957,8 @@
     animation: none;
   }
 }
+
+/* Tutorial `?` micro-help in the top bar: centred against the taller buttons. */
+.topActions > .help {
+  align-self: center;
+}

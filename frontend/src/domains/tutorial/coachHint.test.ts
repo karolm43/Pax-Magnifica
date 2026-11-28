@@ -83,4 +83,24 @@ describe("coachHint", () => {
       expect(ids.has(hint({ activeSystem: "1", tacticalStep }).chapter)).toBe(true);
     }
   });
+
+  it("each hint points at the screen region it talks about", () => {
+    expect(hint({ phase: "strategy", myCardPicked: false }).targetId).toBe("strategy-cards");
+    expect(hint({ activeSystem: "26", tacticalStep: "ACTIVATION" }).targetId).toBe("map");
+    expect(hint({ activeSystem: "26", tacticalStep: "MOVEMENT" }).targetId).toBe("map");
+    expect(hint({ activeSystem: "26", tacticalStep: "SPACE_CANNON" }).targetId).toBe("tactical-action");
+    expect(hint({ activeSystem: "26", tacticalStep: "INVASION" }).targetId).toBe("tactical-action");
+    expect(hint({ activeSystem: "26", tacticalStep: "SPACE_COMBAT" }).targetId).toBe("battle");
+    expect(hint({ activeSystem: "26", tacticalStep: "PRODUCTION" }).targetId).toBe("tactical-action");
+    expect(hint({ inCombat: true }).targetId).toBe("battle");
+    expect(hint({ windowOpen: true, myDecision: true }).targetId).toBe("secondary-decision");
+    expect(hint({ myTurn: false, isSpeaker: true, canAdvancePhase: true }).targetId).toBe("turn-controls");
+    expect(hint({}).targetId).toBe("turn-controls");
+    expect(hint({ tookAction: true }).targetId).toBe("turn-controls");
+    expect(hint({ myTurn: false }).targetId).toBe("map");
+    expect(hint({ phase: "status.scoring" }).targetId).toBe("phase-panel");
+    expect(hint({ phase: "agenda.voting", myTurn: false }).targetId).toBe("phase-panel");
+    expect(hint({ setupPending: true }).targetId).toBe("phase-panel");
+    expect(hint({ winner: true }).targetId).toBeUndefined();
+  });
 });

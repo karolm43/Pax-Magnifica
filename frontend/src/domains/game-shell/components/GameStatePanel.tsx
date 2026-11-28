@@ -49,6 +49,7 @@ import {
   resolveSystemName,
 } from "./GameEventPanel/eventFormatting";
 import { CoachSection } from "@/domains/tutorial";
+import { TUTORIAL_TARGETS, tutorialTarget } from "@/domains/tutorial/targets";
 import { AgendaRow } from "./GameStateAgenda";
 import { getPlayerDisplayName, playerNameForColor } from "./gameStatePlayers";
 import styles from "./GameStatePanel.module.css";
@@ -1503,6 +1504,7 @@ function GameStatePanelContent({
         ...(dragEnabled ? drag.style : {}),
       }}
       aria-label="Game state"
+      {...tutorialTarget(TUTORIAL_TARGETS.phasePanel)}
       ref={drag.ref}
       data-open={isOpen || undefined}
       data-dragging={(dragEnabled && drag.isDragging) || undefined}

@@ -51,6 +51,7 @@ import { usePromissoryPlayability } from "@/api/useFactionComponents";
 import { RelicForgePanel } from "@/domains/relics/RelicForgePanel";
 import { readyReactions } from "./reactionReady";
 import { playUi } from "@/shared/audio/uiSounds";
+import { TUTORIAL_TARGETS, tutorialTarget } from "@/domains/tutorial/targets";
 import styles from "./BottomHandDock.module.css";
 
 /**
@@ -319,6 +320,7 @@ export function BottomHandDock() {
       className={styles.dock}
       data-open={open || undefined}
       aria-label="Your hand"
+      {...tutorialTarget(TUTORIAL_TARGETS.hand)}
     >
       <div className={styles.bar}>
         <span className={styles.who}>
