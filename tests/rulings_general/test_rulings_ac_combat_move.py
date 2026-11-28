@@ -1153,7 +1153,8 @@ def _rescue_carrier(
 def test_rescue_ship_transports_fighters_and_ground_forces(registry: StaticDataRegistry) -> None:
     moved = _rescue_carrier(registry, 1, {})
     form = {i["key"]: i for i in action_cards.card_inputs(moved, registry, "p2", "rescue")[1]}
-    assert form["carry_fighter"]["auto"] == 1 and form["carry_infantry"]["auto"] == 2  # Auto
+    # Cargo is a manual choice - no "Auto" (user decision 2026-11-27).
+    assert "auto" not in form["carry_fighter"] and "auto" not in form["carry_infantry"]
     new = _rescue_carrier(registry, 1, {"carry_fighter": 1, "carry_infantry": 2})
     assert new.systems["000"].space_units["p2"] == {"cruiser": 1, "carrier": 1, "fighter": 1,
                                                     "infantry": 2}
@@ -1575,12 +1576,12 @@ def test_war_effort_takes_a_cruiser_from_the_board(registry: StaticDataRegistry)
     with _demo(registry):
         inputs = tb._inputs(registry, state, "war_effort")
         source = next(i for i in inputs if i["key"] == "source")
-        # Picked on the map (unit-at-place meta); "Auto" = the first legal source (RULES.md 53).
+        # Picked on the map (unit-at-place meta); no "Auto" (user decision 2026-11-27).
         assert [o["value"] for o in source["options"]] == ["104|space"]
         assert source["options"][0]["meta"]["position"] == "104"
-        assert source["auto"] == "104|space"
-        auto = tb._play(registry, state, "war_effort", {"position": "101"})  # skipped = Auto
-        assert auto.systems["101"].space_units["p1"]["cruiser"] == 1
+        assert "auto" not in source
+        with pytest.raises(ValueError):
+            tb._play(registry, state, "war_effort", {"position": "101"})  # no source picked
         new = tb._play(registry, state, "war_effort", {"position": "101", "source": "104|space"})
         state.systems["104"].command_tokens = ["p1"]  # the only cruisers sit under a token
         with pytest.raises(ValueError, match="reinforcements"):
@@ -1646,8 +1647,8 @@ def test_ghost_ship_takes_a_destroyer_from_the_board(registry: StaticDataRegistr
         assert tb._playable(registry, state, "ghost_ship")
         inputs = tb._inputs(registry, state, "ghost_ship")
         assert [o["value"] for o in inputs[1]["options"]] == ["104|space"]
-        assert inputs[1]["auto"] == "104|space"  # Auto = first legal board source
-        new = tb._play(registry, state, "ghost_ship", {"position": "101", "source": "auto"})
+        assert "auto" not in inputs[1]  # picked on the map, no "Auto" (2026-11-27)
+        new = tb._play(registry, state, "ghost_ship", {"position": "101", "source": "104|space"})
         assert new.systems["101"].space_units["p1"] == {"destroyer": 1}
         state.systems["104"].command_tokens = ["p1"]  # the only destroyers sit under a token
         assert not tb._playable(registry, state, "ghost_ship")

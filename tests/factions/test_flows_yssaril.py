@@ -50,9 +50,11 @@ def test_stall_tactics_i_blackshade_deploy(registry: StaticDataRegistry) -> None
     assert _hand(flow) == [cards[1]]
     offer = flow.offer("Blackshade")
     planet = offer["inputs"][0]
-    assert planet["auto"] in flow.planets(flow.home)
-    flow.accept("Blackshade", {"planet": planet["auto"]})
-    units = flow.state()["systems"][flow.home]["planet_units"][planet["auto"]][flow.me]
+    assert "auto" not in planet
+    target = planet["options"][0]["value"]
+    assert target in flow.planets(flow.home)
+    flow.accept("Blackshade", {"planet": target})
+    units = flow.state()["systems"][flow.home]["planet_units"][target][flow.me]
     assert units.get("mech") == 1
 
 
@@ -116,7 +118,7 @@ def test_so_ata_po_aktywacji_rywala(registry: StaticDataRegistry) -> None:
     flow.other_turn()
     flow.activate(away)  # the rival (active) activates the system with the Yssaril's ship
     offer = flow.offer("So Ata")
-    assert offer["inputs"][0]["auto"] == "action_cards"
+    assert "auto" not in offer["inputs"][0]
     flow.accept("So Ata", {"hand": "action_cards"})
     look = flow.offer("So Ata")
     assert look["mandatory"]
@@ -139,7 +141,7 @@ def test_kyver_guild_of_spies(registry: StaticDataRegistry) -> None:
     assert show["mandatory"]
     flow.accept("show 1 action card", {"card": theirs[2]}, pid=flow.other)
     choose = flow.offer("take the card")
-    assert choose["inputs"][1]["auto"] == "take"
+    assert "auto" not in choose["inputs"][1]
     flow.accept("take the card", {"choice": "take"})
     assert theirs[2] in _hand(flow)
     assert len(_hand(flow, flow.other)) == 3

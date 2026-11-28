@@ -15,7 +15,7 @@ from src.core import (
     ship_roles,
 )
 from src.core.combat import resolve_unit_variant
-from src.core.damage import damaged_count
+from src.core.damage import damaged_count, sustain_spent
 from src.core.dice import DIE_SIDES
 from src.core.game_state import (
     ActiveCombat,
@@ -69,6 +69,9 @@ class CombatUnit:
     champion_afb_dice: int = 0
     champion_sustain: bool = False
     champion_label: str = ""
+    # Undamaged units of the group that already used SUSTAIN DAMAGE in this timing window and were
+    # repaired since (Dynamo): they cannot use it again in the window (F_empyrean dynamo 1).
+    spent: int = 0
 
     @property
     def total_dice(self) -> int:
@@ -78,9 +81,12 @@ class CombatUnit:
 
     @property
     def sustainable(self) -> int:
-        """Ile egzemplarzy może jeszcze użyć Sustain Damage (własnego albo nadanego)."""
+        """Ile egzemplarzy może jeszcze użyć Sustain Damage (własnego albo nadanego).
+
+        Units that already used it in this timing window (``spent``, repaired since) cannot
+        (F_empyrean dynamo 1, C_action_cards reflective-shielding 1.1)."""
         if self.sustain:
-            return self.count - self.damaged
+            return max(0, self.count - self.damaged - self.spent)
         return self.granted + (1 if self.champion_sustain else 0)
 
     @property
@@ -188,6 +194,9 @@ def combat_units(
             if kind == "space" and base_type != _FIGHTER else None
         )
         group_damaged = damaged_count(system, unit_zone, player_id, base_type)
+        # Repaired after SUSTAIN DAMAGE in this window (Dynamo): no second use (dynamo 1).
+        spent = min(count - group_damaged,
+                    sustain_spent(state, position, unit_zone, player_id, base_type))
         units.append(
             CombatUnit(
                 base_type=base_type,
@@ -206,7 +215,7 @@ def combat_units(
                 afb_hits_on=unit.afb_hits_on if kind == "space" and not scar else None,
                 afb_dice=unit.afb_die_count or 1,
                 granted=(
-                    min(1, count - damaged_count(system, unit_zone, player_id, base_type))
+                    min(1, count - group_damaged - spent)
                     if kind == "space"
                     and not no_sustain
                     and base_type != _FIGHTER
@@ -219,8 +228,9 @@ def combat_units(
                 bonus_dice=max(0, bonus_dice),
                 single_bonus=single_bonus,
                 zone=unit_zone if unit_zone != zone else "",
+                spent=spent,
                 **_champion_fields(
-                    champion, unit.sustain_damage, no_sustain, group_damaged, scar
+                    champion, unit.sustain_damage, no_sustain, group_damaged + spent, scar
                 ),
             )
         )
@@ -265,6 +275,44 @@ def _champion_fields(
     }
 
 
+def damaged_with_sustain(
+    state: GameState,
+    registry: StaticDataRegistry,
+    player_id: str,
+    position: str,
+    zone: str,
+    base_type: str,
+) -> int:
+    """How many of the player's DAMAGED units of a group currently have SUSTAIN DAMAGE
+    ("repair all of your units that have SUSTAIN DAMAGE" - Emergency Repairs).
+
+    Own ability (variant; lost / denied ability does not count). A type without it has it only
+    through The Cavalry while the combat lasts: then the damaged ship is the champion itself, so
+    at most 1 (F_nomad the-cavalry 2, 2.4).
+    """
+    system = state.systems.get(position)
+    damaged = damaged_count(system, zone, player_id, base_type)
+    if damaged <= 0:
+        return 0
+    faction, techs, breakthrough, flipped = variant_key(state, registry, player_id)
+    unit = resolve_unit_variant(registry, faction, techs, base_type, breakthrough, flipped)
+    if unit is not None and unit.sustain_damage:
+        lost = base_type in rules_hooks.forbidden(
+            rules_hooks.POINT_UNIT_SUSTAIN_LOST, state, player_id
+        )
+        return 0 if lost or sustain_denied(state, player_id, position, zone) else damaged
+    combat = state.active_combat
+    if (
+        combat is None or combat.kind != "space" or combat.position != position
+        or zone != "space" or base_type == _FIGHTER
+        or player_id not in (combat.attacker, combat.defender)
+    ):
+        return 0
+    hook_ctx = {"kind": "space", "position": position, "planet": combat.planet,
+                "defender": player_id == combat.defender, "base_type": base_type}
+    return 1 if _champion(state, player_id, base_type, hook_ctx) is not None else 0
+
+
 def hit_shields(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[CombatUnit]:
@@ -295,11 +343,14 @@ def hit_shields(
         unit = resolve_unit_variant(registry, faction, techs, base_type, breakthrough, flipped)
         if unit is None or not unit.sustain_damage:
             continue
+        damaged = damaged_count(system, "space", player_id, base_type)
         shields.append(CombatUnit(
             base_type=base_type, unit_id=unit.id, name=unit.name, count=count,
-            damaged=damaged_count(system, "space", player_id, base_type),
+            damaged=damaged,
             hits_on=DIE_SIDES + 1, base_hits_on=DIE_SIDES + 1, modifier=0, dice_per_unit=0,
             sustain=True, afb_hits_on=None, afb_dice=0, shield=True,
+            spent=min(count - damaged,
+                      sustain_spent(state, combat.position, "space", player_id, base_type)),
         ))
     return shields
 

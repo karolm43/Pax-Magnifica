@@ -286,8 +286,8 @@ def _no_validation(
 
 
 # Empty reinforcements: the unit may be taken from the board instead (C_action_cards).
-# The source is clicked on the map; "Auto" = "Do not place" (⚠️ ASSUMPTION, RULES.md 53:
-# nothing leaves the board without the player's manual choice - R_component_limitations).
+# The source is clicked on the map, or "Do not place" (no "Auto": nothing leaves the board
+# without the player's manual choice - R_component_limitations).
 def _source_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str, base_type: str
 ) -> list[Input]:
@@ -301,7 +301,6 @@ def _source_inputs(
         "source", f"No {name} in your reinforcements - take one from the board?",
         [_option(_NO_SOURCE, f"Do not place a {name}"), *sources],
         "Click your unit on the map (systems without your command token).",
-        auto=_NO_SOURCE,
     )]
 
 
@@ -324,7 +323,7 @@ def _place_reward_unit(
 ) -> None:
     source = data.get("source")
     if not source and board_reinforcements.needs_board_source(state, player_id, base_type):
-        return  # "Do not place" (Auto): reinforcements empty and no unit taken from the board
+        return  # "Do not place": reinforcements empty and no unit taken from the board
     board_reinforcements.place_unit(
         state, system, zone, player_id, base_type, source=str(source) if source else None
     )
@@ -420,11 +419,8 @@ def _lead_inputs(_s: GameState, _r: StaticDataRegistry, _p: str) -> list[Input]:
             0,
             _LEADERSHIP_RIDER_TOKENS,
             f"The three pools must add up to {_LEADERSHIP_RIDER_TOKENS}.",
-            # Auto: po równo (3 żetony = 1 na pulę; RULES.md 53.5.a - ⚠️ ZAŁOŻENIE „Auto”).
-            auto=_LEADERSHIP_RIDER_TOKENS // len(command_tokens.POOLS)
-            + (1 if index < _LEADERSHIP_RIDER_TOKENS % len(command_tokens.POOLS) else 0),
         )
-        for index, pool in enumerate(command_tokens.POOLS)
+        for pool in command_tokens.POOLS
     ]
 
 
@@ -474,7 +470,7 @@ def _sanction_reward(
         return
     for voter, vote in agenda.votes.items():
         if vote.outcome == outcome:
-            command_tokens.remove_fleet_token(state, voter)  # own first (F_mahact edict 2)
+            command_tokens.remove_fleet_tokens(state, voter, 1, "Sanction")
 
 
 # Technology Rider - research 1 technology (wybór przy zagraniu karty). C_action_cards: wolno

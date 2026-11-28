@@ -239,7 +239,7 @@ def test_voidwatch_rywal_oddaje_notke(registry: StaticDataRegistry) -> None:
     assert found and found[0].mandatory
     inputs = _inputs(state, registry, found[0])
     assert [o["value"] for o in inputs[0]["options"]] == ["red_cf", "red_ta"]  # the mover chooses
-    assert inputs[0]["auto"] == "red_cf"
+    assert "auto" not in inputs[0]  # no "Auto" (user decision 2026-11-27)
     state = triggers.accept_offer(state, "p2", found[0].id, {"note": "red_ta"})
     assert state.players["p1"].private.promissory_notes == ["red_ta"]
     assert state.players["p2"].private.promissory_notes == ["red_cf"]
@@ -317,7 +317,7 @@ def test_acamar_rywal_zyskuje_zeton(registry: StaticDataRegistry) -> None:
     state = _accept(state, "p1", "Acamar")
     assert state.players["p1"].leader_states.get("empyreanagent") == "exhausted"
     decision = _offers(state, "p2", "Acamar")[0]
-    assert decision.mandatory and _inputs(state, registry, decision)[0]["auto"] == "tactical"
+    assert decision.mandatory and "auto" not in _inputs(state, registry, decision)[0]
     before = state.players["p2"].fleet_cc
     state = triggers.accept_offer(state, "p2", decision.id, {"pool": "fleet"})
     assert state.players["p2"].fleet_cc == before + 1
@@ -589,8 +589,9 @@ def test_dynamo_naprawa_za_2_wplywu(registry: StaticDataRegistry) -> None:
     state = boosts.request(state, registry, "p2", "Dynamo")  # pull, the Empyrean picks (54.15)
     offer = _offers(state, "p1", "Dynamo")[0]
     fields = {i["key"]: i for i in _inputs(state, registry, offer)}
-    assert fields["repairs"]["auto"] == 1 and fields["planets"]["payment"]["cost"] == 2
-    state = triggers.accept_offer(state, "p1", offer.id, {})  # "Auto": pays with The Dark
+    assert "auto" not in fields["repairs"] and fields["planets"]["payment"]["cost"] == 2
+    # repairs omitted = minimum 1; payment "Auto" (spending keeps it): pays with The Dark
+    state = triggers.accept_offer(state, "p1", offer.id, {})
     assert damaged_count(state.systems[TARMANN], "space", "p2", "dreadnought") == 0
     assert "thedark" in state.players["p1"].exhausted_planets
     # The Dark is spent on ONE repair - its excess influence does not repair a second ship.
@@ -618,6 +619,35 @@ def test_dynamo_bez_sustain_damage_brak_oferty(registry: StaticDataRegistry) -> 
     state.systems[TARMANN].space_units = {"p2": {"dreadnought": 1}}
     set_damaged(state.systems[TARMANN], "space", "p2", "dreadnought", 1)  # Raid Formation
     assert not _offers(state, "p1", "Dynamo")
+
+
+@ruling("F_empyrean/dynamo/1")
+def test_dynamo_naprawiony_nie_uzywa_sustain_ponownie_w_oknie(
+    registry: StaticDataRegistry,
+) -> None:
+    from src.core import battle
+    from src.core.game_state import ActiveCombat, CombatStep
+
+    state = _state(registry)
+    state.systems[DARK].space_units["p1"]["flagship"] = 1
+    state.systems[TARMANN].space_units = {"p2": {"dreadnought": 2}, "p1": {"cruiser": 1}}
+    state.active_system = TARMANN
+    state.active_combat = ActiveCombat(kind="space", position=TARMANN, attacker="p1",
+                                       defender="p2", step=CombatStep.ASSIGN)
+    grid = _bind(state, registry)
+    _sustained(state, "p2", TARMANN)
+    state = _accept(boosts.request(state, registry, "p2", "Dynamo"), "p1", "Dynamo",
+                    {"repairs": 1, "planets": ["thedark"]})
+    units = {u.base_type: u for u in battle.side_units(state, grid, registry, "p2")}
+    dread = units["dreadnought"]
+    # Both look undamaged, but the repaired one already used SUSTAIN DAMAGE in this window.
+    assert (dread.count, dread.damaged, dread.spent, dread.sustainable) == (2, 0, 1, 1)
+    with pytest.raises(ValueError, match="can use Sustain Damage"):
+        battle.plan_losses(units, {"dreadnought": 2}, {}, {}, 2)
+    assert battle.plan_losses(units, {"dreadnought": 1}, {"dreadnought": 1}, {}, 2) == {
+        "dreadnought": (1, 1)}
+    # Destroying an undamaged dreadnought takes the spent one first: the other may still sustain.
+    assert battle.absorbable_hits(list(units.values()), 1) == 3
 
 
 @ruling("F_empyrean/dynamo/3")
@@ -665,8 +695,9 @@ def test_watcher_anuluje_karte_akcji(registry: StaticDataRegistry) -> None:
                                is_action=True)
     state.players["p2"].took_action_this_turn = True
     inputs = empyrean.watcher_inputs(state, registry, "p1")
-    assert inputs[0]["auto"] == f"{TARMANN}|tarmann|0"
-    after, _ = faction_components.play(state, registry, "p1", "unit", empyrean.MECH, {})
+    assert "auto" not in inputs[0]
+    after, _ = faction_components.play(state, registry, "p1", "unit", empyrean.MECH,
+                                       {"mech": f"{TARMANN}|tarmann|0"})
     assert after.held_play is None
     assert "mech" not in after.systems[TARMANN].planet_units["tarmann"].get("p1", {})
     assert "sabo1" in after.decks.action_card_discard  # discarded, its effect never resolves
@@ -700,10 +731,9 @@ def test_void_tether_polozenie_i_przesuniecie(registry: StaticDataRegistry) -> N
     _activate(state, "p1", DARK)
     offer = _offers(state, "p1", "Void Tether: place")[0]
     fields = {i["key"]: i for i in _inputs(state, registry, offer)}
-    assert fields["token"]["auto"] == "new"
+    assert "auto" not in fields["token"] and "auto" not in fields["border"]
     assert {o["value"] for o in fields["border"]["options"]} == {MECATOL, NEBULA, TARMANN,
                                                                   EMPTY2, LODOR}
-    assert fields["border"]["auto"] == TARMANN  # the neighbour with a rival
     state = triggers.accept_offer(state, "p1", offer.id, {"token": "new", "border": TARMANN})
     assert faction_tokens.borders(state, faction_tokens.VOID_TETHER) == [(DARK, TARMANN, "p1")]
     assert faction_tokens.supply_left(state, "p1", faction_tokens.VOID_TETHER) == 1
@@ -811,7 +841,9 @@ def test_watcher_ogloszenie_przed_anulowaniem_i_brak_efektu(registry: StaticData
                                eligible=["p1"], is_action=True)
     assert state.held_play.params == announced  # announced BEFORE the Watcher may trigger
     before_tg = state.players["p2"].trade_goods
-    after, _ = faction_components.play(state, registry, "p1", "unit", empyrean.MECH, {})
+    mech = empyrean.watcher_inputs(state, registry, "p1")[0]["options"][0]["value"]
+    after, _ = faction_components.play(state, registry, "p1", "unit", empyrean.MECH,
+                                       {"mech": mech})
     assert after.held_play is None
     assert after.players["p2"].trade_goods == before_tg  # no cost paid, no effect resolved
     with pytest.raises(ValueError):

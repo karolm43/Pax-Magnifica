@@ -195,15 +195,16 @@ export function MovementStepPanel({
             data={[
               { value: "before", label: "Before the others" },
               { value: "after", label: "After the others" },
-              { value: "auto", label: "Auto (after)" },
             ]}
-            value={flight.separateOrder}
+            value={flight.separateOrder ?? undefined}
             onChange={(value) => flight.setSeparateOrder(value as SeparateOrder)}
           />
           <small className={styles.moveHint}>
             {flight.separateOrder === "before"
               ? `${separateName} flies first, then the other legs - with its delta wormhole already in its new system.`
-              : `The other legs fly first - they may still use the delta wormhole where ${separateName} starts.`}
+              : flight.separateOrder === "after"
+                ? `The other legs fly first - they may still use the delta wormhole where ${separateName} starts.`
+                : `Choose when ${separateName} moves.`}
           </small>
         </div>
       )}

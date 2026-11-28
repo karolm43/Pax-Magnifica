@@ -686,6 +686,45 @@ def test_sustain_ostatniej_strony_reflective_otwiera_przypisanie(
     assert battle.release_sustain_hold(played, registry) is played  # okno trwa - bez wznowienia
 
 
+@ruling("C_action_cards/reflective-shielding/1.1", "C_action_cards/reflective-shielding/1")
+def test_reflective_naprawiony_statek_nie_anuluje_ponownie(
+    grid: HexGrid, registry: StaticDataRegistry
+) -> None:
+    """p2 cancels both hits with SUSTAIN DAMAGE, both ships are repaired (as by the Dynamo);
+    p1's Reflective Shielding hits join that Roll Dice step's hits - the repaired ships cannot
+    SUSTAIN DAMAGE again against them."""
+    for seed in range(1, 400):
+        state = _start(
+            _state({"dreadnought": 5}, {"dreadnought": 2}, hand1=["reflective"], seed=seed),
+            grid, registry,
+        )
+        state = battle.roll_round(state, grid, registry)
+        hits = state.active_combat.pending_hits if state.active_combat is not None else {}
+        if hits.get("p2", 0) == 2 and hits.get("p1", 0) > 0:
+            break
+    else:
+        raise AssertionError("no seed gave p2 exactly 2 hits")
+    state = battle.assign_combat_hits(state, grid, registry, "p2", sustain={"dreadnought": 2},
+                                      destroy={}, destroy_damaged={})
+    assert damage.repair_after_sustain(state, "000", "space", "p2", "dreadnought", 2) == 2
+    sustain = battle.required_hits(state, grid, registry, "p1")
+    state = battle.assign_combat_hits(state, grid, registry, "p1",
+                                      sustain={"dreadnought": sustain}, destroy={},
+                                      destroy_damaged={})
+    assert _can(state, registry, "p1", "reflective")
+    played = _play(state, registry, "p1", "reflective", {})
+    assert played.pending_window is not None and played.pending_window.queue == ["p2"]
+    dread = next(u for u in battle.side_units(played, grid, registry, "p2"))
+    assert (dread.count, dread.damaged, dread.sustainable) == (2, 0, 0)
+    assert battle.required_hits(played, grid, registry, "p2") == 2
+    with pytest.raises(ValueError, match="can use Sustain Damage"):
+        battle.assign_combat_hits(played, grid, registry, "p2", sustain={"dreadnought": 1},
+                                  destroy={"dreadnought": 1}, destroy_damaged={})
+    done = battle.assign_combat_hits(played, grid, registry, "p2", sustain={},
+                                     destroy={"dreadnought": 2}, destroy_damaged={})
+    assert done.systems["000"].space_units.get("p2", {}).get("dreadnought", 0) == 0
+
+
 def test_sustain_ostatniej_strony_bez_kart_bez_wstrzymania(
     grid: HexGrid, registry: StaticDataRegistry
 ) -> None:

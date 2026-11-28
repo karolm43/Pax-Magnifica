@@ -142,7 +142,7 @@ def refit_troops(
             raise ValueError(f"You do not have that many infantry on {planet}.")
     # C_action_cards: gdy mechów w rezerwie brak, zdejmuje się mecha z systemu bez własnego
     # żetonu i stawia go (nieuszkodzonego) w miejsce piechoty. R_component_limitations: zdolność
-    # nie może do tego zmusić - bez wskazanego źródła („Auto” = „Do not place”, ⚠️ ZAŁOŻENIE
+    # nie może do tego zmusić - bez wskazanego źródła (nic nie wybrane = „Do not place”, ⚠️ ZAŁOŻENIE
     # RULES.md 53) zastępowane jest tylko tyle piechoty, ile mechów jest w rezerwie.
     short = refit_shortfall(state, player_id, len(planets))
     sources = params.get("sources") or []

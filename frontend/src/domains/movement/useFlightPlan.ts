@@ -38,7 +38,7 @@ export type FlightPlanState = {
   blocker: string | null;
   /** The plan holds a ship that may move before or after the others (Hil Colish) + other legs. */
   separateOrderAsked: boolean;
-  separateOrder: SeparateOrder;
+  separateOrder: SeparateOrder | null;
   setSeparateOrder: (order: SeparateOrder) => void;
   fly: () => Promise<void>;
   discard: () => void;
@@ -77,7 +77,9 @@ export function useFlightPlan(): FlightPlanState {
     ? "Add the leg you are editing to the flight plan (or close it) first."
     : conflicts.length > 0
       ? `${BOOST_NAMES[conflicts[0].boost]} extends only ONE ship per action - legs from ${conflicts[0].froms.join(" and ")} both need it.`
-      : null;
+      : needsSeparateOrder(legs) && separateOrder === null
+        ? "Choose whether the separately moving ship flies before or after the others."
+        : null;
 
   const faction = legs[0]?.faction ?? null;
   const fly = useCallback(async () => {

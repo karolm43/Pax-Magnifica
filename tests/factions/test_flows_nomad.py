@@ -66,7 +66,7 @@ def test_thunders_paradox_na_poczatku_tury_rywala(registry: StaticDataRegistry) 
     before = _me(flow)["trade_goods"]
     flow.other_turn()  # the rival's turn starts
     offer = flow.offer("Thunder's Paradox")
-    assert offer["inputs"][0]["auto"] == f"{flow.me}|nomadagentmercer"
+    assert "auto" not in offer["inputs"][0]
     flow.accept("Thunder's Paradox", {"exhaust": f"{flow.me}|nomadagentthundarian",
                                       "ready": f"{flow.me}|nomadagentartuno"})
     me = _me(flow)

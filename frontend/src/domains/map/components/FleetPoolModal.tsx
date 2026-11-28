@@ -65,7 +65,6 @@ export function FleetPoolModal() {
       items={view.ships}
       locationNoun="in system"
       unitNoun="ship"
-      suggestion={view.suggestion}
       evaluate={(remove) => {
         const removedTotal = Object.values(remove).reduce((a, b) => a + b, 0);
         const status =

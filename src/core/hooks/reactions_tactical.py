@@ -723,22 +723,6 @@ def _rescue_available(system: SystemState, player_id: str, base_type: str) -> in
     return sum(count for _zone, count in _rescue_pickups(system, player_id, base_type))
 
 
-def _rescue_auto_cargo(
-    state: GameState, registry: StaticDataRegistry, player_id: str, source: SystemState,
-    ship: str,
-) -> dict[str, int]:
-    """Auto: fill the ship's capacity - mechs, then infantry, then fighters (ASSUMPTION)."""
-    free = _rescue_capacity(state, registry, player_id, ship)
-    cargo: dict[str, int] = {}
-    for base_type in ("mech", "infantry", "fighter"):
-        per_unit = max(1, _rescue_cost(state, registry, player_id, base_type))
-        take = min(_rescue_available(source, player_id, base_type), free // per_unit)
-        if take > 0:
-            cargo[base_type] = take
-            free -= take * per_unit
-    return cargo
-
-
 def _rescue_cargo(
     state: GameState, registry: StaticDataRegistry, player_id: str, source: SystemState,
     ship: str, params: Mapping[str, Any],
@@ -839,12 +823,6 @@ def rescue_inputs(
         (position, ship) for position, ship in found
         if _rescue_capacity(state, registry, player_id, ship) > 0
     ]
-    # Auto (ASSUMPTION, RULES.md 53.10): fill the capacity when only one ship can carry anything;
-    # otherwise the form cannot know which ship is chosen, so Auto carries nothing.
-    auto: dict[str, int] = {}
-    if len(carriers) == 1:
-        position, ship = carriers[0]
-        auto = _rescue_auto_cargo(state, registry, player_id, state.systems[position], ship)
     for cargo_type in _RESCUE_CARGO:
         most = max(
             (
@@ -860,7 +838,6 @@ def rescue_inputs(
                 0, most,
                 hint="Picked up in the rescued ship's system (space area first), within its "
                 "capacity.",
-                auto=auto.get(cargo_type, 0),
             ))
     return inputs
 

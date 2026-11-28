@@ -6,7 +6,6 @@ import {
   IconRotate,
 } from "@tabler/icons-react";
 import { AppModal } from "@/shared/ui/AppModal";
-import { AutoButton } from "@/shared/ui/AutoButton/AutoButton";
 import { Stepper } from "@/shared/ui/Stepper/Stepper";
 import { CircularFactionIcon } from "@/shared/ui/CircularFactionIcon";
 import { Unit } from "@/shared/ui/Unit";
@@ -52,7 +51,6 @@ type Props = {
   locationNoun: string;
   /** „unit" / „ship" - rzeczownik w przyciskach i komunikatach. */
   unitNoun: string;
-  suggestion: Record<string, number>;
   evaluate: (remove: Record<string, number>) => RemovalEvaluation;
   /** Ilu graczy jeszcze sprawdza limit (łącznie z bieżącym) + nazwa limitu do stopki. */
   remaining: number;
@@ -63,8 +61,8 @@ type Props = {
 /**
  * Wspólne okno usuwania nadwyżki ponad limit: pojemność (RULES.md 39.6) i pula floty (42).
  *
- * Oba okna mają ten sam przebieg: respondent wybiera +/- ile sztuk wraca do rezerwy, „Auto" to
- * podpowiedź silnika (najtańsze najpierw), a zatwierdzić można dopiero dokładną liczbę.
+ * Oba okna mają ten sam przebieg: respondent wybiera +/- ile sztuk wraca do rezerwy (zawsze
+ * ręcznie, bez „Auto" - decyzja użytkownika 2026-11-27), a zatwierdzić można dopiero dokładną liczbę.
  * Okno jest NIEODRZUCALNE (silnik zamyka je sam). Powód odmowy serwera (422) widać TUTAJ,
  * w oknie, bo modal przykrywa panel komunikatów na mapie.
  */
@@ -80,7 +78,6 @@ export function RemovalWindowModal({
   items,
   locationNoun,
   unitNoun,
-  suggestion,
   evaluate,
   remaining,
   checkNoun,
@@ -91,10 +88,10 @@ export function RemovalWindowModal({
   const notice = useAppStore((s) => s.notice);
   const clearNotice = useAppStore((s) => s.clearNotice);
 
-  // Nowy respondent / nowe okno -> zacznij od podpowiedzi silnika (nie przy każdym odczycie).
+  // Nowy respondent / nowe okno -> zacznij od pustego wyboru (nie przy każdym odczycie).
   useEffect(() => {
     if (viewKey) {
-      setRemove({ ...suggestion });
+      setRemove({});
       clearNotice();
     }
   }, [viewKey]);
@@ -226,7 +223,6 @@ export function RemovalWindowModal({
 
         <Group justify="space-between" gap="xs">
           <Group gap="xs">
-            <AutoButton disabled={busy} onClick={() => setRemove({ ...suggestion })} />
             <Button
               size="xs"
               variant="default"

@@ -387,7 +387,7 @@ type AppStore = {
   removeStagedLeg: (id: string) => void;
   clearMovePlan: () => void;
   /** Hil Colish "may move before or after your other ships" - the player's pick for this plan. */
-  separateMoveOrder: SeparateOrder;
+  separateMoveOrder: SeparateOrder | null;
   setSeparateMoveOrder: (order: SeparateOrder) => void;
 
   /*
@@ -671,8 +671,8 @@ export const useAppStore = create<AppStore>((set) => {
         movePlan: s.movePlan.filter((l) => l.id !== id),
         moveDraft: s.moveDraft?.legId === id ? null : s.moveDraft,
       })),
-    clearMovePlan: () => set({ movePlan: [], separateMoveOrder: "auto" }),
-    separateMoveOrder: "auto",
+    clearMovePlan: () => set({ movePlan: [], separateMoveOrder: null }),
+    separateMoveOrder: null,
     setSeparateMoveOrder: (order) => set({ separateMoveOrder: order }),
     effectMove: null,
     setEffectMove: (move) => set({ effectMove: move }),

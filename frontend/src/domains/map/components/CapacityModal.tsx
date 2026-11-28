@@ -126,7 +126,6 @@ export function CapacityModal() {
       items={view.cargo}
       locationNoun="in space"
       unitNoun="unit"
-      suggestion={view.suggestion}
       evaluate={(remove) => {
         const left = remainingCargo(view, remove);
         const removedTotal = Object.values(remove).reduce((a, b) => a + b, 0);

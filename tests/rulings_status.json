@@ -16,7 +16,6 @@
   "F_nomad/quantum-manipulator/1.1": {"na": "Effects that destroy a ship directly (Assault Cannon, Direct Hit) never create hits in the assignment, so there is nothing the hit shield could cancel (RULES.md 62.21)."},
   "F_nomad/the-cavalry/2.2": {"na": "The status phase repairs every damaged unit (damage.repair_all), whatever its abilities (RULES.md 62.21)."},
   "F_nomad/the-cavalry/2.3": {"na": "Duranium Armor repairs any damaged unit of the group (damage counts per group); without The Cavalry a cruiser has no SUSTAIN DAMAGE, so it cannot be damaged again (battle_units.sustainable) (RULES.md 62.21)."},
-  "F_nomad/the-cavalry/2.4": {"gap": "Emergency Repairs repairs every damaged unit in the active system (reactions_combat._damaged_units), not only units that currently have SUSTAIN DAMAGE - a ship damaged under The Cavalry is repaired by it after the combat (RULES.md 62.21)."},
   "F_nomad/the-thundarian/2.1": {"na": "Magen Defense Grid, Fighter Prototype, Morale Boost, Munitions Reserves, Supercharge, War Funding and the round-long agents are ActiveEffects with Duration.COMBAT_ROUND; battle.rewind_roll_step keeps the round number, so they stay (RULES.md 62.21)."},
   "F_nomad/the-thundarian/3.1": {"na": "battle.rewind_roll_step returns to step ROLL of the same round without _open_round: no COMBAT_ROUND/START window is replayed, and round-end windows only open after the next assignment (RULES.md 62.21)."},
   "F_nomad/the-thundarian/4.1": {"na": "The Thundarian is a window use available only in the assignment step after the 'after roll' decisions (battle.roll_step_open); the rewind discards the boosted dice, the trade goods spent on Wrath of Kenara are not refunded and a new Kenara offer comes with the new roll (RULES.md 62.21)."},
@@ -328,9 +327,6 @@
   "C_action_cards/experimental-battlestation/3.2": {
     "na": "Ships cannot leave the active system in the Move Ships step (it holds the active player's command token), so the engine never moves a ship out and back in during one move step."
   },
-  "C_action_cards/reflective-shielding/1.1": {
-    "gap": "Sustain Damage is limited per hit assignment, not per unit and timing window: a unit the Dynamo repaired could sustain again against the Reflective Shielding hits of the same window (no per-unit window record in core/battle.py) - RULES.md 62.20."
-  },
   "F_creuss/creuss-iff/2": {
     "gap": "Binding deals are not modelled in the engine (core/transaction.py has no deal/agreement item) - a promise about where a wormhole token goes is table talk, never enforced (RULES.md 62.19)."
   },
@@ -342,9 +338,6 @@
   },
   "F_creuss/hil-colish/6": {
     "na": "A retreat moves all retreating ships of the player together to one chosen system (core/retreat.py) - the only outcome the ruling allows (the flagship cannot leave the others unable to reach the same system)."
-  },
-  "F_empyrean/dynamo/1": {
-    "gap": "Same as C_action_cards/reflective-shielding/1.1: core/battle.py has no per-unit 'already sustained in this window' record, so a unit repaired by the Dynamo is not barred from a second SUSTAIN DAMAGE in the same window (RULES.md 62.20)."
   },
   "F_empyrean/watcher/6": {
     "gap": "Research action cards ask for the technology when they are played (the card form), i.e. before the hold window the Watcher answers; announcing it later is not modelled (RULES.md 62.20)."

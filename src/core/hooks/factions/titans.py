@@ -35,6 +35,7 @@ from src.core import (
 from src.core import offer_inputs as oi
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import CombatStep, GameState, Phase, SystemState
+from src.core.legendary_planets import MECATOL_PLANETS
 from src.core.registry import StaticDataRegistry
 from src.core.rules_hooks import (
     POINT_PRODUCTION_GAIN_TRADE_GOOD,
@@ -67,7 +68,6 @@ SE2 = "se2"
 TERRAFORM = "terraform"
 BREAKTHROUGH = "titansbt"
 ELYSIUM = "elysium"
-MECATOL = "mr"
 
 SLEEPER = faction_tokens.SLEEPER
 SNAPSHOT = "abilities:awaken:snapshot"  # żetony i PDS w chwili aktywacji (Duration.TACTICAL_ACTION)
@@ -182,12 +182,7 @@ def terragenesis_inputs(
     state: GameState, _registry: Any, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
     options = _terragenesis_sources(state, player_id)
-    return [oi.choice("source", "Sleeper token to place", options, auto=_auto_source(options))]
-
-
-def _auto_source(options: list[dict[str, Any]]) -> Any:
-    """„Auto” źródła żetonu: pula, a bez niej pierwszy leżący żeton."""
-    return options[0]["value"] if options else None
+    return [oi.choice("source", "Sleeper token to place", options)]
 
 
 def _put_sleeper(state: GameState, player_id: str, planet: str, source: str) -> None:
@@ -296,14 +291,14 @@ def awaken_inputs(
                 options.append(oi.option(_AS_MECH, "Hecatoncheires and 1 infantry instead"))
         options.append(oi.option(_KEEP, "Keep the sleeper token"))
         inputs.append(oi.choice(f"{_TOKEN}{planet}", f"Sleeper on {_planet_name(planet)}",
-                                options, always=True, auto=options[0]["value"]))
+                                options, always=True))
         if _slumber_coexist_possible(state, player_id, position, planet):
             inputs.append(oi.choice(
                 f"{_COEXIST}{planet}", f"Ground combat on {_planet_name(planet)}", [
                     oi.option(_YES, "Coexist instead (Slumberstate Computing)"),
                     oi.option(_NO, "Fight the ground combat"),
                 ], hint="Slumberstate Computing: only if you commit no other units to this "
-                "planet.", always=True, auto=_YES,  # ⚠️ ZAŁOŻENIE 62.18: „Auto” = koegzystencja
+                "planet.", always=True,
             ))
     left = production.reinforcements_left(state, player_id, _PDS)
     if left is not None and left < len(sleepers):
@@ -317,7 +312,7 @@ def awaken_inputs(
             inputs.append(oi.choice(
                 f"{_FROM}{planet}", f"PDS for {_planet_name(planet)} if reinforcements run out",
                 sources, hint="R_component_limitations: a PDS from a system without your command "
-                "token is moved instead.", auto=_SUPPLY,
+                "token is moved instead.",
             ))
     return inputs
 
@@ -412,7 +407,7 @@ def _place_mech(
 def awaken(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     """Awaken: After you activate a system that contains 1 or more of your sleeper tokens: You may
     replace each of those tokens with 1 PDS from your reinforcements. (⚠️ ZAŁOŻENIE 62.18: każdy
-    żeton osobno; „Auto” = PDS.)
+    żeton osobno; bez „Auto” - decyzja użytkownika 2026-11-27.)
 
     Slumberstate Computing (zdanie 1): When COALESCENCE results in a ground combat, if you commit
     no other units, you may choose for your units to coexist instead. Wybór pada w tym oknie
@@ -466,8 +461,7 @@ def ouranos_inputs(
         oi.option(planet, f"PDS on {_planet_name(planet)}", ref=("planet", planet))
         for planet in _ouranos_pds(state, player_id, position)
     ]
-    return [oi.choice("pds", "PDS to replace with Ouranos", options,
-                      auto=options[0]["value"] if options else None)]
+    return [oi.choice("pds", "PDS to replace with Ouranos", options)]
 
 
 @on_event(
@@ -642,7 +636,7 @@ def terraform_targets(state: GameState, player_id: str) -> list[str]:
     homes = home_planet_ids(state, _registry())
     return sorted(
         planet for planet in state.players[player_id].controlled_planets
-        if planet not in homes and planet != MECATOL
+        if planet not in homes and planet not in MECATOL_PLANETS
     )
 
 
@@ -663,14 +657,7 @@ def terraform_inputs(
         oi.option(planet, _planet_name(planet), ref=("planet", planet))
         for planet in terraform_targets(state, player_id)
     ]
-    # „Auto”: planeta o najwyższej sumie zasobów i wpływów.
-    best = max(
-        terraform_targets(state, player_id),
-        key=lambda p: planet_stats.resources_of(state, _registry, p)
-        + planet_stats.influence_of(state, _registry, p),
-        default=None,
-    )
-    return [oi.choice("planet", "Planet to terraform", options, auto=best)]
+    return [oi.choice("planet", "Planet to terraform", options)]
 
 
 @register_effect(f"promissory_notes:{TERRAFORM}")
@@ -742,10 +729,8 @@ def slumber_inputs(
         for planet, owner in consent_targets(state, player_id)
     ]
     return [
-        oi.choice("planet", "Planet for a sleeper token (its controller decides)", planets,
-                  auto=planets[0]["value"] if planets else None),
-        oi.choice("source", "Sleeper token to place", _token_sources(state, player_id),
-                  auto=_auto_source(_token_sources(state, player_id))),
+        oi.choice("planet", "Planet for a sleeper token (its controller decides)", planets),
+        oi.choice("source", "Sleeper token to place", _token_sources(state, player_id)),
     ]
 
 
@@ -780,7 +765,7 @@ def consent_inputs(
     planet = _planet_name(str(ctx.get("planet")))
     return [oi.choice("answer", f"{who} asks to place a sleeper token on {planet}", [
         oi.option(_ALLOW, "Allow"), oi.option(_REFUSE, "Refuse"),
-    ], always=True, auto=_REFUSE)]  # ⚠️ ZAŁOŻENIE 62.18: „Auto” = odmowa (zgoda to wybór)
+    ], always=True)]  # no "Auto": the controller always answers explicitly
 
 
 @on_event(

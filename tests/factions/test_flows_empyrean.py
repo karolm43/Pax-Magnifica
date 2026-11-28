@@ -77,7 +77,7 @@ def test_voidwatch_rywal_oddaje_notke(registry: StaticDataRegistry) -> None:
     _move_other(flow, source, target, {"cruiser": 1})
     hand = flow.state()["players"][flow.other]["private"]["promissory_notes"]
     offer = flow.offer("Voidwatch", flow.other)
-    assert offer["mandatory"] and offer["inputs"][0]["auto"] == hand[0]
+    assert offer["mandatory"] and "auto" not in offer["inputs"][0]
     flow.accept("Voidwatch", {"note": hand[-1]}, pid=flow.other)
     assert hand[-1] in _me(flow)["private"]["promissory_notes"]
 
@@ -104,7 +104,7 @@ def test_acamar_po_ruchu_do_pustego_systemu(registry: StaticDataRegistry) -> Non
     flow.move(source, target, {"destroyer": 1})
     flow.accept("Acamar")
     decision = flow.offer("Acamar")  # the gaining player picks the pool
-    assert decision["mandatory"] and decision["inputs"][0]["auto"] == "tactical"
+    assert decision["mandatory"] and "auto" not in decision["inputs"][0]
     flow.accept("Acamar", {"pool": "fleet"})
     me = _me(flow)
     assert me["fleet_cc"] == before + 1
@@ -203,7 +203,7 @@ def test_dynamo_naprawia_po_sustain_damage(registry: StaticDataRegistry) -> None
     flow.start_space_combat()
     flow.fight(stop=lambda: flow.has_offer("Dynamo"))
     offer = flow.offer("Dynamo")
-    assert offer["inputs"][0]["auto"] >= 1
+    assert "auto" not in offer["inputs"][0] and offer["inputs"][0]["min"] == 1
     flow.accept("Dynamo")
     assert "thedark" in _me(flow)["exhausted_planets"]
 
@@ -219,7 +219,7 @@ def test_watcher_anuluje_karte_rywala(registry: StaticDataRegistry) -> None:
                                     "params": {}})
     assert flow.state()["held_play"] is not None
     assert f"{flow.me}:empyrean_mech" in flow.available()
-    flow.use("unit", "empyrean_mech")
+    flow.use("unit", "empyrean_mech", {"mech": f"{flow.home}|thedark|0"})
     state = flow.state()
     assert state["held_play"] is None
     assert "industrial_initiative" in state["decks"]["action_card_discard"]

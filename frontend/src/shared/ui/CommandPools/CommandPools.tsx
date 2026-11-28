@@ -1,4 +1,3 @@
-import { AutoButton } from "@/shared/ui/AutoButton/AutoButton";
 import { Stepper } from "@/shared/ui/Stepper/Stepper";
 import styles from "./CommandPools.module.css";
 
@@ -20,30 +19,25 @@ export function poolsLeft(alloc: PoolAlloc, total: number): number {
  * Trzy pule żetonów dowodzenia z licznikami − / + (wspólny `Stepper`, bez wpisywania liczb) —
  * ten sam widżet w fazie statusu (RULES.md 41), Predictive Intelligence, Leadership i Warfare.
  * „+” jest aktywny tylko, gdy zostały żetony do rozłożenia (suma zawsze ≤ ``total``).
- * ``onAuto`` dodaje „Auto” (podpowiedziany rozdział) nad pulami.
+ * Bez „Auto”: rozdział żetonów to zawsze ręczny wybór gracza (decyzja użytkownika 2026-11-27).
  */
 export function CommandPools({
   alloc,
   total,
   disabled = false,
   onChange,
-  onAuto,
-  autoTitle,
   current,
 }: {
   alloc: PoolAlloc;
   total: number;
   disabled?: boolean;
   onChange: (next: PoolAlloc) => void;
-  onAuto?: () => void;
-  autoTitle?: string;
   /** Obecny stan puli gracza (podpis „now N”). */
   current?: Partial<PoolAlloc>;
 }) {
   const left = poolsLeft(alloc, total);
   return (
     <div className={styles.wrap}>
-      {onAuto && <AutoButton disabled={disabled} onClick={onAuto} title={autoTitle} />}
       <div className={styles.pools} role="group" aria-label="Command token pools">
         {POOLS.map(({ key, label }) => (
           <div key={key} className={styles.pool}>

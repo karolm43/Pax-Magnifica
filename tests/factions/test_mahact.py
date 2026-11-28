@@ -50,6 +50,7 @@ from src.core.game_state import (
     WindowType,
 )
 from src.core.hex_grid import HexGrid
+from src.core.hooks import agendas_directives
 from src.core.hooks.factions import mahact, mentak
 from src.core.registry import StaticDataRegistry
 from src.core.state_grid import grid_from_state
@@ -200,6 +201,52 @@ def test_edict_usuniecie_zetonu_floty_najpierw_wlasny(registry: StaticDataRegist
     assert command_tokens.remove_fleet_token(state, "p1") is None
 
 
+@ruling("F_mahact/edict/2")
+def test_edict_usuniecie_zetonu_floty_wybor_mahact(registry: StaticDataRegistry) -> None:
+    """A rule removes a fleet pool token: with own AND other players' tokens the Mahact picks
+    (no "Auto"); a foreign token goes back to its owner's reinforcements."""
+    state = _state(registry, third="hacan")
+    state.players["p1"].fleet_cc = 1
+    state.players["p1"].foreign_fleet_tokens = ["p2"]
+    command_tokens.remove_fleet_tokens(state, "p1", 1, "Sanction")
+    assert state.players["p1"].fleet_cc == 1  # nothing removed yet - the Mahact decides
+    offer = _offers(state, "p1", "fleet pool token")[0]
+    (field,) = _inputs(state, registry, offer)
+    assert [o["value"] for o in field["options"]] == ["own", "p2"] and "auto" not in field
+    with pytest.raises(ValueError):
+        triggers.accept_offer(state, "p1", offer.id, {})
+    reinf = state.players["p2"].cc_reinf
+    done = triggers.accept_offer(state, "p1", offer.id, {"token": "p2"})
+    assert done.players["p1"].foreign_fleet_tokens == [] and done.players["p1"].fleet_cc == 1
+    assert done.players["p2"].cc_reinf == reinf + 1
+    # Several tokens at once (Fleet Regulations excess): own count + other players' tokens.
+    many = _state(registry, third="hacan")
+    many.players["p1"].fleet_cc = 4
+    many.players["p1"].foreign_fleet_tokens = ["p2", "p3"]
+    many.decks.agenda_laws = {}
+    agendas_directives._regulations(many, "p1", {"outcome": "for"})
+    offer = _offers(many, "p1", "fleet pool token")[0]
+    fields = {f["key"]: f for f in _inputs(many, registry, offer)}
+    assert (fields["own"]["min"], fields["own"]["max"]) == (0, 2)
+    assert (fields["foreign"]["min"], fields["foreign"]["max"]) == (0, 2)
+    with pytest.raises(ValueError, match="exactly 2"):
+        triggers.accept_offer(many, "p1", offer.id, {"own": 1, "foreign": []})
+    after = triggers.accept_offer(many, "p1", offer.id, {"own": 1, "foreign": ["p3"]})
+    assert after.players["p1"].fleet_cc == 3 and after.players["p1"].foreign_fleet_tokens == ["p2"]
+    assert command_tokens.fleet_pool_count(after, "p1") == 4
+    # No choice (one owner only / the whole pool leaves): removed at once, no decision.
+    own_only = _state(registry)
+    own_only.players["p1"].fleet_cc = 2
+    command_tokens.remove_fleet_tokens(own_only, "p1", 1, "Neuroglaive")
+    assert own_only.players["p1"].fleet_cc == 1 and not _offers(own_only, "p1", "fleet pool")
+    everything = _state(registry)
+    everything.players["p1"].fleet_cc = 1
+    everything.players["p1"].foreign_fleet_tokens = ["p2"]
+    command_tokens.remove_fleet_tokens(everything, "p1", 3, "Research Grant Reallocation")
+    assert command_tokens.fleet_pool_count(everything, "p1") == 0
+    assert not _offers(everything, "p1", "fleet pool")
+
+
 @ruling("F_mahact/edict/3", "C_agendas/fleet-regulations/3")
 def test_edict_fleet_regulations_dodaje_i_zwraca(registry: StaticDataRegistry) -> None:
     state = _state(registry)
@@ -209,7 +256,7 @@ def test_edict_fleet_regulations_dodaje_i_zwraca(registry: StaticDataRegistry) -
     assert after.players["p1"].foreign_fleet_tokens == ["p2"]  # added despite the cap
     offer = _offers(after, "p1", "Fleet Regulations")[0]
     inputs = _inputs(after, registry, offer)
-    assert inputs[0]["auto"] == "own"
+    assert "auto" not in inputs[0]
     done = _accept(after, "p1", "Fleet Regulations", {"token": "p2"})
     assert done.players["p1"].foreign_fleet_tokens == []
     assert done.players["p2"].cc_reinf == 8
@@ -222,7 +269,7 @@ def test_edict_pusta_rezerwa_przeciwnik_wybiera_pule(registry: StaticDataRegistr
     rival.cc_reinf, rival.tactical_cc, rival.fleet_cc, rival.strategic_cc = 0, 1, 3, 2
     after = _won(state, "p1", "p2")
     offer = _offers(after, "p2", "Edict")[0]
-    assert _inputs(after, registry, offer)[0]["auto"] == "fleet"
+    assert "auto" not in _inputs(after, registry, offer)[0]
     done = _accept(after, "p2", "Edict", {"pool": "tactical"})
     assert done.players["p2"].tactical_cc == 0
     assert done.players["p1"].foreign_fleet_tokens == ["p2"]
@@ -340,7 +387,7 @@ def test_legionnaire_jedna_decyzja_na_jednostke(registry: StaticDataRegistry) ->
     after = _kill_infantry(state, 2)
     picks = _offers(after, "p1", "Crimson Legionnaire")
     assert len(picks) == 2
-    assert _inputs(after, registry, picks[0])[0]["auto"] == "convert"
+    assert "auto" not in _inputs(after, registry, picks[0])[0]
     after = _accept(after, "p1", "Crimson Legionnaire", {"pick": "convert"})
     assert after.players["p1"].commodities == 0
     tg = after.players["p1"].trade_goods
@@ -404,7 +451,7 @@ def test_genetic_recombination_wymusza_glos(registry: StaticDataRegistry) -> Non
     after = _use(state, registry, "p1", "technology", "gr", {"outcome": "against"})
     assert "gr" in after.players["p1"].exhausted_technologies
     offer = _offers(after, "p2", "Genetic Recombination")[0]
-    assert _inputs(after, registry, offer)[0]["auto"] == "remove"
+    assert "auto" not in _inputs(after, registry, offer)[0]
     with pytest.raises(ValueError, match="Waiting"):  # the vote waits for the decision
         agenda_phase.cast_vote(after, registry, "p2", "for", list(registry.factions["mentak"]
                                                                   .home_planets))
@@ -583,7 +630,7 @@ def test_benediction_wlasne_statki_zabieraja_sily(registry: StaticDataRegistry) 
     state.systems[EMPTY_B].space_units = {}
     form = mahact.hero_inputs(state, registry, "p1")
     take = next(f for f in form if f["key"] == f"take|{HOME}|ixth|infantry")
-    assert (take["auto"], take["max"]) == (0, 3)
+    assert "auto" not in take and take["max"] == 3
     with pytest.raises(ValueError, match="carry"):  # a carrier holds 4 (benediction 1.1)
         state.systems[HOME].planet_units["ixth"]["p1"]["infantry"] = 5
         _use(state, registry, "p1", "leader", mahact.HERO,
@@ -812,7 +859,7 @@ def test_starlancer_konczy_ture(registry: StaticDataRegistry) -> None:
     assert done.players["p1"].foreign_fleet_tokens == []
     assert not [o for o in done.pending_offers if o.event == GameEvent.SYSTEM_ACTIVATED.value]
     gain = _offers(done, "p2", "Starlancer")[0]
-    assert _inputs(done, registry, gain)[0]["auto"] == "tactical"
+    assert "auto" not in _inputs(done, registry, gain)[0]
     tactic = done.players["p2"].tactical_cc
     done = _accept(done, "p2", "Starlancer", {"pool": "strategic"})
     assert done.players["p2"].strategic_cc == state.players["p2"].strategic_cc + 1
@@ -911,7 +958,7 @@ def test_standaryzacja_mahact_wybiera_zetony(registry: StaticDataRegistry) -> No
     assert command_tokens.fleet_pool_count(state, "p1") == 3
     assert (p1.fleet_cc, p1.tactical_cc, p1.strategic_cc) == (1, 3, 2)
     offer = _offers(state, "p1", "Armed Forces Standardization")[0]
-    assert all(f["auto"] == "keep" for f in _inputs(state, registry, offer))
+    assert all("auto" not in f for f in _inputs(state, registry, offer))
     reinf = state.players["p2"].cc_reinf
     done = _accept(state, "p1", "Armed Forces Standardization",
                    {"token|p2": "return", "token|p3": "keep"})

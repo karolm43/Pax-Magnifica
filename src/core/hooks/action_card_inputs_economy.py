@@ -238,10 +238,8 @@ def unstable_inputs(
                 options.append(_option(planet, label))
     return [
         _choice("planet", "Hazardous planet", options),
-        # Auto: jak najwięcej (RULES.md 53.4 - ⚠️ ZAŁOŻENIE „Auto”).
         _number(
             "count", "Infantry to destroy (up to 3)", 0, min(_UNSTABLE_MAX, most),
-            auto=min(_UNSTABLE_MAX, most),
         ),
     ]
 

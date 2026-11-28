@@ -163,7 +163,7 @@ def test_sai_seravus_po_ruchu_przez_wormhole(registry: StaticDataRegistry) -> No
     flow.activate(gate)
     flow.move(home, gate, {"carrier": 1})  # through the delta wormholes
     offer = flow.offer("Sai Seravus")
-    assert offer["inputs"][0]["max"] == 1 and offer["inputs"][0]["auto"] == 1
+    assert offer["inputs"][0]["max"] == 1 and "auto" not in offer["inputs"][0]
     flow.accept("Sai Seravus", {"fighters": 1})
     assert flow.state()["systems"][gate]["space_units"][flow.me] == {"carrier": 1, "fighter": 1}
 

@@ -29,13 +29,15 @@ import { CommandPools } from "@/shared/ui/CommandPools/CommandPools";
 import { ActiveTechs } from "@/shared/ui/ActiveTechs/ActiveTechs";
 import { useDraggablePanel } from "@/hooks/useDraggablePanel";
 import { useCanActAs } from "@/domains/network/useNetworkMe";
-import { autoAlloc, type Alloc } from "./autoAlloc";
 import { ObjectiveSpendForm } from "./ObjectiveSpendForm";
 import styles from "./StatusPhasePanel.module.css";
 import { PlayerTag } from "@/shared/ui/PlayerTag";
 import { PHASE_WINDOW } from "@/hooks/useDecisionZone";
 
 /** Osiem kroków fazy statusu (R_status_phase): krótka etykieta + czy robi to silnik. */
+/** Rozdział żetonów dowodzenia w pulach (taktyczna / floty / strategii). */
+type Alloc = { t: number; f: number; s: number };
+
 const STEPS: { n: number; label: string; auto: boolean }[] = [
   { n: 1, label: "Score", auto: false },
   { n: 2, label: "Reveal", auto: true },
@@ -232,8 +234,6 @@ export function StatusPhasePanel() {
                         total={total}
                         disabled={busy}
                         onChange={set}
-                        onAuto={() => set(autoAlloc(base, unassigned, ships))}
-                        autoTitle="New tokens fill the fleet pool up to your largest fleet, the rest go to the tactic pool"
                       />
                       {/* Fleet pool (RULES.md 42): podgląd floty względem planowanej puli. */}
                       <FleetPoolStatusMeter pool={alloc.f} ships={ships} />

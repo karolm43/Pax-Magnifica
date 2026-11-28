@@ -182,14 +182,6 @@ def token_options(
     return options
 
 
-def _auto_token(state: GameState, registry: StaticDataRegistry, owner: str) -> str | None:
-    """⚠️ ASSUMPTION (RULES.md 62.19): the first token in reinforcements, else the first one."""
-    kinds = token_kinds(registry)
-    spare = [k for k in kinds if token_position(state, owner, k) is None]
-    pool = spare or kinds
-    return pool[0] if pool else None
-
-
 def _home_positions(state: GameState, registry: StaticDataRegistry) -> set[str]:
     """Home systems of the players and of eliminated players (F_creuss WG Ω 1, IFF 4)."""
     homes = board_graph.home_positions(state, registry)
@@ -226,14 +218,6 @@ def token_systems(state: GameState, registry: StaticDataRegistry, resolver: str)
     return found
 
 
-def _auto_system(state: GameState, candidates: list[str], resolver: str) -> str | None:
-    """⚠️ ASSUMPTION (RULES.md 62.19): the first legal system with the resolver's units, else the
-    first legal system (board order)."""
-    with_units = [pos for pos in candidates if _has_units(state, resolver, pos)]
-    pool = with_units or candidates
-    return pool[0] if pool else None
-
-
 def place_or_move_token(
     state: GameState, registry: StaticDataRegistry, owner: str, kind: str, position: str
 ) -> str:
@@ -263,11 +247,9 @@ def _token_inputs(
     state: GameState, registry: StaticDataRegistry, owner: str, systems: list[str], resolver: str
 ) -> list[dict[str, Any]]:
     return [
-        oi.choice("token", "Creuss wormhole token", token_options(state, registry, owner),
-                  auto=_auto_token(state, registry, owner)),
+        oi.choice("token", "Creuss wormhole token", token_options(state, registry, owner)),
         oi.choice("position", "System for the wormhole token",
-                  [_system_option(state, registry, pos) for pos in systems],
-                  auto=_auto_system(state, systems, resolver)),
+                  [_system_option(state, registry, pos) for pos in systems]),
     ]
 
 
@@ -565,7 +547,7 @@ def icarus_inputs(
     state: GameState, registry: Any, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
     """The mech to remove (on the map - it need not be in the active system, F_creuss 1) and the
-    token. ⚠️ ASSUMPTION "Auto": the first mech in board order (RULES.md 62.19)."""
+    token (no "Auto" - user decision 2026-11-27)."""
     seen: dict[tuple[str, str], int] = {}
     options: list[dict[str, Any]] = []
     for position, zone in _mechs(state, player_id):
@@ -577,10 +559,8 @@ def icarus_inputs(
                             planet=None if zone == _SPACE else zone),
         ))
     return [
-        oi.choice("mech", "Icarus Drive to remove", options,
-                  auto=options[0]["value"] if options else None),
-        oi.choice("token", "Creuss wormhole token", token_options(state, registry, player_id),
-                  auto=_auto_token(state, registry, player_id)),
+        oi.choice("mech", "Icarus Drive to remove", options),
+        oi.choice("token", "Creuss wormhole token", token_options(state, registry, player_id)),
     ]
 
 
@@ -745,9 +725,9 @@ def _seravus_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> 
 def seravus_inputs(
     state: GameState, _registry_: Any, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION "Auto" = the maximum (RULES.md 62.19)."""
+    """How many fighters - the player's manual choice (no "Auto")."""
     most = seravus_limit(state, player_id, ctx)
-    return [oi.number("fighters", "Fighters to place with your ships", 0, most, auto=most)]
+    return [oi.number("fighters", "Fighters to place with your ships", 0, most)]
 
 
 @on_event(
@@ -795,15 +775,6 @@ def swap_candidates(state: GameState, registry: StaticDataRegistry, player_id: s
     ]
 
 
-def _unit_count(state: GameState, player_id: str, position: str) -> int:
-    system = state.systems.get(position)
-    if system is None:
-        return 0
-    return sum(system.space_units.get(player_id, {}).values()) + sum(
-        n for by in system.planet_units.values() for n in by.get(player_id, {}).values()
-    )
-
-
 @faction_components.blocker("leader", HERO)
 def _hero_blocker(state: GameState, registry: StaticDataRegistry, player_id: str) -> str | None:
     if len(swap_candidates(state, registry, player_id)) < 2:
@@ -815,16 +786,12 @@ def _hero_blocker(state: GameState, registry: StaticDataRegistry, player_id: str
 def hero_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
-    """2 systems on the map. ⚠️ ASSUMPTION "Auto" (RULES.md 62.19): first = the candidate with the
-    most of your units, second = the first other candidate in board order."""
+    """2 systems on the map (no "Auto" - user decision 2026-11-27)."""
     candidates = swap_candidates(state, registry, player_id)
     options = [_system_option(state, registry, pos) for pos in candidates]
-    first = max(candidates, key=lambda p: (_unit_count(state, player_id, p), -candidates.index(p)),
-                default=None)
-    second = next((p for p in candidates if p != first), None)
     return [
-        oi.choice("first", "First system to swap", options, auto=first),
-        oi.choice("second", "Second system to swap", options, auto=second),
+        oi.choice("first", "First system to swap", options),
+        oi.choice("second", "Second system to swap", options),
     ]
 
 

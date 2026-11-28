@@ -292,13 +292,10 @@ def investments_inputs(
         f"Place exactly {_INVESTMENTS_TOTAL} trade goods in total, on at least "
         f"{_INVESTMENTS_MIN_CARDS} different cards."
     )
-    # Auto (⚠️ ZAŁOŻENIE, RULES.md 53.5.e): po 1 TG na 5 kart o najniższej inicjatywie.
+    # No "Auto" (user decision 2026-11-27): placing trade goods is not a payment.
     return [
-        _number(
-            f"tg_{initiative}", f"{initiative}. {name}", 0, _INVESTMENTS_TOTAL, hint,
-            auto=1 if index < _INVESTMENTS_TOTAL else 0,
-        )
-        for index, (initiative, name) in enumerate(_strategy_cards(registry))
+        _number(f"tg_{initiative}", f"{initiative}. {name}", 0, _INVESTMENTS_TOTAL, hint)
+        for initiative, name in _strategy_cards(registry)
     ]
 
 

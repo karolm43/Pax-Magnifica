@@ -98,7 +98,8 @@ def _multi(
 def _number(
     key: str, label: str, minimum: int, maximum: int, hint: str = "", *, auto: int | None = None
 ) -> Input:
-    """Pole liczbowe formularza karty; ``auto`` = wartość opcji „Auto” (``offer_inputs.number``)."""
+    """Pole liczbowe formularza karty; ``auto`` = wartość opcji „Auto” (``offer_inputs.number``)
+    - WYŁĄCZNIE dla wydawania (TG, płatność) i walki (decyzja użytkownika 2026-11-27)."""
     item: Input = {
         "key": key,
         "kind": "number",
@@ -178,8 +179,8 @@ def board_source_inputs(
 ) -> list[Input]:
     """Where to take the unit from when reinforcements are empty (else no field).
 
-    The source is clicked ON THE MAP (``board_reinforcements.map_source_options``); "Auto" =
-    the first legal source (⚠️ ASSUMPTION, RULES.md 53 - War Effort / Ghost Ship).
+    The source is clicked ON THE MAP (``board_reinforcements.map_source_options``); no "Auto"
+    (user decision 2026-11-27 - War Effort / Ghost Ship).
     No legal source = empty options, so the card is not playable (``_has_legal_choices``).
     """
     if not board_reinforcements.needs_board_source(state, player_id, base_type):
@@ -192,7 +193,6 @@ def board_source_inputs(
             f"No {name} in reinforcements - take one from the board",
             options,
             "Click your unit on the map (systems without your command token).",
-            auto=options[0]["value"] if options else None,
         )
     ]
 
@@ -425,9 +425,9 @@ def refit_inputs(state: GameState, registry: StaticDataRegistry, player_id: str)
                 sources,
                 0,
                 min(short, len(sources)),
-                # ⚠️ ASSUMPTION (RULES.md 53): Auto = nothing picked = "Do not place".
-                "Click your mechs on the map (systems without your command token). Auto (none "
-                "picked): no mech leaves the board - only as many infantry as you have mechs "
+                # Nothing picked = "Do not place" (an optional pick, not an "Auto").
+                "Click your mechs on the map (systems without your command token). None "
+                "picked: no mech leaves the board - only as many infantry as you have mechs "
                 "in reinforcements are replaced.",
             )
         )

@@ -719,7 +719,7 @@ def test_seravus_mysliwce_po_przejsciu_wormhole(registry: StaticDataRegistry) ->
     assert ghost.seravus_limit(state, "p1", geometric) == 0  # no wormhole used
     ghost.sai_seravus(state, "p1", {**ctx, "params": {"fighters": 1}})
     assert state.systems[QUANN].space_units["p1"]["fighter"] == 1
-    assert ghost.seravus_inputs(state, registry, "p1", ctx)[0]["auto"] == 0
+    assert "auto" not in ghost.seravus_inputs(state, registry, "p1", ctx)[0]
 
 
 @ruling("F_creuss/sai-seravus/1.2", "F_creuss/sai-seravus/2", "F_creuss/sai-seravus/2.1")

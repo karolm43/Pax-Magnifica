@@ -52,7 +52,7 @@ def test_genetic_recombination_w_glosowaniu(registry: StaticDataRegistry) -> Non
     flow.use("technology", "gr", {"outcome": "against"})
     assert "gr" in _me(flow)["exhausted_technologies"]
     decision = flow.offer("Genetic Recombination", flow.other)
-    assert decision["inputs"][0]["auto"] == "remove"
+    assert "auto" not in decision["inputs"][0]
     flow.accept("Genetic Recombination", {"choice": "vote"}, pid=flow.other)
     planets = [p for p in _me(flow, flow.other)["controlled_planets"]]
     resp = flow.post("/agenda/vote", {"player_id": flow.other, "outcome": "for",

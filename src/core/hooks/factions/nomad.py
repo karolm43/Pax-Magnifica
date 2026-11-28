@@ -330,7 +330,7 @@ def _mercer_granted(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -
 def mercer_inputs(
     state: GameState, registry: StaticDataRegistry, decider: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.21): "Auto" = move nothing; destination "Auto" = first planet."""
+    """Forces and their planets - manual choices, no "Auto" (user decision 2026-11-27)."""
     position = str(ctx["position"])
     options: list[dict[str, Any]] = []
     for pos, zone, base_type, count in _ground_forces(state, decider):
@@ -345,11 +345,10 @@ def mercer_inputs(
         oi.option(p, planet_name(registry, p), ref=("planet", p))
         for p in _controlled_planets(state, decider, position)
     ]
-    first = planets[0]["value"] if planets else None
     return [
         oi.multi("forces", "Ground forces to place in the active system (up to 2)", options,
                  0, min(_MERCER_FORCES, len(options))),
-        *[oi.choice(f"planet_{n}", f"Ground force {n} goes to", planets, auto=first)
+        *[oi.choice(f"planet_{n}", f"Ground force {n} goes to", planets, optional=True)
           for n in range(1, _MERCER_FORCES + 1)],
     ]
 
@@ -373,7 +372,9 @@ def mercer_place(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> N
     dest_system = state.systems[position]
     for n, value in enumerate(chosen, start=1):
         pos, zone, base_type, _index = value.split(_FEUD)
-        planet = str(params.get(f"planet_{n}") or (planets[0] if planets else ""))
+        planet = str(params.get(f"planet_{n}") or "")
+        if not planet:
+            raise ValueError(f"Choose the planet for ground force {n}.")
         if planet not in planets:
             raise ValueError("Place the ground forces on planets you control in the active system.")
         source = state.systems.get(pos)
@@ -658,15 +659,13 @@ def _paradox_ready(state: GameState, player_id: str, _ctx: Mapping[str, Any]) ->
 def paradox_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.21): "Auto" = your first ready agent, the first exhausted one."""
+    """Both agents - manual choices, no "Auto" (user decision 2026-11-27)."""
     own, exhausted = _paradox_pairs(state, registry, player_id)
     mine = [_leader_option(state, registry, player_id, lid) for lid in own]
     others = [_leader_option(state, registry, pid, lid) for pid, lid in exhausted]
     return [
-        oi.choice("exhaust", "Your agent to exhaust", mine, always=True,
-                  auto=mine[0]["value"] if mine else None),
-        oi.choice("ready", "Agent to ready", others, always=True,
-                  auto=others[0]["value"] if others else None),
+        oi.choice("exhaust", "Your agent to exhaust", mine, always=True),
+        oi.choice("ready", "Agent to ready", others, always=True),
     ]
 
 

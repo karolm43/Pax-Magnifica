@@ -89,6 +89,7 @@ ALLIANCE = "<color>_an"
 # ``FACTION_ABILITY_USED`` abilities of the follow-up decisions (ctx ``ability``):
 EDICT_GIVE = f"abilities:{EDICT}:give"  # opponent with empty reinforcements gives a sheet token
 EDICT_CAP = f"abilities:{EDICT}:cap"  # Fleet Regulations: the Mahact returns 1 fleet token
+EDICT_REMOVE = f"abilities:{EDICT}:remove"  # a rule removes fleet tokens: own / foreign
 CL_PICK = f"units:{INFANTRY}:pick"  # gain 1 commodity / convert 1 commodity
 CL_RETURN = f"technologies:{CL2}:return"  # units on the card go to a home planet
 GR_CHOICE = f"technologies:{GR}:choice"  # the voter: vote for the outcome / remove a fleet token
@@ -103,7 +104,6 @@ BENEDICTION = f"leaders:{HERO}:benediction"  # KeyMoment areas (origin + combat 
 COMBAT_SOURCE = f"leaders:{HERO}"
 _POOLS = ("tactical", "fleet", "strategic")
 _POOL_NAMES = {"tactical": "tactic pool", "fleet": "fleet pool", "strategic": "strategy pool"}
-_GIVE_TIE_ORDER = ("strategic", "tactical", "fleet")  # ⚠️ ASSUMPTION "Auto" ties (62.23)
 _FLAGSHIP_BONUS = 2  # "apply +2 to the results"
 _COMMANDER_TOKENS = 2  # "Have 2 other factions' command tokens in your fleet pool."
 _GAIN, _CONVERT = "gain", "convert"
@@ -170,14 +170,6 @@ def _pool_options(state: GameState, player_id: str) -> list[dict[str, Any]]:
     ]
 
 
-def _fullest_pool(state: GameState, player_id: str) -> str | None:
-    """⚠️ ASSUMPTION (RULES.md 62.23): "Auto" = the pool with the most tokens, ties strategy ->
-    tactic -> fleet."""
-    counts = {p: command_tokens.pool_count(state, player_id, p) for p in _GIVE_TIE_ORDER}
-    best = max(counts.values(), default=0)
-    return next((p for p in _GIVE_TIE_ORDER if counts[p] == best), None) if best > 0 else None
-
-
 # ========================================================================================= Edict
 
 
@@ -233,7 +225,7 @@ def edict_give_inputs(
 ) -> list[dict[str, Any]]:
     options = _pool_options(state, decider)
     return [oi.choice("pool", "Command token you give to the Mahact player's fleet pool",
-                      options, always=True, auto=_fullest_pool(state, decider))]
+                      options, always=True)]
 
 
 @on_event(
@@ -243,7 +235,7 @@ def edict_give_inputs(
 )
 def edict_give(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     giver = str(ctx["target"])
-    pool = str(_params(ctx).get("pool") or _fullest_pool(state, giver) or "")
+    pool = str(_params(ctx).get("pool") or "")
     if pool not in _POOLS or command_tokens.pool_count(state, giver, pool) <= 0:
         raise ValueError("Choose a pool of your command sheet that holds a token.")
     command_tokens.spend_from_pool(state, giver, pool)
@@ -253,8 +245,7 @@ def edict_give(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None
 def edict_cap_inputs(
     state: GameState, _registry_: StaticDataRegistry, decider: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.23): "Auto" = one of the Mahact's own tokens, else the token
-    just gained."""
+    """Own fleet token or a foreign one - no "Auto" (user decision 2026-11-27)."""
     player = state.players[decider]
     options = []
     if player.fleet_cc > 0:
@@ -262,9 +253,8 @@ def edict_cap_inputs(
     options += [
         oi.option(owner, f"{_name(state, owner)}'s token") for owner in player.foreign_fleet_tokens
     ]
-    auto = _OWN if player.fleet_cc > 0 else str(ctx.get("gained") or "")
     return [oi.choice("token", "Fleet Regulations: token you return to its reinforcements",
-                      options, always=True, auto=auto)]
+                      options, always=True)]
 
 
 @on_event(
@@ -282,15 +272,80 @@ def edict_cap(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
         command_tokens.return_foreign_fleet_token(state, player_id, choice)
 
 
+def _fleet_remove_count(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> int:
+    return min(int(ctx.get("count") or 1), command_tokens.fleet_pool_count(state, player_id))
+
+
+def _token_options(state: GameState, player_id: str) -> list[dict[str, Any]]:
+    return [oi.option(owner, f"{_name(state, owner)}'s token")
+            for owner in state.players[player_id].foreign_fleet_tokens]
+
+
+def fleet_remove_inputs(
+    state: GameState, _registry_: StaticDataRegistry, decider: str, ctx: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    """Own vs other players' tokens - the Mahact's choice, no "Auto" (user decision 2026-11-27)."""
+    player = state.players[decider]
+    count = _fleet_remove_count(state, decider, ctx)
+    reason = str(ctx.get("reason") or "Remove from your fleet pool")
+    if count == 1:
+        options = [oi.option(_OWN, "One of your own fleet tokens")] if player.fleet_cc else []
+        return [oi.choice("token", f"{reason}: token you return to its reinforcements",
+                          options + _token_options(state, decider), always=True)]
+    foreign = len(player.foreign_fleet_tokens)
+    return [
+        oi.number("own", f"{reason}: your own fleet tokens to remove",
+                  max(0, count - foreign), min(count, player.fleet_cc),
+                  hint=f"Remove {count} tokens in all; other players' tokens go back to "
+                       "their owners' reinforcements."),
+        oi.multi("foreign", "Other players' tokens to remove", _token_options(state, decider),
+                 max(0, count - player.fleet_cc), min(count, foreign)),
+    ]
+
+
+@on_event(
+    GameEvent.FACTION_ABILITY_USED, Moment.AFTER, HookSource(SOURCE_FACTION, FACTION),
+    where={"ability": EDICT_REMOVE}, decide=True, decider=_decider, inputs=fleet_remove_inputs,
+    label="Edict: choose the fleet pool token(s) to remove",
+)
+def edict_remove(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
+    """A rule removes N tokens from the Mahact fleet pool holding other players' tokens: the
+    Mahact picks own / foreign ones; foreign ones go to their owners' reinforcements (edict 2)."""
+    params = _params(ctx)
+    count = _fleet_remove_count(state, player_id, ctx)
+    if count <= 0:
+        return
+    if "token" in params:
+        token = str(params["token"])
+        own, foreign = (1, []) if token == _OWN else (0, [token])
+    else:
+        own = int(params.get("own") or 0)
+        foreign = [str(o) for o in params.get("foreign") or []]
+    if own + len(foreign) != count:
+        raise ValueError(f"Choose exactly {count} token(s) to remove from your fleet pool.")
+    command_tokens.remove_chosen_fleet_tokens(state, player_id, own, foreign)
+
+
+@command_tokens.register_fleet_removal_chooser
+def _ask_fleet_removal(state: GameState, player_id: str, count: int, reason: str) -> bool:
+    """The Mahact decides which tokens leave its fleet pool (``remove_fleet_tokens``)."""
+    if not _is_mahact(state, player_id):
+        return False
+    before = len(state.pending_offers)
+    _fire(state, player_id, {"ability": EDICT_REMOVE, "target": player_id, "count": count,
+                             "reason": reason})
+    return len(state.pending_offers) > before
+
+
 def _standardize_inputs(
     state: GameState, _registry_: StaticDataRegistry, decider: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.23): "Auto" = keep the other players' tokens."""
+    """Keep or return each foreign token - no "Auto" (user decision 2026-11-27)."""
     return [
         oi.choice(f"token|{owner}", f"{_name(state, owner)}'s token in your fleet pool",
                   [oi.option("keep", "Keep it"),
                    oi.option("return", "Return it (take one of your own tokens instead)")],
-                  always=True, auto="keep")
+                  always=True)
         for owner in state.players[decider].foreign_fleet_tokens
     ]
 
@@ -417,13 +472,12 @@ def legionnaire2_destroyed(state: GameState, player_id: str, ctx: Mapping[str, A
 def legionnaire_inputs(
     state: GameState, _registry_: StaticDataRegistry, decider: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.23): "Auto" = convert when you have a commodity, else gain."""
+    """Gain or convert - no "Auto" (user decision 2026-11-27)."""
     player = state.players[decider]
     options = [oi.option(_GAIN, "Gain 1 commodity")]
     if player.commodities > 0:
         options.append(oi.option(_CONVERT, "Convert 1 commodity to a trade good"))
-    auto = _CONVERT if player.commodities > 0 else _GAIN
-    return [oi.choice("pick", "Crimson Legionnaire destroyed", options, auto=auto)]
+    return [oi.choice("pick", "Crimson Legionnaire destroyed", options)]
 
 
 @on_event(
@@ -479,14 +533,13 @@ def legionnaire_return(state: GameState, player_id: str, _ctx: Mapping[str, Any]
 def cl_return_inputs(
     state: GameState, registry: StaticDataRegistry, decider: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.23): "Auto" = the first controlled home planet."""
+    """A controlled home planet - no "Auto" (user decision 2026-11-27)."""
     planets = _home_planets(state, decider)
     options = [
         oi.option(planet, card_labels.planet_name(registry, planet), ref=("planet", planet))
         for planet, _pos in planets
     ]
-    return [oi.choice("planet", "Planet for the Crimson Legionnaires on the card", options,
-                      auto=planets[0][0] if planets else None)]
+    return [oi.choice("planet", "Planet for the Crimson Legionnaires on the card", options)]
 
 
 @on_event(
@@ -560,11 +613,10 @@ def _outcome_option(state: GameState, registry: StaticDataRegistry, outcome: str
 def gr_inputs(
     state: GameState, registry: StaticDataRegistry, _player_id: str
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.23): "Auto" = the first outcome of the agenda."""
+    """An outcome of the agenda - no "Auto" (user decision 2026-11-27)."""
     outcomes = _outcomes(state)
     options = [_outcome_option(state, registry, o) for o in outcomes]
-    return [oi.choice("outcome", "Outcome the voter must vote for", options, always=True,
-                      auto=outcomes[0] if outcomes else None)]
+    return [oi.choice("outcome", "Outcome the voter must vote for", options, always=True)]
 
 
 @register_effect(f"technologies:{GR}")
@@ -597,14 +649,13 @@ def genetic_recombination(
 def gr_choice_inputs(
     state: GameState, _registry_: StaticDataRegistry, decider: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.23): "Auto" = remove a fleet token when you have one."""
+    """Vote or remove a fleet token - no "Auto" (user decision 2026-11-27)."""
     outcome = str(ctx.get("outcome") or "")
     options = [oi.option(_VOTE, f"Cast at least 1 vote for {outcome}")]
     has_token = command_tokens.fleet_pool_count(state, decider) > 0
     if has_token:
         options.append(oi.option(_REMOVE, "Remove 1 token from your fleet pool"))
-    return [oi.choice("choice", "Genetic Recombination", options, always=True,
-                      auto=_REMOVE if has_token else _VOTE)]
+    return [oi.choice("choice", "Genetic Recombination", options, always=True)]
 
 
 @on_event(
@@ -617,7 +668,7 @@ def gr_choice(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     has_token = command_tokens.fleet_pool_count(state, voter) > 0
     choice = str(_params(ctx).get("choice") or (_REMOVE if has_token else _VOTE))
     if choice == _REMOVE and has_token:
-        command_tokens.remove_fleet_token(state, voter)
+        command_tokens.remove_fleet_tokens(state, voter, 1, "Genetic Recombination")
         ability_notes.note(state, voter, f"technologies:{GR}",
                            "removes 1 token from their fleet pool")
         return
@@ -751,8 +802,7 @@ def hero_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
     """Source and destination on the MAP, plus how many of your ground forces on planets of the
-    source your own ships take along (benediction 1.1). ⚠️ ASSUMPTION (RULES.md 62.23): "Auto" =
-    the first legal pair (board order) and no ground forces taken."""
+    source your own ships take along (benediction 1.1); no "Auto" (user decision 2026-11-27)."""
     pairs = benediction_pairs(state, player_id)
     sources = sorted({s for s, _d, _o in pairs})
     dests = sorted({d for _s, d, _o in pairs})
@@ -761,10 +811,9 @@ def hero_inputs(
     dst_opts = [oi.option(p, card_labels.describe_system(state, registry, p),
                           meta={"position": p}) for p in dests]
     fields = [
-        oi.choice("source", "System whose space area moves", src_opts, always=True,
-                  auto=pairs[0][0] if pairs else None),
+        oi.choice("source", "System whose space area moves", src_opts, always=True),
         oi.choice("destination", "Adjacent system with another player's ships", dst_opts,
-                  always=True, auto=pairs[0][1] if pairs else None),
+                  always=True),
     ]
     own_sources = sorted({s for s, _d, owner in pairs if owner == player_id})
     for source in own_sources:
@@ -772,7 +821,7 @@ def hero_inputs(
             fields.append(oi.number(
                 _take_key(source, planet, bt),
                 f"{bt.capitalize()} from {card_labels.planet_name(registry, planet)} "
-                f"(if your ships in {source} move)", 0, n, auto=0,
+                f"(if your ships in {source} move)", 0, n,
             ))
     return fields
 
@@ -903,12 +952,11 @@ promissory_play.any_subject(SCEPTER)
 def scepter_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.23): "Auto" = the first legal system."""
+    """A legal system on the map - no "Auto" (user decision 2026-11-27)."""
     systems = scepter_systems(state, player_id)
     options = [oi.option(p, card_labels.describe_system(state, registry, p), meta={"position": p})
                for p in systems]
-    return [oi.choice("system", "Non-home system with your units", options, always=True,
-                      auto=systems[0] if systems else None)]
+    return [oi.choice("system", "Non-home system with your units", options, always=True)]
 
 
 @register_effect(f"promissory_notes:{SCEPTER}")
@@ -942,8 +990,7 @@ def scepter_pool_inputs(
     state: GameState, _registry_: StaticDataRegistry, decider: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
     return [oi.choice("pool", "Scepter of Dominion: pool your token comes from",
-                      _pool_options(state, decider), always=True,
-                      auto=_fullest_pool(state, decider))]
+                      _pool_options(state, decider), always=True)]
 
 
 @on_event(
@@ -953,7 +1000,7 @@ def scepter_pool_inputs(
 )
 def scepter_pool(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> None:
     placer = str(ctx["target"])
-    pool = str(_params(ctx).get("pool") or _fullest_pool(state, placer) or "")
+    pool = str(_params(ctx).get("pool") or "")
     system = state.systems[str(ctx["position"])]
     if placer in system.command_tokens:
         return
@@ -1027,10 +1074,10 @@ def starlancer(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None
 def starlancer_gain_inputs(
     _state: GameState, _registry_: StaticDataRegistry, _decider: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.23): "Auto" = tactic pool."""
+    """The pool - no "Auto" (user decision 2026-11-27)."""
     return [oi.choice("pool", "Pool for the command token you gain",
                       [oi.option(p, _POOL_NAMES[p].capitalize()) for p in _POOLS],
-                      always=True, auto="tactical")]
+                      always=True)]
 
 
 @on_event(
@@ -1058,13 +1105,10 @@ def _purgeable(state: GameState, player_id: str) -> list[str]:
 def vaults_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
-    """The technology in the TechnologyOverlay. ⚠️ ASSUMPTION (RULES.md 62.23): "Auto" = the
-    first owned non-unit-upgrade technology."""
+    """The technology in the TechnologyOverlay - no "Auto" (user decision 2026-11-27)."""
     techs = _purgeable(state, player_id)
     options = [oi.option(t, technology_name(registry, t)) for t in techs]
-    colored = [t for t in techs if (d := registry.technologies.get(t)) is not None and d.types]
-    auto = colored[0] if colored else (techs[0] if techs else None)
-    return [oi.choice("technology", "Technology you purge", options, always=True, auto=auto)]
+    return [oi.choice("technology", "Technology you purge", options, always=True)]
 
 
 def technology_name(registry: StaticDataRegistry, tech_id: str) -> str:

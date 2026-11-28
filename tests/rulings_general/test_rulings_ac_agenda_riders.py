@@ -243,8 +243,9 @@ def test_construction_rider_takes_a_dock_from_the_board(registry: StaticDataRegi
     assert inputs is not None
     form = {f["key"]: f for f in inputs(state, registry, "p1")}
     assert source in [o["value"] for o in form["source"]["options"]]
-    # Source clicked on the map; "Auto" = "Do not place" (RULES.md 53 assumption).
-    assert form["source"]["auto"] == "none"
+    # Source clicked on the map, or the explicit "Do not place" - no "Auto" (2026-11-27).
+    assert "auto" not in form["source"]
+    assert "none" in [o["value"] for o in form["source"]["options"]]
     pick = next(o for o in form["source"]["options"] if o["value"] == source)
     assert pick["meta"]["unit"] == "spacedock" and pick["meta"]["position"] == "102"
 

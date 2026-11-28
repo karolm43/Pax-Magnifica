@@ -260,12 +260,75 @@ def return_foreign_fleet_token(state: GameState, holder_id: str, owner_id: str) 
     return_to_reinforcements(state, owner_id, 1)
 
 
-def remove_fleet_token(state: GameState, player_id: str) -> str | None:
-    """"Remove 1 token from your fleet pool and return it to the reinforcements" - THE point.
+# Chooser for a fleet pool that holds tokens of SEVERAL owners (own + other players' - Edict):
+# ``fn(state, player_id, count, reason) -> True`` when it opened the player's decision (the
+# removal then happens when they answer, through ``remove_chosen_fleet_tokens``).
+FleetRemovalChooser = Callable[[GameState, str, int, str], bool]
+_FLEET_REMOVAL_CHOOSERS: list[FleetRemovalChooser] = []
 
-    Own token first; another player's token only when the pool holds no own token, and it goes
-    back to its owner's reinforcements (F_mahact edict 2). Returns the owner of the removed
-    token (``None`` = the pool was empty, nothing happens).
+
+def register_fleet_removal_chooser(fn: FleetRemovalChooser) -> FleetRemovalChooser:
+    """Registers the decision for "which token leaves the fleet pool" (Mahact, RULES.md 62.23)."""
+    _FLEET_REMOVAL_CHOOSERS.append(fn)
+    return fn
+
+
+def fleet_removal_has_choice(state: GameState, player_id: str, count: int = 1) -> bool:
+    """Removing ``count`` fleet pool tokens is a real choice: the pool holds tokens of at least
+    2 owners (own tokens = one owner) and not all of them leave."""
+    player = _player(state, player_id)
+    owners = len(player.foreign_fleet_tokens) + (1 if player.fleet_cc > 0 else 0)
+    return owners >= 2 and 0 < count < fleet_pool_count(state, player_id)
+
+
+def remove_fleet_tokens(state: GameState, player_id: str, count: int = 1, reason: str = "") -> None:
+    """"Remove N tokens from your fleet pool and return them to the reinforcements" - THE point.
+
+    With tokens of several owners in the pool (the Mahact's Edict) the PLAYER picks which ones
+    leave (registered chooser - a decision offer; ``reason`` names the effect). Without a choice
+    (one owner only, or the whole pool goes) they leave at once; another player's token goes back
+    to its OWNER's reinforcements (F_mahact edict 2). MUTATES ``state``.
+    """
+    count = min(max(0, count), fleet_pool_count(state, player_id))
+    if count == 0:
+        return
+    if fleet_removal_has_choice(state, player_id, count):
+        for chooser in _FLEET_REMOVAL_CHOOSERS:
+            if chooser(state, player_id, count, reason):
+                return
+    for _ in range(count):
+        remove_fleet_token(state, player_id)
+
+
+def remove_chosen_fleet_tokens(
+    state: GameState, player_id: str, own: int, foreign: list[str]
+) -> None:
+    """The player's answer: ``own`` own fleet tokens + one token of each owner in ``foreign``.
+
+    Raises:
+        ValueError: More own tokens than in the pool, an owner without a token there, repeats.
+    """
+    player = _player(state, player_id)
+    if own < 0 or own > player.fleet_cc:
+        raise ValueError(f"Your fleet pool holds only {player.fleet_cc} of your own tokens.")
+    if len(set(foreign)) != len(foreign):
+        raise ValueError("Each other player has at most 1 token in your fleet pool.")
+    for owner in foreign:
+        if owner not in player.foreign_fleet_tokens:
+            raise ValueError(f"Your fleet pool holds no command token of {owner}.")
+    if own:
+        spend_to_reinforcements(state, player_id, "fleet", own)
+    for owner in foreign:
+        return_foreign_fleet_token(state, player_id, owner)
+
+
+def remove_fleet_token(state: GameState, player_id: str) -> str | None:
+    """Removes 1 fleet pool token WITHOUT asking (no choice: ``fleet_removal_has_choice`` is
+    false, or no chooser applies) - effects go through ``remove_fleet_tokens``.
+
+    Own token when the pool holds one; otherwise another player's token, back to its owner's
+    reinforcements (F_mahact edict 2). Returns the owner of the removed token (``None`` = the
+    pool was empty, nothing happens).
     """
     player = _player(state, player_id)
     if player.fleet_cc > 0:

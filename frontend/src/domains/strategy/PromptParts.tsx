@@ -133,22 +133,19 @@ export function paymentTotal(
   );
 }
 
-/** Rozdział zdobytych żetonów dowodzenia po pulach (suma musi dać `total`); „Auto” = `auto`. */
+/** Rozdział zdobytych żetonów dowodzenia po pulach (suma musi dać `total`); zawsze ręcznie. */
 export function PoolDistributor({
   total,
   value,
   onChange,
   player,
   busy,
-  auto,
 }: {
   total: number;
   value: PoolSplit;
   onChange: (next: PoolSplit) => void;
   player?: PromptPlayer;
   busy?: boolean;
-  /** Podpowiedziany rozdział („Auto”); brak = bez przycisku. */
-  auto?: PoolSplit;
 }) {
   const used = splitTotal(value);
   return (
@@ -158,7 +155,6 @@ export function PoolDistributor({
         total={total}
         disabled={busy}
         onChange={(next) => onChange({ tactical: next.t, fleet: next.f, strategic: next.s })}
-        onAuto={auto ? () => onChange(auto) : undefined}
         current={{ t: player?.tacticalCC, f: player?.fleetCC, s: player?.strategicCC }}
       />
       <div className={styles.total} data-ok={used === total || undefined} data-bad={used !== total || undefined}>

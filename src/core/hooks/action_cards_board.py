@@ -398,7 +398,7 @@ def exchange_program(
         raise ValueError("State whether the players reached an agreement ('agreed').")
     if not agreed:
         for pid in (player_id, partner):
-            command_tokens.remove_fleet_token(state, pid)  # own first (F_mahact edict 2)
+            command_tokens.remove_fleet_tokens(state, pid, 1, "Exchange Program")
         return
     theirs = exchange_planets(state, partner)
     mine = exchange_planets(state, player_id)

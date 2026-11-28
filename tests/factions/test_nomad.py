@@ -700,6 +700,31 @@ def test_cavalry_uszkodzony_zostaje(registry: StaticDataRegistry) -> None:
     assert damaged_count(state.systems[TARMANN], "space", "p2", "cruiser") == 1
 
 
+@ruling("F_nomad/the-cavalry/2.4")
+def test_cavalry_emergency_repairs_tylko_z_sustain_damage(registry: StaticDataRegistry) -> None:
+    from src.core.damage import damaged_count, set_damaged
+    from src.core.hooks import reactions_combat
+
+    state, _grid = _cavalry_combat(registry)
+    state.systems[TARMANN].space_units["p2"]["dreadnought"] = 1
+    set_damaged(state.systems[TARMANN], "space", "p2", "cruiser", 2)  # the champion + another
+    set_damaged(state.systems[TARMANN], "space", "p2", "dreadnought", 1)
+    # During the combat the champion has SUSTAIN DAMAGE: it is repaired; the other damaged cruiser
+    # does not have the ability, so it stays damaged; the dreadnought has its own.
+    assert reactions_combat._damaged_units(state, registry, "p2", TARMANN) == [
+        ("space", "cruiser", 1), ("space", "dreadnought", 1)]
+    during = state.clone()
+    reactions_combat.emergency_repairs(during, registry, "p2", {})
+    assert damaged_count(during.systems[TARMANN], "space", "p2", "cruiser") == 1
+    assert damaged_count(during.systems[TARMANN], "space", "p2", "dreadnought") == 0
+    # After the combat the cruiser lost The Cavalry's SUSTAIN DAMAGE: not repaired by the card.
+    triggers.fire(state, GameEvent.COMBAT, Moment.END,
+                  ctx={"kind": "space", "position": TARMANN, "winner": "p2"})
+    state.active_combat = None
+    assert reactions_combat._damaged_units(state, registry, "p2", TARMANN) == [
+        ("space", "dreadnought", 1)]
+
+
 def test_cavalry_nie_przeciw_nomadowi(registry: StaticDataRegistry) -> None:
     from src.core import promissory_play
 
@@ -793,7 +818,7 @@ def test_thunders_paradox_odswieza_cudzego_agenta(registry: StaticDataRegistry) 
     triggers.fire(state, GameEvent.TURN, Moment.START, subject="p2", ctx={"player": "p2"})
     offer = _offers(state, "p1", "Thunder's Paradox")[0]
     inputs = _inputs(state, registry, offer)
-    assert inputs[0]["auto"] == f"p1|{nomad.MERCER}" and inputs[1]["auto"] == "p2|solagent"
+    assert "auto" not in inputs[0] and "auto" not in inputs[1]
     state = triggers.accept_offer(state, "p1", offer.id,
                                   {"exhaust": f"p1|{nomad.ARTUNO}", "ready": "p2|solagent"})
     assert leaders.is_ready(state, registry, "p2", "solagent")

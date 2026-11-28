@@ -64,13 +64,19 @@ def choice(
     *,
     always: bool = False,
     auto: Any = None,
+    optional: bool = False,
 ) -> Input:
     """Wejście „wybierz jedną opcję”.
 
+    ``optional=True`` - pole wolno pominąć (brak klucza w parametrach), np. cel dla 2. jednostki,
+    gdy gracz wybrał tylko jedną; efekt sam sprawdza, czy potrzebna wartość jest podana.
+
     ``always=True`` - gracz widzi decyzję NAWET przy jednej legalnej opcji (efekt obowiązkowy,
     o którym ma wiedzieć, np. trafienie Magen Defense Grid), zamiast cichego zastosowania.
-    ``auto`` = wartość opcji „Auto” (decyzja użytkownika: wybór zawsze z opcją Auto): UI pokazuje
-    przycisk „Auto”, brak odpowiedzi (bot, pominięte pole) = ta opcja. Musi być wśród opcji.
+    ``auto`` = wartość opcji „Auto”: WYŁĄCZNIE dla decyzji w walce i przy wydawaniu/płatnościach
+    (decyzja użytkownika 2026-11-27; każdy inny wybór - cel na mapie, karta, jednostka, gracz,
+    żeton, kolejność, akcja - jest ręczny, bez „Auto”). UI pokazuje przycisk „Auto”, brak
+    odpowiedzi (pominięte pole) = ta opcja. Musi być wśród opcji.
     """
     item: Input = {
         "key": key, "kind": "choice", "label": label, "options": options,
@@ -78,6 +84,8 @@ def choice(
     }
     if auto is not None and any(o["value"] == auto for o in options):
         item["auto"] = auto
+    if optional:
+        item["optional"] = True
     return item
 
 
@@ -104,9 +112,9 @@ def number(
     """Wejście liczbowe. ``meta = route_meta(...)`` = ile jednostek przenieść z planety na planetę:
     UI zbiera takie wejścia w jeden wybór NA MAPIE (źródło, potem cel), nie listę stepperów.
 
-    ``auto`` = sensowna wartość domyślna (decyzja użytkownika: wybór gracza ZAWSZE z opcją
-    „Auto”): UI wstawia ją od razu i pokazuje przycisk „Auto”; brak odpowiedzi (bot, pominięte
-    pole) = ta wartość."""
+    ``auto`` = sensowna wartość domyślna - WYŁĄCZNIE dla wydawania (trade goods, płatność) i walki
+    (decyzja użytkownika 2026-11-27): UI wstawia ją od razu i pokazuje przycisk „Auto”; brak
+    odpowiedzi (pominięte pole) = ta wartość. Bez ``auto`` pole startuje od ``minimum``."""
     item: Input = {"key": key, "kind": "number", "label": label, "min": minimum, "max": maximum,
                    "hint": hint}
     if meta is not None:
@@ -232,6 +240,8 @@ def validate_params(inputs: list[Input], params: Mapping[str, Any]) -> dict[str,
             allowed = [o["value"] for o in item.get("options", [])]
             if key not in params and "auto" in item:
                 params = {**params, key: item["auto"]}  # pominięte pole = wartość „Auto”
+            if key not in params and item.get("optional"):
+                continue  # pole opcjonalne pominięte
             if key not in params or params[key] not in allowed:
                 raise ValueError(f"Choose a valid option for: {label}.")
             cleaned[key] = params[key]
@@ -253,7 +263,9 @@ def validate_params(inputs: list[Input], params: Mapping[str, Any]) -> dict[str,
                 raise ValueError(f"Choose a technology for: {label}.")
             cleaned[key] = value
         elif kind == "number":
-            value = params.get(key, item.get("auto"))  # pominięte pole = wartość „Auto”
+            # Pominięte pole = wartość „Auto” (gdy jest), inaczej minimum - od niego startuje
+            # stepper w UI (jak pominięty ``multi`` = pusta lista), to nie jest „Auto”.
+            value = params.get(key, item.get("auto", item.get("min", 0)))
             if not isinstance(value, int) or isinstance(value, bool):
                 raise ValueError(f"Enter a number for: {label}.")
             if not int(item.get("min", 0)) <= value <= int(item.get("max", 0)):

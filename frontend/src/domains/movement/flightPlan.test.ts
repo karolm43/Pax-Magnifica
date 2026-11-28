@@ -173,13 +173,12 @@ describe("Hil Colish: may move before or after your other ships (RULES.md 62.19)
     expect(needsSeparateOrder([flagship, carrier])).toBe(true);
   });
 
-  it("before = the flagship flies first on its own; after / auto = one flight, flagship last", () => {
+  it("before = the flagship flies first on its own; after = one flight, flagship last", () => {
     const ids = (batches: StagedLeg[][]) => batches.map((b) => b.map((l) => l.id));
     expect(ids(flightBatches([flagship, carrier], "before"))).toEqual([["fs"], ["cv"]]);
     expect(ids(flightBatches([flagship, carrier], "after"))).toEqual([["cv", "fs"]]);
-    expect(ids(flightBatches([flagship, carrier], "auto"))).toEqual([["cv", "fs"]]);
     expect(ids(flightBatches([flagship], "before"))).toEqual([["fs"]]);
-    expect(flightBatches([], "auto")).toEqual([]);
+    expect(flightBatches([], "after")).toEqual([]);
   });
 });
 

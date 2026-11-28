@@ -26,147 +26,18 @@ Older, completed blocks (Phase 1 → blocks of 2026-11-25) are in `PROGRESS_ARCH
 | — | Relics (23/23 active), general technologies (33/33), objectives (80/80 automatic) | ✅ |
 | E6 | Agenda phase (voting, tie-breaking, laws); agenda effects | ✅ full phase + official deck effects (50/50); ⬜ Absol (13+60) |
 | H5 | Factions: abilities, leaders, PNs, breakthroughs, faction techs | 🔧 **18/30 factions** (Waves 1–2 ✅, Cabal, Titans; techs 72/102, leaders 54/102, abilities 38/73, PNs 23/40, breakthroughs 18/31, units 46/90); ⬜ 12 factions |
-| — | Exploration cards & Galactic Events (0/20) | 🔧 Exploration implemented in `core/exploration*.py` (only 4/80 in `effects_status`); ⬜ Galactic Events (0/20) |
-| N | Network: N0 `actor_id` ✅, N1 tokens ✅, N2 projection ✅, N3 saves ✅, N5 part 1 ✅; N4 concurrency ⬜ | 🔧 |
+| — | Exploration cards & Galactic Events (0/20) | ✅ Exploration (77/80 + 3 manual); ⏸️ Galactic Events (0/20, deferred) |
+| N | Network: N0 `actor_id` ✅, N1 tokens ✅, N2 projection ✅, N3 saves ✅, N5 part 1 ✅, N4 per-game lock ✅ | ✅ |
 | QA | pytest-xdist/testmon, ruff, mypy --strict, E2E Playwright (solo + host/guest), ruling coverage guard | ✅ |
 
 **Next steps (order):**
-1. **Remaining factions (12):** I3 player-dependent adjacency → Creuss, Empyrean, Nekro, Nomad, Yssaril, Mahact, Keleres (Wave 3) → Deepwrought, Last Bastion, Crimson Rebellion, Ral Nel, Firmament/Obsidian (Wave 4).
-2. **Galactic Events (0/20)** + **Exploration status tracking** (`effects_status` vs `core/exploration*.py`) + **unemitted timing events** (`OKNA_CZASOWE.md`, e.g. `game.faction_in_play`, `status.step`, `combat.step`) + **ruling debt** (`tests/rulings_debt.json`: 102 items).
-3. **AI Bot (`docs/bot/PLAN.md`):** B4 (`arena`) → B5 (`legal_actions` for tactical action, combat, action cards) → B6 (`fast` state) → algorithms (evaluation, combat MC, RHEA).
+1. **Remaining factions (7):** Nekro, Keleres (Wave 3) → Deepwrought, Last Bastion, Crimson Rebellion, Ral Nel, Firmament/Obsidian (Wave 4).
+2. **AI Bot (`docs/bot/PLAN.md`):** B4 (`arena`) → B5 (`legal_actions` for tactical action, combat, action cards) → B6 (`fast` state) → algorithms (evaluation, combat MC, RHEA).
+3. **Gaps & audit:** mechanical/ruling gaps (`rulings_status.json`), unemitted timing events (`OKNA_CZASOWE.md`), and ruling debt (`tests/rulings_debt.json`: 93 items).
+4. **Deferred (user decision 2026-11-27 — not doing for now):** Galactic Events (0/20), Absol agendas (13+60), general binding deals, hyperlanes, global `cannot` arbitration / interleaved `REACTION` offers.
 
 > Full history of completed blocks with details: `PROGRESS_ARCHIWUM.md`.
 
-
-## Action card ruling gaps: user decisions + "Sustain now"
-
-- All four Phase 2 assumptions confirmed by the user; recorded in `rules/R53.md` §53.10 (EB fires in Space Cannon
-  Offense and a destroyed dock does not fire; Rescue cargo chosen manually per type + Auto; no step-by-step Sustain
-  Damage for directed hits; Puppets "not your turn" rules only for Puppets).
-- `BonusTurn.restore_passed` → `not_a_turn` (set only by Puppets on a String): a passed player using Jupiter Brain is
-  no longer treated as acting outside their turn (transactions, Minister of Peace). Test in `test_legendary_planets.py`.
-- Battle window: "Sustain now" next to "Confirm losses" (`POST /tactical/battle/sustain`): enabled when exactly one
-  ship carries a shield mark alone; hidden for directed hits (`sustainNowType`, `battleAssign.test.ts`).
-
-## Docs cleanup, Exploration status tracking, N4 per-game lock (2026-11-26)
-- Docs: archived 2026-11-22..24 blocks to `PROGRESS_ARCHIWUM.md` (`PROGRESS.md` ~33 KB), updated Engine Stage Status, `PLAN_FRAKCJE.md` §6, `README.md`, and regenerated `POKRYCIE_HOOKOW.md` / `OKNA_CZASOWE.md`.
-- Exploration tracking (`assets/config/effects_status.json`): marked all 80 exploration cards (`77 implemented`, `3 manual` for Entropic Field variants) to match `core/exploration*.py`.
-- N4 per-game lock (`api/context.py` `AppContext.game_lock`, `api/app.py` `_game_lock` middleware): serializes mutating HTTP requests (`POST`/`PUT`/`PATCH`/`DELETE`), including middleware mutations, without blocking `GET` or WebSocket. Tests: `tests/test_game_lock.py` (2).
-
-## Action cards: map-picked board sources + "Auto", 4 edge cases (2026-11-26)
-- Empty reinforcements → unit taken from the board is clicked ON THE MAP (`board_reinforcements.map_source_options`,
-  `unit_at` meta → `GroupedMapField`): Construction/Warfare Rider, Refit Troops, Rearmament Agreement ("Auto" = "Do not
-  place"), War Effort / Ghost Ship ("Auto" = first legal source). L1Z1X/Saar reuse the helper. `optionKinds.located`:
-  space-area sources next to planets no longer fall back to loose tiles.
-- Skilled Retreat token pool: real "Auto" field (tactic → fleet → strategy). Impersonation: full objective names + ⓘ.
-- Fixes: Political Stability holder is not asked to pick under Checks and Balances (`GameState.strategy_kept`);
-  eliminated players' home tiles stay home systems in `board_graph.home_system_ids` (Mercenary Contract etc.).
-- Verified + tested: R_action_cards 6.2 audit guard (every duplicated reaction card blocks its second copy),
-  Public Disgrace vs Imperial Arbiter. Assumptions in `rules/R53.md` §53.11. New `GameState` field: restart the backend.
-
-## I3 · Player-dependent adjacency (2026-11-26)
-- New hook point FORBID `adjacency.extra_for_player` (ctx `position`, `grid`), read ONLY via
-  `board_graph.extra_adjacent_for_player`; `neighbors_for_player` / `are_adjacent_for_player` combine map graph +
-  tactical-action adjacency (`action_adjacency`) + the player's own layer. `HexGrid` stays pure topology (RULES.md 61.7).
-- Consumers: movement (`movement_paths._neighbors_for_move`, outside the wormhole-law filter), retreats
-  (`retreat_destinations`, `skilled_retreat` destinations), Space Cannon offense + range lens (`coverage`: the SHOOTER's
-  adjacency), neighbors (A↔B when X,Y adjacent for A OR B; `neighbors_of` now delegates to `neighbors_by_player`) →
-  transactions, Pillage, objectives, web-data `neighbors`. Target-centric effects (Ixthian etc.) keep pure adjacency.
-- Tests `tests/test_player_adjacency.py` (16, with/without a temporary QE-like hook). `R_adjacency` audited and
-  removed from `rulings_debt.json` (`GENERAL_DEBT_LIMIT` 101; hyperlanes = `gap` status); R_wormholes rr/2, rr/3, notes/3 tested.
-- No real hook yet — Creuss Quantum Entanglement arrives in B15; Crimson breaches in B24.
-
-## B15 · The Ghosts of Creuss (2026-11-26)
-- `core/hooks/factions/ghost.py` (RULES.md 62.19): all 12 components hooked (`missing_components == []`), rulings contract
-  `F_creuss` 88/88 (tests or statuses). Texts from `faction_bundle("ghost")`; `tests.rulings` maps `ghost -> F_creuss`.
-- Creuss wormhole tokens = faction tokens (`faction_tokens.CREUSS_WORMHOLES`, kinds from `assets/data/tokens` +
-  `TokenDef.wormholes`) feeding `SystemState.token_wormholes()` -> real map wormhole edges. One placement function
-  (`place_or_move_token`) for Wormhole Generator (tech ACTION), Creuss IFF (turn-start note, once per window) and Icarus
-  Drive (offer after ANY activation); entropic scar discards the token; Fracture allowed; neutral ships block.
-- New central points: `board.unit_wormholes` (Hil Colish delta, read via `board_graph.unit_wormholes` /
-  `placed_wormholes` -> API map sync, `wormholes_at`, objective progress), `movement.wormhole_laws_immune` (replaces the
-  old `if faction == creuss` in `agendas_laws`), `movement.moves_separately` (Ion Storm flips right after the Hil Colish
-  moves), `system.action_wormholes` (Lazax Gate Folding: Mecatol "has" alpha+beta during the Winnu action -> Splicer),
-  `core/system_swap.swap_systems` (hero: SystemStates trade positions, tiles via `replaced_tiles`, homes follow).
-- Quantum Entanglement = the first real layer-3 hook (`adjacency.extra_for_player`, I3). Slipstream = move value +1
-  from home 51 / alpha-beta systems. Taivra = global `TACTICAL_ACTION` effect (source of `movement.extra_adjacent`).
-  Sai Seravus: fighters after a wormhole hop (number field, Auto = max). Particle Synthesis: PRODUCTION per wormhole +
-  cost cut per wormhole in the production system. Creuss Gate setup was already engine (declared core rule).
-- Activity: `faction_token` facts carry `position`; feed lines "placed / moved ... from X to Y / returned"
-  (`describeActivity`, `entities/lookup/wormholeTokens.ts`).
-- Frontend FX: `ghosthero` recipe + `CreussFxMarks.SingularityRiftMark` (vortices, tether, old tiles fly along the arc
-  and trade places, reveal under the flash; target `swapped`), KeyMoment `wormhole` + `TOKEN_BOARD_FX` portal (token
-  colour, origin collapses), caption with the token image (RULES.md 64.4).
-- Tests: `tests/factions/test_ghost.py` (44), `test_flows_ghost.py` (9, API: setup, WG, Splicer + Shields Holding /
-  Direct Hit, Taivra, Icarus, Sai Seravus, hero, IFF), `test_activity.py`; vitest heroBoardFx / keyMoments /
-  CreussFxMarks / describeActivity.creuss. 8 cross-faction `requires: faction:creuss` statuses resolved by tests.
-- ⚠️ ASSUMPTIONS (RULES.md 62.19): "Auto" defaults (token, system, Splicer target, mech, hero pair, fighters);
-  Hil Colish order = order of submitted fleet moves; "moved through a wormhole" = hop between two wormhole systems that
-  do not share an edge. New `GameState`/API fields (`TokenDef.wormholes`, `ActivityFact.position`): restart the backend.
-
-## Player tab as a physical player zone (frontend only)
-- Layout (`PlayerTab/`): seat switcher + table badges (`TableStrip`), the 3-wing board (`board/PlayerBoard`:
-  `LeaderWing` | `FactionSheet` | `CommandWing`) on a starfield playmat; command sheet = the printed hexagon
-  (tactic / fleet / strategy / trade goods / reinforcements) with live token piles. Below it `EmpireDock`, no tabs:
-  briefing sorted by urgency, empire + shipyard, hand, army strength (planets/tech/cards stay on the Players tab).
-  `CommandBanner` and the telemetry strip are gone.
-- Unit boxes (`board/SheetUnit` + `sheetUnits.ts`) print stat boxes, keywords and the UPGRADE strip from unit data
-  only; live deployed/cap tag. Click opens the shared `UnitCard/UnitDetails`; upgrade modifiers now live in
-  `UnitCard/unitModifiers.ts` (used by `UnitCard` too). `PlayerCard` lost the unused `hideHeader`/`sections` props.
-- Responsive by container queries: wings under the sheet below 1240px, one column on a phone.
-- Tests: `board/PlayerBoard.test.tsx`; checked in a real browser (solo Muaat game, 1920 / 1366 / 420 px).
-
-## Player tab: full-height wings, readable text, production lines, everything below (frontend only)
-- One printed-board chrome for the three pieces (`--piece-*` in `board/PlayerBoard.module.css`); the side pieces
-  stretch to the faction sheet's height (`contain: size`). Leader slots share the height, long text fades out.
-  Command wing: hexagon + supply tray (ready to spend, planet traits, relic fragments, debts, special tokens).
-- Rules text (leaders, faction abilities, unit abilities) = `board/RulesText` in the page's body face, timing window
-  on its own gold line; the faction quote is a book italic (same face as the Lore window), not a slanted display cut.
-- Production line under every silhouette (`board/productionTips.ts`, from `empireStats`: "Build up to N · limit",
-  "Fleet pool full", "Costs X · Y to spend", space dock = PRODUCTION per system, `productionSystems`).
-- Dock: technologies (+ skips, unresearched faction techs/notes), planets and cards in play are back, always open
-  (`TablePanels.tsx`, the Players-tab components); trait counts moved from the Empire panel to the command wing.
-- Pools hold the map's own token (`map/CommandCounter`, new `fluid` size: colour + faction emblem, fleet side up in
-  the fleet pool). Fonts enlarged across the board and dock. Production plate = headline + limit ("Can build 4 /
-  Jol / Nar produce 4", "Can't afford / costs 8 · you have 3"), so units never read as having PRODUCTION.
-- Empire panel: "versus the table" (`empireCompare.ts`) - 14 measures with value, place, leader(s), table/map total.
-- Tests: `board/PlayerBoard.test.tsx` (production lines + tips), `empireCompare.test.ts`; checked in the live game.
-
-## Creuss: Singularity Reactor Effect Fix, Hil Colish Move Order + Delta Portal (2026-11-26)
-
-- Singularity Reactor board effect (`map/layers/CreussFxMarks.tsx`): vortex arms rotate on a wrapping `<g>` (the
-  CSS `transform-box: fill-box` pivoted each arm around its own bbox, scattering them off centre — the token portal
-  had the same bug); vortices, tether, void and flying tiles follow the SHAPE of the tile shown in the slot
-  (`shapeCentre` + `tileOutline`: spiral tiles 416x386), each tile lands on its own shape centre; the empty slot is
-  a translucent lit wormhole mouth (not a near-black hex) only while its tile is in flight; board dim 0.62 -> 0.45.
-- Hil Colish "may move before or after your other ships" in the flight plan: route preview flags the ship
-  (`movesSeparately`, PERMIT `movement.moves_separately`, new API field — restart); with its leg + other legs the
-  Movement panel asks Before / After / Auto (= after, `⚠️ ASSUMPTION` in R62.19). Before = its leg flies first as
-  its own request, then the rest (`flightBatches`); a hint suggests flying it alone first to use the delta at the
-  destination.
-- Delta wormhole moving with the flagship: Activity facts `unit_wormhole` / `unit_wormhole_removed`
-  (`board_graph.unit_wormholes_by_owner`), feed line "Delta wormhole moved with the ship from X to Y", and the
-  board portal (`TOKEN_BOARD_FX.whdelta`): a vortex collapses where it left and opens where it arrived.
-- Tests: `test_ghost.py` (route flag, feed facts), `flightPlan.test.ts`, `CreussFxMarks.test.tsx`,
-  `keyMoments.test.ts`, `heroBoardFx.test.ts`, `describeActivity.creuss.test.tsx`.
-
-## Creuss: Hil Colish Delta Always on the Map, Quantum Entanglement Hover Links (2026-11-26)
-
-- `web_tiles`: a `whdelta` space marker wherever a unit carries a wormhole (`board_graph.unit_wormholes`) - the
-  map's Token renders it with the hover links and a "Delta wormhole (Hil Colish)" rule popover (view only).
-- `web_players.wormholeLinks`: per player, wormhole system -> systems adjacent only for that player
-  (`board_graph.extra_adjacent_for_player`; new `HexGrid.all_wormhole_positions`). `WormholeLinkLayer` draws them
-  on hover as dashed lines in that player's colour (Creuss: alpha <-> beta) besides the common links.
-- Tests: `test_ghost.py` (marker, links only for Creuss), `wormholeLinks.playerLinks.test.ts`. New web-data fields
-  - restart the backend.
-
-## Fix: Hil Colish "Before the others" - later legs re-planned (2026-11-26)
-
-- "Before" flew the other legs with routes previewed while the flagship (and its delta) was still at its start:
-  the backend rejected them (422). `useFlightPlan` now re-plans every leg of a later flight on the current board
-  (`move-route` with the leg's source + waypoints, `replannedLeg`); a leg that can no longer fly (no route, ship
-  out of range, cargo off the new route) stops with a clear notice, the flown legs stay flown.
-- Tests: `flightPlan.test.ts` (re-plan), `test_flows_ghost.py` (two flights in one Movement step via API).
 
 ## Empyrean (B16, RULES.md 62.20) (2026-11-26)
 
@@ -423,8 +294,9 @@ Older, completed blocks (Phase 1 → blocks of 2026-11-25) are in `PROGRESS_ARCH
 - Gaps: Benediction "when you move your own ships" abilities other than Nova Seed are not filtered by
   `mover` (F_mahact benediction 2/2.1/2.3 tested only for Voidwatch / Nova Seed); Jae Mir Kan is ticked
   as cooperative in `faction_components_checklist.md` but a secondary payment is not a pull-able offer.
-- ⚠️ ASSUMPTIONS ("Auto" defaults, own-first fleet token removal, remaining Benediction capacity choice =
-  cheapest-first, Crimson Legionnaires stay on the card without a home planet): RULES.md 62.23.
+- ⚠️ ASSUMPTIONS (remaining Benediction capacity choice = cheapest-first, Crimson Legionnaires stay on the
+  card without a home planet): RULES.md 62.23. The "Auto" defaults and own-first fleet token removal were
+  replaced later (block "Auto only for spending and combat" below).
 
 ## Fix: 3 pre-existing failing backend tests (RULES.md 44.7)
 
@@ -439,3 +311,43 @@ Older, completed blocks (Phase 1 → blocks of 2026-11-25) are in `PROGRESS_ARCH
   pins the cultural deck to a relic fragment.
 - Tests: new `test_migawka_obecnosci_innego_gracza_jest_przezroczysta`; targeted undo / exploration /
   reaction suites (585 passed), ruff, mypy. Full suite and frontend QA skipped (backend-only, targeted scope).
+
+## "Auto" only for spending and combat (user decision 2026-11-27)
+
+- Every non-spending, non-combat choice lost its "Auto": faction hooks (Empyrean, Creuss/Ghost, Mahact, Naalu
+  Foresight, Nomad, Titans, Yssaril), action cards (War Effort / Ghost Ship board source, Unstable Planet,
+  Refit Troops, Rescue cargo, Investments), agendas (Rearmament, Leadership Rider), Hil Colish move order and
+  token redistribution (status phase, Leadership, Warfare, Predictive Intelligence, capacity / fleet pool
+  removal windows - `autoAlloc.ts` deleted). Payments, trade goods and combat keep "Auto".
+- `offer_inputs`: `choice(..., optional=True)` (field may be skipped, e.g. Mercer's 2nd ground force); a
+  skipped `number` without "Auto" = its `min` (the stepper start); `cooperative` never adds an "Auto".
+- Fleet pool removal is now ONE point, `command_tokens.remove_fleet_tokens(state, pid, n, reason)`: with tokens
+  of several owners (Mahact Edict) the Mahact chooses which leave (`EDICT_REMOVE` decision, `own` count +
+  `foreign` owners) instead of "own first". Used by Exchange Program, Clandestine Operations, Research Grant
+  Reallocation, Fleet Regulations, Sanction, Genetic Recombination, Neuroglaive.
+- Docs: resolved `⚠️ ASSUMPTION` markers in RULES.md 5, 13, 30-65 (user decisions / verified against tirules).
+- Tests: updated `auto` asserts across faction and ruling tests; new `@ruling("F_mahact/edict/2")` choice test.
+
+## Sustain Damage once per timing window; Emergency Repairs only units with SUSTAIN DAMAGE
+
+- `ActiveCombat.sustain_spent` + `damage.repair_after_sustain` / `sustain_spent` / `forget_sustain_spent`: a unit
+  the Dynamo repaired after it sustained cannot SUSTAIN DAMAGE again until the next Roll Dice step
+  (`CombatUnit.spent`); destroyed undamaged units take the "spent" ones first; Direct Hit on a repaired ship
+  clears its record. Closes gaps F_empyrean dynamo 1 and C_action_cards reflective-shielding 1.1.
+- `battle_units.damaged_with_sustain`: Emergency Repairs repairs only damaged units that currently HAVE the
+  ability (own, not lost/denied; The Cavalry's champion only during that combat) - closes F_nomad the-cavalry 2.4.
+- Tests: `test_empyrean.py` (dynamo 1), `test_nomad.py` (cavalry 2.4), `test_reactions_combat.py` (reflective 1.1).
+
+## Mecatol Rex: Thunder's Edge tile 112 (RULES.md 2)
+
+- `map_string.is_mecatol_system` / `mecatol_system_id` and `legendary_planets.MECATOL_PLANETS` replace every
+  `== "18"` / `"mr"` check (Custodians, Diplomacy, Imperial, Xxcha Peace Accords, Titans Terraform, objectives,
+  Fracture ingress, web tiles, demo map, random map).
+- ⚠️ ASSUMPTION (RULES.md 2, to confirm): with Thunder's Edge active, new maps use tile 112 (legendary
+  *The Galactic Council*) and an explicit `18` is swapped for `112`.
+- Tests: `test_map_string.py` (3 new), Mecatol asserts in `test_web_data.py`, `test_demo_map.py`,
+  `test_random_map_new_game.py` follow the active tile.
+
+QA (all three blocks): full backend suite (10 failures, all stale asserts, fixed and re-run: 270 passed in
+those files), ruff, mypy; frontend `tsc`, eslint (changed files), vitest (62 files, 271 passed). Skipped:
+`npm run build` (no new modules/imports), e2e (no wizard/flow change).

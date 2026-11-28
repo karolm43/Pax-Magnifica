@@ -171,7 +171,7 @@ def test_stall_tactics_auto_pierwsza_karta(registry: StaticDataRegistry) -> None
     hand = _cards(registry, 2)
     _give(state, "p1", hand)
     inputs = yssaril.stall_inputs(state, registry, "p1")
-    assert inputs[0]["auto"] == hand[0]
+    assert "auto" not in inputs[0]
     assert {o["meta"]["ref"]["kind"] for o in inputs[0]["options"]} == {"actionCard"}
 
 
@@ -182,11 +182,12 @@ def test_stall_tactics_auto_pierwsza_karta(registry: StaticDataRegistry) -> None
 def test_blackshade_po_stall_tactics_stawia_mecha(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     _give(state, "p1", _cards(registry, 1))
-    after = _use(state, registry, "p1", "ability", yssaril.STALL)
+    after = _use(state, registry, "p1", "ability", yssaril.STALL,
+                 {"card": _hand(state, "p1")[0]})
     offer = _offers(after, "p1", "Blackshade")[0]
     assert not offer.mandatory  # "you may"
     planet = _inputs(after, registry, offer)[0]
-    assert planet["auto"] == "retillion"
+    assert "auto" not in planet
     assert {o["value"] for o in planet["options"]} == {"retillion", "shalloq"}
     done = _accept(after, "p1", "Blackshade", {"planet": "shalloq"})
     assert done.systems[HOME].planet_units["shalloq"]["p1"]["mech"] == 1
@@ -206,7 +207,7 @@ def test_scheming_dobiera_dodatkowa_i_odrzuca_dowolna(registry: StaticDataRegist
     offer = _offers(state, "p1", "Scheming")[0]
     assert offer.mandatory
     field = _inputs(state, registry, offer)[0]
-    assert field["auto"] == _hand(state, "p1")[-1]  # Auto = the additional card
+    assert "auto" not in field
     # Any card of the hand - also one held before the draw (scheming 3).
     done = triggers.accept_offer(state, "p1", offer.id, {"card": old[0]})
     assert len(_hand(done, "p1")) == 3 and old[0] not in _hand(done, "p1")
@@ -230,7 +231,7 @@ def test_scheming_raz_na_dobranie_neural_motivator(registry: StaticDataRegistry)
 def test_scheming_dwa_osobne_dobrania_minister_of_policy(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     card_draw.draw_action_cards(state, "p1", 1)  # Draw Action Cards step
-    state = _accept(state, "p1", "Scheming", {})
+    state = _accept(state, "p1", "Scheming", {"card": _hand(state, "p1")[-1]})
     state.decks.agenda_laws["minister_policy"] = "p1"
     triggers.fire(state, GameEvent.PHASE, Moment.END, subject=None, ctx={"phase": "status"})
     assert len(_offers(state, "p1", "Scheming")) == 1  # Scheming again for Minister of Policy
@@ -243,7 +244,7 @@ def test_scheming_blokuje_odblokowanie_so_ata(registry: StaticDataRegistry) -> N
     card_draw.draw_action_cards(state, "p1", 1)  # 6 + 1 + 1 = 8 cards, discard pending
     assert len(_hand(state, "p1")) == 8
     assert leaders.refresh_unlocks(state, registry) == []  # nothing resolves before the discard
-    state = _accept(state, "p1", "Scheming", {})
+    state = _accept(state, "p1", "Scheming", {"card": _hand(state, "p1")[-1]})
     assert leaders.refresh_unlocks(state, registry) == [yssaril.COMMANDER]
 
 
@@ -348,7 +349,7 @@ def test_mageon_implants_patrzy_i_bierze(registry: StaticDataRegistry) -> None:
     _give(state, "p2", theirs)
     inputs = yssaril.mageon_inputs(state, registry, "p1")
     assert [o["value"] for o in inputs[0]["options"]] == ["p2"]  # p3 holds no cards
-    assert inputs[0]["auto"] == "p2"
+    assert "auto" not in inputs[0]
     work = state.clone()
     yssaril.mageon_implants(work, registry, "p1", {"player": "p2"})
     assert yssaril.MAGEON in work.players["p1"].exhausted_technologies
@@ -489,14 +490,14 @@ def test_so_ata_patrzy_po_aktywacji(registry: StaticDataRegistry) -> None:
                   ctx={"player": "p2", "position": EMPTY})
     offer = _offers(state, "p1", "So Ata")[0]
     hand = _inputs(state, registry, offer)[0]
-    assert hand["auto"] == "action_cards"
+    assert "auto" not in hand
     assert {o["value"] for o in hand["options"]} == {"action_cards", "secret_objectives"}
     state = triggers.accept_offer(state, "p1", offer.id, {"hand": "action_cards"})
     look = _offers(state, "p1", "So Ata")[0]
     assert look.mandatory
     seen, done = _inputs(state, registry, look)
     assert seen["kind"] == "info" and {o["value"] for o in seen["options"]} == set(theirs)
-    assert done["auto"] == "done"
+    assert "auto" not in done
     state = triggers.accept_offer(state, "p1", look.id, {"done": "done"})
     assert _hand(state, "p2") == theirs  # looking changes nothing
     assert any("looks at" in n["detail"] for n in state.ability_notes)
@@ -540,11 +541,11 @@ def test_kyver_kazdy_pokazuje_bierze_albo_3_losowe(registry: StaticDataRegistry)
     assert set(effect.data["areas"]) == {RIVAL}  # every other player's home (p3 has none)
     # Each other player chooses the card they show (kyver 1).
     show = _offers(state, "p2", "show 1 action card")[0]
-    assert show.mandatory and _inputs(state, registry, show)[0]["auto"] == p2_cards[0]
+    assert show.mandatory and "auto" not in _inputs(state, registry, show)[0]
     state = triggers.accept_offer(state, "p2", show.id, {"card": p2_cards[1]})
     choose = _offers(state, "p1", "take the card")[0]
     shown, pick = _inputs(state, registry, choose)
-    assert [o["value"] for o in shown["options"]] == [p2_cards[1]] and pick["auto"] == "take"
+    assert [o["value"] for o in shown["options"]] == [p2_cards[1]] and "auto" not in pick
     state = triggers.accept_offer(state, "p1", choose.id, {"choice": "take"})
     assert p2_cards[1] in _hand(state, "p1") and _hand(state, "p2") == [p2_cards[0]]
     show = _offers(state, "p3", "show 1 action card")[0]
@@ -590,7 +591,7 @@ def test_spy_net_na_poczatku_tury(registry: StaticDataRegistry) -> None:
 def test_spy_net_raz_w_oknie_i_tylko_na_swoja_ture(registry: StaticDataRegistry) -> None:
     state, note = _spy_net(registry)
     state, _ = promissory_play.play(state, registry, "p2", note)
-    state = _accept(state, "p2", "Spy Net", {})
+    state = _accept(state, "p2", "Spy Net", {"card": _hand(state, "p1")[0]})
     # Received again in the same window: it cannot be played again (spy-net 3).
     state.players["p1"].private.promissory_notes.remove(note)
     state.players["p2"].private.promissory_notes.append(note)
@@ -654,10 +655,10 @@ def test_deepgloom_scheming_dla_innego_z_transakcja(registry: StaticDataRegistry
     card_draw.draw_action_cards(state, "p2", 1)
     state = _accept(state, "p1", "Deepgloom Executable")
     use = _offers(state, "p2", "Scheming (Deepgloom")[0]
-    assert _inputs(state, registry, use)[0]["auto"] == "use"
+    assert "auto" not in _inputs(state, registry, use)[0]
     state = triggers.accept_offer(state, "p2", use.id, {"use": "use"})
     assert len(_hand(state, "p2")) == 2
-    state = _accept(state, "p2", "Scheming: discard", {})
+    state = _accept(state, "p2", "Scheming: discard", {"card": _hand(state, "p2")[-1]})
     assert len(_hand(state, "p2")) == 1
     assert transaction.granted_pair(state, "p1", "p2")
     # The grant: no neighbours, the active player need not be either of them.
@@ -683,7 +684,7 @@ def test_deepgloom_pozycza_stall_tactics(registry: StaticDataRegistry) -> None:
     state = _state(registry)
     state.players["p1"].breakthrough_unlocked = True
     inputs = yssaril.deepgloom_inputs(state, registry, "p1")
-    assert inputs[0]["auto"] == "p2"
+    assert "auto" not in inputs[0]
     state = _use(state, registry, "p1", "breakthrough", yssaril.BREAKTHROUGH, {"player": "p2"})
     assert faction_components.granted_abilities(state, "p2") == [yssaril.STALL]
     assert ("ability", yssaril.STALL) in faction_components.owned(state, registry, "p2")

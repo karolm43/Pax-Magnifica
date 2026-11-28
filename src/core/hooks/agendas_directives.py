@@ -409,7 +409,7 @@ def _clandestine_for(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None
 
 @on_outcome("cladenstine", outcome="against", label="Clandestine Operations")
 def _clandestine_against(state: GameState, pid: str, _ctx: Mapping[str, Any]) -> None:
-    command_tokens.remove_fleet_token(state, pid)  # own first (F_mahact edict 2)
+    command_tokens.remove_fleet_tokens(state, pid, 1, "Clandestine Operations")
 
 
 # New Constitution - For: discard all laws; next strategy phase exhaust home planets.
@@ -526,8 +526,7 @@ def _grant(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
     # Za każdy prerekwizyt żeton z fleet pool; przy braku - wszystkie (C_agendas).
     cost = min(sum(technology.prerequisites(definition).values()),
                command_tokens.fleet_pool_count(state, pid))
-    for _ in range(max(0, cost)):
-        command_tokens.remove_fleet_token(state, pid)  # own first (F_mahact edict 2)
+    command_tokens.remove_fleet_tokens(state, pid, cost, "Research Grant Reallocation")
 
 
 # Incentive Program - For: reveal a stage I objective; Against: a stage II objective.
@@ -599,12 +598,11 @@ def _rearm_inputs(
     if planets and board_reinforcements.needs_board_source(state, player_id, "mech"):
         sources = board_reinforcements.map_source_options(state, registry, player_id, "mech")
         if sources:
-            # Mech clicked on the map; Auto = "Do not place" (ability cannot force the removal).
+            # Mech clicked on the map, or "Do not place" (the ability cannot force the removal).
             inputs.append(oi.choice(
                 "source", "No mech in your reinforcements - take one from the board?",
                 [_option(_NO_SOURCE, "Do not place a mech"), *sources],
                 "Click your mech on the map (systems without your command token).",
-                auto=_NO_SOURCE,
             ))
     return inputs
 
@@ -895,8 +893,7 @@ def _regulations(state: GameState, pid: str, ctx: Mapping[str, Any]) -> None:
         from src.core.hooks.agendas_laws import FLEET_REGULATIONS_CAP
 
         excess = command_tokens.fleet_pool_count(state, pid) - FLEET_REGULATIONS_CAP
-        for _ in range(max(0, excess)):
-            command_tokens.remove_fleet_token(state, pid)  # own first (F_mahact edict 2)
+        command_tokens.remove_fleet_tokens(state, pid, excess, "Fleet Regulations")
     elif command_tokens.reinforcements(state, pid) > 0:
         command_tokens.gain_from_reinforcements(state, pid, {"fleet": 1})
 

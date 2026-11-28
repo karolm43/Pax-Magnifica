@@ -99,8 +99,8 @@ export function DecisionField({
   mapActive?: boolean;
 }) {
   if (input.kind === "number") {
-    // „Auto” (decyzja użytkownika: wybór gracza zawsze z opcją Auto) - wartość podpowiedziana
-    // przez silnik; gracz może ją zmienić stepperem.
+    // „Auto” tylko dla wydawania i walki (decyzja użytkownika 2026-11-27) - wartość podpowiedziana
+    // przez silnik; gracz może ją zmienić stepperem. Bez „Auto” stepper startuje od ``min``.
     const auto = input.auto;
     return (
       <div className={styles.field}>
@@ -139,7 +139,7 @@ export function DecisionField({
   }
   // Badanie ma własne pełne okno (``ResearchOfferOverlay``), nie pole formularza.
   if (input.kind === "research") return null;
-  // „Auto” wyboru z listy: opcja podpowiedziana przez silnik (decyzja użytkownika).
+  // „Auto” wyboru z listy: tylko walka i wydawanie (decyzja użytkownika 2026-11-27).
   const autoId =
     input.kind === "choice" && input.auto !== undefined
       ? input.options.find((o) => o.value === input.auto)?.id

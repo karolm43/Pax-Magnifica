@@ -806,7 +806,8 @@ def test_tellurian_anuluje_trafienie_afb(registry: StaticDataRegistry) -> None:
 
 
 def test_wybor_z_auto_pominiete_pole_to_auto() -> None:
-    """Decyzja użytkownika: każdy wybór ma „Auto”; pominięte pole = opcja Auto (bot, UI)."""
+    """Mechanizm „Auto” (tylko walka i wydawanie - decyzja użytkownika 2026-11-27): pominięte
+    pole = opcja Auto."""
     from src.core import offer_inputs as oi
 
     inputs = [oi.choice("x", "X", [oi.option("a", "A"), oi.option("b", "B")], auto="b")]
@@ -820,10 +821,14 @@ def test_wybor_z_auto_pominiete_pole_to_auto() -> None:
         oi.validate_params(strict, {})
 
 
-def test_awaken_auto_bez_parametrow(registry: StaticDataRegistry) -> None:
+def test_awaken_bez_parametrow_odrzucone_wybor_recznie(registry: StaticDataRegistry) -> None:
+    """Bez „Auto” (decyzja użytkownika 2026-11-27): pominięty wybór = błąd, gracz wybiera."""
     state = _state()
     _own(state, ARENA, WELLON, units={"infantry": 1})
     _sleeper(state, ARENA, WELLON)
-    after = _accept(_activate(state, registry, ARENA), "p1", "Awaken")  # „Auto” = PDS
+    activated = _activate(state, registry, ARENA)
+    with pytest.raises(ValueError, match="Choose a valid option"):
+        _accept(activated, "p1", "Awaken")
+    after = _accept(activated, "p1", "Awaken", {f"sleeper:{WELLON}": "pds"})
     assert _units(after, ARENA, WELLON)["pds"] == 1
 

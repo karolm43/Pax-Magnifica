@@ -38,7 +38,7 @@ from src.core.battle_units import required_hits as required_hits
 from src.core.battle_units import side_units as side_units
 from src.core.battle_units import sustain_cancels as sustain_cancels
 from src.core.battle_units import sustain_denied as sustain_denied
-from src.core.damage import damaged_count, set_damaged
+from src.core.damage import damaged_count, forget_sustain_spent, set_damaged
 from src.core.dice import count_hits, roll_dice
 from src.core.game_events import GameEvent, Moment
 from src.core.game_state import (
@@ -936,6 +936,7 @@ def roll_round(
     combat.side_rolls = {}
     combat.destroyed_ships = []  # ślady kart reakcji dotyczą ostatnich strat
     combat.sustained_ships = []
+    combat.sustain_spent = {}  # a new Roll Dice step = a new timing window (F_empyrean dynamo 1)
     combat.stepwise_assign = []
     offers_before = len(new_state.pending_offers)
     for pid in rolls:
@@ -1031,6 +1032,7 @@ def rewind_roll_step(state: GameState) -> None:
     combat.hit_targets = {}
     combat.stepwise_assign = []
     combat.sustained_ships = []
+    combat.sustain_spent = {}
     combat.destroyed_ships = []
     triggers.drop_offers(state, GameEvent.COMBAT_ROLL, Moment.AFTER)
     state.pending_window = None
@@ -1334,6 +1336,10 @@ def assign_combat_hits(
             ctx={"player": player_id, "kind": combat.kind, "hits": required},
         )
     apply_losses(new_state, combat.position, zone, player_id, units, plan)
+    for base_type, lost in destroy.items():  # undamaged losses: repaired-after-sustain go first
+        if base_type in units:
+            forget_sustain_spent(new_state, combat.position, units[base_type].zone or zone,
+                                 player_id, base_type, lost)
     for base_type, lost in losses_of(units, plan).items():
         note_destroyed(combat, player_id, base_type, lost, units[base_type].base_hits_on)
     _note_sustains(new_state, combat, player_id, units, zone, sustained_of(plan, sustain))

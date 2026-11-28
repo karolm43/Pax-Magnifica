@@ -38,7 +38,7 @@ from src.core import (
     unit_ops,
 )
 from src.core import offer_inputs as oi
-from src.core.damage import damaged_count, set_damaged
+from src.core.damage import damaged_count, repair_after_sustain
 from src.core.fleet_pool import unit_name
 from src.core.game_events import Duration, GameEvent, Moment
 from src.core.game_state import GameState
@@ -94,7 +94,6 @@ VOID_TETHER = faction_tokens.VOID_TETHER
 _NEW_TOKEN = "new"
 _SPACE = "space"
 _POOLS = (("tactical", "Tactic pool"), ("fleet", "Fleet pool"), ("strategic", "Strategy pool"))
-_AUTO_POOL = "tactical"  # ⚠️ ASSUMPTION (RULES.md 62.20): Acamar "Auto" = Tactic pool
 _AETHERSTREAM_BONUS = 1  # "apply +1 to the move value"
 _BLOOD_VOTES = 4  # "cast 4 additional votes"
 _REPAIR_COST = 2  # "spend 2 influence to repair that unit"
@@ -266,12 +265,11 @@ def _note_option(state: GameState, registry: StaticDataRegistry, note_id: str) -
 def voidwatch_inputs(
     state: GameState, registry: Any, decider: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """The mover picks the note (F_empyrean voidwatch 1). ⚠️ ASSUMPTION "Auto" = the first note in
-    their hand (RULES.md 62.20)."""
+    """The mover picks the note (F_empyrean voidwatch 1); no "Auto" (user decision 2026-11-27)."""
     hand = list(state.players[decider].private.promissory_notes)
     options = [_note_option(state, registry, note) for note in hand]
     return [oi.choice("note", "Promissory note you give to the Empyrean player", options,
-                      always=True, auto=hand[0] if hand else None)]
+                      always=True)]
 
 
 @on_event(
@@ -389,10 +387,9 @@ def _acamar_granted(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -
 def acamar_inputs(
     _state: GameState, _registry_: Any, _decider: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION "Auto" = the Tactic pool (RULES.md 62.20)."""
+    """The player picks the pool; no "Auto" (user decision 2026-11-27)."""
     options = [oi.option(pool, label) for pool, label in _POOLS]
-    return [oi.choice("pool", "Pool for your new command token (Acamar)", options, always=True,
-                      auto=_AUTO_POOL)]
+    return [oi.choice("pool", "Pool for your new command token (Acamar)", options, always=True)]
 
 
 @on_event(
@@ -402,7 +399,7 @@ def acamar_inputs(
 )
 def acamar_gain(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> None:
     target = str(ctx["decider"])
-    pool = str((ctx.get("params") or {}).get("pool") or _AUTO_POOL)
+    pool = str((ctx.get("params") or {}).get("pool") or "")
     if pool not in dict(_POOLS):
         raise ValueError("Choose the pool for the command token.")
     if command_tokens.reinforcements(state, target) < _AGENT_TOKENS:
@@ -692,7 +689,7 @@ def _mark_repaired(state: GameState, owner: str, base_type: str) -> None:
 def dynamo_inputs(
     state: GameState, registry: Any, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """Units to repair + influence (2 per unit). ⚠️ ASSUMPTION "Auto" = as many as affordable."""
+    """Units to repair (manual, no "Auto") + influence payment (2 per unit, payment has "Auto")."""
     most = dynamo_limit(state, player_id, ctx)
     ready = payment.ready_planet_values(state, registry, player_id, "influence")
     planets = [(p, card_labels.describe_planet(state, registry, p), v)
@@ -701,7 +698,7 @@ def dynamo_inputs(
     owner = str(ctx.get("player"))
     name = unit_name(state, registry, owner, str(ctx.get("base_type")))
     return [
-        oi.number("repairs", f"{name}: units to repair", 1, max(1, most), auto=most),
+        oi.number("repairs", f"{name}: units to repair", 1, max(1, most)),
         oi.payment_planets(planets, "influence", _REPAIR_COST * max(1, most),
                            hint=f"Pay {_REPAIR_COST} influence for each unit you repair."),
         oi.number("trade_goods", "Trade goods to spend", 0, spendable, auto=0),
@@ -736,11 +733,10 @@ def dynamo(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None:
     if paid < cost:
         raise ValueError(f"Spend at least {cost} influence (you chose {paid}).")
     payment.apply_payment(state, player_id, planets, trade_goods)
-    system = state.systems[str(ctx["position"])]
     zone, owner = str(ctx.get("zone") or _SPACE), str(ctx["player"])
     base_type = str(ctx["base_type"])
-    hurt = damaged_count(system, zone, owner, base_type)
-    set_damaged(system, zone, owner, base_type, hurt - repairs)
+    # Central repair: in combat the unit keeps its "already sustained" record (dynamo 1).
+    repair_after_sustain(state, str(ctx["position"]), zone, owner, base_type, repairs)
     _mark_repaired(state, owner, base_type)
     ability_notes.note(state, player_id, f"units:{FLAGSHIP}",
                        f"repaired {repairs} {unit_name(state, registry, owner, base_type)}")
@@ -808,7 +804,7 @@ def _watcher_window(state: GameState, _registry_: StaticDataRegistry, player_id:
 def watcher_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
-    """The Watcher to remove (on the map). ⚠️ ASSUMPTION "Auto" = the first one (board order)."""
+    """The Watcher to remove (on the map; no "Auto")."""
     held = state.held_play
     if held is None:
         return []
@@ -823,8 +819,7 @@ def watcher_inputs(
             meta=oi.unit_at(state, player_id, "mech", position=position,
                             planet=None if zone == _SPACE else zone),
         ))
-    return [oi.choice("mech", "Watcher to remove", options,
-                      auto=options[0]["value"] if options else None)]
+    return [oi.choice("mech", "Watcher to remove", options)]
 
 
 @register_effect(f"units:{MECH}")
@@ -901,10 +896,8 @@ def _token_value(a: str, b: str) -> str:
 def tether_inputs(
     state: GameState, registry: Any, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """The token (new / one already placed) and the border = the other system, picked on the map.
-
-    ⚠️ ASSUMPTION "Auto" (RULES.md 62.20): a token from supply, else the first placed one; the first
-    neighbouring system with another player's units, else the first neighbour."""
+    """The token (new / one already placed) and the border = the other system, picked on the map
+    (no "Auto" - user decision 2026-11-27)."""
     position = str(ctx.get("position") or "")
     tokens: list[dict[str, Any]] = []
     if faction_tokens.supply_left(state, player_id, VOID_TETHER) > 0:
@@ -916,16 +909,10 @@ def tether_inputs(
             f"{card_labels.describe_system(state, registry, b)}",
         ))
     others = border_neighbors(state, position)
-    rivals = [
-        pos for pos in others
-        if any(_has_units(state, pid, pos) for pid in state.players if pid != player_id)
-    ]
     return [
-        oi.choice("token", "Void Tether token", tokens,
-                  auto=tokens[0]["value"] if tokens else None),
+        oi.choice("token", "Void Tether token", tokens),
         oi.choice("border", "Border: the system on the other side",
-                  [_system_option(state, registry, pos) for pos in others],
-                  auto=next(iter(rivals or others), None)),
+                  [_system_option(state, registry, pos) for pos in others]),
     ]
 
 

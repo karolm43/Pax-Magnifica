@@ -30,16 +30,12 @@ describe("AutoButton / CommandPools", () => {
     expect(onClick).toHaveBeenCalled();
   });
 
-  it("CommandPools: „+” tylko dopóki są żetony do rozłożenia, Auto przy polu", () => {
+  it("CommandPools: „+” tylko dopóki są żetony do rozłożenia, bez Auto", () => {
     const onChange = vi.fn();
-    const onAuto = vi.fn();
-    render(
-      <CommandPools alloc={{ t: 1, f: 0, s: 0 }} total={1} onChange={onChange} onAuto={onAuto} />,
-    );
+    render(<CommandPools alloc={{ t: 1, f: 0, s: 0 }} total={1} onChange={onChange} />);
     expect(screen.getByRole("button", { name: "More Fleet tokens" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Less Tactic tokens" }));
     expect(onChange).toHaveBeenCalledWith({ t: 0, f: 0, s: 0 });
-    fireEvent.click(screen.getByRole("button", { name: "Auto" }));
-    expect(onAuto).toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Auto" })).toBeNull();
   });
 });

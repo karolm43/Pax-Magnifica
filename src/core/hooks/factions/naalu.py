@@ -85,7 +85,7 @@ BREAKTHROUGH = "naalubt"
 _SPACE = "space"
 _FIGHTER = "fighter"
 _MECH = "mech"
-_GROUND_CARGO = ("mech", "infantry")  # ⚠️ ZAŁOŻENIE (62.16): kolejność „Auto” przy Foresight
+_GROUND_CARGO = ("mech", "infantry")  # ground forces Foresight may take along
 _CARRY = "carry_"  # pole Foresight: ile sił naziemnych danego typu zabrać
 _GROUND_FORCES = frozenset(_GROUND_CARGO)
 _SUPERNOVA = "SUPERNOVA"
@@ -212,7 +212,7 @@ def foresight_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
     """Cel - system na mapie (pozycja jako wartość opcji); siły naziemne z przestrzeni - ile
-    zabrać (wybór gracza z wartością „Auto” = ``_auto_cargo``)."""
+    zabrać (ręczny wybór gracza, bez „Auto” - decyzja użytkownika 2026-11-27)."""
     position = str(ctx.get("position") or "")
     options = [
         oi.option(pos, card_labels.describe_system(state, registry, pos))
@@ -223,7 +223,6 @@ def foresight_inputs(
     if origin is None:
         return inputs
     free = _capacity(state, registry, player_id, _ships(origin, player_id))
-    auto = _auto_cargo(state, registry, player_id, origin, free)
     for base_type in _GROUND_CARGO:
         have = origin.space_units.get(player_id, {}).get(base_type, 0)
         if have > 0:
@@ -231,7 +230,6 @@ def foresight_inputs(
                 f"{_CARRY}{base_type}", f"{unit_name(state, registry, player_id, base_type)}"
                 " to take along", 0, have,
                 hint=f"Your moving ships have capacity {free}; the rest stays in the system.",
-                auto=auto.get(base_type, 0),
             ))
     return inputs
 
@@ -254,32 +252,16 @@ def _cargo_cost(state: GameState, registry: StaticDataRegistry, player_id: str,
                                           base_type))
 
 
-def _auto_cargo(
-    state: GameState, registry: StaticDataRegistry, player_id: str, system: SystemState, free: int
-) -> dict[str, int]:
-    """„Auto”: siły naziemne do pojemności, najpierw mechy, potem piechota (⚠️ ZAŁOŻENIE)."""
-    cargo: dict[str, int] = {}
-    for base_type in _GROUND_CARGO:
-        have = system.space_units.get(player_id, {}).get(base_type, 0)
-        per_unit = _cargo_cost(state, registry, player_id, base_type)
-        take = min(have, free // per_unit)
-        if take > 0:
-            cargo[base_type] = take
-            free -= take * per_unit
-    return cargo
-
-
 def _chosen_cargo(
     state: GameState, registry: StaticDataRegistry, player_id: str, system: SystemState,
     ships: Mapping[str, int], params: Mapping[str, Any],
 ) -> dict[str, int]:
-    """Ładunek wybrany przez gracza (brak pola = „Auto”); nie więcej niż pojemność floty."""
+    """Ładunek wybrany przez gracza (brak pola = 0); nie więcej niż pojemność floty."""
     free = _capacity(state, registry, player_id, ships)
-    auto = _auto_cargo(state, registry, player_id, system, free)
     cargo: dict[str, int] = {}
     for base_type in _GROUND_CARGO:
         have = system.space_units.get(player_id, {}).get(base_type, 0)
-        count = int(params.get(f"{_CARRY}{base_type}", auto.get(base_type, 0)))
+        count = int(params.get(f"{_CARRY}{base_type}", 0))
         if not 0 <= count <= have:
             raise ValueError(f"You have only {have} {base_type} in the space area.")
         if count:
@@ -361,7 +343,7 @@ def neuroglaive(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> No
     Nadwyżkę puli floty w każdym systemie otwiera ``limits.enforce_limits``, a ruch czeka na jej
     usunięcie (F_naalu neuroglaive 1)."""
     activator = str(ctx["player"])
-    command_tokens.remove_fleet_token(state, activator)  # own first (F_mahact edict 2)
+    command_tokens.remove_fleet_tokens(state, activator, 1, "Neuroglaive")
     ability_notes.note(state, activator, f"technologies:{NEUROGLAIVE}",
                        "1 token removed from the fleet pool")
 

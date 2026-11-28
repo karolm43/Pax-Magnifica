@@ -803,6 +803,11 @@ class ActiveCombat(BaseModel):
     # na walkę (R_objective_cards, C_relics Neuraloop). Osobna walka = osobny limit.
     objective_scorers: list[str] = Field(default_factory=list)
     sustained_ships: list[dict[str, Any]] = Field(default_factory=list)
+    # Units that used SUSTAIN DAMAGE in this timing window (the hits of the last Roll Dice step)
+    # and were repaired since (Dynamo): ``{"<player>|<zone>|<base_type>": count}``. They look
+    # undamaged but cannot use SUSTAIN DAMAGE again in the same window (F_empyrean dynamo 1,
+    # C_action_cards reflective-shielding 1.1). Cleared with ``sustained_ships`` at each roll.
+    sustain_spent: dict[str, int] = Field(default_factory=dict)
     # Players assigning this step's hits one Sustain Damage at a time (``battle.sustain_one``):
     # "before you assign hits" already happened for them (C_action_cards/direct-hit/3).
     stepwise_assign: list[str] = Field(default_factory=list)

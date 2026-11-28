@@ -84,3 +84,60 @@ def repair_all(state: GameState) -> None:
     """Naprawia wszystkie uszkodzone jednostki (faza statusu, krok 7 — W10). Mutuje ``state``."""
     for system in state.systems.values():
         system.damaged_units = {}
+
+
+def _spent_key(player_id: str, zone: str, base_type: str) -> str:
+    return f"{player_id}|{zone}|{base_type}"
+
+
+def sustain_spent(
+    state: GameState, position: str, zone: str, player_id: str, base_type: str
+) -> int:
+    """Undamaged units of the group that already used SUSTAIN DAMAGE in the ongoing combat's
+    timing window and were repaired since: they cannot use it again in that window (F_empyrean
+    dynamo 1, C_action_cards reflective-shielding 1.1). 0 outside that combat."""
+    combat = state.active_combat
+    if combat is None or combat.position != position:
+        return 0
+    return max(0, combat.sustain_spent.get(_spent_key(player_id, zone, base_type), 0))
+
+
+def forget_sustain_spent(
+    state: GameState, position: str, zone: str, player_id: str, base_type: str, lost: int
+) -> None:
+    """``lost`` undamaged units of the group left the combat: the spent ones go first (the owner
+    picks which identical unit is destroyed - keeping a unit that can still SUSTAIN DAMAGE is
+    never worse). MUTATES ``state``."""
+    combat = state.active_combat
+    key = _spent_key(player_id, zone, base_type)
+    if combat is None or combat.position != position or key not in combat.sustain_spent:
+        return
+    if lost <= 0:
+        return
+    left = combat.sustain_spent[key] - lost
+    if left > 0:
+        combat.sustain_spent[key] = left
+    else:
+        combat.sustain_spent.pop(key)
+
+
+def repair_after_sustain(
+    state: GameState, position: str, zone: str, player_id: str, base_type: str, count: int
+) -> int:
+    """Repairs ``count`` units that just used SUSTAIN DAMAGE (Dynamo) - THE point for such repairs.
+
+    In the ongoing combat in ``position`` the repaired units are recorded for the timing window:
+    they stay unable to use SUSTAIN DAMAGE again until the next Roll Dice step (F_empyrean
+    dynamo 1). Returns how many were repaired. MUTATES ``state``.
+    """
+    system = state.systems[position]
+    hurt = damaged_count(system, zone, player_id, base_type)
+    repaired = max(0, min(count, hurt))
+    if repaired == 0:
+        return 0
+    set_damaged(system, zone, player_id, base_type, hurt - repaired)
+    combat = state.active_combat
+    if combat is not None and combat.position == position:
+        key = _spent_key(player_id, zone, base_type)
+        combat.sustain_spent[key] = combat.sustain_spent.get(key, 0) + repaired
+    return repaired

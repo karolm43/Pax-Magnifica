@@ -444,9 +444,8 @@ def _for_requester(
         ]
         new = {**item, "options": options}
         values = [o["value"] for o in options]
-        if values and item.get("auto") not in values:
-            new["auto"] = values[0]
-        elif not values:
+        # An existing "Auto" (combat / spending only) survives only if still legal - never added.
+        if "auto" in item and item["auto"] not in values:
             new.pop("auto", None)
         shaped.append(new)
     return shaped

@@ -26,8 +26,10 @@ export type ActionCardInput =
       /** Gdy true, słownik z wybranej opcji jest wklejany do parametrów (np. cel Lucky Shot). */
       merge: boolean;
       options: ActionCardOption[];
-      /** Wartość opcji „Auto” (przycisk „Auto”; pominięte pole = ta opcja). */
+      /** Wartość opcji „Auto” - tylko walka i wydawanie (przycisk „Auto”; pominięte pole = ta opcja). */
       auto?: unknown;
+      /** Pole wolno pominąć (np. cel dla 2. jednostki, gdy wybrano jedną) - efekt sprawdza resztę. */
+      optional?: boolean;
       /** ``list`` = zwykła lista kafelków (np. technologie do oddania), bez okna drzewa. */
       display?: "list";
     })
@@ -43,7 +45,7 @@ export type ActionCardInput =
       kind: "number";
       min: number;
       max: number;
-      /** Wartość „Auto” (domyślna, gdy gracz nic nie zmienia; przycisk „Auto” w polu). */
+      /** Wartość „Auto” - tylko walka i wydawanie (przycisk „Auto” w polu); bez niej start = ``min``. */
       auto?: number;
       /** ``{from, to, unit}`` = ile jednostek przenieść z planety na planetę (``RouteNumbersField``). */
       meta?: Record<string, unknown>;
@@ -143,7 +145,7 @@ export function buildActionCardParams(
     if (input.kind === "choice") {
       const option = input.options.find((o) => o.id === value);
       if (!option) {
-        ready = false;
+        if (!input.optional) ready = false;
         continue;
       }
       if (input.merge && typeof option.value === "object" && option.value !== null) {

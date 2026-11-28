@@ -77,7 +77,7 @@ def test_slumberstate_coexist_instead_of_coalescence_combat(
     coexist, autos = _awaken_on_rival(
         registry, {f"sleeper:{ALBION}": "pds", f"coexist:{ALBION}": "coexist"}
     )
-    assert autos[f"coexist:{ALBION}"] == "coexist"  # choice + "Auto" (ASSUMPTION 62.18)
+    assert autos[f"coexist:{ALBION}"] == "None"  # manual choice, no "Auto" (2026-11-27)
     assert _units(coexist, EAST, ALBION) == {"pds": 1}
     assert coexist.systems[EAST].planet_owners[ALBION] == "p2"  # controller keeps the planet
     assert coexistence.coexisting_players(coexist, EAST, ALBION) == ["p1"]

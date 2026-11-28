@@ -174,10 +174,9 @@ def _stall_blocker(state: GameState, _registry_: StaticDataRegistry, player_id: 
 def stall_inputs(
     state: GameState, registry: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.22): "Auto" = the first card in hand order."""
+    """No "Auto" (user decision 2026-11-27)."""
     options = _card_options(state, registry, player_id)
-    return [oi.choice("card", "Action card to discard", options, always=True,
-                      auto=options[0]["value"] if options else None)]
+    return [oi.choice("card", "Action card to discard", options, always=True)]
 
 
 @register_effect(STALL_KEY)
@@ -232,14 +231,14 @@ def _deploy_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> b
 def deploy_inputs(
     state: GameState, registry: StaticDataRegistry, decider: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.22): "Auto" = the first controlled planet (board order)."""
+    """No "Auto" (user decision 2026-11-27)."""
     options = [
         oi.option(planet, card_labels.describe_planet(state, registry, planet),
                   ref=("planet", planet))
         for _pos, planet in _mech_planets(state, decider)
     ]
     return [oi.choice("planet", "Planet for 1 mech (Blackshade Infiltrator)", options,
-                      always=True, auto=options[0]["value"] if options else None)]
+                      always=True)]
 
 
 @on_event(
@@ -291,12 +290,9 @@ def _has_cards(state: GameState, _player_id: str, ctx: Mapping[str, Any]) -> boo
 def scheming_inputs(
     state: GameState, registry: StaticDataRegistry, decider: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """Any card of the hand (scheming 3). ⚠️ ASSUMPTION (RULES.md 62.22): "Auto" = the card drawn
-    last (the additional one)."""
-    hand = _hand(state, decider)
+    """Any card of the hand (scheming 3). No "Auto" (user decision 2026-11-27)."""
     return [oi.choice("card", "Scheming: action card to discard",
-                      _card_options(state, registry, decider), always=True,
-                      auto=hand[-1] if hand else None)]
+                      _card_options(state, registry, decider), always=True)]
 
 
 @on_event(
@@ -360,12 +356,11 @@ def _mageon_targets(state: GameState, player_id: str) -> list[str]:
 def mageon_inputs(
     state: GameState, _registry_: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.22): only players with action cards; "Auto" = the player with
-    the most action cards."""
+    """⚠️ ASSUMPTION (RULES.md 62.22): only players with action cards. No "Auto" (user
+    decision 2026-11-27)."""
     targets = _mageon_targets(state, player_id)
-    most = max(targets, key=lambda p: len(_hand(state, p)), default=None)
     return [oi.choice("player", "Player whose action cards you look at",
-                      _player_options(state, targets), always=True, auto=most)]
+                      _player_options(state, targets), always=True)]
 
 
 @register_effect(f"technologies:{MAGEON}")
@@ -395,11 +390,11 @@ def _target_has_cards(state: GameState, _player_id: str, ctx: Mapping[str, Any])
 def mageon_pick_inputs(
     state: GameState, registry: StaticDataRegistry, _decider: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.22): "Auto" = the first card."""
+    """No "Auto" (user decision 2026-11-27)."""
     target = str(ctx["target"])
     options = _card_options(state, registry, target)
     return [oi.choice("card", f"{_name(state, target)}'s action cards: take 1", options,
-                      always=True, auto=options[0]["value"] if options else None)]
+                      always=True)]
 
 
 @on_event(
@@ -486,15 +481,13 @@ def _so_ata_ready(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> b
 def so_ata_inputs(
     state: GameState, _registry_: StaticDataRegistry, _decider: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.22): "Auto" = action cards (only non-empty hands)."""
+    """Only non-empty hands. No "Auto" (user decision 2026-11-27)."""
     other = str(ctx["player"])
     options = [
         oi.option(kind, f"{label.capitalize()} ({len(_hand_of(state, other, kind))})")
         for kind, (label, _ref) in _HANDS.items() if _hand_of(state, other, kind)
     ]
-    auto = next((o["value"] for o in options), None)
-    return [oi.choice("hand", f"Look at {_name(state, other)}'s", options, always=True,
-                      auto=auto)]
+    return [oi.choice("hand", f"Look at {_name(state, other)}'s", options, always=True)]
 
 
 @on_event(
@@ -529,15 +522,14 @@ def _look_option(state: GameState, registry: StaticDataRegistry, kind: str, card
 def look_inputs(
     state: GameState, registry: StaticDataRegistry, _decider: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """The looked-at cards as read-only chips + "Done" (also the "Auto")."""
+    """The looked-at cards as read-only chips + "Done"."""
     target, kind = str(ctx["target"]), str(ctx["hand"])
     cards = [_look_option(state, registry, kind, c)
              for c in dict.fromkeys(_hand_of(state, target, kind))]
     return [
         oi.info("seen", f"{_name(state, target)}'s {_HANDS[kind][0]}", cards,
                 hint="Only you see these cards.", show=True),
-        oi.choice("done", "When you have seen them", [oi.option(_DONE, "Done")], always=True,
-                  auto=_DONE),
+        oi.choice("done", "When you have seen them", [oi.option(_DONE, "Done")], always=True),
     ]
 
 
@@ -578,11 +570,9 @@ def kyver(
 def show_inputs(
     state: GameState, registry: StaticDataRegistry, decider: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """The shower chooses the card (kyver 1). ⚠️ ASSUMPTION (RULES.md 62.22): "Auto" = the first
-    card in hand."""
+    """The shower chooses the card (kyver 1). No "Auto" (user decision 2026-11-27)."""
     options = _card_options(state, registry, decider)
-    return [oi.choice("card", "Action card you show the Yssaril player", options, always=True,
-                      auto=options[0]["value"] if options else None)]
+    return [oi.choice("card", "Action card you show the Yssaril player", options, always=True)]
 
 
 @on_event(
@@ -606,7 +596,7 @@ def kyver_show(state: GameState, player_id: str, ctx: Mapping[str, Any]) -> None
 def choose_inputs(
     state: GameState, registry: StaticDataRegistry, _decider: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.22): "Auto" = take the card."""
+    """No "Auto" (user decision 2026-11-27)."""
     target, card = str(ctx["target"]), str(ctx["card"])
     name = card_name(registry, card)
     options = []
@@ -618,8 +608,7 @@ def choose_inputs(
     return [
         oi.info("shown", f"{_name(state, target)} shows you", [
             oi.option(card, name, ref=("actionCard", card))], show=True),
-        oi.choice("choice", "Take that card or force the discard", options, always=True,
-                  auto=options[0]["value"]),
+        oi.choice("choice", "Take that card or force the discard", options, always=True),
     ]
 
 
@@ -678,11 +667,11 @@ def spy_net(
 def spy_pick_inputs(
     state: GameState, registry: StaticDataRegistry, _decider: str, ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.22): "Auto" = the first card."""
+    """No "Auto" (user decision 2026-11-27)."""
     owner = str(ctx["target"])
     options = _card_options(state, registry, owner)
     return [oi.choice("card", f"{_name(state, owner)}'s action cards: take 1", options,
-                      always=True, auto=options[0]["value"] if options else None)]
+                      always=True)]
 
 
 @on_event(
@@ -737,11 +726,11 @@ def deepgloom_allow_scheming(state: GameState, player_id: str, ctx: Mapping[str,
 def allowed_inputs(
     _state: GameState, _registry_: StaticDataRegistry, _decider: str, _ctx: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.22): "Auto" = use Scheming."""
+    """No "Auto" (user decision 2026-11-27)."""
     return [oi.choice("use", "Scheming (allowed by the Yssaril player)", [
         oi.option(_USE, "Draw 1 additional action card, then discard 1"),
         oi.option(_DECLINE, "Do not use Scheming"),
-    ], always=True, auto=_USE)]
+    ], always=True)]
 
 
 @on_event(
@@ -787,11 +776,10 @@ cooperative.register_pull_component(
 def deepgloom_inputs(
     state: GameState, _registry_: StaticDataRegistry, player_id: str
 ) -> list[dict[str, Any]]:
-    """⚠️ ASSUMPTION (RULES.md 62.22): "Auto" = the next player in turn order."""
+    """No "Auto" (user decision 2026-11-27)."""
     targets = _lend_targets(state, player_id)
     return [oi.choice("player", "Player you allow to use Stall Tactics",
-                      _player_options(state, targets), always=True,
-                      auto=targets[0] if targets else None)]
+                      _player_options(state, targets), always=True)]
 
 
 @register_effect(f"breakthroughs:{BREAKTHROUGH}")

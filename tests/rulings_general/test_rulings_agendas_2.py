@@ -604,7 +604,8 @@ def test_rearmament_mech_from_the_board_when_reinforcements_empty(
     assert board_reinforcements.needs_board_source(state, "p1", "mech")
     fields = agendas_directives._rearm_inputs(state, registry, "p1", {})
     assert [f["key"] for f in fields] == ["planet", "source"]
-    assert fields[1]["auto"] == "none"  # Auto = do not place (nothing leaves the board)
+    assert "auto" not in fields[1]  # "Do not place" is an explicit option, no "Auto"
+    assert "none" in [o["value"] for o in fields[1]["options"]]
     pick = next(o for o in fields[1]["options"] if o["value"] != "none")
     assert pick["meta"]["unit"] == "mech" and pick["meta"]["planet"]  # clicked on the map
     source = pick["value"]

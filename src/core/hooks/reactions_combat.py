@@ -44,6 +44,7 @@ from src.core import (
     unit_ops,
 )
 from src.core import offer_inputs as oi
+from src.core.battle_units import damaged_with_sustain
 from src.core.combat import resolve_unit_variant
 from src.core.dice import DIE_SIDES, count_hits, next_rng, record_table_roll
 from src.core.fleet_pool import unit_cost, unit_name
@@ -168,15 +169,19 @@ def _text(params: Mapping[str, Any], key: str, message: str) -> str:
     return value
 
 
-def _damaged_units(state: GameState, player_id: str, position: str) -> list[tuple[str, str, int]]:
-    """Uszkodzone jednostki gracza w systemie: ``[(strefa, typ, liczba)]``."""
+def _damaged_units(
+    state: GameState, registry: StaticDataRegistry, player_id: str, position: str
+) -> list[tuple[str, str, int]]:
+    """Damaged units of the player in the system that currently HAVE SUSTAIN DAMAGE:
+    ``[(zone, type, count)]`` (Emergency Repairs). A ship damaged under The Cavalry is repaired
+    only while it still has the ability, i.e. during that combat (F_nomad the-cavalry 2.4)."""
     system = state.systems.get(position)
     if system is None:
         return []
     found: list[tuple[str, str, int]] = []
     for zone in sorted(system.damaged_units):
         for base_type in sorted(system.damaged_units[zone].get(player_id, {})):
-            count = damage.damaged_count(system, zone, player_id, base_type)
+            count = damaged_with_sustain(state, registry, player_id, position, zone, base_type)
             if count > 0:
                 found.append((zone, base_type, count))
     return found
@@ -429,15 +434,15 @@ def _emergency_position(state: GameState, window: OpenWindow) -> str | None:
 
 
 def _emergency_condition(
-    state: GameState, _registry: StaticDataRegistry, player_id: str, window: OpenWindow
+    state: GameState, registry: StaticDataRegistry, player_id: str, window: OpenWindow
 ) -> bool:
     position = _emergency_position(state, window)
-    return position is not None and bool(_damaged_units(state, player_id, position))
+    return position is not None and bool(_damaged_units(state, registry, player_id, position))
 
 
 @register_effect("action_cards:emergency")
 def emergency_repairs(
-    state: GameState, _registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
+    state: GameState, registry: StaticDataRegistry, player_id: str, params: Mapping[str, Any]
 ) -> None:
     """Emergency Repairs: Repair all of your units that have SUSTAIN DAMAGE in the active system.
 
@@ -453,11 +458,12 @@ def emergency_repairs(
     if position is None:
         raise ValueError("There is no active system to repair units in.")
     system = state.systems[position]
-    repaired = _damaged_units(state, player_id, position)
+    repaired = _damaged_units(state, registry, player_id, position)
     if not repaired:
-        raise ValueError("You have no damaged units in the active system.")
-    for zone, base_type, _count in repaired:
-        damage.set_damaged(system, zone, player_id, base_type, 0)
+        raise ValueError("You have no damaged units with SUSTAIN DAMAGE in the active system.")
+    for zone, base_type, count in repaired:
+        now = damage.damaged_count(system, zone, player_id, base_type)
+        damage.set_damaged(system, zone, player_id, base_type, now - count)
 
 
 declare_reaction(
@@ -1034,6 +1040,8 @@ def _register_direct_hit(card_id: str) -> None:
         # Niszczymy właśnie ten, uszkodzony egzemplarz - uszkodzeń ma być o jedno mniej (a gdy
         # Dynamo już go naprawił - ginie nieuszkodzony, F_empyrean dynamo 3).
         damage.set_damaged(system, zone, target, base_type, max(0, damaged_before - 1))
+        if damaged_before == 0:  # the repaired ship leaves its "already sustained" record
+            damage.forget_sustain_spent(state, combat.position, zone, target, base_type, 1)
 
     register_effect(f"action_cards:{card_id}")(effect)
 

@@ -61,6 +61,8 @@ from tests.rulings import ruling
 # 101 = dom Naalu (09: Maaluuk, Druaa), 102 = Wellon (19), 103 = Vefutii (20), 104 = Thibah
 # (21, p2), 105 = Tarmann (22), 106 = Quann (25); 000 = Mecatol. Pierścień 1: sąsiedzi kolejno.
 HOME, ARENA, EAST, RIVAL, FAR, WEST = "101", "102", "103", "104", "105", "106"
+# Foresight cargo picked manually (no "Auto" - user decision 2026-11-27).
+_CARGO = {"destination": EAST, "carry_mech": 1, "carry_infantry": 1}
 MAALUUK, WELLON, VEFUTII, THIBAH = "maaluuk", "wellon", "vefutii", "thibah"
 _SCEPTER = "emelpar"  # Scepter of Emelpar
 
@@ -264,9 +266,9 @@ def _p2_moved(state: GameState, position: str = ARENA) -> GameState:
 def test_foresight_przenosi_statki_i_kladzie_zeton() -> None:
     state = _p2_moved(_foresight_state())
     assert _offers(state, "p1", "Foresight")
-    after = _accept(state, "p1", "Foresight", {"destination": EAST})
+    after = _accept(state, "p1", "Foresight", _CARGO)
     moved = after.systems[EAST].space_units["p1"]
-    # Wszystkie statki (myśliwce bez transportu) + siły naziemne do pojemności (carrier = 4).
+    # Wszystkie statki (myśliwce bez transportu) + wybrane siły naziemne (carrier = 4).
     assert moved == {"cruiser": 1, "carrier": 1, "fighter": 2, "infantry": 1, "mech": 1}
     assert "p1" not in after.systems[ARENA].space_units or not any(
         after.systems[ARENA].space_units["p1"].values()
@@ -275,8 +277,9 @@ def test_foresight_przenosi_statki_i_kladzie_zeton() -> None:
     assert after.players["p1"].strategic_cc == 1
 
 
-def test_foresight_wybor_ladunku_z_auto(registry: StaticDataRegistry) -> None:
-    """Gracz wybiera, ile sił naziemnych zabrać; „Auto” = do pojemności, najpierw mechy."""
+def test_foresight_wybor_ladunku_bez_auto(registry: StaticDataRegistry) -> None:
+    """Gracz wybiera, ile sił naziemnych zabrać - bez „Auto” (decyzja użytkownika 2026-11-27);
+    pominięte pole = 0 (start steppera)."""
     state = _foresight_state()
     state.systems[ARENA].space_units["p1"]["infantry"] = 5  # 1 mech + 5 piechoty, pojemność 4
     moved = _p2_moved(state)
@@ -284,9 +287,9 @@ def test_foresight_wybor_ladunku_z_auto(registry: StaticDataRegistry) -> None:
     hook = rules_hooks.hook_by_seq(offer.hook_seq)
     assert hook is not None and hook.inputs is not None
     fields = {i["key"]: i for i in hook.inputs(moved, registry, "p1", offer.ctx)}
-    assert (fields["carry_mech"]["auto"], fields["carry_infantry"]["auto"]) == (1, 3)
-    auto = _accept(moved, "p1", "Foresight", {"destination": EAST})  # pola pominięte = Auto
-    assert auto.systems[EAST].space_units["p1"]["infantry"] == 3
+    assert "auto" not in fields["carry_mech"] and "auto" not in fields["carry_infantry"]
+    bare = _accept(moved, "p1", "Foresight", {"destination": EAST})  # pola pominięte = 0
+    assert {"infantry", "mech"}.isdisjoint(bare.systems[EAST].space_units["p1"])
     own = _accept(moved, "p1", "Foresight",
                   {"destination": EAST, "carry_mech": 0, "carry_infantry": 4})
     assert own.systems[EAST].space_units["p1"]["infantry"] == 4
@@ -394,7 +397,7 @@ def test_foresight_z_gravity_rift_z_circlet_bez_rzutu() -> None:
     state.systems[ARENA].system_id = "41"  # gravity rift
     state.players["p1"].relics = ["circletofthevoid"]
     state.rng_seed = 3
-    after = _accept(_p2_moved(state), "p1", "Foresight", {"destination": EAST})
+    after = _accept(_p2_moved(state), "p1", "Foresight", _CARGO)
     assert after.systems[EAST].space_units["p1"] == {
         "cruiser": 1, "carrier": 1, "fighter": 2, "infantry": 1, "mech": 1,
     }
@@ -431,7 +434,7 @@ def test_foresight_do_systemu_z_cudzymi_strukturami_bez_inwazji() -> None:
     state.systems[EAST].planet_units = {VEFUTII: {"p2": {"pds": 1}}}
     state.players["p2"].controlled_planets.append(VEFUTII)
     assert EAST in naalu.foresight_destinations(state, "p1", ARENA)
-    after = _accept(_p2_moved(state), "p1", "Foresight", {"destination": EAST})
+    after = _accept(_p2_moved(state), "p1", "Foresight", _CARGO)
     assert after.systems[EAST].space_units["p1"]["infantry"] == 1  # siły naziemne w przestrzeni
     assert after.systems[EAST].planet_units[VEFUTII] == {"p2": {"pds": 1}}
     assert after.systems[EAST].planet_owners[VEFUTII] == "p2"
